@@ -95,7 +95,7 @@ export function FrontDeskPage() {
             </div>
           )}
 
-          {gymId && <GymCheckinPanel gymId={gymId} ptCheckinsMode="today" />}
+          {gymId && <GymCheckinPanel gymId={gymId} ptCheckinsMode="today" branch={gym as any} />}
 
           {gymId && <CheckinExceptionsPanel gymId={gymId} />}
           {gymId && <AssistedCheckinPanel gymId={gymId} />}

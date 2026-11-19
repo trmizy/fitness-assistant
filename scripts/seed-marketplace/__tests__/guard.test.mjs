@@ -110,3 +110,68 @@ test("resolveTarget builds the dedicated seed_test names on the test container b
   assert.equal(t.port, 55433);
   assert.deepEqual(Object.values(t.dbs), ["gymcoach_auth_seed_test", "gymcoach_user_seed_test", "gymcoach_gym_seed_test", "gymcoach_payment_seed_test"]);
 });
+
+test("scale target accepts only all 7 gymcoach_<svc>_scale DBs on localhost:55440 or gymcoach-postgres-scale:5432 with SEED_MARKETPLACE_CONFIRM=scale", () => {
+  const target = resolveTarget({ kind: "scale", env: {} });
+  assert.equal(target.host, "localhost");
+  assert.equal(target.port, 55440);
+  assert.equal(Object.keys(target.dbs).length, 7);
+
+  refuses(() => assertSeedAllowed(target, { env: {} }), "CONFIRM_MISSING");
+  refuses(() => assertSeedAllowed(target, { env: { SEED_MARKETPLACE_CONFIRM: "dev" } }), "CONFIRM_MISSING");
+
+  const okEnv = { SEED_MARKETPLACE_CONFIRM: "scale" };
+  assert.equal(assertSeedAllowed(target, { env: okEnv }).kind, "scale");
+  assert.equal(assertSeedAllowed({ ...target, host: "127.0.0.1" }, { env: okEnv }).kind, "scale");
+  assert.equal(assertSeedAllowed({ ...target, host: "::1" }, { env: okEnv }).kind, "scale");
+  assert.equal(assertSeedAllowed({ ...target, host: "gymcoach-postgres-scale", port: 5432 }, { env: okEnv }).kind, "scale");
+});
+
+test("scale target refuses production, wrong host/port, forbidden names, missing/mixed DBs, and non-scale targets refuse scale DBs", () => {
+  const target = resolveTarget({ kind: "scale", env: {} });
+  const okEnv = { SEED_MARKETPLACE_CONFIRM: "scale" };
+
+  refuses(() => assertSeedAllowed(target, { env: { NODE_ENV: "production", SEED_MARKETPLACE_CONFIRM: "scale" } }), "PRODUCTION_REFUSED");
+  refuses(() => assertSeedAllowed({ ...target, host: "db.example.com" }, { env: okEnv }), "HOST_NOT_ALLOWED");
+  refuses(() => assertSeedAllowed({ ...target, host: "gymcoach-postgres", port: 5432 }, { env: okEnv }), "HOST_NOT_ALLOWED");
+  refuses(() => assertSeedAllowed({ ...target, port: 5433 }, { env: okEnv }), "HOST_NOT_ALLOWED");
+  refuses(() => assertSeedAllowed({ ...target, port: 55433 }, { env: okEnv }), "HOST_NOT_ALLOWED");
+  refuses(() => assertSeedAllowed({ ...target, host: "gymcoach-postgres-scale", port: 55440 }, { env: okEnv }), "HOST_NOT_ALLOWED");
+
+  refuses(() => assertSeedAllowed({ ...target, dbs: { ...target.dbs, user: "gymcoach_user_prod_scale" } }, { env: okEnv }), "FORBIDDEN_DB_NAME");
+  refuses(() => assertSeedAllowed({ ...target, dbs: { ...target.dbs, gym: "gymcoach_gym_staging" } }, { env: okEnv }), "FORBIDDEN_DB_NAME");
+  refuses(() => assertSeedAllowed({ ...target, dbs: { ...target.dbs, auth: "gymcoach_auth_live" } }, { env: okEnv }), "FORBIDDEN_DB_NAME");
+  refuses(() => assertSeedAllowed({ ...target, dbs: { ...target.dbs, ai: undefined } }, { env: okEnv }), "NO_TARGET");
+  refuses(() => assertSeedAllowed({ ...target, dbs: { ...target.dbs, user: "gymcoach_gym_scale" } }, { env: okEnv }), "DB_SERVICE_MISMATCH");
+  refuses(() => assertSeedAllowed({ ...target, dbs: { ...target.dbs, auth: "gymcoach_auth" } }, { env: okEnv }), "DB_NOT_ALLOWLISTED");
+  refuses(() => assertSeedAllowed({ ...target, dbs: { ...target.dbs, payment: "gymcoach_payment_seed_test" } }, { env: okEnv }), "DB_NOT_ALLOWLISTED");
+  refuses(() => assertSeedAllowed({ ...target, dbs: { ...target.dbs, fitness: "gymcoach_fitness_seedrun" } }, { env: okEnv }), "DB_NOT_ALLOWLISTED");
+
+  // Non-scale targets must also refuse *_scale DBs and gymcoach-postgres-scale / port 55440
+  refuses(() => assertSeedAllowed(test_({ dbs: { ...dbs("seed_test"), auth: "gymcoach_auth_scale" } }), { env: {} }), "DB_NOT_ALLOWLISTED");
+  refuses(() => assertSeedAllowed({ ...resolveTarget({ kind: "fresh", env: {} }), host: "gymcoach-postgres-scale", port: 5432 }, { env: {} }), "HOST_NOT_ALLOWED");
+});
+
+test("non-scale targets refuse scale DB suffixes, port 55440, and gymcoach-postgres-scale while valid partner still passes", () => {
+  const partnerScaleEnv = { SEED_DB_SUFFIX: "scale", SEED_PG_PORT: "55440", SEED_MARKETPLACE_CONFIRM: "partner" };
+  refuses(() => assertSeedAllowed(resolveTarget({ kind: "partner", env: partnerScaleEnv }), { env: partnerScaleEnv }), "DB_NOT_ALLOWLISTED");
+  refuses(
+    () => assertSeedAllowed(resolveTarget({ kind: "partner", env: { SEED_DB_SUFFIX: "custom_scale", SEED_MARKETPLACE_CONFIRM: "partner" } }), { env: { SEED_MARKETPLACE_CONFIRM: "partner" } }),
+    "DB_NOT_ALLOWLISTED",
+  );
+
+  refuses(
+    () => assertSeedAllowed(resolveTarget({ kind: "partner", env: { SEED_PG_PORT: "55440" } }), { env: { SEED_MARKETPLACE_CONFIRM: "partner" } }),
+    "HOST_NOT_ALLOWED",
+  );
+  refuses(
+    () => assertSeedAllowed(resolveTarget({ kind: "partner", env: { SEED_PG_HOST: "gymcoach-postgres-scale" } }), { env: { SEED_MARKETPLACE_CONFIRM: "partner" } }),
+    "HOST_NOT_ALLOWED",
+  );
+  refuses(() => assertSeedAllowed(resolveTarget({ kind: "fresh", env: { SEED_PG_PORT: "55440" } }), { env: {} }), "HOST_NOT_ALLOWED");
+  refuses(() => assertSeedAllowed(test_({ port: 55440 }), { env: {} }), "HOST_NOT_ALLOWED");
+  refuses(() => assertSeedAllowed(dev({ port: 55440 }), { env: { SEED_MARKETPLACE_CONFIRM: "dev" }, markerPath: marker() }), "HOST_NOT_ALLOWED");
+
+  const validPartnerEnv = { SEED_DB_SUFFIX: "sandbox", SEED_MARKETPLACE_CONFIRM: "partner" };
+  assert.equal(assertSeedAllowed(resolveTarget({ kind: "partner", env: validPartnerEnv }), { env: validPartnerEnv }).kind, "partner");
+});

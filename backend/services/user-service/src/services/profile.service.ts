@@ -1,9 +1,10 @@
 import axios from "axios";
 import { profileRepository } from "../repositories/profile.repository";
+import { locationRepository } from "../repositories/location.repository";
 import { ptApplicationRepository } from "../repositories/pt_application.repository";
 import type { ProfileDto } from "../models/profile.models";
 import { authServiceClient } from "../clients/auth-service.client";
-import { toSignedProfilePhotoUrl } from "./s3-upload.service";
+import { toSignedProfilePhotoUrl, toSignedOtherUserPhotoUrl } from "./s3-upload.service";
 import { bootstrapNutritionSafe } from "../clients/fitness-service.client";
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:3006";
@@ -113,6 +114,29 @@ export async function withSignedProfilePhoto<T extends { photoUrl?: string | nul
   };
 }
 
+/**
+ * Shared mapper for a profile-shaped object that belongs to ANOTHER user (contract parties, session counterparties,
+ * PT application applicant, agent PT candidates). Returns a copy with `photoUrl` signed; same shape otherwise.
+ */
+export async function withSignedOtherUserPhoto<T extends { photoUrl?: string | null } | null | undefined>(
+  profile: T,
+): Promise<T> {
+  if (!profile?.photoUrl) return profile;
+  return {
+    ...(profile as any),
+    photoUrl: await toSignedOtherUserPhotoUrl(profile.photoUrl),
+  };
+}
+
+/** Same, for a userId -> profile map (values are replaced; the batch runs in parallel). */
+export async function signOtherUserPhotosInMap<V extends { photoUrl?: string | null } | null | undefined>(
+  map: Map<string, V>,
+): Promise<void> {
+  const entries = [...map.entries()];
+  const signed = await Promise.all(entries.map(([, v]) => withSignedOtherUserPhoto(v)));
+  entries.forEach(([k], i) => map.set(k, signed[i]));
+}
+
 function computeAgeFromDob(dateOfBirth: string): number {
   const dob = new Date(dateOfBirth);
   const now = new Date();
@@ -130,6 +154,63 @@ export const profileService = {
 
   async upsertProfile(userId: string, data: ProfileDto) {
     const payload: Record<string, any> = { ...data };
+    // D1.1: Validate search region against reference tables (no hard FK on UserProfile).
+    // null searchProvinceCode means "Toàn quốc" and clears searchWardCode too.
+    const hasSearchProvince = Object.prototype.hasOwnProperty.call(
+      data,
+      "searchProvinceCode",
+    );
+    const hasSearchWard = Object.prototype.hasOwnProperty.call(
+      data,
+      "searchWardCode",
+    );
+    if (hasSearchProvince || hasSearchWard) {
+      if (data.searchWardCode != null && data.searchProvinceCode == null) {
+        const err = new Error(
+          "searchWardCode phải đi kèm searchProvinceCode",
+        ) as Error & { status?: number; code?: string };
+        err.status = 400;
+        err.code = "INVALID_SEARCH_REGION";
+        throw err;
+      }
+      if (data.searchProvinceCode === null) {
+        payload.searchProvinceCode = null;
+        payload.searchWardCode = null;
+      } else if (data.searchProvinceCode != null) {
+        const province = await locationRepository.findProvinceByCode(
+          data.searchProvinceCode,
+        );
+        if (!province) {
+          const err = new Error(
+            `searchProvinceCode ${data.searchProvinceCode} không tồn tại`,
+          ) as Error & { status?: number; code?: string };
+          err.status = 400;
+          err.code = "INVALID_SEARCH_REGION";
+          throw err;
+        }
+        if (data.searchWardCode != null) {
+          const ward = await locationRepository.findWardByCode(
+            data.searchWardCode,
+          );
+          if (!ward || ward.provinceCode !== data.searchProvinceCode) {
+            const err = new Error(
+              `searchWardCode ${data.searchWardCode} không tồn tại hoặc không thuộc tỉnh ${data.searchProvinceCode}`,
+            ) as Error & { status?: number; code?: string };
+            err.status = 400;
+            err.code = "INVALID_SEARCH_REGION";
+            throw err;
+          }
+        } else if (!hasSearchWard) {
+          const existingProfile = await profileRepository.findByUserId(userId);
+          if (
+            existingProfile &&
+            existingProfile.searchProvinceCode !== data.searchProvinceCode
+          ) {
+            payload.searchWardCode = null;
+          }
+        }
+      }
+    }
     // If dateOfBirth is provided, derive age so downstream services stay consistent
     if (data.dateOfBirth) {
       payload.dateOfBirth = new Date(data.dateOfBirth);

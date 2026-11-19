@@ -53,7 +53,9 @@ export const inbodyController = {
       return res.json(entry);
     } catch (error: any) {
       if (error.status)
-        return res.status(error.status).json({ error: error.message });
+        return res
+          .status(error.status)
+          .json({ error: error.message, ...(error.code ? { code: error.code } : {}), ...(error.field ? { field: error.field } : {}) });
       logger.error(error, "Create InBody entry error");
       return res.status(500).json({ error: "Internal server error" });
     }
@@ -70,8 +72,25 @@ export const inbodyController = {
       return res.json(entry);
     } catch (error: any) {
       if (error.status)
-        return res.status(error.status).json({ error: error.message });
+        return res
+          .status(error.status)
+          .json({ error: error.message, ...(error.code ? { code: error.code } : {}), ...(error.field ? { field: error.field } : {}) });
       logger.error(error, "Update InBody entry error");
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  // N13G-04: owner-only delete (404 for anyone else's / unknown id).
+  async remove(req: AuthRequest, res: Response) {
+    try {
+      const result = await inbodyService.deleteEntry(req.user!.id, req.params.id);
+      return res.json(result);
+    } catch (error: any) {
+      if (error.status)
+        return res
+          .status(error.status)
+          .json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
+      logger.error(error, "Delete InBody entry error");
       return res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -92,10 +111,12 @@ export const inbodyController = {
     } catch (error: any) {
       // OCR errors are almost always "ảnh người dùng cung cấp không parse được" — that's a
       // 400, not a 500. We only fall back to 500 when error.status explicitly says so.
-      const status = error?.status && error.status >= 500 ? error.status : 400;
+      // The one deliberate exception is a readable image with no InBody metrics (422, N13G-06).
+      const status = error?.status === 422 ? 422 : error?.status && error.status >= 500 ? error.status : 400;
       logger.error({ err: error?.message }, "InBody upload/OCR error");
       return res.status(status).json({
         error: error.message || "Failed to extract InBody from image",
+        ...(error?.code ? { code: error.code } : {}),
       });
     } finally {
       if (tempPath) {

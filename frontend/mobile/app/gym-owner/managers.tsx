@@ -31,12 +31,15 @@ import {
   daysSince,
   inviteIsStale,
   inviteManagerError,
+  isManagerAccount,
   managerName,
   managerScopeLabel,
   ownedGyms,
   pendingManagerInvites,
 } from "../../src/features/gymOwner/gymOwner";
 import { emailInputProps, normalizeEmail } from "../../src/lib/email";
+import { usePullToRefresh } from "../../src/hooks/usePullToRefresh";
+import { useRefetchOnReturn } from "../../src/hooks/useRefetchOnReturn";
 
 /**
  * GY-05 — "Người quản lý". Chủ sở hữu tự mời và thu hồi quản lý chi nhánh, không cần quản trị viên.
@@ -50,7 +53,38 @@ import { emailInputProps, normalizeEmail } from "../../src/lib/email";
  */
 const BRANCH_LIST_LIMIT = 8;
 
+/**
+ * NE-11 — inviting and revoking managers is OWNER-only on the server. A manager / receptionist /
+ * accountant has no link here but can arrive by deep link, so the screen shows the same
+ * "Chỉ dành cho chủ phòng gym" notice as the wallet and collaborations screens, and none of its
+ * reads or the invite button exist for them. An unreadable role falls through (the server polices).
+ */
 export default function GymOwnerManagersScreen() {
+  const insets = useSafeAreaInsets();
+  const accent = useWorkspaceAccent();
+  const { user } = useApp();
+  const statusQuery = useQuery({
+    queryKey: ["partner-onboarding-status", user?.id ?? "guest"],
+    queryFn: () => gymService.getOnboardingStatus(),
+  });
+  if (statusQuery.isLoading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-background">
+        <ActivityIndicator color={accent.primary} />
+      </View>
+    );
+  }
+  if (isManagerAccount(statusQuery.data)) {
+    return (
+      <View className="flex-1 bg-background px-5" style={{ paddingTop: insets.top + 24 }}>
+        <EmptyState icon={Users} title="Chỉ dành cho chủ phòng gym" description="Việc mời và thu hồi người quản lý do chủ phòng gym thực hiện." />
+      </View>
+    );
+  }
+  return <ManagersContent />;
+}
+
+function ManagersContent() {
   const insets = useSafeAreaInsets();
   const accent = useWorkspaceAccent();
   const toast = useToast();
@@ -65,8 +99,16 @@ export default function GymOwnerManagersScreen() {
   const [created, setCreated] = useState<{ email: string; inviteLink: string; emailSent: boolean } | null>(null);
 
   const gymsQuery = useQuery({ queryKey: ["owned-gyms", uid], queryFn: () => gymService.listOwnedGyms() });
+  const accountsKey = ["owner-partner-accounts", uid];
+  const invitesKey = ["owner-partner-invitations", uid];
   const accountsQuery = useQuery({ queryKey: ["owner-partner-accounts", uid], queryFn: () => gymService.listPartnerAccounts() });
   const invitesQuery = useQuery({ queryKey: ["owner-partner-invitations", uid], queryFn: () => gymService.listPartnerInvitations() });
+
+  // N15M-12: a manager who accepted from outside the app (email link) is only on the server — re-read the lists whenever
+  // the owner comes back to this screen or the app, and on pull-to-refresh (the spinner now lasts until both lists answer).
+  useRefetchOnReturn(accountsKey);
+  useRefetchOnReturn(invitesKey);
+  const { refreshing, onRefresh } = usePullToRefresh([accountsKey, invitesKey]);
 
   const gyms = ownedGyms(gymsQuery.data);
   const managers = activeManagers(accountsQuery.data);
@@ -147,11 +189,8 @@ export default function GymOwnerManagersScreen() {
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }}
         refreshControl={
           <RefreshControl
-            refreshing={accountsQuery.isRefetching}
-            onRefresh={() => {
-              void accountsQuery.refetch();
-              void invitesQuery.refetch();
-            }}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
             tintColor={accent.primary}
             colors={[accent.primary]}
           />

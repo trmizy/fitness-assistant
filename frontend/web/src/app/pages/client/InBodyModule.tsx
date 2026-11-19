@@ -10,14 +10,16 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-import { UploadSimpleIcon as Upload, CheckCircleIcon as CheckCircle, ClockIcon as Clock, WarningCircleIcon as AlertCircle, XCircleIcon as XCircle, EyeIcon as Eye, TrendDownIcon as TrendingDown, TrendUpIcon as TrendingUp, CaretRightIcon as ChevronRight, FileImageIcon as FileImage, ArrowsClockwiseIcon as RefreshCw, CheckIcon as Check, PulseIcon as Activity, ClipboardTextIcon as ClipboardList, CameraIcon as Camera, ArrowRightIcon as ArrowRight, ChartBarIcon as BarChart2, ClockCounterClockwiseIcon as History, ArrowsLeftRightIcon as GitCompare, PlusIcon as Plus, CircleNotchIcon as Loader2 } from "@phosphor-icons/react";
+import { UploadSimpleIcon as Upload, CheckCircleIcon as CheckCircle, ClockIcon as Clock, WarningCircleIcon as AlertCircle, XCircleIcon as XCircle, EyeIcon as Eye, TrendDownIcon as TrendingDown, TrendUpIcon as TrendingUp, CaretRightIcon as ChevronRight, FileImageIcon as FileImage, ArrowsClockwiseIcon as RefreshCw, CheckIcon as Check, PulseIcon as Activity, ClipboardTextIcon as ClipboardList, CameraIcon as Camera, ArrowRightIcon as ArrowRight, ChartBarIcon as BarChart2, ClockCounterClockwiseIcon as History, ArrowsLeftRightIcon as GitCompare, PlusIcon as Plus, TrashIcon as Trash2, CircleNotchIcon as Loader2 } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
+import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { WarningIcon as AlertTriangle, CalendarCheckIcon as CalendarClock, FlagIcon as Flag } from "@phosphor-icons/react";
 import { inbodyService, profileService, trainingCycleService } from "../../services/api";
 import { bodyBalance, gaugePosition, type BalanceRow } from "./body-balance.utils";
 import { useApp } from "../../context/AppContext";
 import { InBodySegmentalDiagram } from "../../components/InBodySegmentalDiagram";
+import { InBodyExplanationCard } from "../../components/InBodyExplanationCard";
 
 /** Compact current-cycle summary — links to the full Chu kỳ tập luyện page for details/actions. */
 function CurrentCycleWidget() {
@@ -206,6 +208,10 @@ export function InBodyModule() {
   });
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("overview");
+  /** Entry just saved (scan or manual) — explained automatically on the "Đã lưu" screen. */
+  const [justSavedId, setJustSavedId] = useState<string | undefined>(undefined);
+  /** History row whose explanation is open. */
+  const [explainEntryId, setExplainEntryId] = useState<string | undefined>(undefined);
   const [uploadStep, setUploadStep] = useState<UploadStep>("drop");
   const [manualStep, setManualStep] = useState<ManualStep>("form");
   const [dragOver, setDragOver] = useState(false);
@@ -254,7 +260,15 @@ export function InBodyModule() {
 
   const history = useMemo(
     () =>
-      [...historyRaw].sort((a: any, b: any) => {
+      [...historyRaw]
+        // Older manual entries stored fat mass (kg) without the percentage, which rendered as "null%". The percentage is exact
+        // arithmetic on the two measured values, so fill it in for display.
+        .map((e: any) =>
+          (e?.bodyFatPct == null || Number.isNaN(Number(e.bodyFatPct))) && Number(e?.weight) > 0 && Number(e?.bodyFat) > 0
+            ? { ...e, bodyFatPct: Math.round((Number(e.bodyFat) / Number(e.weight)) * 1000) / 10 }
+            : e,
+        )
+        .sort((a: any, b: any) => {
         const cmp = measurementDateKey(b).localeCompare(measurementDateKey(a)); // descending
         if (cmp !== 0) return cmp;
         return (
@@ -268,7 +282,9 @@ export function InBodyModule() {
   // Mutations
   const createMutation = useMutation({
     mutationFn: inbodyService.create,
-    onSuccess: () => {
+    onSuccess: (saved: any) => {
+      // The "Đã lưu" screens explain the entry that was just saved.
+      setJustSavedId((saved?.data ?? saved)?.id ?? undefined);
       queryClient.invalidateQueries({ queryKey: ["inbody-history"] });
       // Sync profile.currentWeight: backend already updated it, we just bust the cache
       if (user?.id) {
@@ -276,6 +292,17 @@ export function InBodyModule() {
       }
       setManualStep("done");
     },
+  });
+
+  // N13G-04: xoá bản ghi nhập sai (backend chỉ cho chủ bản ghi; sau khi xoá đồng bộ lại cân nặng hồ sơ).
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => inbodyService.remove(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inbody-history"] });
+      if (user?.id) queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
+      toast.success("Đã xoá bản ghi InBody.");
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error || "Không xoá được bản ghi. Vui lòng thử lại."),
   });
 
   const uploadMutation = useMutation({
@@ -351,7 +378,7 @@ export function InBodyModule() {
   const validateManual = () => {
     const e: Record<string, string> = {};
     const w = (document.getElementById("m-weight") as HTMLInputElement)?.value;
-    if (!w || isNaN(Number(w))) e["weight"] = "Valid weight required";
+    if (!w || isNaN(Number(w))) e["weight"] = "Vui lòng nhập cân nặng hợp lệ";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -476,6 +503,8 @@ export function InBodyModule() {
       {tab === "overview" && (
         <div className="space-y-4">
           <CurrentCycleWidget />
+
+          {history.length > 0 && <InBodyExplanationCard key={history[0]?.id} entryId={history[0]?.id} />}
 
           {/* Two-method CTA banner */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -695,7 +724,7 @@ export function InBodyModule() {
               return (
                 <div
                   key={r.id}
-                  className={`flex items-center gap-4 p-3 rounded-xl border ${i === 0 ? "bg-green-500/5 border-green-500/15" : "glass-panel"}`}
+                  className={`flex flex-wrap items-center gap-x-4 gap-y-2 p-3 rounded-xl border ${i === 0 ? "bg-green-500/5 border-green-500/15" : "glass-panel"}`}
                 >
                   <div className="text-sm font-semibold text-zinc-200 w-28 flex-shrink-0">
                     {formatMeasurementDate(r)}
@@ -705,7 +734,7 @@ export function InBodyModule() {
                       </span>
                     )}
                   </div>
-                  <div className="flex gap-4 text-xs text-zinc-500">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 min-w-0 text-xs text-zinc-500">
                     <span className="text-blue-400 font-semibold">
                       {r.weight}kg
                     </span>
@@ -757,6 +786,11 @@ export function InBodyModule() {
                   Xem lịch sử
                 </button>
               </div>
+              {justSavedId && (
+                <div className="mt-6 text-left">
+                  <InBodyExplanationCard key={justSavedId} entryId={justSavedId} autoStart />
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -925,6 +959,11 @@ export function InBodyModule() {
                   </div>
                 </SectionCard>
 
+                {createMutation.isError && (
+                  <p role="alert" className="text-sm text-red-400">
+                    {(createMutation.error as any)?.response?.data?.error || "Không lưu được bản ghi. Vui lòng kiểm tra lại các chỉ số."}
+                  </p>
+                )}
                 <div className="flex gap-3">
                   <button
                     type="button"
@@ -1217,6 +1256,16 @@ export function InBodyModule() {
                         value: extractedData?.bodyFatPct,
                       },
                       { label: "BMI", field: "bmi", value: extractedData?.bmi },
+                      {
+                        label: "Mỡ nội tạng (mức)",
+                        field: "visceralFat",
+                        value: extractedData?.visceralFat,
+                      },
+                      {
+                        label: "BMR (kcal)",
+                        field: "bmr",
+                        value: extractedData?.bmr,
+                      },
                     ].map(
                       (f: {
                         label: string;
@@ -1440,6 +1489,11 @@ export function InBodyModule() {
                   Xem lịch sử
                 </button>
               </div>
+              {justSavedId && (
+                <div className="mt-6 text-left">
+                  <InBodyExplanationCard key={justSavedId} entryId={justSavedId} autoStart />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1467,6 +1521,15 @@ export function InBodyModule() {
               ),
             )}
           </div>
+
+          {explainEntryId && (
+            <InBodyExplanationCard
+              key={explainEntryId}
+              entryId={explainEntryId}
+              autoStart
+              title={`Giải thích lần đo ${(() => { const e = history.find((h: any) => h.id === explainEntryId); return e?.date ? new Date(e.date).toLocaleDateString("vi-VN") : ""; })()}`}
+            />
+          )}
 
           <div className="glass-panel rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center justify-between">
@@ -1533,9 +1596,35 @@ export function InBodyModule() {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <button className="text-zinc-600 hover:text-green-400 transition-colors">
-                              <Eye className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setExplainEntryId(explainEntryId === r.id ? undefined : r.id)}
+                                title="Giải thích lần đo này"
+                                aria-label="Giải thích lần đo này"
+                                className={`transition-colors ${explainEntryId === r.id ? "text-green-400" : "text-zinc-600 hover:text-green-400"}`}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                aria-label="Xoá bản ghi InBody"
+                                title="Xoá bản ghi"
+                                disabled={deleteMutation.isPending}
+                                onClick={() => {
+                                  if (
+                                    window.confirm(
+                                      `Xoá bản ghi InBody ngày ${formatMeasurementDate(r)}? Thao tác này không hoàn tác được.`,
+                                    )
+                                  ) {
+                                    deleteMutation.mutate(r.id);
+                                  }
+                                }}
+                                className="text-zinc-600 hover:text-red-400 transition-colors disabled:opacity-40"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );

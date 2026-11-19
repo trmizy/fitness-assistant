@@ -1,6 +1,7 @@
 import { logger } from '@gym-coach/shared';
 import { Prisma, WalletOwnerType, PartnerType } from '../generated/prisma';
 import { prisma } from '../repositories/prisma';
+import { recoverGymDebtFromCredit } from './gym-debt-recovery';
 
 export class InsufficientBalanceError extends Error {
   constructor(walletId: string) {
@@ -120,7 +121,7 @@ async function applyCredit(
   transactionId: string,
   description: string,
   bucket: Bucket = 'AVAILABLE',
-): Promise<void> {
+): Promise<string> {
   const before = readBucket(wallet, bucket);
   const after = before.plus(amount);
   await tx.wallet.update({
@@ -128,7 +129,7 @@ async function applyCredit(
     data: bucketUpdate(bucket, after),
   });
   writeBucket(wallet, bucket, after);
-  await tx.walletLedgerEntry.create({
+  const entry = await tx.walletLedgerEntry.create({
     data: {
       walletId: wallet.id,
       transactionId,
@@ -139,7 +140,38 @@ async function applyCredit(
       balanceAfter: after,
       description,
     },
+    select: { id: true },
   });
+  return entry.id;
+}
+
+/**
+ * Builds the bound ledger operations over wallets already locked FOR UPDATE in `tx`.
+ *
+ * FIX3-PAY: every credit that lands in a GYM wallet's AVAILABLE bucket first repays that gym's open GYM_DEBT obligations (gym-debt-recovery.ts), in the same DB transaction,
+ * from the credit itself. The REVENUE wallet is locked with the gym wallet for exactly this reason (see withWallets / transferInternal), so the recovery can credit it.
+ */
+function buildOps(tx: TxClient, locked: Map<string, WalletRow>, transactionId: string, revenueWalletId: string | null): LedgerOps {
+  const need = (walletId: string): WalletRow => {
+    const w = locked.get(walletId);
+    if (!w) throw new Error(`Wallet ${walletId} was not locked for this operation`);
+    return w;
+  };
+  const ops: LedgerOps = {
+    tx,
+    balance: (walletId, bucket) => readBucket(need(walletId), bucket),
+    debit: (walletId, amount, description, bucket = 'AVAILABLE') =>
+      applyDebit(tx, need(walletId), amount, transactionId, description, bucket),
+    credit: async (walletId, amount, description, bucket = 'AVAILABLE') => {
+      const wallet = need(walletId);
+      const entryId = await applyCredit(tx, wallet, amount, transactionId, description, bucket);
+      if (bucket === 'AVAILABLE' && wallet.owner_type === 'GYM' && amount.greaterThan(0)) {
+        if (!revenueWalletId || !locked.has(revenueWalletId)) throw new Error('REVENUE wallet must be locked together with a GYM wallet');
+        await recoverGymDebtFromCredit(ops, { gymWalletId: walletId, gymId: wallet.owner_id, revenueWalletId, creditEntryId: entryId, creditAmount: amount, creditDescription: description });
+      }
+    },
+  };
+  return ops;
 }
 
 /**
@@ -234,23 +266,23 @@ export const walletService = {
     fn: (ops: LedgerOps) => Promise<T>,
   ): Promise<T> {
     return prisma.$transaction(async (tx) => {
-      const locked = await lockWallets(tx, walletIds);
+      // FIX3-PAY: a GYM wallet in the set pulls the REVENUE wallet into the same ordered lock pass, so a GYM_DEBT can be repaid from any credit to that gym
+      // (one lock order for everyone: no deadlock). Only an extra row lock; nothing is written to REVENUE unless a debt is actually recovered.
+      let ids = [...new Set(walletIds)];
+      let revenueId: string | null = null;
+      const gymRows = await tx.wallet.findMany({ where: { id: { in: ids }, ownerType: 'GYM' }, select: { id: true } });
+      if (gymRows.length > 0) {
+        const revenue = await tx.wallet.findUnique({ where: { ownerType_ownerId: { ownerType: 'PLATFORM', ownerId: PLATFORM_REVENUE_ID } }, select: { id: true } });
+        if (revenue) {
+          revenueId = revenue.id;
+          if (!ids.includes(revenue.id)) ids = [...ids, revenue.id];
+        }
+      }
+      const locked = await lockWallets(tx, ids);
       for (const [id, w] of locked) {
         if (w.status !== 'ACTIVE') throw new WalletNotActiveError(id);
       }
-      const need = (walletId: string): WalletRow => {
-        const w = locked.get(walletId);
-        if (!w) throw new Error(`Wallet ${walletId} was not locked for this operation`);
-        return w;
-      };
-      return fn({
-        tx,
-        balance: (walletId, bucket) => readBucket(need(walletId), bucket),
-        debit: (walletId, amount, description, bucket = 'AVAILABLE') =>
-          applyDebit(tx, need(walletId), amount, transactionId, description, bucket),
-        credit: (walletId, amount, description, bucket = 'AVAILABLE') =>
-          applyCredit(tx, need(walletId), amount, transactionId, description, bucket),
-      });
+      return fn(buildOps(tx, locked, transactionId, revenueId));
     });
   },
 
@@ -319,7 +351,6 @@ export const walletService = {
       const locked = await lockWallets(tx, [payerWalletId, receiverWalletId, platformWallet.id]);
       const payer = locked.get(payerWalletId)!;
       const receiver = locked.get(receiverWalletId)!;
-      const platform = locked.get(platformWallet.id)!;
 
       if (payer.status !== 'ACTIVE') throw new WalletNotActiveError(payerWalletId);
       if (receiver.status !== 'ACTIVE') throw new WalletNotActiveError(receiverWalletId);
@@ -336,9 +367,11 @@ export const walletService = {
         return false;
       }
 
-      await applyDebit(tx, payer, amount, transactionId, 'Payment');
-      await applyCredit(tx, receiver, netToReceiver, transactionId, 'Payment received');
-      await applyCredit(tx, platform, commissionAmount, transactionId, 'Platform commission');
+      // buildOps so that a GYM receiver's open GYM_DEBT is repaid from this income too (the platform wallet is already locked above).
+      const ops = buildOps(tx, locked, transactionId, platformWallet.id);
+      await ops.debit(payerWalletId, amount, 'Payment');
+      await ops.credit(receiverWalletId, netToReceiver, 'Payment received');
+      await ops.credit(platformWallet.id, commissionAmount, 'Platform commission');
 
       await tx.platformCommission.create({
         data: {

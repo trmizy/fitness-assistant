@@ -3,6 +3,10 @@ import { AuthRequest } from "../middleware/auth.middleware";
 import { trainingLocationRepository } from "../repositories/training_location.repository";
 import { locationRepository } from "../repositories/location.repository";
 import { PrismaClient } from "../generated/prisma";
+import {
+  parseOptionalVnCoords,
+  VnCoordsValidationError,
+} from "../utils/vn-coords.util";
 
 const prisma = new PrismaClient();
 
@@ -74,6 +78,8 @@ export const trainingLocationController = {
         gymName,
         addressLine,
         legacyDistrictName,
+        latitude,
+        longitude,
         isPrimary,
         note,
       } = req.body;
@@ -90,6 +96,7 @@ export const trainingLocationController = {
         ))
       )
         return;
+      const coords = parseOptionalVnCoords(latitude, longitude);
       if (gymName && String(gymName).length > 120) {
         res.status(400).json({ error: "gymName tối đa 120 ký tự" });
         return;
@@ -105,12 +112,19 @@ export const trainingLocationController = {
         gymName: gymName ?? null,
         addressLine: addressLine ?? null,
         legacyDistrictName: legacyDistrictName ?? null,
+        ...(coords.present
+          ? { latitude: coords.latitude, longitude: coords.longitude }
+          : {}),
         isPrimary: Boolean(isPrimary),
         note: note ?? null,
       });
 
       res.status(201).json(location);
     } catch (err: any) {
+      if (err instanceof VnCoordsValidationError) {
+        res.status(400).json({ error: err.message, code: err.code });
+        return;
+      }
       res
         .status(500)
         .json({ error: err.message || "Failed to create training location" });
@@ -141,6 +155,8 @@ export const trainingLocationController = {
         gymName,
         addressLine,
         legacyDistrictName,
+        latitude,
+        longitude,
         isPrimary,
         isActive,
         note,
@@ -161,6 +177,7 @@ export const trainingLocationController = {
         if (!(await validateProvince(updateProvinceCode, updateWardCode, res)))
           return;
       }
+      const coords = parseOptionalVnCoords(latitude, longitude);
       if (gymName !== undefined && String(gymName).length > 120) {
         res.status(400).json({ error: "gymName tối đa 120 ký tự" });
         return;
@@ -176,6 +193,10 @@ export const trainingLocationController = {
         ...(gymName !== undefined && { gymName }),
         ...(addressLine !== undefined && { addressLine }),
         ...(legacyDistrictName !== undefined && { legacyDistrictName }),
+        ...(coords.present && {
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+        }),
         ...(isPrimary !== undefined && { isPrimary: Boolean(isPrimary) }),
         ...(isActive !== undefined && { isActive: Boolean(isActive) }),
         ...(note !== undefined && { note }),
@@ -183,6 +204,10 @@ export const trainingLocationController = {
 
       res.json(updated);
     } catch (err: any) {
+      if (err instanceof VnCoordsValidationError) {
+        res.status(400).json({ error: err.message, code: err.code });
+        return;
+      }
       res
         .status(500)
         .json({ error: err.message || "Failed to update training location" });

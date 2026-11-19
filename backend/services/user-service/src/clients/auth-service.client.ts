@@ -77,8 +77,13 @@ function buildHttpApiV2Event(params: {
   path: string;
   headers: Record<string, string>;
   body?: unknown;
+  query?: Record<string, string>;
 }) {
-  const { method, path, body } = params;
+  const { method, path, body, query } = params;
+  // A real API Gateway v2 event carries the query both as `rawQueryString` and `queryStringParameters`. Without it (the old
+  // hard-coded "") a paged / filtered call such as GET /auth/users?page=2&role=PT reached auth-service with NO parameters.
+  const queryEntries = Object.entries(query ?? {});
+  const rawQueryString = new URLSearchParams(queryEntries).toString();
   // express.json() in auth-service only parses a body that declares a JSON content-type. Real
   // API Gateway events always carry one; this hand-built event did not, so every internal
   // POST/PATCH reached the handler with an empty body and answered 400 (e.g. approving a PT
@@ -91,7 +96,8 @@ function buildHttpApiV2Event(params: {
     version: "2.0",
     routeKey: `${method} ${path}`,
     rawPath: path,
-    rawQueryString: "",
+    rawQueryString,
+    ...(queryEntries.length ? { queryStringParameters: Object.fromEntries(queryEntries) } : {}),
     headers,
     requestContext: {
       http: {
@@ -114,6 +120,7 @@ async function invokeAuthLambda(params: {
   path: string;
   headers: Record<string, string>;
   body?: unknown;
+  query?: Record<string, string>;
   timeoutMs: number;
 }): Promise<Result> {
   const event = buildHttpApiV2Event(params);
@@ -181,14 +188,15 @@ async function callHttp(params: {
   path: string;
   headers: Record<string, string>;
   body?: unknown;
+  query?: Record<string, string>;
   timeoutMs: number;
 }): Promise<Result> {
   try {
-    const { method, path, headers, body, timeoutMs } = params;
+    const { method, path, headers, body, timeoutMs, query } = params;
     const url = `${authServiceUrl()}${path}`;
     const { status, data } =
       method === "get"
-        ? await axios.get(url, { headers, timeout: timeoutMs })
+        ? await axios.get(url, { headers, timeout: timeoutMs, ...(query && Object.keys(query).length ? { params: query } : {}) })
         : await axios[method](url, body ?? {}, { headers, timeout: timeoutMs });
     return { status, data };
   } catch (err: any) {
@@ -207,6 +215,7 @@ async function call(params: {
   path: string;
   headers: Record<string, string>;
   body?: unknown;
+  query?: Record<string, string>;
   timeoutMs?: number;
 }): Promise<Result> {
   const timeoutMs = params.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -216,6 +225,7 @@ async function call(params: {
       path: params.path,
       headers: params.headers,
       body: params.body,
+      query: params.query,
       timeoutMs,
     });
   }
@@ -230,17 +240,18 @@ export const authServiceClient = {
    * the AWS replacement for the gateway's admin user-management aggregation.
    */
   forward(
-    method: "get" | "patch",
+    method: "get" | "patch" | "post",
     path: string,
     authorizationHeader: string,
     body?: unknown,
-    opts?: { timeoutMs?: number },
+    opts?: { timeoutMs?: number; query?: Record<string, string> },
   ): Promise<Result> {
     return call({
       method,
       path,
       headers: { Authorization: authorizationHeader },
       body: method === "get" ? undefined : (body ?? {}),
+      query: opts?.query,
       timeoutMs: opts?.timeoutMs,
     });
   },

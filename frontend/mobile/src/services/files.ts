@@ -7,6 +7,7 @@ import * as Sharing from "expo-sharing";
 // address changed in-app applies to the very next download.
 import { apiBaseUrl } from "../config/serverUrl";
 import { tokenStore } from "./tokenStore";
+import { currentClientHeaders } from "./clientHeader";
 
 /**
  * The RN replacement for web's two file idioms, both of which are browser-only:
@@ -51,11 +52,21 @@ export async function downloadAuthenticatedFile(
   const destination = new File(downloadDirectory(), safeFileName(fileName));
 
   const downloaded = await File.downloadFileAsync(`${apiBaseUrl()}${path}`, destination, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: { ...currentClientHeaders(), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     // Re-downloading the same document must overwrite, not throw.
     idempotent: true,
   });
 
+  return downloaded.uri;
+}
+
+/**
+ * Downloads a PRE-SIGNED storage URL (private evidence files) to local storage and returns its `file://` URI.
+ * Deliberately sends NO Authorization header: the signature is in the URL, and S3 refuses a request that carries both.
+ */
+export async function downloadPresignedFile(url: string, fileName: string): Promise<string> {
+  const destination = new File(downloadDirectory(), safeFileName(fileName));
+  const downloaded = await File.downloadFileAsync(url, destination, { idempotent: true });
   return downloaded.uri;
 }
 

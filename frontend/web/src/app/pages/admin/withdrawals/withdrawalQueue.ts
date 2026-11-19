@@ -20,6 +20,12 @@ export interface WithdrawalRequest {
   status: QueueStatus;
   payoutInfo: string;
   createdAt: string;
+  /** BE-2: this amount needs two different admins (approve vs confirm-paid). Server-computed; the server stays the judge. */
+  fourEyesRequired: boolean;
+  /** BE-2: admin who approved (= reviewedBy); null while PENDING. */
+  approvedBy: string | null;
+  /** BE-2: configured threshold as an exact decimal string ("5000000.00"); null when the server did not send it. */
+  fourEyesMinAmount: string | null;
 }
 
 export const QUEUE_STATUSES: readonly QueueStatus[] = ["PENDING", "APPROVED"];
@@ -56,6 +62,9 @@ export function normalizeQueue(data: unknown, limit: number = WITHDRAWAL_API_LIM
       status: r.status,
       payoutInfo: typeof r.payoutInfo === "string" ? r.payoutInfo : "",
       createdAt: typeof r.createdAt === "string" ? r.createdAt : "",
+      fourEyesRequired: r.fourEyesRequired === true,
+      approvedBy: typeof r.approvedBy === "string" && r.approvedBy ? r.approvedBy : null,
+      fourEyesMinAmount: typeof r.fourEyesMinAmount === "string" && r.fourEyesMinAmount ? r.fourEyesMinAmount : null,
     });
   }
   return { rows, rawCount: list.length, ignored: list.length - rows.length, truncated: list.length >= limit };
@@ -153,3 +162,62 @@ export function staleMinutes(dataUpdatedAt: number, now: number): number | null 
 }
 
 export const shortId = (id: string): string => (id ? id.slice(0, 8) : "—");
+
+/**
+ * BE-2 "four-eyes": a request of >= the threshold must be approved by one admin and confirmed as paid by ANOTHER.
+ * This is only the UI hint — the server refuses the second step (409 FOUR_EYES_REQUIRED) whatever the UI shows.
+ */
+export type FourEyesGate =
+  /** No extra rule: show "Đã chi trả" as before. */
+  | { kind: "none" }
+  /** Large amount, approved by someone else: offer "Đã chi trả" with a note that you are the second admin. */
+  | { kind: "second-admin"; approver: string; note: string }
+  /** Large amount, approved by the current admin: do NOT offer "Đã chi trả". */
+  | { kind: "blocked-same-admin"; message: string }
+  /** Large amount, never approved: a second admin is still needed after someone approves it. */
+  | { kind: "needs-approval"; message: string };
+
+/** "5.000.000 ₫" for the threshold (exact, via the caller's formatter) with a safe fallback when the server sent none. */
+export function fourEyesThresholdText(minAmount: string | null | undefined, format: (v: unknown) => string): string {
+  const t = minAmount ? format(minAmount) : "—";
+  return t === "—" ? "mức quy định" : t;
+}
+
+/** Short Vietnamese label of an admin: "bạn" for the current admin, else "mã abcd1234". */
+export function adminLabel(adminId: string | null | undefined, currentAdminId: string | null | undefined): string {
+  if (!adminId) return "—";
+  if (currentAdminId && adminId === currentAdminId) return "bạn";
+  return `mã ${shortId(adminId)}`;
+}
+
+export function fourEyesGate(
+  r: Pick<WithdrawalRequest, "status" | "fourEyesRequired" | "approvedBy" | "fourEyesMinAmount">,
+  currentAdminId: string | null | undefined,
+  format: (v: unknown) => string,
+): FourEyesGate {
+  if (!r.fourEyesRequired) return { kind: "none" };
+  const threshold = fourEyesThresholdText(r.fourEyesMinAmount, format);
+  if (r.status === "PENDING" || !r.approvedBy) {
+    return {
+      kind: "needs-approval",
+      message: `Khoản từ ${threshold} cần được duyệt trước, rồi một quản trị viên khác xác nhận đã chi.`,
+    };
+  }
+  if (currentAdminId && r.approvedBy === currentAdminId) {
+    return {
+      kind: "blocked-same-admin",
+      message: `Khoản từ ${threshold} cần một quản trị viên khác xác nhận đã chi. Bạn là người đã duyệt.`,
+    };
+  }
+  const who = adminLabel(r.approvedBy, currentAdminId);
+  return {
+    kind: "second-admin",
+    approver: who,
+    note: `Đã được ${who} duyệt; bạn là người thứ hai xác nhận đã chi.`,
+  };
+}
+
+/** Whether to render the "Đã chi trả" button. Unknown current admin (not loaded) → keep it; the server decides. */
+export function canOfferMarkPaid(gate: FourEyesGate): boolean {
+  return gate.kind === "none" || gate.kind === "second-admin";
+}

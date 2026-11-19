@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarPlus,
@@ -97,6 +97,9 @@ export default function BookingScreen() {
   const [action, setAction] = useState<SessionAction | null>(null);
   const [reason, setReason] = useState("");
   const [booking, setBooking] = useState(false);
+  // N15M-11 — a session notification opens this screen with ?sessionId=<id>: that session's sheet opens once it is loaded.
+  const { sessionId: sessionIdParam } = useLocalSearchParams<{ sessionId?: string }>();
+  const openedParam = useRef<string | null>(null);
 
   const contractsQuery = useQuery({
     queryKey: ["client-contracts"],
@@ -205,6 +208,16 @@ export default function BookingScreen() {
     [openSession, historyQuery.data],
   );
   const setDetail = setOpenSession;
+
+  useEffect(() => {
+    if (!sessionIdParam || openedParam.current === sessionIdParam) return;
+    const target = sessions.find((s) => s.id === sessionIdParam);
+    if (!target) return; // not loaded yet (or not this client's): the list stays as it is
+    openedParam.current = sessionIdParam;
+    const group = (Object.keys(groups) as (keyof typeof groups)[]).find((k) => groups[k].some((s) => s.id === target.id));
+    if (group) setSegment(group);
+    setOpenSession(target);
+  }, [sessionIdParam, sessions, groups]);
 
   const loading =
     upcomingQuery.isLoading || pendingQuery.isLoading || contractsQuery.isLoading;

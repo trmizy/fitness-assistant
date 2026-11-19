@@ -99,11 +99,23 @@ export async function ensureDatabaseUrlConfigured(): Promise<void> {
   );
 }
 
-export function validateRequiredRuntimeConfig(): void {
+const isConfigured = (v: string | undefined) => typeof v === "string" && v.trim() !== "";
+
+/**
+ * Startup configuration check (values are never logged).
+ *  - "http" (default): this Lambda serves /internal/* behind internalAuthMiddleware, which accepts ONLY
+ *    INTERNAL_SERVICE_SECRET. It must be set and non-blank; INTERNAL_API_SECRET alone does NOT satisfy it
+ *    (2026-11-13 fail-closed hotfix: startup used to accept either name while the middleware read only one).
+ *  - "jobs": no HTTP receiver. Its outbound clients legitimately use either name (notification.client sends
+ *    INTERNAL_API_SECRET to chat-service), so the previous either-name rule is kept unchanged.
+ */
+export function validateRequiredRuntimeConfig(role: "http" | "jobs" = "http"): void {
   const problems: string[] = [];
-  if (
-    !process.env.INTERNAL_SERVICE_SECRET &&
-    !process.env.INTERNAL_API_SECRET
+  if (role === "http") {
+    if (!isConfigured(process.env.INTERNAL_SERVICE_SECRET)) problems.push("INTERNAL_SERVICE_SECRET");
+  } else if (
+    !isConfigured(process.env.INTERNAL_SERVICE_SECRET) &&
+    !isConfigured(process.env.INTERNAL_API_SECRET)
   ) {
     problems.push("INTERNAL_SERVICE_SECRET (or INTERNAL_API_SECRET)");
   }

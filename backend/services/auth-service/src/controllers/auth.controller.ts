@@ -16,7 +16,11 @@ import {
   updateMeSchema,
   changePasswordSchema,
   updateUserRoleSchema,
+  PASSWORD_POLICY_MESSAGE_VI,
+  describeValidationError,
 } from "../models/auth.models";
+import { isUserListQueryError, parseUserListQuery } from "../services/admin-user-list-query";
+import { isDashboardSummaryQueryError, parseDashboardSummaryBody } from "../services/admin-dashboard-summary-query";
 
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET ||
@@ -42,8 +46,6 @@ function isWellFormedUserId(value: unknown): boolean {
   return typeof value === "string" && USER_ID_SHAPE.test(value);
 }
 
-const LISTABLE_ROLES = ["CUSTOMER", "PT", "GYM_OWNER"];
-
 function getBearerToken(req: Request): string | null {
   const token = req.headers.authorization?.split(" ")[1];
   return token || null;
@@ -57,6 +59,38 @@ function auditMeta(req: Request) {
 }
 
 export const authController = {
+  /**
+   * POST /auth/users/dashboard-summary - admin only (same actor check as listUsers). Counts, per-month signups and the newest accounts for the
+   * admin dashboard, computed in the database. Replaces the dashboard reading every account (a Lambda answer is capped at ~6 MB).
+   */
+  async dashboardSummary(req: Request, res: Response): Promise<void> {
+    try {
+      const token = getBearerToken(req);
+      if (!token) {
+        res.status(401).json({ error: "No token provided" });
+        return;
+      }
+      const actor = await authService.verifyToken(token);
+      if (actor.role !== "ADMIN") {
+        res.status(403).json({ error: "Forbidden: admin role required" });
+        return;
+      }
+      const parsed = parseDashboardSummaryBody(req.body);
+      if (isDashboardSummaryQueryError(parsed)) {
+        res.status(parsed.status).json({ error: parsed.message, code: parsed.code });
+        return;
+      }
+      res.json({ summary: await authRepository.dashboardSummary(parsed) });
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
+        return;
+      }
+      logger.error(error, "Dashboard summary error");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
   async listUsers(req: Request, res: Response): Promise<void> {
     try {
       const token = getBearerToken(req);
@@ -73,25 +107,32 @@ export const authController = {
 
       // C1-09: an unrecognised filter used to be silently ignored (every account came back).
       // ADMIN is deliberately not listable here — this endpoint has always excluded admins.
-      const rawRole = req.query.role;
-      let role: any;
-      if (Array.isArray(rawRole) || (rawRole !== undefined && typeof rawRole !== "string")) {
-        res.status(400).json({ error: "Bộ lọc role không hợp lệ", code: "INVALID_ROLE_FILTER" });
+      // FIX5-ADMIN-PERF: status / search / id / page / limit are validated the same way; with none of
+      // them the answer is the unchanged full list, with page/limit it is one page plus `total`.
+      const parsed = parseUserListQuery(req.query as Record<string, unknown>);
+      if (isUserListQueryError(parsed)) {
+        res.status(parsed.status).json({ error: parsed.message, code: parsed.code });
         return;
       }
-      if (typeof rawRole === "string" && rawRole.trim() !== "") {
-        const roleParam = rawRole.trim().toUpperCase();
-        if (!LISTABLE_ROLES.includes(roleParam)) {
-          res.status(400).json({
-            error: `Bộ lọc role không hợp lệ (chấp nhận: ${LISTABLE_ROLES.join(", ")})`,
-            code: "INVALID_ROLE_FILTER",
-          });
-          return;
-        }
-        role = roleParam;
+      const { role, isActive, searchKey, id, ids, paging } = parsed;
+      if (isActive === undefined && !searchKey && !id && !ids && !paging) {
+        const users = await authService.listUsers(role as any);
+        res.json({ users });
+        return;
       }
-      const users = await authService.listUsers(role);
-      res.json({ users });
+      const { users, total } = await authService.listUsersPage({
+        role: role as any,
+        isActive,
+        searchKey,
+        id,
+        ids,
+        ...(paging ? { page: paging.page, limit: paging.limit } : {}),
+      });
+      res.json({
+        users,
+        total,
+        ...(paging ? { page: paging.page, limit: paging.limit, totalPages: Math.max(1, Math.ceil(total / paging.limit)) } : {}),
+      });
     } catch (error: any) {
       if (error.status) {
         res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
@@ -109,9 +150,7 @@ export const authController = {
       res.status(202).json(result);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        res
-          .status(400)
-          .json({ error: "Validation failed", details: error.errors });
+        res.status(400).json({ ...describeValidationError(error), details: error.errors });
         return;
       }
       if (error.status) {
@@ -135,9 +174,7 @@ export const authController = {
       res.status(201).json(result);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        res
-          .status(400)
-          .json({ error: "Validation failed", details: error.errors });
+        res.status(400).json({ ...describeValidationError(error), details: error.errors });
         return;
       }
       if (error.status) {
@@ -157,9 +194,7 @@ export const authController = {
       res.json(result);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        res
-          .status(400)
-          .json({ error: "Validation failed", details: error.errors });
+        res.status(400).json({ ...describeValidationError(error), details: error.errors });
         return;
       }
       if (error.status) {
@@ -280,6 +315,11 @@ export const authController = {
       }
       res.json({ message: "Logged out successfully" });
     } catch (error: any) {
+      // N13A-07: a missing/invalid body is a client error, not a 500.
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Thiếu refresh token", code: "REFRESH_TOKEN_REQUIRED" });
+        return;
+      }
       logger.error(error, "Logout error");
       res.status(500).json({ error: "Internal server error" });
     }
@@ -349,9 +389,13 @@ export const authController = {
       res.json(result);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        res
-          .status(400)
-          .json({ error: "Validation failed", details: error.errors });
+        // N-A-07: a weak new password gets the same Vietnamese policy sentence as reset/invite.
+        const weakNew = error.errors.some((e) => e.path[0] === "newPassword");
+        res.status(400).json({
+          error: weakNew ? PASSWORD_POLICY_MESSAGE_VI : "Validation failed",
+          ...(weakNew ? { code: "WEAK_PASSWORD" } : {}),
+          details: error.errors,
+        });
         return;
       }
       if (error.status) {

@@ -88,7 +88,7 @@ for (const status of [ContractStatus.PENDING_REVIEW, ContractStatus.PENDING_SIGN
     await seed(ptUserId, clientUserId, status);
     const { packageId, restore } = stubRequestDeps(ptUserId);
     try {
-      await assert.rejects(() => contractService.requestContract(clientUserId, { ptUserId, packageId }), rejects409);
+      await assert.rejects(() => contractService.requestContract(clientUserId, { ptUserId, packageId, acknowledgedIndependentVenue: true }), rejects409);
       assert.equal(await prisma.contract.count({ where: { ptUserId, clientUserId } }), 1, "no second row was written");
     } finally {
       restore();
@@ -104,7 +104,7 @@ dbTest("terminal contracts (COMPLETED / EXPIRED / CANCELLED / REJECTED) never bl
   }
   const { packageId, restore } = stubRequestDeps(ptUserId);
   try {
-    const created = await contractService.requestContract(clientUserId, { ptUserId, packageId });
+    const created = await contractService.requestContract(clientUserId, { ptUserId, packageId, acknowledgedIndependentVenue: true });
     createdIds.push(created.id);
     assert.equal(created.status, ContractStatus.PENDING_REVIEW);
   } finally {
@@ -118,9 +118,9 @@ dbTest("two concurrent requestContract calls for one pair create exactly one con
   const { packageId, restore } = stubRequestDeps(ptUserId, makeBarrier(3, 500));
   try {
     const results = await Promise.allSettled([
-      contractService.requestContract(clientUserId, { ptUserId, packageId }),
-      contractService.requestContract(clientUserId, { ptUserId, packageId }),
-      contractService.requestContract(clientUserId, { ptUserId, packageId }),
+      contractService.requestContract(clientUserId, { ptUserId, packageId, acknowledgedIndependentVenue: true }),
+      contractService.requestContract(clientUserId, { ptUserId, packageId, acknowledgedIndependentVenue: true }),
+      contractService.requestContract(clientUserId, { ptUserId, packageId, acknowledgedIndependentVenue: true }),
     ]);
     const rows = await prisma.contract.findMany({ where: { ptUserId, clientUserId } });
     rows.forEach((r) => createdIds.push(r.id));

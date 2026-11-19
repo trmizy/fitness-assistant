@@ -18,6 +18,7 @@ import { ReasonDialog } from "../../../components/listing/ReasonDialog";
 import { AMENITY_CATEGORIES, AMENITY_CATEGORY_LABEL, amenityCategoryLabel } from "../../../utils/amenityIcons";
 import {
   amenityFormError,
+  amenityNameError,
   amenityFormFrom,
   buildAmenityCreateBody,
   buildAmenityPatchBody,
@@ -147,6 +148,8 @@ function AmenityDialog({ amenity, iconKeys, onClose }: { amenity: Amenity | null
   const [form, setForm] = useState<AmenityForm>(amenity ? amenityFormFrom(amenity) : EMPTY_FORM);
   const [touched, setTouched] = useState(false);
   const error = amenityFormError(form, iconKeys);
+  // N14A-02: an empty / invalid name is reported right under the name box (the generic line sits below the long icon picker, out of sight).
+  const nameError = touched ? amenityNameError(form.name) : null;
   const set = (patch: Partial<AmenityForm>) => setForm((f) => ({ ...f, ...patch }));
 
   const save = useMutation({
@@ -174,7 +177,19 @@ function AmenityDialog({ amenity, iconKeys, onClose }: { amenity: Amenity | null
         <div className="space-y-3">
           <div>
             <label className={label} htmlFor="amenity-name">Tên tiện ích</label>
-            <Input id="amenity-name" value={form.name} maxLength={50} onChange={(e) => set({ name: e.target.value })} />
+            <Input
+              id="amenity-name"
+              value={form.name}
+              maxLength={50}
+              aria-invalid={nameError ? true : undefined}
+              aria-describedby={nameError ? "amenity-name-error" : undefined}
+              onChange={(e) => set({ name: e.target.value })}
+            />
+            {nameError && (
+              <p id="amenity-name-error" data-testid="amenity-name-error" role="alert" className="mt-1 text-xs text-st-danger">
+                {nameError}
+              </p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -194,7 +209,7 @@ function AmenityDialog({ amenity, iconKeys, onClose }: { amenity: Amenity | null
             <span className={label}>Biểu tượng</span>
             <AmenityIconPicker value={form.iconKey} keys={iconKeys} onChange={(iconKey) => set({ iconKey })} />
           </div>
-          {touched && error && <p className="text-xs text-red-400" role="alert">{error}</p>}
+          {touched && error && !nameError && <p className="text-xs text-st-danger" role="alert">{error}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" disabled={save.isPending} onClick={onClose}>Hủy</Button>
@@ -202,6 +217,7 @@ function AmenityDialog({ amenity, iconKeys, onClose }: { amenity: Amenity | null
             disabled={save.isPending}
             onClick={() => {
               setTouched(true);
+              if (amenityNameError(form.name)) document.getElementById("amenity-name")?.focus();
               if (!error) save.mutate();
             }}
           >

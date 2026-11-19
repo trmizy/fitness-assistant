@@ -2,8 +2,9 @@ import express, { Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import cors from "cors";
 import { logger, register, metricsMiddleware } from "@gym-coach/shared";
-import { rateLimiter } from "./middleware/rateLimit.middleware";
+import { mediaRateLimiter, rateLimiter } from "./middleware/rateLimit.middleware";
 import proxyRoutes from "./routes/proxy.routes";
+import { disconnectSocketsOfLockedUser } from "./socket/lockDisconnect";
 import translateRoutes from "./routes/translate.routes";
 import { emailLinkOrigin, isAllowedOrigin } from "./utils/corsOrigins";
 import { storageProxies } from "./routes/storage.proxy";
@@ -118,6 +119,7 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 });
 
 app.use(rateLimiter);
+app.use(mediaRateLimiter);
 app.use(metricsMiddleware());
 
 // Request logging
@@ -145,6 +147,7 @@ app.get("/metrics", async (_req, res) => {
   res.end(await register.metrics());
 });
 
+app.use(disconnectSocketsOfLockedUser);
 app.use("/", translateRoutes);
 app.use("/", proxyRoutes);
 

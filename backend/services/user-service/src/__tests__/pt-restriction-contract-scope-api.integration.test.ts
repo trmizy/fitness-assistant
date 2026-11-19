@@ -329,8 +329,13 @@ test("database: one ACTIVE account episode per PT and one ACTIVE contract episod
 
 test("(2-3 evidence) a PT with only a contract restriction stays discoverable; an account suspension hides them (control)", { skip }, async () => {
   const { pt, contracts: c, ids } = await makeAn();
-  // Discovery shows only publicly visible trainers: isPT + an APPROVED application + not suspended (plan §12.7).
+  // Discovery shows only publicly visible trainers: isPT + an APPROVED application + not suspended + matching package (plan §12.7 / D0b-1).
   await approvePtApplication(pt);
+  const profile = await prisma.userProfile.findUniqueOrThrow({ where: { userId: pt }, select: { id: true } });
+  await prisma.pTApplication.update({ where: { userProfileId: profile.id }, data: { serviceMode: "ONLINE" } });
+  await prisma.pTServicePackage.create({
+    data: { ptUserId: pt, name: "Gói Online Test", sessionCount: 5, price: 1_000_000, sessionMode: "ONLINE", sessionDurationMinutes: 60, isActive: true },
+  });
   const marker = `ScopeAn${randomUUID().slice(0, 8)}`;
   await prisma.userProfile.update({ where: { userId: pt }, data: { firstName: marker, firstNameNormalized: marker.toLowerCase() } });
   const viewer = tokenFor(randomUUID(), "CUSTOMER");

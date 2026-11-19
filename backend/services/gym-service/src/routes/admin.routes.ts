@@ -1,6 +1,8 @@
 import { Router, type Request, type Response } from 'express';
+import { evidenceUploadController } from '../controllers/evidence-upload.controller';
 import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middleware';
 import { gymController } from '../controllers/gym.controller';
+import { gymAdminLifecycleController } from '../controllers/gym-admin-lifecycle.controller';
 import { brandController } from '../controllers/brand.controller';
 import { membershipController } from '../controllers/membership.controller';
 import { asyncHandler } from '../middleware/asyncHandler';
@@ -33,6 +35,8 @@ router.use('/amenities', adminAmenityRouter);
 // phase; ?status= defaults to everything (the UI defaults it to PENDING_REVIEW itself).
 router.get('/gyms', asyncHandler(gymController.listAllForAdmin));
 router.patch('/gyms/:id/status', asyncHandler(gymController.setStatus));
+// FIX2-ADMIN Q5 - suspend / lift suspension / temporarily close / reopen ONE branch, each with a reason + audit row.
+router.patch('/gyms/:id/lifecycle', asyncHandler(gymAdminLifecycleController.apply));
 // "Quản lý gym & owner" — admin editing a branch's own details directly (name/address take
 // effect immediately, no owner-approval round-trip — see gymService.updateGymAsAdmin).
 router.patch('/gyms/:id', validateBody(gymAdminUpdateSchema), asyncHandler(gymController.updateAsAdmin));
@@ -119,6 +123,8 @@ router.post('/partners/:id/invitations/:invitationId/revoke', asyncHandler(partn
 // 2.3 — hành động lên từng tài khoản.
 // B41: partner role per user id, for the admin user list (declared before the /:accountId routes).
 router.get('/partner-accounts/roles', asyncHandler(partnerController.rolesByUserIds));
+// All staff (non-OWNER) partner roles in one call - the admin user list's partnerRole filter.
+router.get('/partner-accounts/role-index', asyncHandler(partnerController.roleIndex));
 router.post('/partner-accounts/:accountId/reset-password', asyncHandler(partnerController.resetPassword));
 router.post('/partner-accounts/:accountId/force-logout', asyncHandler(partnerController.forceLogout));
 router.delete('/partner-accounts/:accountId', asyncHandler(partnerController.revokeAccount));
@@ -164,6 +170,7 @@ router.get('/complaints/:id', asyncHandler(complaintController.detail));
 router.patch('/complaints/:id/status', asyncHandler(complaintController.updateStatus));
 router.patch('/complaints/:id/assigned-admin', asyncHandler(complaintController.assignAdmin));
 router.get('/complaint-photos/:token', asyncHandler(complaintPhotoController.serve));
+router.get('/complaint-photos/:token/url', asyncHandler(evidenceUploadController.complaintPhotoUrl));
 router.get('/partners/:id/complaints', asyncHandler(complaintController.listForPartner));
 
 // Dispute V2.1 Slice 3 - lop ho so (Case) tren khieu nai gym. Moi thao tac GHI bi tu choi (409 GYM_CASE_DISABLED) khi co GYM_COMPLAINT_CASE_ENABLED
@@ -202,5 +209,6 @@ router.post('/complaint-cases/:id/decision-replacement/reject', asyncHandler(com
 // owner-side serve route (see branch-document-photo.controller.ts's own doc comment) — full
 // admin listing/review of these documents is Phase 6's scope, not built yet.
 router.get('/branch-documents/:token', asyncHandler(branchDocumentPhotoController.serve));
+router.get('/branch-documents/:token/url', asyncHandler(evidenceUploadController.branchDocumentUrl));
 
 export default router;

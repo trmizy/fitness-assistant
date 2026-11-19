@@ -191,6 +191,23 @@ export function computeFromPricesByMode(packages: PricedPackage[]) {
   };
 }
 
+/**
+ * N15C-03 — the delivery mode shown on discovery cards / the detail sheet follows the packages the PT is SELLING
+ * (same rule as the ONLINE/OFFLINE/HYBRID search filter, Ngài 15/11 Q3), never the mode ticked on the application.
+ * Only when the PT has no usable package at all do we fall back to the application's value.
+ */
+export function derivePublicServiceMode(
+  packages: { sessionMode: SessionMode | string }[],
+  applicationMode: string | null | undefined,
+): string | null {
+  const hasOnline = packages.some((p) => p.sessionMode === SessionMode.ONLINE);
+  const hasOffline = packages.some((p) => p.sessionMode === SessionMode.OFFLINE);
+  if (hasOnline && hasOffline) return "HYBRID";
+  if (hasOnline) return "ONLINE";
+  if (hasOffline) return "OFFLINE";
+  return applicationMode ?? null;
+}
+
 // ── the DTO ────────────────────────────────────────────────────────────────────────────────────
 
 /** Extra, already-public numbers the controller attaches (ratings, discovery ranking). Allowlisted below. */
@@ -199,6 +216,8 @@ export interface PtPublicExtras {
   ratingCount?: number;
   availableSlotsNext28Days?: number;
   matchReason?: string | null;
+  distanceKm?: number | null;
+  distanceBasis?: "GPS" | "WARD_CENTER" | null;
 }
 
 export function toPublicPtPackageDto(p: {
@@ -260,7 +279,7 @@ export function toPublicPtDto(source: PublishedPtSource, extras: PtPublicExtras 
 
     ptApplication: app
       ? {
-          serviceMode: app.serviceMode,
+          serviceMode: derivePublicServiceMode(packages, app.serviceMode),
           operatingAreas: app.operatingAreas,
           gymAffiliation: app.gymAffiliation,
           professionalBio: app.professionalBio,
@@ -326,6 +345,8 @@ export function toPublicPtDto(source: PublishedPtSource, extras: PtPublicExtras 
     ratingCount: extras.ratingCount ?? 0,
     ...(extras.availableSlotsNext28Days !== undefined ? { availableSlotsNext28Days: extras.availableSlotsNext28Days } : {}),
     ...(extras.matchReason !== undefined ? { matchReason: extras.matchReason } : {}),
+    ...(extras.distanceKm !== undefined ? { distanceKm: extras.distanceKm } : {}),
+    ...(extras.distanceBasis !== undefined ? { distanceBasis: extras.distanceBasis } : {}),
   };
 }
 

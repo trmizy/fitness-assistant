@@ -3,6 +3,7 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { TableIcon as Table2, MagnifyingGlassIcon as Search, VideoCameraIcon as Video, VideoCameraSlashIcon as VideoOff, CircleNotchIcon as Loader2 } from "@phosphor-icons/react";
 import { catalogQualityService } from "../../services/api";
 import { EQUIPMENT_VI } from "../../utils/labels.vi";
+import { licenseSummaryVi } from "../../utils/catalogLicense";
 
 /**
  * Roadmap P1.8 "Logging-mode catalog discoverability"
@@ -206,8 +207,7 @@ export function AdminCatalogQuality() {
                     )}
                   </td>
                   <td className="p-2.5 text-zinc-500">
-                    {r.dataLicense || "—"}
-                    {r.mediaLicense ? ` / ${r.mediaLicense}` : " / chưa có giấy phép hình/video"}
+                    {licenseSummaryVi(r.dataLicense, r.mediaLicense)}
                   </td>
                   <td className="p-2.5 text-zinc-500">{REVIEW_STATUS_LABEL[r.reviewStatus] ?? r.reviewStatus}</td>
                 </tr>

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { OrangeSliceIcon as Apple, BookOpenIcon as BookOpen, CaretRightIcon as ChevronRight, CompassIcon as Compass, BarbellIcon as Dumbbell, CircleNotchIcon as Loader2, PersonSimpleIcon as PersonStanding, MagnifyingGlassIcon as Search } from "@phosphor-icons/react";
 import { foodService, workoutService } from "../../../services/api";
+import { bodyRegionLabel, equipmentLabel, muscleCodeLabel } from "../../../utils/labels.vi";
 import type { FoodCatalogItem } from "../../../services/api";
 import { NUTRITION_ARTICLES } from "./nutritionKnowledge";
 import { ExerciseMediaPreview } from "./ExerciseMediaPreview";
@@ -145,7 +146,7 @@ export function LibraryPage() {
                   <div className="p-3">
                     <p className="text-sm font-semibold text-zinc-200 truncate">{exercise.exerciseName}</p>
                     <p className="text-xs text-zinc-500 mt-0.5">
-                      {[exercise.bodyPart, exercise.typeOfEquipment].filter(Boolean).join(" / ")}
+                      {[bodyRegionLabel(exercise.bodyPart), equipmentLabel(exercise.typeOfEquipment)].filter(Boolean).join(" / ")}
                     </p>
                   </div>
                 </button>
@@ -219,7 +220,7 @@ export function LibraryPage() {
                     className="rounded-xl border border-zinc-800/60 bg-zinc-900 p-3 text-left hover:border-zinc-700"
                   >
                     <p className="text-sm font-semibold text-zinc-200">{muscle.nameVi}</p>
-                    <p className="text-xs text-zinc-500 mt-0.5">{muscle.nameEn ?? muscle.code}</p>
+                    <p className="text-xs text-zinc-500 mt-0.5">{muscle.nameEn ?? muscleCodeLabel(muscle.code)}</p>
                   </button>
                 ))}
               </div>

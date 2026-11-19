@@ -2,15 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 /**
- * SECURITY HARDENING (D75 item 4) — DEMONSTRATES A CURRENT WEAKNESS, DOES NOT FIX IT.
+ * SECURITY HARDENING (D75 item 4) — FIXED 2026-11-13 (fail-closed hotfix), now a REQUIRED test.
  *
- * fitness-service `internalAuthMiddleware`: when INTERNAL_SERVICE_SECRET is unset and
- * NODE_ENV !== "production" it trusts a bare `x-user-id` / `x-user-role` header with no token
- * at all ("dev mode only"). A deployment that forgets both NODE_ENV=production and the secret
- * lets any caller that can reach the port impersonate any user, including ADMIN.
- * (ai-service requireAuth has the same branch.)
- *
- * Registered as `todo`: encodes the DESIRED behaviour (401 unless ALLOW_INSECURE_DEV_SECRETS=true).
+ * fitness-service `internalAuthMiddleware` used to trust a bare `x-user-id` / `x-user-role` header
+ * with no token when INTERNAL_SERVICE_SECRET was unset and NODE_ENV !== "production". It now rejects
+ * the request in every environment; there is no insecure-dev switch.
+ * (ai-service requireAuth has a similar branch — separate service, not changed here.)
  */
 process.env.NODE_ENV = "staging";
 process.env.INTERNAL_SERVICE_SECRET = "";
@@ -18,7 +15,6 @@ delete process.env.ALLOW_INSECURE_DEV_SECRETS;
 
 test(
   "fitness-service internalAuthMiddleware must NOT trust a bare x-user-id/x-user-role when no internal secret is configured (NODE_ENV!=production)",
-  { todo: "Security Hardening slice S1: header-trust dev mode only with ALLOW_INSECURE_DEV_SECRETS=true" },
   async () => {
     const { internalAuthMiddleware } = await import("../middleware/auth.middleware");
     let nextCalled = false;

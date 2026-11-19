@@ -103,3 +103,21 @@ test("a failing notification never blocks or rolls back the ending", { skip }, a
     assert.notEqual(row.status, "ACTIVE");
   });
 });
+
+// NB-01 - the endings the admin / the platform decides tell both parties exactly once.
+for (const reason of ["MUTUAL", "EXPIRED", "SERVICE_DISCONTINUED_BY_PLATFORM"] as const) {
+  test(`${reason}: exactly one notice to the client and one to the PT; a replay sends nothing more`, { skip }, async () => {
+    await run({ refund: "920000.00", paid: "920000.00" }, async (c) => {
+      const r = await settleContractTermination(c.id, reason);
+      assert.equal(r?.statusWritten, true);
+      const rows = await notices(c.id);
+      assert.equal(rows.length, 2);
+      assert.equal(rows.filter((n) => n.userId === c.clientUserId).length, 1);
+      assert.equal(rows.filter((n) => n.userId === c.ptUserId).length, 1);
+      assert.ok(rows.every((n) => n.eventType === "CONTRACT_CANCELLED"));
+      const again = await settleContractTermination(c.id, reason);
+      assert.equal(again?.statusWritten, false);
+      assert.equal((await notices(c.id)).length, 2);
+    });
+  });
+}

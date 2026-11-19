@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CircleNotchIcon, MagnifyingGlassIcon, PencilSimpleIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { adminService } from "../../../services/api";
@@ -25,12 +25,20 @@ export function TargetPicker({ kind }: { kind: ListingKind }) {
   const [problem, setProblem] = useState<string | null>(null);
   const [source, setSource] = useState<PtDirectEditSource | GymDirectEditSource | null>(null);
 
+  // PT: the server searches the 10k approved PTs (name / email, accent-insensitive) and answers 8 rows — nothing is
+  // downloaded until something is typed. Branches are few: the whole list is read once and filtered here.
+  const [debouncedQ, setDebouncedQ] = useState("");
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebouncedQ(q.trim()), 300);
+    return () => window.clearTimeout(t);
+  }, [q]);
   const listQuery = useQuery<PickerTarget[]>({
-    queryKey: ["admin-listing-targets", kind],
+    queryKey: kind === "pts" ? ["admin-listing-targets", "pts", debouncedQ] : ["admin-listing-targets", "gyms"],
     queryFn: async () =>
       kind === "pts"
-        ? eligiblePtTargets(await ptApplicationService.listApplications({ status: "APPROVED" }))
+        ? eligiblePtTargets((await ptApplicationService.listApplicationsPage({ status: "APPROVED", q: debouncedQ, page: 1, limit: 8 })).rows)
         : eligibleGymTargets(await adminService.listGymsForAdmin()),
+    enabled: kind === "pts" ? debouncedQ.length > 0 : true,
     staleTime: 60_000,
   });
   const results = useMemo(() => filterTargets(listQuery.data ?? [], q), [listQuery.data, q]);
@@ -75,7 +83,7 @@ export function TargetPicker({ kind }: { kind: ListingKind }) {
 
       {listQuery.isLoading && <p className="flex items-center gap-1.5 text-xs text-zinc-500"><CircleNotchIcon className="size-3.5 animate-spin" /> Đang tải danh sách…</p>}
       {listQuery.isError && <p className="text-xs text-red-400" role="alert">{listingErrorMessage(listQuery.error, "Không tải được danh sách.")}</p>}
-      {q.trim() && !listQuery.isLoading && !listQuery.isError && results.length === 0 && <p className="text-xs text-zinc-500">Không có {noun} nào khớp.</p>}
+      {q.trim() && (kind !== "pts" || debouncedQ === q.trim()) && !listQuery.isLoading && !listQuery.isError && results.length === 0 && <p className="text-xs text-zinc-500">Không có {noun} nào khớp.</p>}
 
       {results.length > 0 && (
         <ul className="divide-y divide-zinc-800/70 overflow-hidden rounded-lg border border-zinc-800/70">

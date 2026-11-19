@@ -366,6 +366,7 @@ export const sessionSettlementRepository = {
         FROM contracts c
         LEFT JOIN session_settlements s ON s.idempotency_key = 'CONTRACT_TERMINATE:' || c.id
        WHERE c.status IN ('COMPLETED', 'EXPIRED', 'CANCELLED')
+         AND c.data_origin = 'REAL'
          AND c.payment_transaction_id IS NOT NULL AND c.price IS NOT NULL AND c.total_sessions > 0
          AND (s.id IS NULL OR s.status <> 'SETTLED')
          AND c.updated_at <= now() - (${Math.max(0, Math.floor(opts.minAgeMs ?? 0))} * interval '1 millisecond')

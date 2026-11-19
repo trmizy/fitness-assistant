@@ -8,6 +8,34 @@ const INTERNAL_SERVICE_SECRET =
 
 const headers = { 'x-service-secret': INTERNAL_SERVICE_SECRET };
 
+/**
+ * Gọi user-service. Trên AWS Lambda không có HTTP nội bộ: khi có USER_LAMBDA_NAME thì invoke thẳng Lambda user
+ * (cùng mẫu với getPtGymSessions bên dưới); không có (dev/compose) thì axios tới USER_SERVICE_URL như cũ.
+ * Lỗi từ Lambda ném với `err.response.status/data` giống axios.
+ */
+async function userCall<T = any>(
+  method: 'GET' | 'POST',
+  path: string,
+  opts: { body?: unknown; timeout: number; withSecret?: boolean },
+): Promise<T> {
+  const reqHeaders = opts.withSecret === false ? {} : headers;
+  const lambdaName = process.env.USER_LAMBDA_NAME;
+  if (lambdaName) {
+    const result = await withTimeout(
+      invokeHttpLambda({ functionName: lambdaName, method, path, headers: reqHeaders, body: method === 'GET' ? undefined : opts.body }),
+      opts.timeout,
+    );
+    throwForLambdaHttpError(result);
+    return result.body as T;
+  }
+  const baseUrl = process.env.USER_SERVICE_URL || USER_SERVICE_URL;
+  const { data } =
+    method === 'GET'
+      ? await axios.get(`${baseUrl}${path}`, { headers: reqHeaders, timeout: opts.timeout })
+      : await axios.post(`${baseUrl}${path}`, opts.body, { headers: reqHeaders, timeout: opts.timeout });
+  return data as T;
+}
+
 /** Hard ceiling for the PT session lookup, HTTP and Lambda alike (Phase 2 / Q16). */
 export const PT_GYM_SESSIONS_TIMEOUT_MS = 3000;
 
@@ -111,11 +139,7 @@ export const userClient = {
   async countActivePtContractsByGyms(gymIds: string[]): Promise<number> {
     if (gymIds.length === 0) return 0;
     try {
-      const { data } = await axios.post(
-        `${USER_SERVICE_URL}/internal/contracts/count-active-by-gyms`,
-        { gymIds },
-        { headers, timeout: 5000 },
-      );
+      const data = await userCall('POST', '/internal/contracts/count-active-by-gyms', { body: { gymIds }, timeout: 5000 });
       return data.count as number;
     } catch (e) {
       logger.error({ err: (e as Error).message }, '[gym-service] đếm hợp đồng PT thất bại — trả 0');
@@ -132,7 +156,7 @@ export const userClient = {
    */
   async notifyUser(params: { userId: string; text: string; eventType: string; entityType: string; entityId: string; link?: string }) {
     try {
-      await axios.post(`${USER_SERVICE_URL}/internal/notifications`, params, { headers, timeout: 5000 });
+      await userCall('POST', '/internal/notifications', { body: params, timeout: 5000 });
     } catch (e) {
       logger.error({ err: (e as Error).message, userId: params.userId }, '[gym-service] gửi thông báo thất bại');
     }
@@ -144,7 +168,7 @@ export const userClient = {
    */
   async notifyUserChecked(params: { userId: string; text: string; eventType: string; entityType: string; entityId: string; link?: string }): Promise<boolean> {
     try {
-      await axios.post(`${USER_SERVICE_URL}/internal/notifications`, params, { headers, timeout: 5000 });
+      await userCall('POST', '/internal/notifications', { body: params, timeout: 5000 });
       return true;
     } catch (e) {
       logger.error({ err: (e as Error).message, userId: params.userId }, '[gym-service] gửi thông báo thất bại (không bắt đầu hạn nào từ thông báo này)');
@@ -158,9 +182,37 @@ export const userClient = {
    */
   async notifyAdmins(params: { id: string; text: string; eventType: string; entityType: string; entityId: string; link?: string }) {
     try {
-      await axios.post(`${USER_SERVICE_URL}/internal/admin-broadcast`, params, { headers, timeout: 3000 });
+      await userCall('POST', '/internal/admin-broadcast', { body: params, timeout: 3000 });
     } catch (e) {
       logger.warn({ err: (e as Error).message, eventType: params.eventType }, '[gym-service] admin realtime broadcast failed');
+    }
+  },
+
+  /**
+   * D2.5: Resolve a Vietnam ward's centroid from user-service `GET /locations/wards/:code`.
+   * Fail-soft: returns null if user-service is unreachable, times out, or has no centroid row,
+   * so caller can degrade to province-level search without logging any coordinates.
+   */
+  async getWardGeoFailSoft(
+    wardCode: number,
+  ): Promise<{ code: number; provinceCode: number; centroid: { lat: number; lng: number } | null } | null> {
+    try {
+      const data = await userCall('GET', `/locations/wards/${wardCode}`, { timeout: 1200, withSecret: false });
+      if (!data || typeof data !== 'object') return null;
+      const provinceCode = Number(data.provinceCode);
+      const centroidRaw = data.centroid;
+      const centroid =
+        centroidRaw &&
+        typeof centroidRaw === 'object' &&
+        typeof centroidRaw.lat === 'number' &&
+        Number.isFinite(centroidRaw.lat) &&
+        typeof centroidRaw.lng === 'number' &&
+        Number.isFinite(centroidRaw.lng)
+          ? { lat: centroidRaw.lat, lng: centroidRaw.lng }
+          : null;
+      return { code: Number(data.code), provinceCode, centroid };
+    } catch {
+      return null;
     }
   },
 };

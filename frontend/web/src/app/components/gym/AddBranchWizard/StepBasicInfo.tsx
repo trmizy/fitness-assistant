@@ -1,4 +1,5 @@
 import { BarbellIcon as Dumbbell, MapPinIcon as MapPin, StorefrontIcon as Storefront } from "@phosphor-icons/react";
+import { isValidPhoneNumber, PHONE_INVALID_MESSAGE } from "../../../utils/phone";
 
 export interface BasicInfoValue {
   name: string;
@@ -101,8 +102,13 @@ export function StepBasicInfo({
               onChange={(e) => onChange({ ...value, phone: e.target.value })}
               placeholder="0901 234 567"
               maxLength={20}
+              inputMode="tel"
+              aria-invalid={value.phone.trim().length > 0 && !isValidPhoneNumber(value.phone) ? true : undefined}
               className={inputClass}
             />
+            {value.phone.trim().length > 0 && !isValidPhoneNumber(value.phone) && (
+              <p className="text-[11px] text-red-400 mt-1" data-testid="wizard-phone-error">{PHONE_INVALID_MESSAGE}</p>
+            )}
           </div>
           <div>
             <label className="text-xs text-zinc-500 mb-1.5 block">
@@ -153,6 +159,7 @@ export function validateBasicInfo(value: BasicInfoValue): string[] {
   if (!value.name.trim()) issues.push("Cần đặt tên cho chi nhánh");
   if (!value.description.trim()) issues.push("Cần thêm mô tả ngắn cho chi nhánh");
   if (!value.phone.trim()) issues.push("Cần số điện thoại liên hệ");
+  else if (!isValidPhoneNumber(value.phone)) issues.push(PHONE_INVALID_MESSAGE);
   if (!value.email.trim()) issues.push("Cần email liên hệ");
   else if (!emailLooksValid(value.email)) issues.push("Email không đúng định dạng");
   return issues;

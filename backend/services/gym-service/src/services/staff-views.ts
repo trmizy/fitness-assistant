@@ -46,9 +46,10 @@ export function membershipViewFor(role: PartnerAccountRole): MembershipView | nu
   return null;
 }
 
-export function membershipsFor(role: PartnerAccountRole, rows: Row[]): Row[] {
+export function membershipsFor(role: PartnerAccountRole, rows: Row[], names: ReadonlyMap<string, string> = new Map()): Row[] {
   const view = membershipViewFor(role);
-  if (view === 'FULL') return rows;
+  // N13I-04: the owner / manager list (FULL view) also carries the member's display name when auth-service knows it; SALES (accountant) never gets identity.
+  if (view === 'FULL') return rows.map((r) => (names.has(r.clientId) ? { ...r, clientName: names.get(r.clientId) } : r));
   if (view === 'SALES') return rows.map((r) => pick(r, SALES_MEMBERSHIP_FIELDS));
   return [];
 }
@@ -59,7 +60,8 @@ export function membershipsFor(role: PartnerAccountRole, rows: Row[]): Row[] {
  * Mọi vai trò khác (kể cả kế toán) không có route này; ở đây trả [] làm lớp phòng thủ.
  */
 export function checkinsFor(role: PartnerAccountRole, rows: Row[], names: ReadonlyMap<string, string> = new Map()): Row[] {
-  if (role === 'OWNER' || role === 'MANAGER') return rows;
+  // N13E-12: the owner / manager list showed only a truncated client id; the display name is added when auth-service knows it (nothing is removed from the row).
+  if (role === 'OWNER' || role === 'MANAGER') return rows.map((r) => (names.has(r.clientId) ? { ...r, clientName: names.get(r.clientId) } : r));
   if (role !== 'RECEPTIONIST') return [];
   return rows.map((r) => ({
     id: r.id,

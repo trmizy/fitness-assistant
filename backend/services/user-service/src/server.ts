@@ -10,6 +10,7 @@ import { startSessionSettlementSweepJob } from "./services/session-settlement-sw
 import { startContractExpirySweepJob } from "./services/contract-expiry-sweep.service";
 import { startRoomCloseResolutionJob } from "./services/room-close-resolution.service";
 import { startPtListingSweepJob } from "./services/pt-listing-sweep.service";
+import { startPtDiscoveryStatsJob } from "./services/pt-discovery-stats.service";
 import { startIpUaRetentionSweepJob } from "./services/ip-ua-retention.service";
 import { startDisputeExecutionSweepJob } from "./services/dispute-case/execution-sweep.service";
 import { startDisputeTimersSweepJob } from "./services/dispute-case/dispute-timers.service";
@@ -44,6 +45,8 @@ const server = app.listen(PORT, () => {
   // Listing management: dead photo-upload intents, orphaned STAGED physique photos, long-retired photos
   // — see pt-listing-sweep.service.ts.
   stopJobs.push(startPtListingSweepJob());
+  // PT discovery ranking stats: epoch-based precomputation (5-min periodic rebuild + startup catchup if missing).
+  stopJobs.push(startPtDiscoveryStatsJob());
   // Personal data: clears ip_address / user_agent on PT-terms acceptances and audit rows older than 12 months (never deletes a row,
   // skips rows under legal hold) - see ip-ua-retention.service.ts.
   stopJobs.push(startIpUaRetentionSweepJob());

@@ -10,6 +10,7 @@
  * - Nhãn tiếng Việt, không in tên enum hay tiếng Anh của gateway ra màn hình.
  */
 import { money } from "../wallet/wallet";
+import { userRoleLabel, type PartnerRole } from "./adminUsers";
 
 export type StatusTone = "success" | "warning" | "danger" | "neutral" | "info";
 
@@ -98,8 +99,10 @@ const ROLE_VI: Record<string, string> = {
   Client: "Khách hàng",
   Trainers: "Huấn luyện viên",
   PT: "Huấn luyện viên",
-  "Gym owners": "Chủ phòng gym",
-  "Gym Owner": "Chủ phòng gym",
+  // One account role covers the owner AND the staff (manager, receptionist, accountant), and the
+  // dashboard payload cannot tell them apart — so the neutral word, never "Chủ" for a receptionist.
+  "Gym owners": "Tài khoản phòng gym",
+  "Gym Owner": "Tài khoản phòng gym",
   Admins: "Quản trị viên",
   Admin: "Quản trị viên",
 };
@@ -129,15 +132,58 @@ export function ocrStats(d: Record<string, any>) {
   return { total: num(o.total), extracted: num(o.extracted), manual: num(o.manual), pending: num(o.pending) };
 }
 
-export type RecentUser = { name: string; email: string; role: string; joined: string; active: boolean };
+const MONTH_NUM: Record<string, string> = {
+  Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06",
+  Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12",
+};
 
-export function recentUsers(d: Record<string, any>): RecentUser[] {
+/** AWS-MOB-UI-04 — an older gateway sends "Nov 18"; show "18/11". Already-Vietnamese dates pass through. */
+export function viShortDate(raw: unknown): string {
+  const text = String(raw ?? "").trim();
+  const m = /^([A-Z][a-z]{2})[a-z]*\.?\s+(\d{1,2})(?:,?\s+(\d{4}))?$/.exec(text);
+  const month = m ? MONTH_NUM[m[1]] : undefined;
+  if (!m || !month) return text;
+  const day = m[2].padStart(2, "0");
+  return m[3] ? `${day}/${month}/${m[3]}` : `${day}/${month}`;
+}
+
+export type RecentUser = { id: string; name: string; email: string; role: string; joined: string; active: boolean };
+
+const GYM_OWNER_ROLES = new Set(["Gym owners", "Gym Owner"]);
+
+/** Recent rows that carry an id and the gym-owner account role — the only ones worth a partner-role lookup. */
+export function recentGymOwnerIds(d: Record<string, any>): string[] {
   const list = Array.isArray(d.recentUsers) ? d.recentUsers : [];
-  return list.map((u: any) => ({
-    name: String(u?.name ?? u?.email ?? ""),
-    email: String(u?.email ?? ""),
-    role: ROLE_VI[String(u?.role)] ?? String(u?.role ?? ""),
-    joined: String(u?.joined ?? ""),
-    active: String(u?.status ?? "").toLowerCase() === "active",
-  }));
+  return list
+    .filter((u: any) => GYM_OWNER_ROLES.has(String(u?.roleCode ?? u?.role)) && (u?.id ?? u?.userId))
+    .map((u: any) => String(u.id ?? u.userId));
+}
+
+const PARTNER_ROLE_VI: Record<string, string> = {
+  OWNER: "Chủ phòng gym",
+  MANAGER: "Quản lý chi nhánh",
+  RECEPTIONIST: "Lễ tân",
+  ACCOUNTANT: "Kế toán",
+};
+
+export function recentUsers(d: Record<string, any>, partnerRoles?: Map<string, PartnerRole>): RecentUser[] {
+  const list = Array.isArray(d.recentUsers) ? d.recentUsers : [];
+  return list.map((u: any) => {
+    const rawRole = String(u?.roleCode ?? u?.role);
+    const id = u?.id ?? u?.userId ? String(u.id ?? u.userId) : "";
+    let role = ROLE_VI[rawRole] ?? ROLE_VI[String(u?.role)] ?? String(u?.role ?? "");
+    if (GYM_OWNER_ROLES.has(rawRole) || GYM_OWNER_ROLES.has(String(u?.role))) {
+      const rowRole = typeof u?.partnerRole === "string" ? PARTNER_ROLE_VI[u.partnerRole] : undefined;
+      if (rowRole) role = rowRole;
+      else if (id) role = userRoleLabel({ id, role: "Gym Owner" }, partnerRoles);
+    }
+    return {
+      id,
+      name: String(u?.name ?? u?.email ?? ""),
+      email: String(u?.email ?? ""),
+      role,
+      joined: viShortDate(u?.joined),
+      active: String(u?.status ?? "").toLowerCase() === "active",
+    };
+  });
 }

@@ -1,6 +1,8 @@
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+import { router } from "expo-router";
+
 import TrainerDetailScreen from "../../../app/client/services/pt/[id]";
 import { availabilityService, contractService, profileService, ptServicePackageService } from "../../services/api";
 
@@ -136,6 +138,24 @@ describe("trainer detail — Listing Management (client side)", () => {
     expect(view.getByText("08:00")).toBeTruthy();
   });
 
+  it("U2: opens a trainer by id alone — never downloads the trainer list, even for a trainer with 0 packages on sale", async () => {
+    mocked.detail.mockResolvedValue(detail());
+    mocked.packages.mockResolvedValue([]);
+    const view = await renderScreen();
+    expect(await view.findByText("Bio của Lan")).toBeTruthy();
+    expect(mocked.detail).toHaveBeenCalledWith("pt-1");
+    expect(mocked.list).not.toHaveBeenCalled();
+  });
+
+  it("U2: the physique photos carry the 'Ảnh minh hoạ' attribution line", async () => {
+    mocked.detail.mockResolvedValue(detail());
+    mocked.packages.mockResolvedValue([pkg()]);
+    const view = await renderScreen();
+    expect(await view.findByText("1/2")).toBeTruthy();
+    expect(view.getByText("Ảnh minh hoạ ·")).toBeTruthy();
+    expect(view.getByText("Nguồn ảnh & giấy phép")).toBeTruthy();
+  });
+
   it("a trainer with no public photos has no gallery", async () => {
     mocked.detail.mockResolvedValue(detail({ physiquePhotos: [], coverPhotoUrl: null }));
     mocked.packages.mockResolvedValue([pkg()]);
@@ -199,5 +219,104 @@ describe("trainer detail — Listing Management (client side)", () => {
     await press(view.getByText("Gửi yêu cầu huấn luyện"));
     await waitFor(() => expect(mocked.request).toHaveBeenCalledTimes(2));
     expect(mocked.request.mock.calls[1][0].expectedPackageVersion).toBe(5);
+  });
+});
+
+describe("trainer detail — N15M-14 venue outside the Gymini system", () => {
+  const openRequest = async (view: any) => {
+    await press(await view.findByText("Gói dịch vụ"));
+    await press(await view.findByText("Gói 10 buổi"));
+  };
+
+  it("offline package, no gym: the warning sheet opens first and NOTHING is sent until 'Tôi đồng ý'", async () => {
+    mocked.detail.mockResolvedValue(detail());
+    mocked.packages.mockResolvedValue([pkg({ sessionMode: "OFFLINE" })]);
+    mocked.request.mockResolvedValue({ id: "c1" });
+    const view = await renderScreen();
+    await openRequest(view);
+
+    await press(view.getByText("Gửi yêu cầu huấn luyện"));
+    expect(await view.findByText("Nơi tập ngoài hệ thống Gymini")).toBeTruthy();
+    expect(view.getByText(/Gymini không chịu trách nhiệm/)).toBeTruthy();
+    expect(mocked.request).not.toHaveBeenCalled();
+
+    // the other choice sends nothing either
+    await press(view.getByText("Chọn gói/PT khác"));
+    expect(mocked.request).not.toHaveBeenCalled();
+
+    await press(view.getByText("Gửi yêu cầu huấn luyện"));
+    await press(await view.findByText("Tôi đồng ý"));
+    await waitFor(() => expect(mocked.request).toHaveBeenCalledTimes(1));
+    expect(mocked.request.mock.calls[0][0].acknowledgedIndependentVenue).toBe(true);
+    expect("gymId" in mocked.request.mock.calls[0][0]).toBe(false);
+  });
+
+  it("an online package never shows the warning and never sends the flag", async () => {
+    mocked.detail.mockResolvedValue(detail());
+    mocked.packages.mockResolvedValue([pkg({ sessionMode: "ONLINE" })]);
+    mocked.request.mockResolvedValue({ id: "c1" });
+    const view = await renderScreen();
+    await openRequest(view);
+    await press(view.getByText("Gửi yêu cầu huấn luyện"));
+    await waitFor(() => expect(mocked.request).toHaveBeenCalledTimes(1));
+    expect(view.queryByText("Nơi tập ngoài hệ thống Gymini")).toBeNull();
+    expect("acknowledgedIndependentVenue" in mocked.request.mock.calls[0][0]).toBe(false);
+  });
+
+  it("the server's 409 INDEPENDENT_VENUE_ACK_REQUIRED opens the same sheet instead of a generic error", async () => {
+    mocked.detail.mockResolvedValue(detail());
+    mocked.packages.mockResolvedValue([pkg({ sessionMode: "ONLINE" })]);
+    mocked.request.mockRejectedValueOnce({ response: { status: 409, data: { code: "INDEPENDENT_VENUE_ACK_REQUIRED", error: "Nơi tập nằm ngoài hệ thống Gymini ..." } } });
+    const view = await renderScreen();
+    await openRequest(view);
+    await press(view.getByText("Gửi yêu cầu huấn luyện"));
+    expect(await view.findByText("Tôi đồng ý")).toBeTruthy();
+    expect(mockToast).not.toHaveBeenCalledWith(expect.anything(), "danger");
+  });
+});
+
+describe("trainer detail — gợi ý mua gói hội viên (regression UI-03 ẩn mất nút)", () => {
+  const branch = (over: Record<string, unknown> = {}) => ({
+    gymId: "mekong-1",
+    name: "Mekong Fitness Q1",
+    city: "TP.HCM",
+    isPtTrainingLocation: false,
+    membership: { hasActiveMembership: false, planName: null, endDate: null },
+    eligibility: { canRequest: false, reason: "MEMBERSHIP_REQUIRED" },
+    ...over,
+  });
+  const openOffline = async (view: any) => {
+    await press(await view.findByText("Gói dịch vụ"));
+    await press(await view.findByText("Gói 10 buổi"));
+  };
+
+  it("MEMBERSHIP_REQUIRED + chưa chọn phòng + không phải nơi tập của PT: vẫn hiện lời gợi ý và nút 'Mua gói hội viên' tới đúng gym", async () => {
+    mocked.detail.mockResolvedValue(detail());
+    mocked.packages.mockResolvedValue([pkg({ sessionMode: "OFFLINE" })]);
+    mocked.gymOptions.mockResolvedValue({ pt: { referralCode: "QGT7KPJW" }, gyms: [branch()] });
+    const view = await renderScreen();
+    await openOffline(view);
+
+    expect(await view.findByText("Mekong Fitness Q1")).toBeTruthy();
+    expect(view.getByText(/cần có gói hội viên/)).toBeTruthy();
+    await press(view.getByText("Mua gói hội viên"));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: "/client/services/gyms/[id]",
+      params: { id: "mekong-1", referral: "QGT7KPJW" },
+    });
+  });
+
+  it("lý do chặn khác (gói hội viên không đủ hạn) ở chi nhánh không phải nơi tập vẫn được ẩn — không có nút mua", async () => {
+    mocked.detail.mockResolvedValue(detail());
+    mocked.packages.mockResolvedValue([pkg({ sessionMode: "OFFLINE" })]);
+    mocked.gymOptions.mockResolvedValue({
+      gyms: [branch({ eligibility: { canRequest: false, reason: "MEMBERSHIP_DOES_NOT_COVER_CONTRACT" } })],
+    });
+    const view = await renderScreen();
+    await openOffline(view);
+
+    expect(await view.findByText("Mekong Fitness Q1")).toBeTruthy();
+    expect(view.queryByText("Mua gói hội viên")).toBeNull();
+    expect(view.queryByText(/không đủ thời hạn/)).toBeNull();
   });
 });

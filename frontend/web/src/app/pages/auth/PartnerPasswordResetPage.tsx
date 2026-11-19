@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CircleNotchIcon as Loader2, CheckCircleIcon as CheckCircle2, KeyIcon as KeyRound } from "@phosphor-icons/react";
 import { api } from "../../services/api";
+import { PASSWORD_POLICY_HINT, isPasswordPolicyMet } from "../../utils/passwordPolicy";
 
 /**
  * Phase 2 mục 2.3 — quản trị viên bấm "Đặt lại mật khẩu" phát hành LINK (không bao giờ
@@ -30,7 +31,7 @@ export function PartnerPasswordResetPage() {
   });
 
   const passwordsMatch = password.length > 0 && password === confirmPassword;
-  const canSubmit = password.length >= 8 && passwordsMatch;
+  const canSubmit = isPasswordPolicyMet(password) && passwordsMatch;
 
   if (done) {
     return (
@@ -59,13 +60,14 @@ export function PartnerPasswordResetPage() {
         </div>
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-zinc-500 mb-1.5 block">Mật khẩu mới * (tối thiểu 8 ký tự)</label>
+            <label className="text-xs text-zinc-500 mb-1.5 block">Mật khẩu mới *</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
             />
+            <p className={`text-[11px] mt-1 ${password.length > 0 && !isPasswordPolicyMet(password) ? "text-amber-300" : "text-zinc-500"}`}>{PASSWORD_POLICY_HINT}</p>
           </div>
           <div>
             <label className="text-xs text-zinc-500 mb-1.5 block">Nhập lại mật khẩu *</label>

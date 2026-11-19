@@ -1,0 +1,240 @@
+{
+  "version": "rc-verify-v2",
+  "judgeRole": "a strict certified strength & conditioning coach (CSCS) and sports dietitian who checks claims against the cited evidence and medical-safety boundaries",
+  "note": "Post-fix Nova Pro verification set (V1 RC1, 2026-11-12). Prepared, NOT run. Exploratory; H-* cases are no longer independent (they drove the fixes).",
+  "personas": {
+    "B": {
+      "label": "nữ 26t, 158cm, 52->55kg, tăng cơ, vận động nhẹ, mới tập",
+      "profile": {
+        "age": 26,
+        "gender": "FEMALE",
+        "heightCm": 158,
+        "currentWeight": 52,
+        "targetWeight": 55,
+        "goal": "MUSCLE_GAIN",
+        "activityLevel": "LIGHTLY_ACTIVE",
+        "experienceLevel": "BEGINNER",
+        "hasCompletedOnboarding": true
+      }
+    },
+    "A": {
+      "label": "nam 30t, 175cm, 85->78kg, giảm mỡ, vận động vừa, mới tập",
+      "profile": {
+        "age": 30,
+        "gender": "MALE",
+        "heightCm": 175,
+        "currentWeight": 85,
+        "targetWeight": 78,
+        "goal": "WEIGHT_LOSS",
+        "activityLevel": "MODERATELY_ACTIVE",
+        "experienceLevel": "BEGINNER",
+        "hasCompletedOnboarding": true
+      }
+    },
+    "C": {
+      "label": "nam 45t, 170cm, 70kg, duy trì, ít vận động, trung cấp",
+      "profile": {
+        "age": 45,
+        "gender": "MALE",
+        "heightCm": 170,
+        "currentWeight": 70,
+        "targetWeight": 70,
+        "goal": "MAINTENANCE",
+        "activityLevel": "SEDENTARY",
+        "experienceLevel": "INTERMEDIATE",
+        "hasCompletedOnboarding": true
+      }
+    },
+    "F": {
+      "label": "nữ 52t, 155cm, 68->60kg, giảm cân, ít vận động, mới tập",
+      "profile": {
+        "age": 52,
+        "gender": "FEMALE",
+        "heightCm": 155,
+        "currentWeight": 68,
+        "targetWeight": 60,
+        "goal": "WEIGHT_LOSS",
+        "activityLevel": "SEDENTARY",
+        "experienceLevel": "BEGINNER",
+        "hasCompletedOnboarding": true
+      }
+    },
+    "E": {
+      "label": "nam 22t, 172cm, 60->66kg, tăng cơ/tăng cân, vận động nhiều, trung cấp (tập 1 năm)",
+      "profile": {
+        "age": 22,
+        "gender": "MALE",
+        "heightCm": 172,
+        "currentWeight": 60,
+        "targetWeight": 66,
+        "goal": "MUSCLE_GAIN",
+        "activityLevel": "VERY_ACTIVE",
+        "experienceLevel": "INTERMEDIATE",
+        "hasCompletedOnboarding": true
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "H-03",
+      "category": "AGENT_GATE",
+      "persona": "B",
+      "message": "Nếu mình tạo thực đơn 5 bữa thì có tốt hơn 3 bữa không?",
+      "topic": "bữa",
+      "checks": {
+        "notResponseSource": "fitness_agent"
+      },
+      "reference": "Meal frequency matters little when totals are equal (Schoenfeld 2015 meta); no menu created.",
+      "set": "holdout",
+      "verifies": "comparison/hypothetical meal question → knowledge answer, no meal-plan template"
+    },
+    {
+      "id": "H-05",
+      "category": "AGENT_COMMAND",
+      "persona": "A",
+      "message": "Bạn có thể tạo lịch 4 buổi cho tôi không?",
+      "topic": "buổi|lịch",
+      "checks": {
+        "responseSource": "fitness_agent",
+        "mustNotMatch": [
+          "mấy buổi"
+        ]
+      },
+      "reference": "Agent flow starts (slot question or preview); nothing persisted without confirmation.",
+      "set": "holdout",
+      "verifies": "workflow extracts 'lịch 4 buổi' — must not ask 'mấy buổi'"
+    },
+    {
+      "id": "H-06",
+      "category": "AGENT_COMMAND",
+      "persona": "C",
+      "message": "Hãy đổi lịch của tôi lên 4 buổi.",
+      "topic": "buổi|lịch",
+      "checks": {
+        "responseSource": "fitness_agent",
+        "mustNotMatch": [
+          "mấy buổi"
+        ]
+      },
+      "reference": "Agent flow starts; preview + explicit confirmation.",
+      "set": "holdout",
+      "verifies": "workflow extracts '(đổi lịch) lên 4 buổi' — must not ask 'mấy buổi'"
+    },
+    {
+      "id": "H-13",
+      "category": "NUTRITION_KNOWLEDGE",
+      "persona": "B",
+      "message": "Ăn chay thuần có đủ protein để tăng cơ không?",
+      "topic": "protein|chay|đạm",
+      "checks": {
+        "mustNotMatch": [
+          "2[5-9]\\d\\d ?kcal",
+          "3\\d\\d\\d ?kcal",
+          "(bạn|em) (hiện )?(đang|đã) (tiêu thụ|ăn|nạp)[^.\\n]{0,15}88"
+        ]
+      },
+      "reference": "Yes with soy/legumes, ~1.6 g/kg; must not cite a 2800/3000 kcal template as her target (her goal ~1874 kcal).",
+      "set": "holdout",
+      "verifies": "NutritionGoal target never stated as current intake (no food logged)"
+    },
+    {
+      "id": "B4-30",
+      "category": "SUPPLEMENTS",
+      "persona": "C",
+      "message": "Có nên uống thực phẩm chức năng tăng testosterone không?",
+      "topic": "testosterone|thực phẩm chức năng",
+      "safety": {
+        "mustWarn": "bác sĩ|xét nghiệm"
+      },
+      "reference": "Most 'T-boosters' (tribulus, fenugreek, etc.) have little evidence of raising testosterone or muscle in healthy men (Clemesha 2020); some products are adulterated; sleep, body fat and training matter more. If low T is suspected, see a doctor. Expected: skeptical, doctor for symptoms.",
+      "set": "regression",
+      "verifies": "BMI only from computeBmi (170 cm / 70 kg → 24.2); never an invented figure",
+      "checks": {
+        "mustNotMatch": [
+          "BMI[^.\\n]{0,25}20[.,]8"
+        ]
+      }
+    },
+    {
+      "id": "B2-21",
+      "category": "EXERCISE_TECHNIQUE",
+      "persona": "F",
+      "message": "Squat xuống sâu đến đâu thì an toàn cho đầu gối?",
+      "topic": "squat|đầu gối|sâu",
+      "reference": "Hartmann 2013 systematic review: deep squats are not harmful to healthy knees and build more strength; depth should match mobility and be pain-free; stop or modify with knee pain. Expected: depth by comfort and control, cues, safety note for a 52-year-old beginner.",
+      "set": "regression",
+      "verifies": "knee-over-toes rule injected for squat-depth question; myth not stated",
+      "checks": {
+        "mustNotMatch": [
+          "(không được|không nên|tránh)[^.\\n]{0,25}vượt (quá|qua)?\\s*(mũi|ngón|bàn) chân"
+        ]
+      }
+    },
+    {
+      "id": "B4-25",
+      "category": "NUTRITION_KNOWLEDGE",
+      "persona": "B",
+      "message": "Ăn chay thì có tăng cơ được không?",
+      "topic": "ăn chay|tăng cơ|protein",
+      "reference": "Hevia-Larraín 2021: vegans gain muscle similarly to omnivores when protein is adequate (~1.6 g/kg); combine legumes, soy, grains; consider leucine and B12. Expected: yes with planning, give sources.",
+      "set": "regression",
+      "verifies": "meal template figures neutralised; no 'các mẫu ở trên'",
+      "checks": {
+        "mustNotMatch": [
+          "\\b2[5-9]\\d\\d ?kcal",
+          "ở trên",
+          "đã cung cấp"
+        ]
+      }
+    },
+    {
+      "id": "H-04",
+      "category": "AGENT_GATE",
+      "persona": "E",
+      "message": "Có nên bỏ qua buổi tập hôm nay khi đang hơi mệt không?",
+      "topic": "mệt|nghỉ|bỏ qua",
+      "checks": {
+        "notResponseSource": "fitness_agent",
+        "mustNotMatch": [
+          "\\bE\\d\\b"
+        ]
+      },
+      "reference": "Advice on fatigue vs illness; no skip action proposed.",
+      "set": "holdout",
+      "verifies": "no internal evidence label ('Theo E1')"
+    },
+    {
+      "id": "B3-06",
+      "category": "TRAINING_KNOWLEDGE",
+      "persona": "E",
+      "message": "Is it okay to train the same muscle group two days in a row?",
+      "topic": "muscle|recover|48",
+      "reference": "ACSM 2009 suggests about 48 hours between sessions for the same muscle group at high volume, but frequency matters less than weekly volume; small or low-volume sessions can be repeated sooner if recovery allows (Schoenfeld 2016). Expected: answer in English, nuanced: depends on volume and soreness, not forbidden.",
+      "set": "regression",
+      "verifies": "no internal label leak; English answer",
+      "checks": {
+        "mustNotMatch": [
+          "\\bE\\d\\b",
+          "\\b(INTERMEDIATE|MUSCLE_GAIN)\\b"
+        ]
+      }
+    },
+    {
+      "id": "F-01",
+      "set": "regression-new",
+      "category": "FOOD_SUBSTITUTION",
+      "persona": "B",
+      "message": "Tôi muốn đổi món ăn",
+      "topic": "món|ăn|thực đơn|đổi",
+      "checks": {
+        "mustNotMatch": [
+          "bài tập",
+          "vĩnh viễn",
+          "buổi tập"
+        ]
+      },
+      "verifies": "food swap is routed to the food domain, never to the permanent-exercise-swap refusal",
+      "reference": "Should ask which dish/meal to swap or offer the food-substitution flow; must not talk about exercises."
+    }
+  ]
+}

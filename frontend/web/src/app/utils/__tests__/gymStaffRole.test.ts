@@ -4,9 +4,9 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { canUseFeature, homePathFor, normalizePartnerRole, type PartnerRole, type StaffFeature } from "../gymStaffRole";
+import { canUseFeature, canViewBrands, canViewCollaborations, canViewWallet, homePathFor, normalizePartnerRole, type PartnerRole, type StaffFeature } from "../gymStaffRole";
 
-const FEATURES: StaffFeature[] = ["dashboard", "gyms", "gymManage", "gymWizard", "listings", "plans", "collaborations", "staff", "frontDesk", "finance", "profile"];
+const FEATURES: StaffFeature[] = ["dashboard", "gyms", "gymManage", "gymWizard", "listings", "plans", "collaborations", "staff", "frontDesk", "finance", "complaintCases", "profile"];
 
 describe("gymStaffRole", () => {
   it("receptionist: front desk + profile only", () => {
@@ -36,5 +36,29 @@ describe("gymStaffRole", () => {
     for (const r of ["OWNER", "MANAGER", "RECEPTIONIST", "ACCOUNTANT"] as PartnerRole[]) {
       assert.equal(canUseFeature(r, featureOf[homePathFor(r)]), true, r);
     }
+  });
+});
+
+describe("gymStaffRole read-permission helpers (ND-01 / ND-02)", () => {
+  it("manager never fires wallet or collaborations reads; receptionist never fires brands", () => {
+    assert.equal(canViewWallet("MANAGER"), false);
+    assert.equal(canViewCollaborations("MANAGER"), false);
+    assert.equal(canViewBrands("RECEPTIONIST"), false);
+    assert.equal(canViewWallet("OWNER"), true);
+    assert.equal(canViewWallet("ACCOUNTANT"), true);
+    assert.equal(canViewCollaborations("OWNER"), true);
+    assert.equal(canViewBrands("MANAGER"), true);
+    assert.equal(canViewBrands("ACCOUNTANT"), true);
+  });
+
+  it("unknown role is fail-closed", () => {
+    assert.equal(canViewWallet(undefined), false);
+    assert.equal(canViewCollaborations(undefined), false);
+    assert.equal(canViewBrands(undefined), false);
+  });
+
+  it("complaint cases: owner and manager only", () => {
+    const allowed = (["OWNER", "MANAGER", "RECEPTIONIST", "ACCOUNTANT"] as PartnerRole[]).filter((r) => canUseFeature(r, "complaintCases"));
+    assert.deepEqual(allowed, ["OWNER", "MANAGER"]);
   });
 });

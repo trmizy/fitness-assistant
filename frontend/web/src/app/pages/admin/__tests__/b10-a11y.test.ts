@@ -99,9 +99,26 @@ describe("b10 ConfirmDialog non-danger button contrast", () => {
     assert.ok(st && fg, "tokens found");
     assert.ok(contrast(st!, fg!) >= 4.5, `contrast ${contrast(st!, fg!)}`);
   });
-  it("dark keeps the original --button-bg / --button-text pair; danger is untouched", () => {
+  it("dark keeps the original --button-bg / --button-text pair for the non-danger button", () => {
     assert.match(dlg, /dark:bg-\[var\(--button-bg\)\] dark:text-\[var\(--button-text\)\]/);
-    assert.match(dlg, /className=\{danger \? undefined : CONFIRM_CLASS\}/);
+    assert.match(dlg, /danger \? DANGER_CLASS : CONFIRM_CLASS/);
+  });
+  it("N14T-05: the danger button is --st-danger on --primary-foreground, >= 4.5:1 in light AND dark, and every dialog button is >= 40px", () => {
+    assert.match(dlg, /bg-\[var\(--st-danger\)\] text-\[var\(--primary-foreground\)\]/);
+    const lightDanger = /--st-danger:\s*(#[0-9a-fA-F]{6})/.exec(lightBlock(3))?.[1];
+    const lightFg = /--primary-foreground:\s*(#[0-9a-fA-F]{6})/.exec(lightBlock(1))?.[1];
+    const darkDanger = /--st-danger:\s*(#[0-9a-fA-F]{6})/.exec(theme)?.[1];
+    const darkFg = /--primary-foreground:\s*(#[0-9a-fA-F]{6})/.exec(theme)?.[1];
+    assert.ok(lightDanger && lightFg && darkDanger && darkFg, "tokens found");
+    assert.ok(contrast(lightDanger!, lightFg!) >= 4.5, `light ${contrast(lightDanger!, lightFg!)}`);
+    assert.ok(contrast(darkDanger!, darkFg!) >= 4.5, `dark ${contrast(darkDanger!, darkFg!)}`);
+    assert.match(dlg, /const TOUCH_CLASS = "min-h-10/);
+    assert.match(dlg, /<AlertDialogCancel disabled=\{pending\} className=\{TOUCH_CLASS\}>/);
+  });
+  it("N14T-05: AlertDialogOverlay forwards its ref (React 18 logged 'Function components cannot be given refs' on every open)", () => {
+    const ad = read("components/ui/alert-dialog.tsx");
+    assert.match(ad, /const AlertDialogOverlay = React\.forwardRef/);
+    assert.match(ad, /ref=\{ref\}/);
   });
   it("the old emerald-600 pair really failed AA (regression anchor)", () => {
     assert.ok(contrast("#059669", "#ffffff") < 4.5);

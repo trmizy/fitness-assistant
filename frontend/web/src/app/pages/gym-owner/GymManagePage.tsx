@@ -17,6 +17,9 @@ import { RequestChangesPanel } from "../../components/gym-management/RequestChan
 import { StepOpeningHours } from "../../components/gym/AddBranchWizard/StepOpeningHours";
 import { StepPhotos } from "../../components/gym/AddBranchWizard/StepPhotos";
 import { StepVerification } from "../../components/gym/AddBranchWizard/StepVerification";
+import { canViewWallet, normalizePartnerRole } from "../../utils/gymStaffRole";
+import { MEMBERSHIP_STATUS_VI, viLabel } from "../../utils/labels.vi";
+import { memberLabel } from "../../utils/memberLabel";
 
 const ALL_WEEK_DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"] as const;
 function defaultHours(gymId: string): GymOperatingHoursDay[] {
@@ -78,6 +81,8 @@ export function GymManagePage() {
     queryFn: () => gymService.getOnboardingStatus(),
   });
   const isManagerAccount = partnerStatus?.role === "MANAGER";
+  // ND-01: ví và yêu cầu rút tiền chỉ chủ/kế toán đọc được (finance.wallet.view) — quản lý không gọi để khỏi nhận 403.
+  const canSeeWallet = canViewWallet(normalizePartnerRole(partnerStatus?.role));
   const [showWithdrawForm, setShowWithdrawForm] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawPayoutInfo, setWithdrawPayoutInfo] = useState("");
@@ -177,7 +182,7 @@ export function GymManagePage() {
   const { data: wallet } = useQuery<Wallet>({
     queryKey: ["owned-gym-wallet", id],
     queryFn: () => gymService.getOwnedWallet(id!),
-    enabled: !!id,
+    enabled: !!id && canSeeWallet,
   });
 
   const { data: memberships = [] } = useQuery<GymMembershipContract[]>({
@@ -198,7 +203,7 @@ export function GymManagePage() {
   const { data: gymWithdrawals = [] } = useQuery<any[]>({
     queryKey: ["owned-gym-withdrawals", id],
     queryFn: () => gymService.listGymWithdrawals(id!),
-    enabled: !!id,
+    enabled: !!id && canSeeWallet,
   });
 
   const { data: onboarding } = useQuery<{ payout?: { bankName: string | null; accountNumber: string | null; accountHolder: string | null } | null }>({
@@ -269,6 +274,16 @@ export function GymManagePage() {
                 {gym.pendingName && <>Tên mới đang chờ duyệt: <strong>{gym.pendingName}</strong>. </>}
                 {gym.pendingAddress && <>Địa chỉ mới đang chờ duyệt: <strong>{gym.pendingAddress}</strong>.</>}
               </p>
+            )}
+            {gym.status === "SUSPENDED" && (
+              <div role="status" data-testid="gym-admin-suspended" className="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+                <AlertTriangle className="mt-0.5 w-3.5 h-3.5 shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-semibold">Đang bị tạm khoá trên Gymini</p>
+                  {gym.adminSuspensionReason && <p className="mt-0.5 break-words">Lý do: {gym.adminSuspensionReason}</p>}
+                  <p className="mt-0.5 text-amber-300/80">Chi nhánh tạm ẩn khỏi tìm kiếm và không bán gói mới. Hội viên đang có gói vẫn check-in bình thường tới hết hạn.</p>
+                </div>
+              </div>
             )}
             {gym.operationalStatus && gym.operationalStatus !== "OPEN" && (
               <p data-testid="gym-operational-status-badge" data-status={gym.operationalStatus} className="text-[11px] text-red-400 mt-1 flex items-center gap-1">
@@ -599,6 +614,7 @@ export function GymManagePage() {
       )}
 
       {/* Wallet */}
+      {canSeeWallet && (
       <div className="bg-gradient-to-br from-green-500/15 to-zinc-900 rounded-2xl border border-green-500/20 p-5 flex flex-wrap items-center gap-x-6 gap-y-2">
         <div className="flex items-center gap-3">
           <WalletIcon className="w-5 h-5 text-green-400" />
@@ -666,9 +682,10 @@ export function GymManagePage() {
           </div>
         )}
       </div>
+      )}
 
       {/* Check-in */}
-      <GymCheckinPanel gymId={id!} />
+      <GymCheckinPanel gymId={id!} branch={gym as any} />
 
       {/* PT partnerships are agreed with the BRAND and apply to every open branch (D5/D72), so there
           is nothing branch-specific to manage here: the one place is "Quản lý cộng tác". Only the
@@ -713,7 +730,7 @@ export function GymManagePage() {
             {memberships.map((m) => (
               <div key={m.id} className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-3.5 flex items-center justify-between">
                 <div>
-                  <div className="text-xs text-zinc-500">{m.clientId.slice(0, 8)}...</div>
+                  <div className="text-xs text-zinc-500">{memberLabel(m.clientId, m.clientName)}</div>
                   {m.status === "ACTIVE" && (
                     <div className="text-[11px] text-zinc-600 mt-0.5">
                       {m.totalVisits != null ? `Lượt: ${m.usedVisits}/${m.totalVisits}` : `Lượt đã vào: ${m.usedVisits} · không giới hạn`}
@@ -726,7 +743,7 @@ export function GymManagePage() {
                     : m.status === "PENDING_PAYMENT" ? "bg-orange-500/10 border-orange-500/20 text-orange-400"
                     : "bg-zinc-700/50 border-zinc-700 text-zinc-400"
                   }`}>
-                    {m.status}
+                    {viLabel(MEMBERSHIP_STATUS_VI, m.status)}
                   </span>
                   <span className="text-sm font-bold text-green-400">{formatVND(Number(m.priceAtPurchase))}</span>
                 </div>

@@ -14,8 +14,12 @@ export interface DeadlineRow {
   kind: string;
   partyRole?: string;
   party?: string;
+  /** the API field (gym + dispute cases); `startedAt` is only read for older shapes */
+  startsAt?: string | Date;
   startedAt?: string | Date;
   dueAt?: string | Date | null;
+  /** gym cases: the due time including every paused second */
+  effectiveDueAt?: string | Date | null;
   paused?: boolean | null;
   status?: string;
 }
@@ -23,6 +27,8 @@ export interface DeadlineRow {
 interface DeadlinesTableProps {
   deadlines?: DeadlineRow[] | null;
 }
+
+const startText = (v: string | Date | null | undefined): string => (v ? formatDateTime(typeof v === "string" ? v : v.toISOString()) : "—");
 
 export function DeadlinesTable({ deadlines }: DeadlinesTableProps) {
   const items = deadlines ?? [];
@@ -63,10 +69,10 @@ export function DeadlinesTable({ deadlines }: DeadlinesTableProps) {
                     {deadlinePartyLabel(d.partyRole ?? d.party)}
                   </td>
                   <td className="py-2.5 text-adm-text-2">
-                    {d.startedAt ? formatDateTime(typeof d.startedAt === "string" ? d.startedAt : d.startedAt.toISOString()) : "—"}
+                    {startText(d.startsAt ?? d.startedAt)}
                   </td>
                   <td className="py-2.5 text-adm-text-2">
-                    {deadlineDueText(d.dueAt, d.paused)}
+                    {deadlineDueText(d.effectiveDueAt ?? d.dueAt, d.paused)}
                   </td>
                   <td className="py-2.5">
                     <Pill tone={deadlineStatusTone(d.status)}>

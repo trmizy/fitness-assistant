@@ -21,6 +21,18 @@ export function isTestAccountEmail(email: string | null | undefined): boolean {
 }
 
 /**
+ * The same rule as `isTestAccountEmail`, written as POSIX regular expressions on the DOMAIN so a database can apply it itself
+ * (`domain ~ pattern`) instead of every email being read into memory. `domain` must be produced exactly like the function does: the text after the
+ * LAST "@", trimmed, lower-cased, one trailing dot removed. A domain matches when ANY pattern matches. Keep this and the function in step:
+ * the unit test compares them on a corpus, and the SQL was compared with the function on the real accounts of the AWS DEV database.
+ */
+const reEscape = (s: string) => s.replace(/\./g, "\\.");
+export const TEST_ACCOUNT_DOMAIN_PATTERNS: readonly string[] = [
+  `(^|\\.)(${[...RESERVED_TLDS].join("|")})$`,
+  `(^|\\.)(${[...RESERVED_DOMAINS].map(reEscape).join("|")})$`,
+];
+
+/**
  * Whether this process must refuse to CREATE test accounts. On by default on AWS Lambda (the deployed server), off in
  * local/dev/test stacks so the repo's own suites keep working. Overrides: TEST_ACCOUNTS_POLICY=block forces it on
  * anywhere; TEST_ACCOUNTS_POLICY=allow turns it off on the server (a deliberate, temporary smoke test only).

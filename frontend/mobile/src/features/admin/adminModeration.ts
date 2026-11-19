@@ -1,3 +1,6 @@
+import { GOAL_OPTIONS, TARGET_OPTIONS } from "../ptApplication/ptApplication";
+import { displaySpecialty } from "../../constants/specialties";
+
 /**
  * AD-02 — hai hàng duyệt còn lại của hub "Duyệt": đơn ứng tuyển huấn luyện viên và kế hoạch tập
  * đăng lên chợ. Phần thuần.
@@ -52,6 +55,46 @@ export type PtApplication = Record<string, any> & { id: string; status: string }
 export function ptApplicationRows(raw: unknown): PtApplication[] {
   const d = (raw as any)?.data ?? raw;
   return (Array.isArray(d) ? d : []).filter((a: any) => a?.id);
+}
+
+// ── FIX5-ADMIN-PERF: the server pages the list (10k applications); the screen scrolls through pages. ──
+
+/** Rows per page of the "Đơn ứng tuyển" list. */
+export const PT_PAGE_SIZE = 20;
+
+/** Status chips of the list. Review work first; "Bản nháp" is not an admin matter, so it has no chip. */
+export const PT_QUEUE_FILTERS: { value: string; label: string }[] = [
+  { value: "SUBMITTED", label: "Mới nộp" },
+  { value: "UNDER_REVIEW", label: "Đang xem" },
+  { value: "NEEDS_MORE_INFO", label: "Chờ bổ sung" },
+  { value: "APPROVED", label: "Đã duyệt" },
+  { value: "REJECTED", label: "Đã từ chối" },
+];
+
+/** Query of one page. Work still to do is read oldest-submitted first (as the old screen sorted it), finished ones newest first. */
+export function ptListParams(f: { status: string; q?: string; page?: number }, limit: number = PT_PAGE_SIZE): Record<string, string | number> {
+  const out: Record<string, string | number> = { status: f.status, page: f.page && f.page > 1 ? f.page : 1, limit };
+  if (f.status === "SUBMITTED" || f.status === "UNDER_REVIEW" || f.status === "NEEDS_MORE_INFO") out.order = "oldest";
+  const q = (f.q ?? "").trim();
+  if (q) out.q = q;
+  return out;
+}
+
+/** `{ rows, total }` of one page -> next page number or undefined when this was the last one. */
+export function nextPtPage(last: { rows?: unknown[]; total?: number } | undefined, page: number, limit: number = PT_PAGE_SIZE): number | undefined {
+  if (!last || !Array.isArray(last.rows) || last.rows.length === 0) return undefined;
+  const total = typeof last.total === "number" ? last.total : 0;
+  return page * limit < total ? page + 1 : undefined;
+}
+
+/** Every loaded page flattened, a row that appears twice kept once. */
+export function mergePtPages(pages: Array<{ rows?: unknown[] }> | undefined): PtApplication[] {
+  const seen = new Set<string>();
+  const out: PtApplication[] = [];
+  for (const p of pages ?? []) {
+    for (const a of ptApplicationRows(p.rows)) if (!seen.has(a.id)) (seen.add(a.id), out.push(a));
+  }
+  return out;
 }
 
 const QUEUE_RANK: Record<string, number> = { SUBMITTED: 0, UNDER_REVIEW: 1, NEEDS_MORE_INFO: 2, DRAFT: 3, APPROVED: 4, REJECTED: 5 };
@@ -199,4 +242,15 @@ export function listingRejectError(note: string): string | null {
   if (!note.trim()) return "Nhập lý do — người đăng sẽ đọc câu này.";
   if (note.trim().length < 10) return "Lý do quá ngắn để người đăng hiểu cần sửa gì.";
   return null;
+}
+
+/** AWS-MOB-UI-04 — catalog values the applicant picked (stored in English) shown in Vietnamese; same lists the wizard uses. */
+export type CatalogKind = "specialty" | "target" | "goal";
+export function catalogListVi(values: unknown, kind: CatalogKind): string | null {
+  if (!Array.isArray(values) || values.length === 0) return null;
+  const options = kind === "target" ? TARGET_OPTIONS : kind === "goal" ? GOAL_OPTIONS : null;
+  return values
+    .map((v) => String(v))
+    .map((v) => (options ? (options.find((o) => o.value === v)?.label ?? v) : displaySpecialty(v)))
+    .join(", ");
 }

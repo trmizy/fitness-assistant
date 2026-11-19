@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { CheckIcon as Check, XIcon as X, MedalIcon as Award, LightningIcon as Zap, MagnifyingGlassIcon as Search, CaretRightIcon as ChevronRight, ShieldIcon as Shield, BriefcaseIcon as Briefcase, UsersIcon as Users, CalendarIcon as Calendar, GlobeIcon as Globe, WarningCircleIcon as AlertCircle, ClockIcon as Clock, EyeIcon as Eye, FileTextIcon as FileText, ChatTextIcon as MessageSquare, CheckCircleIcon as CheckCircle, XCircleIcon as XCircle, ArrowLeftIcon as ArrowLeft, PhoneIcon as Phone, MapPinIcon as MapPin, InstagramLogoIcon as Instagram, YoutubeLogoIcon as Youtube, LinkedinLogoIcon as Linkedin, ArrowsClockwiseIcon as RefreshCw, ImageIcon, CircleNotchIcon as Loader2, CaretLeftIcon as ChevronLeft, UserIcon as User, ShieldCheckIcon as ShieldCheck, ClockCounterClockwiseIcon as HistoryIcon } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
@@ -10,12 +10,18 @@ import {
 import { apiBaseUrl } from "../../config/serverUrl";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { parseIdParam, parsePtFilter, shortRef } from "./shared/b9aUrlState";
+import { parsePageParam } from "./shared/b9bUrlState";
 import { useRestoreFocus, useReturnFocus } from "./shared/b9aReturnFocus";
 import { toast } from "sonner";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { listingErrorMessage } from "../../utils/listingErrors";
+import { optionLabel, TARGET_GROUP_OPTIONS, TRAINING_GOAL_OPTIONS } from "../../utils/ptListing";
+import { PtSuspensionCard } from "./PtSuspensionCard";
 
 const API_URL = apiBaseUrl();
+
+/** Applications per page of the admin list (the server pages; `limit` of GET /pt-applications/admin). */
+const PT_PAGE_SIZE = 20;
 
 const getFullUrl = (url?: string) => {
   if (!url) return undefined;
@@ -369,12 +375,24 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
 /* ═══════════════════════════════════════════════════════════
    DETAIL VIEW
    ═══════════════════════════════════════════════════════════ */
+const ADMIN_REVIEWABLE_STATUSES = ["SUBMITTED", "UNDER_REVIEW"];
+const REVIEW_LOCKED_NOTE: Record<string, string> = {
+  DRAFT: "Hồ sơ còn là bản nháp — người nộp chưa gửi nên chưa thể xét duyệt.",
+  NEEDS_MORE_INFO: "Đang chờ người nộp bổ sung thông tin. Hồ sơ sẽ xét duyệt lại sau khi người nộp gửi lại.",
+  APPROVED: "Hồ sơ đã được duyệt. Muốn tạm dừng huấn luyện viên này, dùng mục \"Trạng thái hoạt động\" ngay bên dưới.",
+  REJECTED: "Hồ sơ đã bị từ chối. Người nộp cần nộp hồ sơ mới (tối đa 3 lần bị từ chối cho mỗi tài khoản).",
+};
+
 function DetailView({ app, onBack, onDone }: { app: App; onBack: () => void; onDone?: () => void }) {
   const queryClient = useQueryClient();
-  const [adminNote, setAdminNote] = useState(app.adminNote || "");
+  // PT-08: this field is NOT stored and NOT sent. (For "Cần bổ sung" the backend keeps `adminNote` as the sentence the APPLICANT reads, so the
+  // old code that sent this box there showed "internal" notes to the applicant. It is also no longer pre-filled with that applicant-visible text.)
+  const [adminNote, setAdminNote] = useState("");
   const [feedback, setFeedback] = useState("");
   const [showDocs, setShowDocs] = useState(false);
   const cfg = statusConfig[app.status || "DRAFT"];
+  // Quy tắc duyệt hồ sơ (khớp backend, 409 INVALID_APPLICATION_TRANSITION): chỉ hồ sơ đang chờ xét duyệt mới thao tác được.
+  const canReview = ADMIN_REVIEWABLE_STATUSES.includes(app.status || "DRAFT");
 
   const actionMutation = useMutation({
     mutationFn: ({
@@ -429,7 +447,7 @@ function DetailView({ app, onBack, onDone }: { app: App; onBack: () => void; onD
         onConfirm={async () => {
           if (!decision) return;
           try {
-            await actionMutation.mutateAsync({ action: decision, note: adminNote, feedback });
+            await actionMutation.mutateAsync({ action: decision, feedback });
           } catch {
             /* onError đã hiện thông báo */
           }
@@ -531,17 +549,22 @@ function DetailView({ app, onBack, onDone }: { app: App; onBack: () => void; onD
               <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-green-500" /> Xét duyệt của admin
               </p>
+              {!canReview ? (
+                <p data-testid="pt-review-locked" className="text-xs text-zinc-400 leading-relaxed">
+                  {REVIEW_LOCKED_NOTE[app.status || "DRAFT"] ?? "Hồ sơ này hiện không thể xét duyệt."}
+                </p>
+              ) : (
               <div className="space-y-4">
                 <div>
                   <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">
-                    Ghi chú nội bộ
+                    Ghi chú nháp của bạn (không lưu, không gửi đi)
                   </p>
                   <textarea
                     value={adminNote}
                     onChange={(e) => setAdminNote(e.target.value)}
                     rows={2}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 resize-none outline-none focus:border-green-500 transition-colors"
-                    placeholder="Chỉ admin nhìn thấy..."
+                    placeholder="Chỉ để bạn tham khảo lúc xét duyệt — hệ thống không lưu ô này."
                   />
                 </div>
                 <div>
@@ -570,32 +593,31 @@ function DetailView({ app, onBack, onDone }: { app: App; onBack: () => void; onD
                     Từ chối
                   </button>
                   <button
-                    onClick={() =>
-                      actionMutation.mutate({
-                        action: "REQUEST_INFO",
-                        note: adminNote,
-                        feedback,
-                      })
-                    }
+                    onClick={() => {
+                      // PT-08: what the applicant reads is the "Phản hồi gửi người nộp" box, never the private draft box.
+                      if (!feedback.trim()) {
+                        toast.error("Hãy nhập nội dung vào ô “Phản hồi gửi người nộp” — người nộp sẽ đọc đúng nội dung này.");
+                        return;
+                      }
+                      actionMutation.mutate({ action: "REQUEST_INFO", note: feedback.trim(), feedback });
+                    }}
                     className="col-span-1 bg-zinc-800 hover:bg-amber-500/10 border border-zinc-700 hover:border-amber-500/30 text-zinc-400 hover:text-st-warning py-2.5 rounded-xl font-bold text-xs transition-all"
                   >
                     Cần bổ sung
                   </button>
                   <button
-                    onClick={() =>
-                      actionMutation.mutate({
-                        action: "UNDER_REVIEW",
-                        note: adminNote,
-                        feedback,
-                      })
-                    }
+                    onClick={() => actionMutation.mutate({ action: "UNDER_REVIEW", feedback })}
                     className="col-span-1 bg-zinc-800 hover:bg-blue-500/10 border border-zinc-700 hover:border-blue-500/30 text-zinc-400 hover:text-st-info py-2.5 rounded-xl font-bold text-xs transition-all"
                   >
                     Xem xét
                   </button>
                 </div>
               </div>
+              )}
             </div>
+            {app.status === "APPROVED" && app.user?.userId && (
+              <PtSuspensionCard ptUserId={app.user.userId} ptName={`${app.user?.firstName ?? ""} ${app.user?.lastName ?? ""}`.trim() || "huấn luyện viên này"} />
+            )}
           </div>
 
           {/* Main Body (2/3) */}
@@ -771,7 +793,7 @@ function DetailView({ app, onBack, onDone }: { app: App; onBack: () => void; onD
                             key={t}
                             className="px-2 py-0.5 rounded-md bg-blue-500/5 text-st-info text-[10px] border border-blue-500/10 font-medium"
                           >
-                            {t}
+                            {optionLabel(TARGET_GROUP_OPTIONS, t)}
                           </span>
                         ))
                       ) : (
@@ -792,7 +814,7 @@ function DetailView({ app, onBack, onDone }: { app: App; onBack: () => void; onD
                             key={g}
                             className="px-2 py-0.5 rounded-md bg-purple-500/5 text-purple-400 text-[10px] border border-purple-500/10 font-medium"
                           >
-                            {g}
+                            {optionLabel(TRAINING_GOAL_OPTIONS, g)}
                           </span>
                         ))
                       ) : (
@@ -988,15 +1010,34 @@ export function PTManagement() {
   const filter = parsePtFilter(params.get("status"));
   const selectedId = parseIdParam(params.get("id"));
   const [search, setSearch] = useState("");
+  // FIX5-ADMIN-PERF: the list is paged by the server; the search runs there too, after a short pause in typing.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    if (debouncedSearch === search) return;
+    const t = window.setTimeout(() => setDebouncedSearch(search), 350);
+    return () => window.clearTimeout(t);
+  }, [search, debouncedSearch]);
+  const pageParam = parsePageParam(params.get("page"));
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
+  const setPage = (page: number) =>
+    setParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        if (page <= 1) n.delete("page");
+        else n.set("page", String(page));
+        return n;
+      },
+      { replace: true },
+    );
   const setFilter = (next: FilterKey) =>
     setParams((prev) => {
       const n = new URLSearchParams(prev);
       if (next === "all") n.delete("status");
       else n.set("status", next);
       n.delete("id");
+      n.delete("page");
       return n;
     });
   const openApp = (id: string) =>
@@ -1015,16 +1056,30 @@ export function PTManagement() {
       { replace },
     );
 
-  const { data: applications = [], isLoading, isError, error: listError, refetch, dataUpdatedAt, isFetching } = useQuery({
-    queryKey: ["admin-pt-applications", filter],
-    // Keeps the current rows on screen while the new filter loads, instead of
-    // dropping to undefined and flashing an empty list on every filter change.
+  const { data: pageData, isLoading, isError, error: listError, refetch, dataUpdatedAt, isFetching } = useQuery({
+    // "page" keeps this key apart from the unpaged `["admin-pt-applications", status]` the Today queue shares;
+    // the `["admin-pt-applications"]` prefix still invalidates both.
+    queryKey: ["admin-pt-applications", "page", filter, pageParam, debouncedSearch.trim()],
+    // Keeps the current rows on screen while the new filter / page loads, instead of
+    // dropping to undefined and flashing an empty list on every change.
     placeholderData: keepPreviousData,
     queryFn: () =>
-      ptApplicationService.listApplications(
-        filter === "all" ? {} : { status: filter },
-      ),
+      ptApplicationService.listApplicationsPage({
+        status: filter === "all" ? undefined : filter,
+        q: debouncedSearch,
+        page: pageParam,
+        limit: PT_PAGE_SIZE,
+      }),
   });
+  const applications = pageData?.rows ?? [];
+  const totalApplications = pageData?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalApplications / PT_PAGE_SIZE));
+
+  // A page past the end (stale link, or the list shrank after a review): go to the last page.
+  useEffect(() => {
+    if (pageData && !isFetching && totalApplications > 0 && pageParam > totalPages) setPage(totalPages);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageData, isFetching, totalApplications, totalPages, pageParam]);
 
   // Chi tiết một hồ sơ: cùng GET /pt-applications/admin/:id như trước; lỗi thì dùng dòng của danh sách (hành vi cũ).
   const detailQuery = useQuery({
@@ -1068,14 +1123,7 @@ export function PTManagement() {
   }
   const unknownSelected = !!selectedId && !detailQuery.isLoading && !detailQuery.data && !applications.find((a) => a.id === selectedId);
 
-  const filtered = applications.filter((a) => {
-    const term = search.toLowerCase();
-    if (!term) return true;
-    const fName = a.user?.firstName?.toLowerCase() || "";
-    const lName = a.user?.lastName?.toLowerCase() || "";
-    const email = a.user?.email?.toLowerCase() || "";
-    return fName.includes(term) || lName.includes(term) || email.includes(term);
-  });
+  const filtered = applications;
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
@@ -1098,7 +1146,7 @@ export function PTManagement() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); if (pageParam > 1) setPage(1); }}
             placeholder="Tìm theo tên hoặc email..."
             className="pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-300 w-full md:w-64 focus:border-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-focus)]"
           />
@@ -1157,7 +1205,8 @@ export function PTManagement() {
           <p className="text-zinc-600 text-sm">Không có hồ sơ nào.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <>
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 transition-opacity ${isFetching ? "opacity-60" : ""}`} aria-busy={isFetching}>
           {filtered.map((app) => (
             <button
               key={app.id}
@@ -1220,6 +1269,28 @@ export function PTManagement() {
             </button>
           ))}
         </div>
+        {totalPages > 1 && (
+          <nav aria-label="Phân trang" data-testid="pt-pagination" className="flex items-center justify-between gap-3">
+            <button
+              disabled={pageParam <= 1 || isFetching}
+              onClick={() => setPage(pageParam - 1)}
+              className="min-h-10 px-4 rounded-xl text-xs font-bold border border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Trước
+            </button>
+            <span className="text-xs tabular-nums text-zinc-500" data-testid="pt-page-info">
+              Trang {Math.min(pageParam, totalPages)} / {totalPages} · {totalApplications} hồ sơ
+            </span>
+            <button
+              disabled={pageParam >= totalPages || isFetching}
+              onClick={() => setPage(pageParam + 1)}
+              className="min-h-10 px-4 rounded-xl text-xs font-bold border border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Sau
+            </button>
+          </nav>
+        )}
+        </>
       )}
     </div>
   );

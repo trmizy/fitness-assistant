@@ -17,6 +17,7 @@ import { backup, restore } from './backup.mjs';
 import { clean, verifyClean, progressFile } from './clean.mjs';
 import { renderReport } from './report.mjs';
 import { loadDenyFile, emptyPatterns, computeGuards, walletImpact } from './deny.mjs';
+import { describeWalletsWithMoney } from './drift.mjs';
 
 const REPO_ROOT = path.resolve(TOOL_DIR, '..', '..');
 export const DEFAULT_BACKUP_ROOT = 'D:\\FitnessAssistant-backups';
@@ -123,6 +124,8 @@ export async function cmdAudit(args) {
     ctx.log(`manifest: ${files.manifest}`);
     ctx.log(`confirmToken: ${token}`);
     ctx.log(`blockers: ${Object.keys(manifest.blockers).length ? JSON.stringify(Object.keys(manifest.blockers)) : 'none'}`);
+    if (manifest.blockers.deletedWalletsWithMoney?.length) ctx.log(`REFUSED (N13F-01): ${describeWalletsWithMoney(manifest.blockers.deletedWalletsWithMoney)}`);
+    if (guards.info.reconciliationDriftAtAudit) ctx.log(`reconciliation at audit: escrow ${guards.info.reconciliationDriftAtAudit.escrow}, claims ${guards.info.reconciliationDriftAtAudit.claims}, drift ${guards.info.reconciliationDriftAtAudit.drift} (a cleanup run aborts if this changes)`);
     if (args.report) {
       ensureDir(path.dirname(args.report));
       fs.writeFileSync(args.report, renderReport({ ctx, manifest, token, metadata, plan, files, partnerDbs }));

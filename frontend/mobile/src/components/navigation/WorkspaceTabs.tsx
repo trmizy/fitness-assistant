@@ -80,12 +80,16 @@ export function WorkspaceTabs({
                 paddingTop: 6,
                 paddingBottom: 8 + insets.bottom,
               },
+              // NE-03 — five tabs share a 360 px bar (72 px each): "Trò chuyện" at 11 px plus the
+              // system font scale was cut to "Trò chuy…". The bar's own height is fixed, so its
+              // labels do not follow the system font scale, and sit at 10 px with no side padding.
+              tabBarAllowFontScaling: false,
               tabBarLabelStyle: {
                 fontFamily: "Inter_500Medium",
-                fontSize: 11,
+                fontSize: 10,
               },
               // Long Vietnamese labels ("Trò chuyện") would otherwise wrap onto two lines.
-              tabBarItemStyle: { paddingHorizontal: 2 },
+              tabBarItemStyle: { paddingHorizontal: 0 },
             }}
           >
           {tabs.map((tab) => (

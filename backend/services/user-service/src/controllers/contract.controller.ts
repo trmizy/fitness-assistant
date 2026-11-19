@@ -13,6 +13,7 @@ import { assertPtMayActOnContract } from "../services/pt-restriction.service";
 import { previewClientExit, terminateAsClient } from "../services/client-exit.service";
 import { errorCodeBody } from "../utils/error-code.util";
 import { clientHeaderOf } from "../services/client-compat.service";
+import { VENUE_CONSENT_CAPABILITY_HEADER } from "../services/independent-venue-consent";
 import {
   MEMBERSHIP_REQUIRED,
   MEMBERSHIP_DOES_NOT_COVER_CONTRACT,
@@ -27,6 +28,7 @@ import {
 } from "../services/s3-upload.service";
 
 import { redactBreakdownForViewer, redactContractSplit, redactSettlementForViewer, type ContractViewer } from "../services/contract-dto";
+import { assertNotSynthetic } from "../services/synthetic-guard.util";
 
 /** Who is asking, as the gateway authenticated them: decides whether a contract row comes back with its money split. */
 const viewerOf = (req: any): ContractViewer => ({
@@ -43,7 +45,7 @@ export const contractController = {
         clientUserId,
         req.body,
         undefined,
-        { clientHeader: clientHeaderOf(req) },
+        { clientHeader: clientHeaderOf(req), venueConsentHeader: req.headers?.[VENUE_CONSENT_CAPABILITY_HEADER] ?? null, ...auditMeta(req) },
       );
       res.status(201).json(redactContractSplit(contract, viewerOf(req)));
     } catch (error: any) {
@@ -145,7 +147,7 @@ export const contractController = {
       logger.error(error, "Create contract error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Không tạo được hợp đồng" });
+        .json({ error: error.message || "Không tạo được hợp đồng", ...errorCodeBody(error) });
     }
   },
 
@@ -241,7 +243,7 @@ export const contractController = {
       logger.error(error, "Update contract error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Không cập nhật được hợp đồng" });
+        .json({ error: error.message || "Không cập nhật được hợp đồng", ...errorCodeBody(error) });
     }
   },
 
@@ -258,7 +260,7 @@ export const contractController = {
       logger.error(error, "Log session error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Không ghi nhận được buổi tập" });
+        .json({ error: error.message || "Không ghi nhận được buổi tập", ...errorCodeBody(error) });
     }
   },
 
@@ -450,6 +452,7 @@ export const contractController = {
         res.status(403).json({ error: "Bạn không có quyền thực hiện thao tác này" });
         return;
       }
+      assertNotSynthetic(contract);
 
       if (contract.status !== ContractStatus.PENDING_SIGNATURE) {
         res
@@ -480,7 +483,7 @@ export const contractController = {
       logger.error(error, "Send e-sign error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Không gửi được yêu cầu ký hợp đồng" });
+        .json({ error: error.message || "Không gửi được yêu cầu ký hợp đồng", ...errorCodeBody(error) });
     }
   },
 
@@ -649,6 +652,7 @@ export const contractController = {
         res.status(403).json({ error: 'Bạn không có quyền thực hiện thao tác này' });
         return;
       }
+      assertNotSynthetic(contract);
       // The preview is priced with the SAME terms the termination would send (reason + sessions held), via
       // the one shared helper in client-exit.service.ts - so `refundIfCancelledNow` is what cancelling now
       // really refunds, `exitReasonIfCancelledNow` says which reason that is, `unresolvedSessions` how many
@@ -661,7 +665,7 @@ export const contractController = {
       res.json(redactBreakdownForViewer(data, viewerOf(req), contract.ptUserId));
     } catch (error: any) {
       logger.error(error, 'Money breakdown error');
-      res.status(error.status || 500).json({ error: error.message || 'Không tải được thống kê tiền của hợp đồng' });
+      res.status(error.status || 500).json({ error: error.message || 'Không tải được thống kê tiền của hợp đồng', ...errorCodeBody(error) });
     }
   },
 
@@ -716,6 +720,7 @@ export const contractController = {
         res.status(403).json({ error: `Bạn không có quyền kết thúc hợp đồng này với lý do ${reason}` });
         return;
       }
+      assertNotSynthetic(contract);
 
       // Vòng 4 / Phase E2 — never trust the caller's say-so for the ONE reason a client can
       // self-declare a full refund: re-count ptAtFault sessions on THIS contract server-side.

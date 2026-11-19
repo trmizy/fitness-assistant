@@ -1,0 +1,998 @@
+import { Prisma } from "../generated/prisma";
+import { prisma } from "../repositories/profile.repository";
+import {
+  computeDiscoveryFilterHash,
+  CursorExpiredError,
+  CursorFilterMismatchError,
+  decodeDiscoveryCursor,
+  encodeDiscoveryCursor,
+  resolveDiscoveryCursorKey,
+  type DiscoveryCursorPayload,
+  type DiscoveryDistanceBasis,
+  type DiscoveryMode,
+  type DiscoveryScope,
+  type DiscoverySortKey,
+} from "./pt-discovery-cursor";
+
+const VN_FROM = "áàảãạăắằẳẵặâấầẩẫậđéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵ";
+const VN_TO = "aaaaaaaaaaaaaaaaadeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyy";
+
+export const PT_DISCOVERY_DEFAULT_LIMIT = 50;
+export const PT_DISCOVERY_MAX_LIMIT = 50;
+export const PT_SEARCH_DEFAULT_LIMIT = 20;
+export const PT_SEARCH_DEFAULT_RADIUS_KM = 10;
+export const PT_SEARCH_STATEMENT_TIMEOUT_SQL = "SET LOCAL statement_timeout = '2s'";
+
+export interface PtDiscoveryQueryFilters {
+  q?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sessionMode?: string;
+  provinceCode?: number;
+  wardCode?: number;
+  searchCity?: string;
+  searchDistrict?: string;
+  gymId?: string;
+  specialties?: string[];
+  sortBy?: string;
+  viewerGymIds?: string[];
+  page?: number;
+  limit?: number;
+}
+
+export interface PtDiscoveryPageIds {
+  userIds: string[];
+  hasMore: boolean;
+}
+
+export interface PtSearchQueryInput {
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
+  areaProvince?: number;
+  areaWard?: number;
+  scope?: DiscoveryScope;
+  mode?: DiscoveryMode;
+  sortBy?: DiscoverySortKey;
+  q?: string;
+  specialties?: string[];
+  minPrice?: number;
+  maxPrice?: number;
+  gymId?: string;
+  viewerGymIds?: string[];
+  cursor?: string;
+  limit?: number;
+}
+
+export interface PtSearchPageItem {
+  userId: string;
+  distanceKm: number | null;
+  distanceBasis: DiscoveryDistanceBasis;
+  tier: number;
+}
+
+export interface PtSearchPageResult {
+  items: PtSearchPageItem[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  appliedScope: DiscoveryScope;
+  epoch: number;
+}
+
+export interface PtSearchQueryOptions {
+  /** Test seam running inside the same transaction after SET LOCAL statement_timeout = '2s'. */
+  onAfterTimeoutSetInTx?: (tx: Prisma.TransactionClient) => Promise<void>;
+}
+
+function foldVietnameseText(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[đĐ]/g, "d")
+    .toLowerCase()
+    .trim();
+}
+
+function escapeLikePattern(text: string): string {
+  return text.replace(/[!%_]/g, "!$&");
+}
+
+function nameMatchSql(text: string): Prisma.Sql {
+  const pattern = `%${escapeLikePattern(text)}%`;
+  return Prisma.sql`(
+    COALESCE(p."firstName", '') ILIKE ${pattern} ESCAPE '!'
+    OR COALESCE(p."lastName", '') ILIKE ${pattern} ESCAPE '!'
+    OR COALESCE(p.first_name_normalized, '') ILIKE ${pattern} ESCAPE '!'
+    OR COALESCE(p.last_name_normalized, '') ILIKE ${pattern} ESCAPE '!'
+  )`;
+}
+
+/**
+ * Shared predicate for packages currently for sale (matches PT_FOR_SALE_PACKAGES_ARGS and
+ * computeFromPrices in pt-public-dto.ts). Both mode filtering and price filtering/sorting
+ * derive from this single predicate so they can never drift apart.
+ */
+function forSalePackagePredicates(packageMode?: "ONLINE" | "OFFLINE"): Prisma.Sql[] {
+  const preds: Prisma.Sql[] = [
+    Prisma.sql`pkg.is_active = true`,
+    Prisma.sql`pkg.archived_at IS NULL`,
+    Prisma.sql`pkg.session_count >= 1`,
+    Prisma.sql`pkg.price > 0`,
+  ];
+  if (packageMode === "ONLINE" || packageMode === "OFFLINE") {
+    preds.push(Prisma.sql`pkg.session_mode = ${packageMode}::"SessionMode"`);
+  }
+  return preds;
+}
+
+function ratingAggregateJoinSql(): Prisma.Sql {
+  // Matches ptReviewRepository.aggregateForPts: session_reviews JOIN sessions, rounded to 1 decimal place.
+  return Prisma.sql`
+    LEFT JOIN (
+      SELECT s.pt_user_id,
+             ROUND(AVG(r.rating)::numeric, 1) AS avg_rating
+      FROM session_reviews r
+      JOIN sessions s ON s.id = r.session_id
+      GROUP BY s.pt_user_id
+    ) rt ON rt.pt_user_id = p."userId"
+  `;
+}
+
+function priceAggregateJoinSql(packageMode?: "ONLINE" | "OFFLINE"): Prisma.Sql {
+  // Matches computeFromPricesByMode: floorTo1000(MIN(price / sessionCount)) over for-sale packages.
+  return Prisma.sql`
+    LEFT JOIN (
+      SELECT pkg.pt_user_id,
+             FLOOR(MIN(pkg.price / pkg.session_count) / 1000) * 1000 AS from_price_per_session
+      FROM pt_service_packages pkg
+      WHERE ${Prisma.join(forSalePackagePredicates(packageMode), " AND ")}
+      GROUP BY pkg.pt_user_id
+    ) pr ON pr.pt_user_id = p."userId"
+  `;
+}
+
+function buildPkgFlagsCteSql(packageMode?: "ONLINE" | "OFFLINE"): Prisma.Sql {
+  return Prisma.sql`
+    SELECT
+      pkg.pt_user_id,
+      bool_or(pkg.session_mode = 'OFFLINE'::"SessionMode") AS has_offline_pkg,
+      bool_or(pkg.session_mode = 'ONLINE'::"SessionMode")  AS has_online_pkg
+    FROM pt_service_packages pkg
+    WHERE ${Prisma.join(forSalePackagePredicates(packageMode), " AND ")}
+    GROUP BY pkg.pt_user_id
+  `;
+}
+
+function hasActiveLocationSql(): Prisma.Sql {
+  return Prisma.sql`EXISTS (
+    SELECT 1 FROM pt_training_locations tl
+    WHERE tl.pt_user_id = p."userId" AND tl.is_active = true
+  )`;
+}
+
+function currentStatsJoinSql(): Prisma.Sql {
+  return Prisma.sql`
+    LEFT JOIN pt_discovery_stats ds
+      ON ds.pt_user_id = p."userId"
+     AND ds.epoch = (
+       SELECT e.epoch
+       FROM pt_discovery_epochs e
+       WHERE e.is_current = true
+         AND e.status = 'READY'::"PtDiscoveryEpochStatus"
+       LIMIT 1
+     )
+  `;
+}
+
+function statsEpochJoinSql(epoch: number): Prisma.Sql {
+  return Prisma.sql`
+    LEFT JOIN pt_discovery_stats ds
+      ON ds.pt_user_id = p."userId"
+     AND ds.epoch = ${epoch}::int4
+  `;
+}
+
+function fromPriceColumnSql(mode?: "ONLINE" | "OFFLINE"): Prisma.Sql {
+  if (mode === "ONLINE") return Prisma.sql`ds.from_price_online`;
+  if (mode === "OFFLINE") return Prisma.sql`ds.from_price_offline`;
+  return Prisma.sql`ds.from_price_overall`;
+}
+
+function resolveOrderSql(
+  sortBy: string | undefined,
+  packageMode?: "ONLINE" | "OFFLINE",
+  viewerGymIds: string[] = [],
+  currentReadyEpoch: number | null = null,
+): { joinSql: Prisma.Sql; orderBySql: Prisma.Sql } {
+  switch (sortBy) {
+    case "nameAsc":
+      return {
+        joinSql: Prisma.empty,
+        orderBySql: Prisma.sql`ORDER BY p."firstName" ASC NULLS LAST, p."userId" ASC`,
+      };
+    case "ratingDesc":
+      if (currentReadyEpoch !== null) {
+        return {
+          joinSql: statsEpochJoinSql(currentReadyEpoch),
+          orderBySql: Prisma.sql`ORDER BY ds.rating_avg DESC NULLS LAST, p."userId" ASC`,
+        };
+      }
+      return {
+        joinSql: ratingAggregateJoinSql(),
+        orderBySql: Prisma.sql`ORDER BY rt.avg_rating DESC NULLS LAST, p."userId" ASC`,
+      };
+    case "ratingAsc":
+      if (currentReadyEpoch !== null) {
+        return {
+          joinSql: statsEpochJoinSql(currentReadyEpoch),
+          orderBySql: Prisma.sql`ORDER BY ds.rating_avg ASC NULLS LAST, p."userId" ASC`,
+        };
+      }
+      return {
+        joinSql: ratingAggregateJoinSql(),
+        orderBySql: Prisma.sql`ORDER BY rt.avg_rating ASC NULLS LAST, p."userId" ASC`,
+      };
+    case "priceAsc":
+      if (currentReadyEpoch !== null) {
+        const priceCol = fromPriceColumnSql(packageMode);
+        return {
+          joinSql: statsEpochJoinSql(currentReadyEpoch),
+          orderBySql: Prisma.sql`ORDER BY ${priceCol} ASC NULLS LAST, p."userId" ASC`,
+        };
+      }
+      return {
+        joinSql: priceAggregateJoinSql(packageMode),
+        orderBySql: Prisma.sql`ORDER BY pr.from_price_per_session ASC NULLS LAST, p."userId" ASC`,
+      };
+    case "priceDesc":
+      if (currentReadyEpoch !== null) {
+        const priceCol = fromPriceColumnSql(packageMode);
+        return {
+          joinSql: statsEpochJoinSql(currentReadyEpoch),
+          orderBySql: Prisma.sql`ORDER BY ${priceCol} DESC NULLS LAST, p."userId" ASC`,
+        };
+      }
+      return {
+        joinSql: priceAggregateJoinSql(packageMode),
+        orderBySql: Prisma.sql`ORDER BY pr.from_price_per_session DESC NULLS LAST, p."userId" ASC`,
+      };
+    default: {
+      const joinSql = currentStatsJoinSql();
+      if (viewerGymIds.length > 0) {
+        return {
+          joinSql,
+          orderBySql: Prisma.sql`ORDER BY
+            p.is_accepting_clients DESC,
+            EXISTS (
+              SELECT 1 FROM pt_training_locations tl
+              WHERE tl.pt_user_id = p."userId"
+                AND tl.is_active = true
+                AND tl.gym_id = ANY(${viewerGymIds}::text[])
+            ) DESC,
+            ds.quality DESC NULLS LAST,
+            p."createdAt" DESC,
+            p."userId" ASC`,
+        };
+      }
+      return {
+        joinSql,
+        orderBySql: Prisma.sql`ORDER BY p.is_accepting_clients DESC, ds.quality DESC NULLS LAST, p."createdAt" DESC, p."userId" ASC`,
+      };
+    }
+  }
+}
+
+function buildBaseVisibilityAndAttributeWhere(filters: {
+  q?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  packageMode?: "ONLINE" | "OFFLINE";
+  provinceCode?: number;
+  wardCode?: number;
+  searchCity?: string;
+  searchDistrict?: string;
+  gymId?: string;
+  specialties?: string[];
+}): Prisma.Sql[] {
+  // Public visibility rule (equivalent to ptPublicWhere in pt-public-dto.ts)
+  const where: Prisma.Sql[] = [
+    Prisma.sql`p."isPT" = true`,
+    Prisma.sql`p.pt_suspended = false`,
+    Prisma.sql`pa.status = 'APPROVED'::"PTApplicationStatus"`,
+    Prisma.sql`NOT EXISTS (
+      SELECT 1 FROM pt_restrictions r
+      WHERE r.pt_user_id = p."userId"
+        AND r.ended_at IS NULL
+        AND r.scope = 'ACCOUNT'::"PtRestrictionScope"
+    )`,
+  ];
+
+  if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
+    const priceConds: Prisma.Sql[] = [
+      Prisma.sql`pkg.pt_user_id = p."userId"`,
+      ...forSalePackagePredicates(filters.packageMode),
+    ];
+    if (filters.minPrice !== undefined) {
+      priceConds.push(Prisma.sql`(pkg.price / pkg.session_count) >= ${filters.minPrice}`);
+    }
+    if (filters.maxPrice !== undefined) {
+      priceConds.push(Prisma.sql`(pkg.price / pkg.session_count) <= ${filters.maxPrice}`);
+    }
+    where.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM pt_service_packages pkg
+      WHERE ${Prisma.join(priceConds, " AND ")}
+    )`);
+  }
+
+  const q = (filters.q ?? "").trim();
+  if (q) {
+    const foldedNeedle = `%${escapeLikePattern(foldVietnameseText(q))}%`;
+    const locationTextMatch = Prisma.sql`EXISTS (
+      SELECT 1 FROM pt_training_locations tlq
+      WHERE tlq.pt_user_id = p."userId"
+        AND tlq.is_active = true
+        AND (
+          translate(lower(COALESCE(tlq.gym_name, '')), ${VN_FROM}, ${VN_TO}) LIKE ${foldedNeedle} ESCAPE '!'
+          OR translate(lower(COALESCE(tlq.address_line, '')), ${VN_FROM}, ${VN_TO}) LIKE ${foldedNeedle} ESCAPE '!'
+        )
+    )`;
+    const tokens = q.split(/\s+/).filter(Boolean);
+    const qOr: Prisma.Sql[] = [locationTextMatch, nameMatchSql(q)];
+    if (tokens.length > 1) {
+      qOr.push(Prisma.sql`(${Prisma.join(tokens.map((t) => nameMatchSql(t)), " AND ")})`);
+    }
+    where.push(Prisma.sql`(${Prisma.join(qOr, " OR ")})`);
+  }
+
+  if (filters.searchCity) {
+    where.push(Prisma.sql`p.search_city = ${filters.searchCity}`);
+  }
+  if (filters.searchDistrict) {
+    where.push(Prisma.sql`p.search_district = ${filters.searchDistrict}`);
+  }
+  if (filters.gymId) {
+    where.push(Prisma.sql`p.gym_id = ${filters.gymId}`);
+  }
+  if (filters.specialties && filters.specialties.length > 0) {
+    where.push(Prisma.sql`p.specialties && ${filters.specialties}::text[]`);
+  }
+
+  if (filters.provinceCode !== undefined || filters.wardCode !== undefined) {
+    const locConds: Prisma.Sql[] = [
+      Prisma.sql`tlf.pt_user_id = p."userId"`,
+      Prisma.sql`tlf.is_active = true`,
+    ];
+    if (filters.provinceCode !== undefined) {
+      locConds.push(Prisma.sql`tlf.province_code = ${filters.provinceCode}`);
+    }
+    if (filters.wardCode !== undefined) {
+      locConds.push(Prisma.sql`tlf.ward_code = ${filters.wardCode}`);
+    }
+    where.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM pt_training_locations tlf
+      WHERE ${Prisma.join(locConds, " AND ")}
+    )`);
+  }
+
+  return where;
+}
+
+/**
+ * Global SQL query for public PT discovery (GET /profile/pts — D0a + D0b-1 + D0b-2 stats sort):
+ * - Rating/price sorts use `pt_discovery_stats` when a current READY epoch exists and fall back
+ *   to D0a live aggregates only when no READY epoch exists yet.
+ */
+export async function findDiscoveryPtPageIds(
+  filters: PtDiscoveryQueryFilters = {},
+): Promise<PtDiscoveryPageIds> {
+  const limit = Math.min(Math.max(1, Math.trunc(filters.limit ?? PT_DISCOVERY_DEFAULT_LIMIT)), PT_DISCOVERY_MAX_LIMIT);
+  const page = Math.max(1, Math.trunc(filters.page ?? 1));
+  const offset = (page - 1) * limit;
+
+  const packageMode =
+    filters.sessionMode === "ONLINE" || filters.sessionMode === "OFFLINE"
+      ? filters.sessionMode
+      : undefined;
+
+  const where = buildBaseVisibilityAndAttributeWhere({
+    q: filters.q,
+    minPrice: filters.minPrice,
+    maxPrice: filters.maxPrice,
+    packageMode,
+    provinceCode: filters.provinceCode,
+    wardCode: filters.wardCode,
+    searchCity: filters.searchCity,
+    searchDistrict: filters.searchDistrict,
+    gymId: filters.gymId,
+    specialties: filters.specialties,
+  });
+
+  const hasExplicitLocFilter = filters.provinceCode !== undefined || filters.wardCode !== undefined;
+  const activeLocCond = hasExplicitLocFilter ? Prisma.sql`true` : hasActiveLocationSql();
+
+  // Mode filter is driven by the packages the PT is currently selling (Ngài 15/11, N13B-06), not by
+  // the application's service_mode: for ONLINE/OFFLINE the pkg_flags CTE is already restricted to
+  // for-sale packages of that session_mode, so the pkg_flags inner join is the filter itself.
+  if (filters.sessionMode === "OFFLINE") {
+    if (!hasExplicitLocFilter) where.push(hasActiveLocationSql());
+  } else if (filters.sessionMode === "ONLINE") {
+    // for-sale ONLINE package required by the pkg_flags join.
+  } else if (filters.sessionMode === "HYBRID") {
+    // Sells both kinds; the OFFLINE side needs a usable location.
+    where.push(Prisma.sql`(pf.has_offline_pkg AND ${activeLocCond} AND pf.has_online_pkg)`);
+  } else {
+    where.push(
+      Prisma.sql`(
+        (pf.has_offline_pkg AND ${activeLocCond})
+        OR pf.has_online_pkg
+      )`,
+    );
+  }
+
+  let currentReadyEpoch: number | null = null;
+  if (
+    filters.sortBy === "ratingDesc" ||
+    filters.sortBy === "ratingAsc" ||
+    filters.sortBy === "priceAsc" ||
+    filters.sortBy === "priceDesc"
+  ) {
+    const epochRows = await prisma.$queryRaw<{ epoch: number }[]>(Prisma.sql`
+      SELECT epoch
+      FROM pt_discovery_epochs
+      WHERE is_current = true
+        AND status = 'READY'::"PtDiscoveryEpochStatus"
+      LIMIT 1
+    `);
+    currentReadyEpoch = epochRows[0]?.epoch ?? null;
+  }
+
+  const viewerGymIds = (filters.viewerGymIds ?? []).filter((id) => typeof id === "string" && id.length > 0);
+  const { joinSql, orderBySql } = resolveOrderSql(filters.sortBy, packageMode, viewerGymIds, currentReadyEpoch);
+
+  const rows = await prisma.$queryRaw<{ userId: string }[]>(Prisma.sql`
+    WITH pkg_flags AS (
+      ${buildPkgFlagsCteSql(packageMode)}
+    )
+    SELECT p."userId" AS "userId"
+    FROM user_profiles p
+    JOIN pt_applications pa ON pa.user_profile_id = p.id
+    JOIN pkg_flags pf ON pf.pt_user_id = p."userId"
+    ${joinSql}
+    WHERE ${Prisma.join(where, " AND ")}
+    ${orderBySql}
+    LIMIT ${limit + 1}
+    OFFSET ${offset}
+  `);
+
+  const hasMore = rows.length > limit;
+  const userIds = (hasMore ? rows.slice(0, limit) : rows).map((r) => r.userId);
+  return { userIds, hasMore };
+}
+
+type KeysetTerm =
+  | { colSql: Prisma.Sql; dir: "ASC" | "DESC"; nullable: false; valueSql: Prisma.Sql }
+  | { colSql: Prisma.Sql; dir: "ASC" | "DESC"; nullable: true; value: number | string | null; valueSql: Prisma.Sql };
+
+/**
+ * Builds strict lexicographic keyset condition (`row > cursor` in exact ORDER BY sequence),
+ * handling PostgreSQL `NULLS LAST` boundaries so neither non-null nor NULL rows are dropped or repeated.
+ */
+function buildKeysetAfterSql(terms: KeysetTerm[], tailUserIdSql: Prisma.Sql, cursorUserId: string): Prisma.Sql {
+  let acc: Prisma.Sql = Prisma.sql`${tailUserIdSql} > ${cursorUserId}::text`;
+  for (let i = terms.length - 1; i >= 0; i--) {
+    const t = terms[i];
+    if (!t.nullable) {
+      const cmp = t.dir === "ASC" ? Prisma.sql`${t.colSql} > ${t.valueSql}` : Prisma.sql`${t.colSql} < ${t.valueSql}`;
+      acc = Prisma.sql`(${cmp} OR (${t.colSql} = ${t.valueSql} AND (${acc})))`;
+    } else if (t.value === null) {
+      acc = Prisma.sql`(${t.colSql} IS NULL AND (${acc}))`;
+    } else {
+      const cmp =
+        t.dir === "ASC"
+          ? Prisma.sql`(${t.colSql} IS NOT NULL AND ${t.colSql} > ${t.valueSql})`
+          : Prisma.sql`(${t.colSql} IS NOT NULL AND ${t.colSql} < ${t.valueSql})`;
+      acc = Prisma.sql`(${cmp} OR ${t.colSql} IS NULL OR (${t.colSql} = ${t.valueSql} AND (${acc})))`;
+    }
+  }
+  return acc;
+}
+
+function buildSearchKeysetWhereSql(
+  sortKind: DiscoverySortKey,
+  cursor: DiscoveryCursorPayload,
+  hasViewerGyms: boolean,
+): Prisma.Sql {
+  const terms: KeysetTerm[] = [
+    { colSql: Prisma.sql`b.tier`, dir: "ASC", nullable: false, valueSql: Prisma.sql`${cursor.tier}::int4` },
+  ];
+
+  if (sortKind === "default") {
+    terms.push(
+      {
+        colSql: Prisma.sql`b.is_accepting_clients::int4`,
+        dir: "DESC",
+        nullable: false,
+        valueSql: Prisma.sql`${cursor.isAccepting ? 1 : 0}::int4`,
+      },
+      { colSql: Prisma.sql`b.bucket`, dir: "ASC", nullable: false, valueSql: Prisma.sql`${cursor.bucket}::int4` },
+    );
+    if (hasViewerGyms) {
+      terms.push({
+        colSql: Prisma.sql`b.same_gym::int4`,
+        dir: "DESC",
+        nullable: false,
+        valueSql: Prisma.sql`${cursor.sameGym ? 1 : 0}::int4`,
+      });
+    }
+    terms.push({
+      colSql: Prisma.sql`b.sort_num`,
+      dir: "DESC",
+      nullable: true,
+      value: cursor.sortNum,
+      valueSql: Prisma.sql`${cursor.sortNum}::double precision`,
+    });
+  } else if (sortKind === "nameAsc") {
+    terms.push({
+      colSql: Prisma.sql`b.sort_str`,
+      dir: "ASC",
+      nullable: true,
+      value: cursor.sortStr,
+      valueSql: Prisma.sql`${cursor.sortStr}::text`,
+    });
+  } else {
+    const dir = sortKind === "ratingDesc" || sortKind === "priceDesc" ? "DESC" : "ASC";
+    terms.push({
+      colSql: Prisma.sql`b.sort_num`,
+      dir,
+      nullable: true,
+      value: cursor.sortNum,
+      valueSql: Prisma.sql`${cursor.sortNum}::double precision`,
+    });
+  }
+
+  return buildKeysetAfterSql(terms, Prisma.sql`b."userId"`, cursor.userId);
+}
+
+function buildSearchOrderBySql(sortKind: DiscoverySortKey, hasViewerGyms: boolean): Prisma.Sql {
+  if (sortKind === "default") {
+    return hasViewerGyms
+      ? Prisma.sql`ORDER BY b.tier ASC, b.is_accepting_clients DESC, b.bucket ASC, b.same_gym DESC, b.sort_num DESC NULLS LAST, b."userId" ASC`
+      : Prisma.sql`ORDER BY b.tier ASC, b.is_accepting_clients DESC, b.bucket ASC, b.sort_num DESC NULLS LAST, b."userId" ASC`;
+  }
+  if (sortKind === "nameAsc") {
+    return Prisma.sql`ORDER BY b.tier ASC, b.sort_str ASC NULLS LAST, b."userId" ASC`;
+  }
+  if (sortKind === "ratingDesc" || sortKind === "priceDesc") {
+    return Prisma.sql`ORDER BY b.tier ASC, b.sort_num DESC NULLS LAST, b."userId" ASC`;
+  }
+  return Prisma.sql`ORDER BY b.tier ASC, b.sort_num ASC NULLS LAST, b."userId" ASC`;
+}
+
+function round3(v: number): number {
+  return Math.round(v * 1000) / 1000;
+}
+
+function roundDistanceKm(v: number): number {
+  return Math.round(v * 10) / 10;
+}
+
+/**
+ * Geographic / epoch-cursor PT search for `POST /profile/pts/search` (D0b-2).
+ * Enforces `SET LOCAL statement_timeout = '2s'`, Haversine distance (with Q5 ward-centroid
+ * fallback), scope filtering, tiered ordering, encrypted epoch-bound cursors, and live visibility.
+ */
+/**
+ * The ranking-stats rows of ONE epoch, read once. Joined row-by-row (`LEFT JOIN pt_discovery_stats ds ON epoch AND
+ * pt_user_id`) the planner, which under-estimates the filtered population (~270 instead of ~10,000 trainers), picked
+ * a nested loop of ~10,000 index probes (~30,000 buffer hits, a third of the statement). Materialised, it is one
+ * index-only scan of the epoch partition + a hash join. Same rows, same ordering: only the join strategy changes.
+ */
+function dsEpochCte(epoch: number | null): Prisma.Sql {
+  return Prisma.sql`ds_epoch AS MATERIALIZED (
+      SELECT ds0.pt_user_id, ds0.quality, ds0.rating_avg, ds0.from_price_online, ds0.from_price_offline, ds0.from_price_overall
+      FROM pt_discovery_stats ds0
+      WHERE ds0.epoch = ${epoch}::int4
+    )`;
+}
+
+export async function searchDiscoveryPtPageIds(
+  input: PtSearchQueryInput = {},
+  options: PtSearchQueryOptions = {},
+): Promise<PtSearchPageResult> {
+  // Validate cursor encryption secret upfront even on page 1 so 503 fails closed consistently.
+  resolveDiscoveryCursorKey();
+
+  const decodedCursor = input.cursor !== undefined ? decodeDiscoveryCursor(input.cursor) : null;
+  const limit = Math.min(Math.max(1, Math.trunc(input.limit ?? PT_SEARCH_DEFAULT_LIMIT)), PT_DISCOVERY_MAX_LIMIT);
+  const mode: DiscoveryMode = input.mode ?? "ANY";
+  const sortKind: DiscoverySortKey = input.sortBy ?? "default";
+  const areaProvince = input.areaProvince ?? null;
+  const areaWard = input.areaWard ?? null;
+  const radiusKm = input.radiusKm ?? PT_SEARCH_DEFAULT_RADIUS_KM;
+
+  let pLat: number | null = null;
+  let pLng: number | null = null;
+  let distanceBasis: DiscoveryDistanceBasis = null;
+
+  if (input.lat !== undefined && input.lng !== undefined) {
+    pLat = round3(input.lat);
+    pLng = round3(input.lng);
+    distanceBasis = "GPS";
+  } else if (areaWard !== null && areaProvince !== null) {
+    const wardGeo = await prisma.$queryRaw<{ centroid_lat: number; centroid_lng: number }[]>(Prisma.sql`
+      SELECT centroid_lat, centroid_lng
+      FROM vietnam_ward_geo
+      WHERE ward_code = ${areaWard}::int4
+        AND province_code = ${areaProvince}::int4
+      LIMIT 1
+    `);
+    if (wardGeo.length > 0) {
+      pLat = wardGeo[0].centroid_lat;
+      pLng = wardGeo[0].centroid_lng;
+      distanceBasis = "WARD_CENTER";
+    }
+  }
+
+  const hasViewerPoint = pLat !== null && pLng !== null;
+  const requestedScope: DiscoveryScope =
+    input.scope ?? (hasViewerPoint ? "near" : areaProvince !== null ? "province" : "national");
+  const appliedScope: DiscoveryScope =
+    requestedScope === "near" && !hasViewerPoint
+      ? areaProvince !== null
+        ? "province"
+        : "national"
+      : requestedScope;
+
+  const qNormalized = input.q?.trim() ? input.q.trim() : null;
+  const specialtiesNormalized =
+    input.specialties && input.specialties.length > 0 ? [...new Set(input.specialties)].sort() : null;
+  const viewerGymIds = (input.viewerGymIds ?? []).filter((id) => typeof id === "string" && id.length > 0);
+
+  const filterHash = computeDiscoveryFilterHash({
+    mode,
+    appliedScope,
+    sortBy: sortKind,
+    areaProvince,
+    areaWard,
+    pLat,
+    pLng,
+    distanceBasis,
+    radiusKm: appliedScope === "near" ? radiusKm : null,
+    q: qNormalized,
+    specialties: specialtiesNormalized,
+    minPrice: input.minPrice ?? null,
+    maxPrice: input.maxPrice ?? null,
+    gymId: input.gymId ?? null,
+    viewerGymIds,
+  });
+
+  if (decodedCursor && decodedCursor.filterHash !== filterHash) {
+    throw new CursorFilterMismatchError();
+  }
+
+  const packageMode = mode === "ONLINE" || mode === "OFFLINE" ? mode : undefined;
+  const baseWhere = buildBaseVisibilityAndAttributeWhere({
+    q: qNormalized ?? undefined,
+    minPrice: input.minPrice,
+    maxPrice: input.maxPrice,
+    packageMode,
+    gymId: input.gymId,
+    specialties: specialtiesNormalized ?? undefined,
+  });
+  const safeLat = pLat ?? 0;
+  const safeLng = pLng ?? 0;
+  const dLat = radiusKm / 110.574 + 0.02;
+  const cosLat = Math.max(0.1, Math.cos((safeLat * Math.PI) / 180));
+  const dLng = radiusKm / (111.32 * cosLat) + 0.02;
+  const minLat = safeLat - dLat;
+  const maxLat = safeLat + dLat;
+  const minLng = safeLng - dLng;
+  const maxLng = safeLng + dLng;
+
+  const safeProvinceCode = areaProvince ?? -1;
+  const hasViewerGyms = viewerGymIds.length > 0;
+  const priceColSql = fromPriceColumnSql(packageMode);
+
+  let sortNumExpr: Prisma.Sql = Prisma.sql`ds.quality::double precision`;
+  let sortStrExpr: Prisma.Sql = Prisma.sql`NULL::text`;
+  if (sortKind === "distance") {
+    sortNumExpr = Prisma.sql`t.distance_km::double precision`;
+  } else if (sortKind === "ratingDesc" || sortKind === "ratingAsc") {
+    sortNumExpr = Prisma.sql`ds.rating_avg::double precision`;
+  } else if (sortKind === "priceAsc" || sortKind === "priceDesc") {
+    sortNumExpr = Prisma.sql`${priceColSql}::double precision`;
+  } else if (sortKind === "nameAsc") {
+    sortNumExpr = Prisma.sql`NULL::double precision`;
+    sortStrExpr = Prisma.sql`t.first_name::text`;
+  }
+
+  const keysetWhere = decodedCursor
+    ? buildSearchKeysetWhereSql(sortKind, decodedCursor, hasViewerGyms)
+    : Prisma.sql`TRUE`;
+  const orderBySql = buildSearchOrderBySql(sortKind, hasViewerGyms);
+
+  type RawSearchRow = {
+    userId: string;
+    tier: number;
+    is_accepting_clients: boolean;
+    bucket: number;
+    same_gym: boolean;
+    distance_km: number | null;
+    sort_num: number | null;
+    sort_str: string | null;
+  };
+
+  const nearBboxFilterSql = Prisma.sql`(
+    (tl.latitude BETWEEN ${minLat}::double precision AND ${maxLat}::double precision
+     AND tl.longitude BETWEEN ${minLng}::double precision AND ${maxLng}::double precision)
+    OR (tl.latitude IS NULL
+        AND wg.centroid_lat BETWEEN ${minLat}::double precision AND ${maxLat}::double precision
+        AND wg.centroid_lng BETWEEN ${minLng}::double precision AND ${maxLng}::double precision)
+  )`;
+
+  const needLoc = mode !== "ONLINE";
+  const locWhereParts: Prisma.Sql[] = [Prisma.sql`tl.is_active = true`];
+  if (appliedScope === "near") locWhereParts.push(nearBboxFilterSql);
+  if (appliedScope === "province") locWhereParts.push(Prisma.sql`tl.province_code = ${safeProvinceCode}::int4`);
+
+  const haversineMinSql = Prisma.sql`MIN(
+    CASE
+      WHEN COALESCE(tl.latitude, wg.centroid_lat) IS NULL
+        OR COALESCE(tl.longitude, wg.centroid_lng) IS NULL
+      THEN NULL::double precision
+      ELSE 6371.0 * 2.0 * ASIN(SQRT(LEAST(1.0,
+        POWER(SIN(RADIANS(COALESCE(tl.latitude, wg.centroid_lat) - ${safeLat}::double precision) / 2.0), 2)
+        + COS(RADIANS(${safeLat}::double precision))
+          * COS(RADIANS(COALESCE(tl.latitude, wg.centroid_lat)))
+          * POWER(SIN(RADIANS(COALESCE(tl.longitude, wg.centroid_lng) - ${safeLng}::double precision) / 2.0), 2)
+      )))
+    END
+  )`;
+
+  const ctes: Prisma.Sql[] = [
+    Prisma.sql`pkg_flags AS (
+      ${buildPkgFlagsCteSql(packageMode)}
+    )`,
+  ];
+
+  if (needLoc) {
+    // Materialize loc_flags when computing Haversine so Postgres evaluates distances once inside
+    // the grouped bbox CTE instead of expanding Haversine repeatedly into the Sort Key.
+    const matKw = hasViewerPoint ? Prisma.sql`MATERIALIZED` : Prisma.empty;
+    const wgJoin = hasViewerPoint
+      ? Prisma.sql`
+          LEFT JOIN vietnam_ward_geo wg
+            ON (tl.latitude IS NULL OR tl.longitude IS NULL)
+           AND wg.ward_code = tl.ward_code`
+      : Prisma.empty;
+    const distCol = hasViewerPoint ? haversineMinSql : Prisma.sql`NULL::double precision`;
+    const inProvCol = appliedScope === "province" ? Prisma.sql`true` : Prisma.sql`false`;
+
+    ctes.push(Prisma.sql`loc_flags AS ${matKw} (
+      SELECT
+        tl.pt_user_id,
+        true AS has_active_loc,
+        ${inProvCol} AS in_selected_province,
+        ${distCol} AS min_d_km
+      FROM pt_training_locations tl
+      ${wgJoin}
+      WHERE ${Prisma.join(locWhereParts, " AND ")}
+      GROUP BY tl.pt_user_id
+    )`);
+  }
+
+  if (hasViewerGyms) {
+    ctes.push(Prisma.sql`viewer_gym_pts AS (
+      SELECT DISTINCT tlg.pt_user_id
+      FROM pt_training_locations tlg
+      WHERE tlg.is_active = true
+        AND tlg.gym_id = ANY(${viewerGymIds}::text[])
+    )`);
+  }
+
+  let offlineScopeMatchSql: Prisma.Sql = Prisma.sql`COALESCE(lf.has_active_loc, false)`;
+  if (appliedScope === "near") {
+    offlineScopeMatchSql = Prisma.sql`(lf.min_d_km IS NOT NULL AND lf.min_d_km <= ${radiusKm}::double precision)`;
+  } else if (appliedScope === "province") {
+    offlineScopeMatchSql = Prisma.sql`COALESCE(lf.in_selected_province, false)`;
+  }
+
+  const canOfflineSql =
+    mode === "ONLINE"
+      ? Prisma.sql`false`
+      : mode === "OFFLINE"
+        ? offlineScopeMatchSql
+        : Prisma.sql`(pf.has_offline_pkg AND ${offlineScopeMatchSql})`;
+
+  const canOnlineSql =
+    mode === "OFFLINE"
+      ? Prisma.sql`false`
+      : mode === "ONLINE"
+        ? Prisma.sql`true`
+        : Prisma.sql`pf.has_online_pkg`;
+
+  // Package-driven (Ngài 15/11, N13B-06): ONLINE/OFFLINE rely on pkg_flags being restricted to
+  // for-sale packages of that session_mode (inner join); HYBRID needs both kinds of package.
+  if (mode === "ONLINE") {
+    // nothing extra: pkg_flags inner join already requires a for-sale ONLINE package.
+  } else if (mode === "OFFLINE") {
+    if (appliedScope === "near") {
+      baseWhere.push(offlineScopeMatchSql);
+    }
+  } else if (mode === "HYBRID") {
+    // Any active location (not scope-limited): an out-of-scope hybrid PT still shows up as tier 1 (online).
+    baseWhere.push(Prisma.sql`(pf.has_offline_pkg AND pf.has_online_pkg AND ${hasActiveLocationSql()})`);
+  } else {
+    baseWhere.push(Prisma.sql`(${canOfflineSql} OR ${canOnlineSql})`);
+  }
+
+  const locJoinSql = needLoc
+    ? mode === "OFFLINE"
+      ? Prisma.sql`JOIN loc_flags lf ON lf.pt_user_id = p."userId"`
+      : Prisma.sql`LEFT JOIN loc_flags lf ON lf.pt_user_id = p."userId"`
+    : Prisma.empty;
+  const viewerGymJoinSql = hasViewerGyms
+    ? Prisma.sql`LEFT JOIN viewer_gym_pts vgp ON vgp.pt_user_id = p."userId"`
+    : Prisma.empty;
+
+  let tierExprSql: Prisma.Sql;
+  let distExprSql: Prisma.Sql;
+  if (mode === "ONLINE") {
+    tierExprSql = Prisma.sql`1`;
+    distExprSql = Prisma.sql`NULL::double precision`;
+  } else if (mode === "OFFLINE") {
+    tierExprSql = Prisma.sql`0`;
+    distExprSql = hasViewerPoint ? Prisma.sql`lf.min_d_km` : Prisma.sql`NULL::double precision`;
+  } else {
+    tierExprSql = Prisma.sql`
+      CASE
+        WHEN ${canOfflineSql} THEN 0
+        WHEN ${canOnlineSql} THEN 1
+        ELSE NULL::int4
+      END
+    `;
+    distExprSql = hasViewerPoint
+      ? Prisma.sql`CASE WHEN ${canOfflineSql} THEN lf.min_d_km ELSE NULL::double precision END`
+      : Prisma.sql`NULL::double precision`;
+  }
+
+  const { targetEpoch, rows } = await prisma.$transaction(async (tx) => {
+    // Hằng cố định cho statement_timeout trong transaction; mọi tham số khác đi qua Prisma.sql parameterized.
+    await tx.$executeRaw(Prisma.sql`SET LOCAL statement_timeout = '2s'`);
+    if (options.onAfterTimeoutSetInTx) {
+      await options.onAfterTimeoutSetInTx(tx);
+    }
+
+    const currentRows = await tx.$queryRaw<{ epoch: number }[]>(Prisma.sql`
+      SELECT epoch
+      FROM pt_discovery_epochs
+      WHERE is_current = true
+        AND status = 'READY'::"PtDiscoveryEpochStatus"
+      LIMIT 1
+    `);
+    const currentReadyEpoch = currentRows[0]?.epoch ?? null;
+
+    let resolvedEpoch: number | null;
+    if (decodedCursor) {
+      if (decodedCursor.epoch > 0) {
+        const cursorEpochRows = await tx.$queryRaw<{ status: string }[]>(Prisma.sql`
+          SELECT status::text AS status
+          FROM pt_discovery_epochs
+          WHERE epoch = ${decodedCursor.epoch}::int4
+          LIMIT 1
+        `);
+        if (cursorEpochRows.length === 0 || cursorEpochRows[0].status !== "READY") {
+          throw new CursorExpiredError();
+        }
+        resolvedEpoch = decodedCursor.epoch;
+      } else {
+        if (currentReadyEpoch !== null) {
+          throw new CursorExpiredError();
+        }
+        resolvedEpoch = null;
+      }
+    } else {
+      resolvedEpoch = currentReadyEpoch;
+    }
+
+    const queryRows = await tx.$queryRaw<RawSearchRow[]>(Prisma.sql`
+      WITH ${Prisma.join([dsEpochCte(resolvedEpoch), ...ctes], ", ")},
+      tiered AS (
+        SELECT
+          p."userId" AS "userId",
+          p."firstName" AS first_name,
+          p.is_accepting_clients,
+          ${hasViewerGyms ? Prisma.sql`(vgp.pt_user_id IS NOT NULL)` : Prisma.sql`false`} AS same_gym,
+          ${tierExprSql} AS tier,
+          ${distExprSql} AS distance_km
+        FROM user_profiles p
+        JOIN pt_applications pa ON pa.user_profile_id = p.id
+        JOIN pkg_flags pf ON pf.pt_user_id = p."userId"
+        ${locJoinSql}
+        ${viewerGymJoinSql}
+        WHERE ${Prisma.join(baseWhere, " AND ")}
+      ),
+      bucketed AS (
+        SELECT
+          t."userId",
+          t.first_name,
+          t.tier,
+          t.is_accepting_clients,
+          CASE
+            WHEN t.tier = 0 AND t.distance_km IS NOT NULL
+              THEN width_bucket(t.distance_km, ARRAY[0, 2, 5, 10, 20, 50, 100]::double precision[])
+            ELSE 0
+          END AS bucket,
+          t.same_gym,
+          t.distance_km
+        FROM tiered t
+        WHERE t.tier IS NOT NULL
+      ),
+      with_stats AS (
+        SELECT
+          t."userId",
+          t.tier,
+          t.is_accepting_clients,
+          t.bucket,
+          t.same_gym,
+          t.distance_km,
+          ${sortNumExpr} AS sort_num,
+          ${sortStrExpr} AS sort_str
+        FROM bucketed t
+        LEFT JOIN ds_epoch ds ON ds.pt_user_id = t."userId"
+      )
+      SELECT
+        b."userId",
+        b.tier,
+        b.is_accepting_clients,
+        b.bucket,
+        b.same_gym,
+        b.distance_km,
+        b.sort_num,
+        b.sort_str
+      FROM with_stats b
+      WHERE ${keysetWhere}
+      ${orderBySql}
+      LIMIT ${limit + 1}
+    `);
+
+    return { targetEpoch: resolvedEpoch ?? 0, rows: queryRows };
+  });
+
+  const hasMore = rows.length > limit;
+  const pageRows = hasMore ? rows.slice(0, limit) : rows;
+  const items: PtSearchPageItem[] = pageRows.map((row) => ({
+    userId: row.userId,
+    distanceKm: row.distance_km !== null ? roundDistanceKm(row.distance_km) : null,
+    distanceBasis: row.distance_km !== null ? distanceBasis : null,
+    tier: row.tier,
+  }));
+
+  let nextCursor: string | null = null;
+  if (hasMore && pageRows.length > 0) {
+    const last = pageRows[pageRows.length - 1];
+    nextCursor = encodeDiscoveryCursor({
+      v: 1,
+      epoch: targetEpoch,
+      filterHash,
+      tier: last.tier,
+      isAccepting: last.is_accepting_clients,
+      bucket: last.bucket,
+      sameGym: last.same_gym,
+      sortKind,
+      sortNum: last.sort_num,
+      sortStr: last.sort_str,
+      userId: last.userId,
+    });
+  }
+
+  return {
+    items,
+    nextCursor,
+    hasMore,
+    appliedScope,
+    epoch: targetEpoch,
+  };
+}
+
+

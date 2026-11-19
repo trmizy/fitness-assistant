@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { canonicalJSON, sha256Hex, readJson, writeJsonAtomic, ensureDir, Refused } from './util.mjs';
 import { checkManifestTableConsistency } from './engine.mjs';
 import { denyStaticProblems } from './deny.mjs';
+import { describeWalletsWithMoney } from './drift.mjs';
 import { guardTriggerStaticProblems } from './triggers.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -113,6 +114,9 @@ export function staticChecks(manifest, scriptVersion) {
   if (manifest.blockers && Object.values(manifest.blockers).some((v) => (Array.isArray(v) ? v.length : v && Object.keys(v).length))) {
     problems.push('the manifest carries blockers (unclassified tables / missing keys / foreign-key conflicts / cycles) - it cannot be applied');
   }
+  // N13F-01: name every wallet that holds money and would be deleted (ids + amounts) - this is a hard refusal, there is no waiver
+  const walletsWithMoney = manifest.blockers?.deletedWalletsWithMoney;
+  if (Array.isArray(walletsWithMoney) && walletsWithMoney.length) problems.push(describeWalletsWithMoney(walletsWithMoney));
   return problems;
 }
 

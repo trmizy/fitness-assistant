@@ -7,6 +7,9 @@ import type { GymReviewsResponse } from "../../types";
 import { Stars } from "./Stars";
 import { isPublicGymGone } from "../../utils/gymPublic";
 
+/** N09C-03: same cap as gym-service (review.service.ts REVIEW_COMMENT_MAX). */
+export const REVIEW_COMMENT_MAX = 1000;
+
 export function GymReviewsSection({ gymId }: { gymId: string }) {
   const queryClient = useQueryClient();
   const [rating, setRating] = useState(5);
@@ -103,10 +106,12 @@ export function GymReviewsSection({ gymId }: { gymId: string }) {
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
+          maxLength={REVIEW_COMMENT_MAX}
           rows={2}
           placeholder="Cảm nhận của bạn về phòng gym (không bắt buộc)"
           className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50 resize-none"
         />
+        <div className="text-right text-[11px] text-zinc-500" data-testid="gym-review-comment-counter">{comment.length}/{REVIEW_COMMENT_MAX} ký tự</div>
         <div className="flex gap-2">
           <button
             type="button"

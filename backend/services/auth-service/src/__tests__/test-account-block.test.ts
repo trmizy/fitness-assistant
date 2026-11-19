@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { isTestAccountEmail, testAccountsBlocked } from "@gym-coach/shared";
+import { TEST_ACCOUNT_DOMAIN_PATTERNS, isTestAccountEmail, testAccountsBlocked } from "@gym-coach/shared";
 import { authService } from "../services/auth.service";
 import { authRepository, prisma } from "../repositories/auth.repository";
 
@@ -71,11 +71,16 @@ test("on the server a real address still registers; locally a test-domain addres
   } finally { r1(); r2(); r3(); }
 });
 
-test("listTestAccountIds returns only the ids on reserved test domains (used by payment/gym/ai admin statistics)", async () => {
-  const restore = patch(prisma.user as any, "findMany", async () => [
-    { id: "a", email: "real@gmail.com" }, { id: "b", email: "aiq.x@gymini-test.local" }, { id: "c", email: "pt.flow.1@example.com" },
-  ]);
+test("listTestAccountIds returns the ids the DATABASE selects with the shared test-domain patterns (used by payment/gym/ai admin statistics)", async () => {
+  // The rule is applied in SQL now (it no longer reads every account and filters in memory): the database answers with ids only.
+  const seen: any[] = [];
+  const restore = patch(prisma as any, "$queryRaw", async (...args: any[]) => { seen.push(args); return [{ id: "b" }, { id: "c" }]; });
+  const readAll = patch(prisma.user as any, "findMany", async () => { throw new Error("must not read every account into memory"); });
   try {
     assert.deepEqual(await authService.listTestAccountIds(), ["b", "c"]);
-  } finally { restore(); }
+    assert.equal(seen.length, 1);
+    // the two shared domain patterns travel as bind parameters of that one statement (Prisma.sql: strings, ...values)
+    const values: unknown[] = seen[0][0].values ?? seen[0].slice(1);
+    for (const p of TEST_ACCOUNT_DOMAIN_PATTERNS) assert.ok(values.includes(p), `pattern ${p} is a parameter of the SQL`);
+  } finally { restore(); readAll(); }
 });

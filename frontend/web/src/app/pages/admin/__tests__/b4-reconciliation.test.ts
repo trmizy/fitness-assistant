@@ -141,9 +141,9 @@ describe("B4 chip state in the URL", () => {
     assert.equal(parseReconView(" Exceptions "), "exceptions");
   });
 
-  it("keeps older deep links working: ledger = balance; gateway (disabled, L3) and junk fall back to balance", () => {
+  it("keeps older deep links working: ledger = balance and junk fall back to balance; gateway is the B8 L2 chip", () => {
     assert.equal(parseReconView("ledger"), "balance");
-    assert.equal(parseReconView("gateway"), "balance");
+    assert.equal(parseReconView("gateway"), "gateway");
     assert.equal(parseReconView("nonsense"), "balance");
   });
 
@@ -397,9 +397,13 @@ describe("B4 balance chip", () => {
 
 // ──────────────────────────────────────────────────────── ghi chú mức / nguồn ──
 describe("B4 level labels and source rules", () => {
-  it("the gateway chip is L3 BLOCKED — never 'partial'", () => {
+  it("the gateway chip is L2 (B8); L3 exists for VNPay only (ZaloPay not yet; MoMo/PayOS retired) — never 'BLOCKED', never 'partial'", () => {
     assert.match(GATEWAY_CHIP_REASON, /L3/);
-    assert.match(GATEWAY_CHIP_REASON, /BLOCKED/);
+    assert.match(GATEWAY_CHIP_REASON, /VNPay/);
+    assert.match(GATEWAY_CHIP_REASON, /ZaloPay/);
+    assert.match(GATEWAY_CHIP_REASON, /MoMo, PayOS đã ngừng dùng/);
+    assert.doesNotMatch(GATEWAY_CHIP_REASON, /ZaloPay, PayOS, MoMo/);
+    assert.doesNotMatch(GATEWAY_CHIP_REASON, /BLOCKED/);
     assert.doesNotMatch(GATEWAY_CHIP_REASON.toLowerCase(), /một phần|partial/);
   });
 
@@ -438,6 +442,8 @@ describe("B4 finance header", () => {
   const TABS = [
     { key: "overview" as const, to: "/admin/finance", end: true },
     { key: "reconciliation" as const, to: "/admin/finance/reconciliation" },
+    { key: "transactions" as const, to: "/admin/finance/transactions" },
+    { key: "wallets" as const, to: "/admin/finance/wallets" },
     { key: "withdrawals" as const, to: "/admin/finance/withdrawals" },
     { key: "refunds" as const, to: "/admin/finance/refunds" },
   ];
@@ -451,10 +457,12 @@ describe("B4 finance header", () => {
     assert.equal(t("/admin/finance/refunds"), "Hoàn tiền");
     assert.equal(t("/admin/finance/refunds/"), "Hoàn tiền");
     assert.equal(t("/admin/elsewhere"), "Tài chính");
-    assert.equal(Object.keys(FINANCE_TITLE).length, 4);
+    assert.equal(Object.keys(FINANCE_TITLE).length, 6);
+    assert.equal(t("/admin/finance/transactions"), "Giao dịch");
+    assert.equal(t("/admin/finance/wallets"), "Ví");
   });
 
-  it("the real tab list in adminNav matches (4 tabs, same keys)", () => {
+  it("the real tab list in adminNav matches (6 tabs, same keys)", () => {
     const nav = here("..", "..", "components", "layout", "admin", "adminNav.ts");
     for (const t of TABS) assert.ok(nav.includes(`key: "${t.key}"`), t.key);
   });
@@ -484,7 +492,11 @@ describe("B4 finance header", () => {
     assert.ok(!matches("refunds", wd) && !matches("refunds", rec));
 
     assert.deepEqual(financeRefreshKeys(null), []);
-    assert.equal(Object.keys(FINANCE_REFRESH_KEYS).length, 4);
+    assert.equal(Object.keys(FINANCE_REFRESH_KEYS).length, 6);
+    // G-09: Ví re-reads only its own family.
+    assert.ok(matches("wallets", ["admin", "finance-wallets", "user-1", "list"]));
+    assert.ok(!matches("wallets", ["admin", "finance-transactions", "user-1"]));
+    assert.ok(!matches("transactions", ["admin", "finance-wallets", "user-1"]));
   });
 
   it("prefix matching is by whole segments", () => {

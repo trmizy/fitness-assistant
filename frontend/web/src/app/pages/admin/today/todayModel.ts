@@ -87,10 +87,17 @@ export interface UsersFacts {
 
 const DAY_MS = 86_400_000;
 
-/** `GET /auth/users` → `{ users: [{ createdAt, … }] }` (auth-service `listUsers`: every non-ADMIN account). */
+/**
+ * Two shapes are read: the legacy `GET /auth/users` → `{ users: [...] }` (every non-ADMIN account) and the PAGED `GET /admin/users?page=1&limit=N` →
+ * `{ success, data: { total, users: [...] } }` (newest first). On AWS a Lambda answer is capped at ~6 MB, so the page never asks for every account:
+ * `total` comes from the envelope, and the "new in 7 days" count is exact while the page still holds an older account (newest-first). If the whole
+ * page is fresh but more accounts exist, how many are fresh is unknown (null), never a smaller guess.
+ */
 export function summarizeUsers(body: unknown, nowMs: number): UsersFacts | null {
-  const users = isObj(body) && Array.isArray(body.users) ? body.users : null;
+  const paged = isObj(body) && isObj(body.data) && Array.isArray(body.data.users) ? body.data : null;
+  const users = paged ? (paged.users as unknown[]) : isObj(body) && Array.isArray(body.users) ? body.users : null;
   if (!users) return null;
+  const total = paged && typeof paged.total === "number" && Number.isFinite(paged.total) ? paged.total : users.length;
   let fresh = 0;
   let unreadable = 0;
   for (const u of users) {
@@ -98,7 +105,8 @@ export function summarizeUsers(body: unknown, nowMs: number): UsersFacts | null 
     if (t === null) unreadable += 1;
     else if (t >= nowMs - 7 * DAY_MS) fresh += 1;
   }
-  return { total: users.length, newLast7d: unreadable === 0 ? fresh : null };
+  const truncatedAllFresh = total > users.length && fresh === users.length;
+  return { total, newLast7d: unreadable === 0 && !truncatedAllFresh ? fresh : null };
 }
 
 // ─────────────────────────────────────────────────── dịch vụ đang chạy ──
@@ -205,6 +213,9 @@ function personName(u: unknown): string | null {
   return full || str(u.email);
 }
 
+/** Rows of the PT-application queue read (= ptApplicationService ADMIN_QUEUE_READ_CAP, the server's maximum page). */
+export const PT_QUEUE_READ_CAP = 200;
+
 /** ADM-08 `GET /pt-applications/admin?status=SUBMITTED` → array; queue-entry time = `submittedAt` (fallback `createdAt`). */
 export function summarizePtApplications(list: unknown): QueueFacts | null {
   if (!Array.isArray(list)) return null;
@@ -214,7 +225,8 @@ export function summarizePtApplications(list: unknown): QueueFacts | null {
   const row = newest === null ? null : rows[times.indexOf(newest)];
   return {
     count: list.length,
-    capped: false,
+    // The queue read is one page of at most PT_QUEUE_READ_CAP rows: at the cap the count is a lower bound.
+    capped: list.length >= PT_QUEUE_READ_CAP,
     oldestMs: oldest,
     newest: row && newest !== null ? { queue: "ptApplications", kind: "Hồ sơ PT", title: personName(row.user ?? row.userProfile) ?? "Ứng viên PT", caption: "Hồ sơ PT mới nộp", at: newest, to: ROUTES.pts } : null,
   };

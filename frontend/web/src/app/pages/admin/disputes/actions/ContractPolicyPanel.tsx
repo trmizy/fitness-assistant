@@ -7,6 +7,7 @@ import { CONTRACT_POLICY_REF_KIND_LABEL, POLICY_RESULT_LABEL } from "../disputeC
 import { DISPUTE_QUERY_OPTIONS, useDisputeQueryKeys } from "../disputeQueryKeys";
 import { parseDisputeError } from "../disputeCaseErrors";
 import { shortRef } from "../workspace/format";
+import { ptTermsVersionLabel } from "../../../../utils/ptTermsLabel";
 import { describePolicyReviews } from "../workspace/policyModel";
 import { CompactReference } from "../shared/CompactReference";
 import { ApprovePolicyCard } from "./PolicyActions";
@@ -59,14 +60,14 @@ export function ContractPolicyPanel({ contractId }: { contractId: string }) {
       .map((a) => ({
         kind: "PT_TERMS_ACCEPTANCE" as const,
         id: a.id,
-        label: `Điều khoản PT ${a.version} · ${shortRef(a.id)}`,
+        label: `${ptTermsVersionLabel(a.version)} · ${shortRef(a.id)}`,
       })),
     ...(c?.facts.ptTermsAtAcceptance
       ? [
           {
             kind: "CONTRACT_AUDIT_LOG" as const,
             id: c.facts.ptTermsAtAcceptance.auditLogId,
-            label: `Nhật ký gắn điều khoản ${c.facts.ptTermsAtAcceptance.version}`,
+            label: `Nhật ký gắn điều khoản · ${ptTermsVersionLabel(c.facts.ptTermsAtAcceptance.version)}`,
           },
         ]
       : []),

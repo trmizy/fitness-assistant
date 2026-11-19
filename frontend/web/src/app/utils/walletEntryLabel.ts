@@ -17,6 +17,8 @@ export const WALLET_ENTRY_LABEL: Record<string, string> = {
   REFUND_PT_CONTRACT: "Hoàn tiền hợp đồng PT",
   REFUND_PT_SESSION_NOT_DELIVERED: "Hoàn tiền buổi PT chưa diễn ra",
   REFUND_MEMBERSHIP: "Hoàn tiền gói hội viên",
+  REFUND_MEMBERSHIP_APPEAL_SUPPLEMENT: "Hoàn thêm sau kháng nghị khiếu nại phòng gym",
+  APPEAL_SUPPLEMENT_GYM_SHARE: "Hoàn thêm cho hội viên sau kháng nghị (phần của phòng gym)",
   REFUND_PERSONALIZED_SERVICE: "Hoàn tiền dịch vụ cá nhân hóa",
   REFUND_OTHER: "Hoàn tiền",
   COMPENSATION_PT_NO_SHOW: "Hoàn tiền buổi PT vắng",
@@ -38,6 +40,7 @@ export const WALLET_ENTRY_LABEL: Record<string, string> = {
   REFERRAL_COMMISSION: "Hoa hồng giới thiệu",
   REFERRAL_CLAWBACK: "Thu hồi hoa hồng giới thiệu",
   DEBT_WITHHELD: "Trừ vào khoản đang nợ",
+  GYM_DEBT_RECOVERED: "Đã trừ nợ nền tảng",
   PENDING_REVERSED: "Hoàn lại khoản đang giữ (thanh toán đã hoàn)",
   OTHER_CREDIT: "Tiền vào ví",
   OTHER_DEBIT: "Tiền ra khỏi ví",
@@ -63,6 +66,7 @@ function labelFromDescription(description: string, entryType: string | null | un
       : /^(pt_contract|contract)\b/.test(d)
         ? "contract"
         : null;
+  if (credit && /appeal supplement - refund$/.test(d)) return WALLET_ENTRY_LABEL.REFUND_MEMBERSHIP_APPEAL_SUPPLEMENT;
   if (credit && /compensation for a missed session|no[-_ ]?show/.test(d)) return WALLET_ENTRY_LABEL.COMPENSATION_PT_NO_SHOW;
   if (credit && /late arrival|late-arrival/.test(d)) return WALLET_ENTRY_LABEL.COMPENSATION_PT_LATE_ARRIVAL;
   if (/withdrawal/.test(d)) {

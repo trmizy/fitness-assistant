@@ -59,30 +59,28 @@ export async function authMiddleware(
   }
 }
 
+/**
+ * Internal service-to-service authentication. x-user-id is trusted ONLY after x-internal-token equals
+ * INTERNAL_SERVICE_SECRET. Fail closed (2026-11-13 hotfix): with the secret unset or blank the request is rejected in
+ * EVERY environment — the former "dev mode" branch trusted a bare x-user-id whenever NODE_ENV !== "production", so any
+ * deployment missing the secret without NODE_ENV=production allowed impersonation of any user. Local docker-compose already
+ * sets INTERNAL_SERVICE_SECRET; tests set their own value. No bypass of any kind remains here.
+ */
 export function internalAuthMiddleware(
   req: AuthRequest,
   res: Response,
   next: NextFunction,
 ) {
   const secret = process.env.INTERNAL_SERVICE_SECRET;
-  const isDev = process.env.NODE_ENV !== "production";
 
-  if (!secret) {
-    if (!isDev) {
-      return res
-        .status(500)
-        .json({ error: "Service authentication is not configured" });
-    }
-
-    if (!assignInternalUser(req)) {
-      return res.status(401).json({ error: "Missing x-user-id header" });
-    }
-
-    logger.warn(
+  if (typeof secret !== "string" || secret.trim() === "") {
+    logger.error(
       { path: req.path },
-      "INTERNAL_SERVICE_SECRET not set — trusting x-user-id without token validation (dev mode only)",
+      "INTERNAL_SERVICE_SECRET not configured — internal request rejected (fail closed)",
     );
-    return next();
+    return res
+      .status(500)
+      .json({ error: "Service authentication is not configured" });
   }
 
   const internalToken = extractHeader(req, "x-internal-token");

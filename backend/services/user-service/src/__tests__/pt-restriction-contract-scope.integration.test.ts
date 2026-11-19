@@ -199,7 +199,7 @@ test("(1-4, 16) four contracts, only An-Bình restricted: Chi/Dũng/Em book, con
     res = await app.call("GET", `/profile/pts/${pt}/service-packages`, strangerTok);
     assert.equal(res.status, 200);
     assert.equal(res.body.packages?.length, 1, "his packages are still listed");
-    res = await app.call("POST", "/contracts/request", strangerTok, { ptUserId: pt, packageId: pkg.id });
+    res = await app.call("POST", "/contracts/request", strangerTok, { ptUserId: pt, packageId: pkg.id, acknowledgedIndependentVenue: true });
     assert.equal(res.status, 201, `a new contract request is accepted: ${JSON.stringify(res.body)}`);
     assert.equal(res.body.status, "PENDING_REVIEW");
     ids.push(res.body.id);

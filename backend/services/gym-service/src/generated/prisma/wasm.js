@@ -420,6 +420,7 @@ exports.Prisma.GymScalarFieldEnum = {
   createdFlowVersion: 'createdFlowVersion',
   legacyNoAmenities: 'legacyNoAmenities',
   legacyClientAt: 'legacyClientAt',
+  dataOrigin: 'dataOrigin',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -445,6 +446,7 @@ exports.Prisma.GymMembershipContractScalarFieldEnum = {
   planId: 'planId',
   clientId: 'clientId',
   status: 'status',
+  dataOrigin: 'dataOrigin',
   paymentTxnId: 'paymentTxnId',
   startDate: 'startDate',
   endDate: 'endDate',
@@ -491,6 +493,7 @@ exports.Prisma.GymReviewScalarFieldEnum = {
   clientId: 'clientId',
   rating: 'rating',
   comment: 'comment',
+  dataOrigin: 'dataOrigin',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -1236,6 +1239,11 @@ exports.GymOperationalStatus = exports.$Enums.GymOperationalStatus = {
   PERMANENTLY_CLOSED: 'PERMANENTLY_CLOSED'
 };
 
+exports.DataOrigin = exports.$Enums.DataOrigin = {
+  REAL: 'REAL',
+  SYNTHETIC: 'SYNTHETIC'
+};
+
 exports.GymFacility = exports.$Enums.GymFacility = {
   FREE_WEIGHTS: 'FREE_WEIGHTS',
   CARDIO_MACHINES: 'CARDIO_MACHINES',
@@ -1454,7 +1462,8 @@ exports.GymCaseOutcome = exports.$Enums.GymCaseOutcome = {
   REFUND_GYM_CLOSED: 'REFUND_GYM_CLOSED',
   REFUND_GYM_VIOLATION: 'REFUND_GYM_VIOLATION',
   RESOLVE_UPHELD: 'RESOLVE_UPHELD',
-  RESOLVE_INSUFFICIENT_EVIDENCE: 'RESOLVE_INSUFFICIENT_EVIDENCE'
+  RESOLVE_INSUFFICIENT_EVIDENCE: 'RESOLVE_INSUFFICIENT_EVIDENCE',
+  REFUND_APPEAL_SUPPLEMENT: 'REFUND_APPEAL_SUPPLEMENT'
 };
 
 exports.GymCaseApprovalResult = exports.$Enums.GymCaseApprovalResult = {

@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
-import { ActivityIndicator, Linking, ScrollView, Text, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Linking, Platform, ScrollView, Share, Text, View } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
@@ -13,7 +14,9 @@ import {
   Mail,
   MapPin,
   Navigation,
+  Link2,
   Phone,
+  Share2,
   Signpost,
   Ticket,
   TriangleAlert,
@@ -27,15 +30,21 @@ import {
   EmptyState,
   Input,
   Tappable,
+  useToast,
 } from "../../../../src/components/ui";
 import { gymService, locationService } from "../../../../src/services/api";
 import { useWorkspaceAccent } from "../../../../src/theme/workspace";
 import { formatVND } from "../../../../src/utils/currency";
+import { apiBaseUrl } from "../../../../src/config/serverUrl";
+import { GymHoursCard } from "../../../../src/features/services/GymHoursCard";
+import { gymShareContent, webOrigin } from "../../../../src/features/services/gymHours";
 import { BranchMap } from "../../../../src/features/services/BranchMap";
-import { PaymentMethodSheet } from "../../../../src/components/payment/PaymentMethodSheet";
+import { isInVietnam } from "../../../../src/utils/geo";
+import { Notice, PaymentMethodSheet } from "../../../../src/components/payment/PaymentMethodSheet";
 import { useGatewayCheckout } from "../../../../src/features/payments/useGatewayCheckout";
 import { AmenityBadgeGroups } from "../../../../src/features/gymListing/AmenityWidgets";
 import { GymPhotoGallery } from "../../../../src/features/services/GymPhotoGallery";
+import { PhotoAttribution } from "../../../../src/features/services/PhotoAttribution";
 import { GymReviews } from "../../../../src/features/services/GymReviews";
 import {
   aboutText,
@@ -79,6 +88,7 @@ import {
 export default function GymDetailScreen() {
   const accent = useWorkspaceAccent();
   const insets = useSafeAreaInsets();
+  const toast = useToast();
   const { id, referral: referralParam } = useLocalSearchParams<{ id: string; referral?: string }>();
   const gymId = String(id ?? "");
 
@@ -154,7 +164,7 @@ export default function GymDetailScreen() {
   const mine = memberships.find(
     (m) => m.gymId === gymId && (m.status === "ACTIVE" || m.status === "PENDING_PAYMENT"),
   );
-  const blocked = gym ? purchaseBlockedReason(gym, selected, memberships) : "Đang tải phòng gym...";
+  const baseBlocked = gym ? purchaseBlockedReason(gym, selected, memberships) : "Đang tải phòng gym...";
   const gymClosed = gym ? gymBlockedReason(gym) : null;
 
   // `acknowledged` rides along as evidence the multi-gym warning was shown, never as a permission.
@@ -167,10 +177,46 @@ export default function GymDetailScreen() {
         referral.trim() || undefined,
         target.acknowledged,
       ),
-    invalidate: [["my-memberships"]],
+    invalidate: [["my-memberships"], ["contract-gym-options"]],
   });
 
-  const startPurchase = (acknowledged: boolean) => {
+  // The public gym payload carries no sample-data flag, so the only signal is the server's refusal
+  // (SYNTHETIC_RECORD_NOT_TRANSACTABLE). Once seen, the buy button stays off with the reason for as
+  // long as this screen is open — the sheet's own inline notice goes away when the sheet closes.
+  const [sampleNotice, setSampleNotice] = useState<string | null>(null);
+  useEffect(() => {
+    if (checkout.blockedMessage) setSampleNotice(checkout.blockedMessage);
+  }, [checkout.blockedMessage]);
+  const blocked = sampleNotice ?? baseBlocked;
+
+  // FIX5 / Q8 (theo web): chia sẻ / sao chép liên kết /gyms/:id — khách mở link sẽ đăng nhập rồi vào đúng gym.
+  const shareContent = gym
+    ? gymShareContent(gym, webOrigin({ webUrl: process.env.EXPO_PUBLIC_WEB_URL, apiUrl: apiBaseUrl() }))
+    : null;
+  const onShare = async () => {
+    if (!shareContent) return;
+    try {
+      // Android chỉ đọc `message` (URL nằm trong đó); iOS nhận `url` riêng để không lặp.
+      await Share.share(
+        Platform.OS === "ios"
+          ? { title: shareContent.title, message: shareContent.text, url: shareContent.url }
+          : { title: shareContent.title, message: shareContent.messageWithUrl },
+      );
+    } catch {
+      toast.show("Không mở được bảng chia sẻ — hãy dùng nút sao chép liên kết.", "danger");
+    }
+  };
+  const onCopyLink = async () => {
+    if (!shareContent) return;
+    try {
+      await Clipboard.setStringAsync(shareContent.url);
+      toast.show("Đã sao chép liên kết phòng gym", "success");
+    } catch {
+      toast.show("Không sao chép được liên kết.", "danger");
+    }
+  };
+
+  const startPurchase =(acknowledged: boolean) => {
     if (!selected) return;
     if (!acknowledged && warnings.length > 0) {
       setWarningOpen(true);
@@ -196,6 +242,24 @@ export default function GymDetailScreen() {
           <Text className="flex-1 font-display text-xl text-foreground" numberOfLines={1}>
             {gym?.name ?? "Phòng gym"}
           </Text>
+          {gym ? (
+            <>
+              <Tappable
+                className="h-10 w-10 items-center justify-center rounded-full border border-border bg-card"
+                onPress={() => void onCopyLink()}
+                accessibilityLabel="Sao chép liên kết phòng gym"
+              >
+                <Link2 size={18} color="#8b9299" />
+              </Tappable>
+              <Tappable
+                className="h-10 w-10 items-center justify-center rounded-full border border-border bg-card"
+                onPress={() => void onShare()}
+                accessibilityLabel="Chia sẻ phòng gym"
+              >
+                <Share2 size={18} color="#8b9299" />
+              </Tappable>
+            </>
+          ) : null}
         </View>
 
         {gymQuery.isLoading ? (
@@ -255,6 +319,7 @@ export default function GymDetailScreen() {
             </Card>
 
             <GymPhotoGallery photos={gym.photos} title={gym.name} />
+            {gym.photos.length > 0 ? <PhotoAttribution /> : null}
 
             <Card className="gap-2.5 p-4">
               {address ? (
@@ -314,7 +379,13 @@ export default function GymDetailScreen() {
               ) : null}
             </Card>
 
-            {directions || otherBranches.length > 0 || mapBranches.some((b) => b.latitude != null) ? (
+            <GymHoursCard
+              hours={(gymQuery.data as any)?.operatingHours}
+              closedTemporarily={isTemporarilyClosed(gym)}
+              reopenText={reopenLabel(gym)}
+            />
+
+            {directions || otherBranches.length > 0 || mapBranches.some((b) => isInVietnam(b.latitude, b.longitude)) ? (
               <Card className="gap-2.5 p-4">
                 <View className="flex-row items-center justify-between gap-3">
                   <Text className="flex-1 font-body-medium text-sm text-foreground">
@@ -444,13 +515,16 @@ export default function GymDetailScreen() {
                   />
                 </Card>
 
+                {sampleNotice ? <Notice tone="danger" text={sampleNotice} /> : null}
                 <Button full disabled={!!blocked || checkout.submitting || warningsQuery.isLoading} onPress={() => startPurchase(false)}>
                   {checkout.submitting ? "Đang tạo giao dịch..." : "Mua gói hội viên"}
                 </Button>
-                <Text className="text-center font-body text-xs text-muted-foreground">
-                  {blocked ??
-                    "Bạn chọn cổng thanh toán ở bước sau; gói chỉ kích hoạt khi cổng xác nhận đã thanh toán."}
-                </Text>
+                {sampleNotice ? null : (
+                  <Text className="text-center font-body text-xs text-muted-foreground">
+                    {blocked ??
+                      "Bạn chọn cổng thanh toán ở bước sau; gói chỉ kích hoạt khi cổng xác nhận đã thanh toán."}
+                  </Text>
+                )}
               </>
             ) : null}
             {/* 14B.6 (PG-B2) — reviews, and the member's own one to write / edit / delete. */}
@@ -487,6 +561,7 @@ export default function GymDetailScreen() {
         title="Thanh toán gói hội viên"
         note="Bạn sẽ được chuyển sang trang của cổng thanh toán. Gói chỉ kích hoạt sau khi cổng xác nhận giao dịch thành công."
         submitting={checkout.submitting}
+        blockedMessage={checkout.blockedMessage}
         onConfirm={checkout.pay}
         onClose={checkout.close}
       />

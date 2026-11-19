@@ -20,6 +20,15 @@ export interface PaymentMethods {
   defaultProvider: string | null;
 }
 
+export const METHOD_UNAVAILABLE_TEXT = "Phương thức này tạm thời chưa dùng được";
+
+/** The server's reason when it reads as Vietnamese prose; an operator string (env-var names, English) becomes the friendly line (PAY-01). */
+export function friendlyUnavailableReason(raw: unknown): string {
+  const t = typeof raw === "string" ? raw.trim() : "";
+  if (!t || /[A-Z][A-Z0-9]*_[A-Z0-9_]+/.test(t) || !/[à-ỹĐđ]/i.test(t)) return METHOD_UNAVAILABLE_TEXT;
+  return t;
+}
+
 /** `GET /me/payments/methods` — server-decided list; a gateway without credentials stays visible, greyed. */
 export function normalizeMethods(raw: unknown): PaymentMethods {
   const data = (raw ?? {}) as { methods?: unknown; defaultProvider?: unknown };
@@ -32,7 +41,7 @@ export function normalizeMethods(raw: unknown): PaymentMethods {
           label: typeof m.label === "string" && m.label ? m.label : String(m.provider),
           description: typeof m.description === "string" ? m.description : "",
           configured: m.configured === true,
-          unavailableReason: typeof m.unavailableReason === "string" ? m.unavailableReason : null,
+          unavailableReason: m.configured === true ? null : friendlyUnavailableReason(m.unavailableReason),
         }))
     : [];
   const suggested = typeof data.defaultProvider === "string" ? data.defaultProvider : null;
@@ -46,7 +55,6 @@ export function normalizeMethods(raw: unknown): PaymentMethods {
 export const PROVIDER_BADGE: Record<string, { text: string; background: string }> = {
   VNPAY: { text: "VN", background: "#0a4f9e" },
   ZALOPAY: { text: "ZP", background: "#0068ff" },
-  MOMO: { text: "M", background: "#a50064" },
 };
 
 export interface CheckoutStart {
@@ -81,11 +89,31 @@ export function readCheckout(raw: unknown): CheckoutStart {
 /** Where payment-service sends the payer back when the checkout started in the app. */
 export const PAYMENT_RETURN_PREFIX = "fitnessassistant://client/payments/result";
 
+/** What the return link says about the checkout, kept only as a DISPLAY hint (never a verdict). */
+export type ReturnHint = "failed";
+
 /** The app's own result route for a transaction — also what the deep link resolves to. */
-export function resultHref(transactionId: string | null): string {
-  return transactionId
+export function resultHref(transactionId: string | null, hint: ReturnHint | null = null): string {
+  const base = transactionId
     ? `/client/payments/result?txnId=${encodeURIComponent(transactionId)}`
     : "/client/payments/result";
+  return hint ? `${base}${transactionId ? "&" : "?"}gw=${hint}` : base;
+}
+
+/**
+ * N17M-03 — ZaloPay appends its own `status` to the return link (1 = paid, any other number = the
+ * checkout did not complete, e.g. the payer pressed "Hủy giao dịch"); VNPay's `status` is a word
+ * (success/failed/invalid) that payment-service has already settled before redirecting, so sync alone
+ * is enough for it. So only a NUMBER other than 1 becomes a hint: the result screen can then say
+ * "chưa hoàn tất" straight away instead of waiting ~15 minutes for ZaloPay's order to expire.
+ * It is still only a hint: PAID from `POST /me/payments/:id/sync` always wins, and a link
+ * anyone can type decides nothing but which wording is shown while the server says pending.
+ */
+export function returnHintFromUrl(url: string | null | undefined): ReturnHint | null {
+  if (!url) return null;
+  const match = /[?&]status=(-?\d+)(?:[&#]|$)/.exec(url);
+  if (!match) return null;
+  return Number(match[1]) === 1 ? null : "failed";
 }
 
 /**
@@ -113,6 +141,43 @@ export function phaseFromSync(raw: unknown): ResultPhase {
   return "pending";
 }
 
+/** The thing a failed / abandoned payment was for, when it is one the app can start paying again. */
+export type RetryTarget = { kind: "membership" | "contract"; id: string };
+
+export function retryTargetFor(raw: unknown): RetryTarget | null {
+  const data = (raw ?? {}) as { relatedEntityType?: unknown; relatedEntityId?: unknown };
+  const id = typeof data.relatedEntityId === "string" && data.relatedEntityId ? data.relatedEntityId : null;
+  if (!id) return null;
+  if (data.relatedEntityType === "GYM_MEMBERSHIP") return { kind: "membership", id };
+  if (data.relatedEntityType === "PT_CONTRACT") return { kind: "contract", id };
+  return null;
+}
+
+/**
+ * N17M-02 — what the failed screen can offer, decided from the item's own state (the same rule the
+ * Hội viên / Hợp đồng cards use for their "Thanh toán" button: only PENDING_PAYMENT can be paid again).
+ * A membership the server already cancelled can not be paid again, only bought again at its gym.
+ */
+export type RetryAction = { type: "pay"; amount: number } | { type: "rebuy"; gymId: string };
+
+export function retryActionFor(
+  item: { status: string; price: number; gymId?: string | null } | null | undefined,
+  kind: RetryTarget["kind"],
+): RetryAction | null {
+  if (!item) return null;
+  if (item.status === "PENDING_PAYMENT") return { type: "pay", amount: item.price };
+  if (kind === "membership" && (item.status === "CANCELLED" || item.status === "EXPIRED") && item.gymId) {
+    return { type: "rebuy", gymId: item.gymId };
+  }
+  return null;
+}
+
+/** AWS-MOB-UI-02 — a short, readable reference for support instead of the raw transaction uuid. */
+export function shortTransactionRef(id: string): string {
+  const compact = id.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8).toUpperCase();
+  return compact ? `GD-${compact}` : "";
+}
+
 /** Where the thing just paid for lives in the app. */
 export function destinationFor(raw: unknown): { href: string; label: string } {
   const data = (raw ?? {}) as { relatedEntityType?: unknown; relatedEntityId?: unknown };
@@ -131,10 +196,36 @@ export function destinationFor(raw: unknown): { href: string; label: string } {
 }
 
 /** Server error body → one Vietnamese line; never a raw code or stack. */
-export function checkoutErrorMessage(error: unknown): string {
+/** Mã lỗi ổn định của server (gym/payment/user-service) khi bản ghi là dữ liệu mẫu — chỉ để xem, không giao dịch. */
+export const SYNTHETIC_RECORD_NOT_TRANSACTABLE = "SYNTHETIC_RECORD_NOT_TRANSACTABLE";
+
+/** Câu hiển thị cố định cho dữ liệu mẫu (không lộ chữ SYNTHETIC của server). */
+export const SYNTHETIC_CHECKOUT_NOTICE = "Dữ liệu mẫu — chỉ để xem, không mua được.";
+
+function checkoutErrorParts(error: unknown): { code: unknown; message: unknown } {
   const body = (error as { response?: { data?: any } } | null)?.response?.data;
   const code = typeof body?.error === "string" ? body.error : body?.error?.code ?? body?.code;
   const message = typeof body?.message === "string" ? body.message : body?.error?.message;
+  return { code, message };
+}
+
+/**
+ * Server từ chối thanh toán vì phòng gym/gói là dữ liệu mẫu. Ưu tiên mã ổn định; chỉ khi không có mã
+ * mới dựa vào câu chữ của server.
+ */
+export function isSyntheticCheckoutError(error: unknown): boolean {
+  const { code, message } = checkoutErrorParts(error);
+  if (code === SYNTHETIC_RECORD_NOT_TRANSACTABLE) return true;
+  if (typeof code === "string" && /^[A-Z0-9_]+$/.test(code)) return false;
+  // Some paths put the sentence itself in `error` — read that when there is no separate message.
+  const text = typeof message === "string" ? message : typeof code === "string" ? code : "";
+  return /SYNTHETIC|dữ liệu mẫu/i.test(text);
+}
+
+export function checkoutErrorMessage(error: unknown): string {
+  const body = (error as { response?: { data?: any } } | null)?.response?.data;
+  const { code, message } = checkoutErrorParts(error);
+  if (isSyntheticCheckoutError(error)) return SYNTHETIC_CHECKOUT_NOTICE;
   if (code === "PROVIDER_NOT_CONFIGURED" || code === "PAYMENT_PROVIDER_UNAVAILABLE") {
     return "Cổng thanh toán này đang tạm ngưng — chọn cổng khác.";
   }

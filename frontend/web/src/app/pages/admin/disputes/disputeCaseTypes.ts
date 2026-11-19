@@ -815,6 +815,11 @@ export interface PartyCaseDetail {
     closesAt?: string | null;
     used?: boolean;
     progress?: string;
+    /** N15B-02: this party's own appeal (REQUESTED | UNDER_REVIEW | DECIDED), its result once decided and the dates. */
+    status?: string | null;
+    result?: string | null;
+    requestedAt?: string | null;
+    decidedAt?: string | null;
   };
   accusations: Array<{ id: string; claimantRole: ClaimantRole; text: string; moves: ClaimMove[] }>;
   evidence: Array<{

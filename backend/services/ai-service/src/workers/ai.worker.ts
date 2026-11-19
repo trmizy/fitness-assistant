@@ -38,6 +38,15 @@ import type { CoachContext } from "../coach/coach_context.types";
 import type { UserProfile } from "../llm/types";
 import type { WorkerUserContext } from "./worker-user-context";
 import {
+  parseWorkoutAdjustment,
+  exerciseViolates,
+  exerciseUnsafeForTrainee,
+  fetchLocationFor,
+  adjustmentPromptLines,
+  FOCUS_GROUP,
+  GLUTE_HAM_PRIORITY,
+} from "../services/revision/workout-adjustment-constraints";
+import {
   validateWorkoutPlanInvariants,
   type WorkoutPlanInvariantViolation,
 } from "../services/workout-plan-invariant.service";
@@ -900,6 +909,12 @@ function estimatePlanNumPredict(
   // fallback catalog repair that discards the LLM's actual exercise
   // selection. num_ctx=8192 leaves enough headroom (typical prompts run
   // ~3500 tokens) for the higher budget.
+  // Hosted models (Bedrock Nova / Claude) are wordier per exercise object: Nova Pro used 1969 tokens for 3x5 = 15 exercises, so a
+  // 4x5 plan needed > 2048 and was cut off mid-JSON on both attempts ("did not return any JSON", eval adj W07 2026-11-11). Their
+  // output is billed per token actually produced, so a generous ceiling costs nothing on short plans.
+  if (process.env.LLM_PROVIDER === "bedrock" || process.env.LLM_PROVIDER === "anthropic") {
+    return clampInt(600 + exerciseObjects * 140, 2048, 5000);
+  }
   return clampInt(430 + exerciseObjects * 80, 650, 4500);
 }
 
@@ -941,6 +956,12 @@ function buildFastPlanPrompt(args: {
   exercisesByDay: DayExerciseCatalog[];
   bodyCompText?: string;
   evidenceText?: string;
+  /** Adjustment jobs offer a wider per-day choice. */
+  catalogLimit?: number;
+  /** Hard rules derived from the user's adjustment text (workout-adjustment-constraints.ts). */
+  adjustmentRules?: string[];
+  /** The plan being adjusted. */
+  previousPlan?: Array<{ goal?: string; cardio?: string; exercises: Array<{ exerciseId?: string; name?: string; sets?: number; reps?: string }> }>;
 }): string {
   const compactExerciseLine = (exercise: AllowedExerciseItem): string => {
     const equipment = (exercise.equipmentRequirements ?? [])
@@ -977,7 +998,7 @@ function buildFastPlanPrompt(args: {
   const catalog = args.exercisesByDay
     .map((day) => {
       const ids = day.exercises
-        .slice(0, PLAN_EXERCISES_PER_DAY_CATALOG_LIMIT)
+        .slice(0, args.catalogLimit ?? PLAN_EXERCISES_PER_DAY_CATALOG_LIMIT)
         .map((exercise) => compactExerciseLine(exercise))
         .join("\n");
       return `[Day ${day.dayIndex + 1}] ${day.dayGoal}\n${ids}`;
@@ -999,6 +1020,13 @@ function buildFastPlanPrompt(args: {
     args.adjustmentContext
       ? `User context/request:\n${args.adjustmentContext}`
       : "",
+    args.previousPlan?.length
+      ? [
+          "CURRENT PLAN being ADJUSTED. Apply ONLY the changes the user asked for; keep every other exercise, its day and its sets/reps when it is still listed in that day's catalog:",
+          ...args.previousPlan.map((day, i) => `Day ${i + 1} (${day.goal ?? ""}): ${day.exercises.map((e) => `${e.exerciseId}|${e.name} ${e.sets ?? "?"}x${e.reps ?? "?"}`).join("; ")}${day.cardio ? ` | cardio: ${day.cardio}` : ""}`),
+        ].join("\n")
+      : "",
+    args.adjustmentRules?.length ? `ADJUSTMENT RULES (mandatory):\n${args.adjustmentRules.join("\n")}` : "",
     args.bodyCompText
       ? `Body composition rule analysis:\n${args.bodyCompText}`
       : "",
@@ -1023,6 +1051,10 @@ function buildFastPlanPrompt(args: {
 }
 
 // Job data schema
+/** Shown when the model could not produce an adjusted plan; the previous plan version is untouched (adjustments create a new version). */
+export const ADJUSTMENT_FAILED_MESSAGE_VI =
+  "AI chưa điều chỉnh được kế hoạch lần này. Kế hoạch cũ vẫn giữ nguyên — bạn bấm “Điều chỉnh” lại sau vài giây nhé.";
+
 function buildDeterministicPlanFromCatalogs(args: {
   goal: string;
   durationWeeks: number;
@@ -1114,6 +1146,18 @@ const PlanJobDataSchema = z.object({
     .optional(),
   /** Present when this job was queued via the adjust endpoint. */
   adjustmentContext: z.string().max(1000).optional(),
+  /** The plan being adjusted (compact), so the model edits it rather than generating an unrelated new plan. */
+  previousPlan: z.array(z.object({
+    goal: z.string().max(80).optional(),
+    cardio: z.string().max(120).optional(),
+    exercises: z.array(z.object({ exerciseId: z.string().max(80).optional(), name: z.string().max(100).optional(), sets: z.number().optional(), reps: z.string().max(20).optional() })).max(10),
+  })).max(7).optional(),
+  /** A named swap resolved by plan.controller ("đổi X thành Y"): X = exact names in the previous plan, Y = a real catalog row. */
+  swap: z.object({
+    fromNames: z.array(z.string().max(120)).min(1).max(5),
+    toExerciseId: z.string().max(80).optional(),
+    toName: z.string().max(120).optional(),
+  }).optional(),
 });
 type PlanJobData = z.infer<typeof PlanJobDataSchema>;
 
@@ -1165,10 +1209,26 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       daysPerWeek,
       exercisesPerDay,
       adjustmentContext,
-      trainingLocation = "GYM",
+      previousPlan,
+      swap,
+      trainingLocation: requestedTrainingLocation = "GYM",
       equipmentPreference = "MIXED_GYM",
     } = dataResult.data as PlanJobData;
     const planJobStartedAt = Date.now();
+    // Adjustment constraints parsed from the user's text: they decide which catalog exercises the model may choose from.
+    const adjust = adjustmentContext?.trim() ? parseWorkoutAdjustment(adjustmentContext) : null;
+    if (adjust && swap) {
+      // A named swap removes EXACTLY X. Keyword exclusions from the same text ("bench press", "squat") would also remove the
+      // target Y ("Dumbbell Bench Press", "Goblet Squat") and every similar exercise the user wanted to keep.
+      const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      adjust.excludeNamePatterns = swap.fromNames.map((name) => new RegExp(`^${escape(name)}$`, "i"));
+      adjust.excludeLabels = [...swap.fromNames];
+    }
+    const trainingLocation = adjust ? fetchLocationFor(adjust, requestedTrainingLocation) : requestedTrainingLocation;
+    // "Điều chỉnh" (POST /plans/adjust) is the only producer of adjustmentContext. For such a job the catalog fallback below would
+    // complete a plan that ignores the user's request and present it as the adjusted plan, so an adjustment must be made by the
+    // model or fail honestly (retry / "thử lại") — audit 2026-11-11.
+    const isAdjustmentJob = Boolean(adjustmentContext?.trim());
 
     logger.info(
       { jobId: job.id, planId, userId },
@@ -1195,7 +1255,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
           goal,
           trainingLocation,
           equipmentPreference,
-          limit: PLAN_EXERCISE_FETCH_LIMIT,
+          limit: adjust ? PLAN_EXERCISE_FETCH_LIMIT * 2 : PLAN_EXERCISE_FETCH_LIMIT,
         },
         timeoutMs: 10000,
         headers: {
@@ -1230,6 +1290,37 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
         "Failed to load exercise catalog from fitness-service",
       );
       return;
+    }
+
+    if (adjust) {
+      // The catalog sample is bounded and re-drawn every call, so the previous plan's exercises (and a swap target) are often
+      // missing from it — the model then cannot keep what the user did not ask to change (swap eval 2026-11-11: 0-4 of 14 kept).
+      // Add them back from the authoritative catalog by id.
+      const wanted = [...new Set([...(previousPlan ?? []).flatMap((day) => day.exercises.map((e) => e.exerciseId ?? "")), swap?.toExerciseId ?? ""])]
+        .filter((id) => id && !allowedExercises.some((exercise) => exercise.id === id));
+      if (wanted.length) {
+        try {
+          const resp = await requestService({
+            service: "fitness", method: "POST", path: "/internal/exercises/muscle-profiles",
+            body: { exerciseIds: wanted.slice(0, 200) }, timeoutMs: 8000,
+            headers: { "x-internal-token": internalSecret ?? "", "x-user-id": userId },
+          });
+          const rows: any[] = resp?.data?.data?.exercises ?? [];
+          for (const row of rows) {
+            allowedExercises.push({ id: row.id, exerciseName: row.name, bodyPart: row.bodyPart, muscleGroupsActivated: row.muscleGroups ?? [] } as AllowedExercise);
+          }
+          logger.info({ planId, requested: wanted.length, added: rows.length }, "Previous-plan / swap-target exercises added to the adjustment pool");
+        } catch (err) {
+          logger.warn({ err, planId }, "Could not load previous-plan exercises; adjustment continues with the sampled pool");
+        }
+      }
+      const before = allowedExercises.length;
+      allowedExercises = allowedExercises.filter((exercise) => !exerciseViolates(exercise, adjust));
+      logger.info({ planId, before, after: allowedExercises.length, excluded: adjust.excludeLabels, equipmentOnly: adjust.equipmentOnly ?? null }, "Adjustment constraints applied to the exercise pool");
+      if (allowedExercises.length < Math.max(3, exercisesPerDay)) {
+        await conversationRepository.updatePlanFailed(planId, "Thư viện bài tập không còn đủ bài phù hợp với yêu cầu điều chỉnh này. Kế hoạch cũ vẫn giữ nguyên — bạn thử nới bớt yêu cầu nhé.");
+        return;
+      }
     }
 
     if (!allowedExercises || allowedExercises.length === 0) {
@@ -1290,6 +1381,20 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       );
     }
 
+    // 3c. Level-based safety: never offer high-risk lifts, and no technical/explosive/powerlifting variants to beginners or 50+.
+    {
+      const trainee = (workerContext?.profile ?? null) as { experienceLevel?: string; age?: number } | null;
+      const unsafe = allowedExercises.filter((exercise) => exerciseUnsafeForTrainee(exercise, trainee));
+      const remaining = allowedExercises.length - unsafe.length;
+      if (unsafe.length && remaining >= Math.max(daysPerWeek * exercisesPerDay, 12)) {
+        allowedExercises = allowedExercises.filter((exercise) => !exerciseUnsafeForTrainee(exercise, trainee));
+        for (const exercise of unsafe) allowedIds.delete(exercise.id);
+        logger.info({ planId, removed: unsafe.length, experienceLevel: trainee?.experienceLevel ?? null, age: trainee?.age ?? null }, "Level-unsafe exercises removed from the candidate pool");
+      } else if (unsafe.length) {
+        logger.warn({ planId, unsafe: unsafe.length, remaining }, "Level-unsafe filter skipped: pool would be too small");
+      }
+    }
+
     // 4. Build per-day exercise catalogs and prompt
     const perDayCatalogs = buildPerDayCatalogs(
       goal,
@@ -1299,6 +1404,41 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       equipmentPreference,
       exercisesPerDay,
     );
+    if (adjust) {
+      // An adjustment needs real choice: offer the previous day's still-allowed exercises (so unchanged parts can be kept)
+      // and candidates for every requested focus, on top of the normal ranked list.
+      const byId = new Map(allowedExercises.map((exercise) => [exercise.id, exercise]));
+      for (const day of perDayCatalogs) {
+        const extra: AllowedExercise[] = [];
+        const swapTarget = swap?.toExerciseId ? byId.get(swap.toExerciseId) : undefined;
+        if (swapTarget && (previousPlan?.[day.dayIndex]?.exercises ?? []).some((e) => swap!.fromNames.includes(e.name ?? ""))) extra.push(swapTarget);
+        for (const prev of previousPlan?.[day.dayIndex]?.exercises ?? []) {
+          const kept = prev.exerciseId ? byId.get(prev.exerciseId) : undefined;
+          if (kept) extra.push(kept);
+        }
+        for (const focus of adjust.addFocus) {
+          const group = FOCUS_GROUP[focus];
+          const hits = allowedExercises.filter((exercise) =>
+            exerciseMatchesMuscleGroup(exercise, group) ||
+            (focus === "GLUTES_HAMSTRINGS" && GLUTE_HAM_PRIORITY.test(exercise.exerciseName ?? "")));
+          if (focus === "GLUTES_HAMSTRINGS") hits.sort((a, b) => Number(GLUTE_HAM_PRIORITY.test(b.exerciseName ?? "")) - Number(GLUTE_HAM_PRIORITY.test(a.exerciseName ?? "")));
+          extra.push(...hits.slice(0, 4));
+        }
+        if (adjust.fullBodyDays.includes(day.dayIndex)) {
+          for (const group of ["LEGS", "GLUTES", "CHEST", "BACK"]) {
+            extra.push(...allowedExercises.filter((exercise) => exerciseMatchesMuscleGroup(exercise, group)).slice(0, 2));
+          }
+        }
+        const seen = new Set<string>();
+        day.exercises = [...extra, ...day.exercises].filter((exercise) => (seen.has(exercise.id) ? false : (seen.add(exercise.id), true)));
+        // A narrow pool (e.g. dumbbells only) can leave a day with no spare candidate, so a duplicate the model writes can't be
+        // repaired and the whole adjustment fails (eval W03). Top the day up from the already-filtered pool.
+        for (const exercise of allowedExercises) {
+          if (day.exercises.length >= exercisesPerDay + 4) break;
+          if (!seen.has(exercise.id)) { seen.add(exercise.id); day.exercises.push(exercise); }
+        }
+      }
+    }
     logger.info(
       {
         planId,
@@ -1392,6 +1532,16 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       exercisesByDay: perDayCatalogs,
       bodyCompText: bodyCompText || undefined,
       evidenceText,
+      catalogLimit: adjust ? PLAN_EXERCISES_PER_DAY_CATALOG_LIMIT + 6 : undefined,
+      adjustmentRules: adjust
+        ? [
+            ...(swap
+              ? [`- EXACT SWAP: replace ${swap.fromNames.join(" / ")} ${swap.toName ? `with ${swap.toName} (exerciseId ${swap.toExerciseId}) on the SAME day and position` : "with ONE suitable exercise for the same muscle group from that day's catalog"}. Every other exercise, its day, sets and reps must stay EXACTLY as in CURRENT PLAN.`]
+              : []),
+            ...adjustmentPromptLines(adjust).filter((line) => !swap || !line.startsWith("- The user asked to REMOVE")),
+          ]
+        : undefined,
+      previousPlan: adjust ? previousPlan : undefined,
     });
     const generationRepairReasons: string[] = [];
     const appendTrackedPlanWarnings = (
@@ -1428,6 +1578,13 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
           const reason = String(warning?.reason ?? warning?.type ?? "repair");
           if (!generationRepairReasons.includes(reason)) generationRepairReasons.push(reason);
         }
+      }
+      // "Day N" is only the position in weeklySchedule; a model that labels days out of order ("Day 3" first) must not fail an
+      // otherwise valid plan (adjust eval W19, 2026-11-11). Relabel by position before the invariant check.
+      if (Array.isArray(content?.weeklySchedule)) {
+        content.weeklySchedule.forEach((day: any, index: number) => {
+          if (day && typeof day === "object") day.day = `Day ${index + 1}`;
+        });
       }
       let semanticResult = validateWorkoutPlanInvariants({
         content,
@@ -1643,7 +1800,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       );
       rawAnswer = llmResponse.answer;
     } catch (err) {
-      if (isRecoverablePlanLlmTimeout(err)) {
+      if (isRecoverablePlanLlmTimeout(err) && !isAdjustmentJob) {
         const fallbackContent = buildDeterministicPlanFromCatalogs({
           goal,
           durationWeeks,
@@ -1681,8 +1838,9 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
         );
       }
 
-      const reason =
-        err instanceof LlmError
+      const reason = isAdjustmentJob
+        ? ADJUSTMENT_FAILED_MESSAGE_VI
+        : err instanceof LlmError
           ? `LLM unavailable: ${err.message}`
           : `Unexpected LLM error: ${String(err)}`;
       logger.error(
@@ -1810,7 +1968,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       }
     }
 
-    if (!parseResult.ok) {
+    if (!parseResult.ok && !isAdjustmentJob) {
       const fallbackContent = buildDeterministicPlanFromCatalogs({
         goal,
         durationWeeks,
@@ -1841,8 +1999,9 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       // surface a friendly message but keep the technical reason in logs.
       const tech = parseResult.reason || "";
       if (tech.includes("LLM did not return any JSON")) {
-        const reason =
-          "AI khong tao du bai tap cho mot so ngay. Vui long thu lai hoac giam so buoi/tuan.";
+        const reason = isAdjustmentJob
+          ? ADJUSTMENT_FAILED_MESSAGE_VI
+          : "AI khong tao du bai tap cho mot so ngay. Vui long thu lai hoac giam so buoi/tuan.";
         logger.error(
           {
             jobId: job.id,
@@ -1856,8 +2015,9 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
         return;
       }
 
-      const reason =
-        "AI khong tao du bai tap cho mot so ngay. Vui long thu lai hoac giam so buoi/tuan.";
+      const reason = isAdjustmentJob
+        ? ADJUSTMENT_FAILED_MESSAGE_VI
+        : "AI khong tao du bai tap cho mot so ngay. Vui long thu lai hoac giam so buoi/tuan.";
       logger.error(
         {
           jobId: job.id,
@@ -1869,6 +2029,65 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       );
       await conversationRepository.updatePlanFailed(planId, reason);
       return;
+    }
+
+    // "Thêm bài bụng/tay sau/… vào mỗi buổi": an explicit request is guaranteed. A day the model left without the requested
+    // focus gets its last exercise swapped for that day's first matching catalog candidate (labelled repair, eval W04).
+    if (adjust?.addFocus.length) {
+      const focusRepairs: Array<Record<string, unknown>> = [];
+      ((parseResult.content as any).weeklySchedule ?? []).forEach((day: any, dayIndex: number) => {
+        const catalog = perDayCatalogs[dayIndex]?.exercises ?? [];
+        const byId = new Map(allowedExercises.map((exercise) => [exercise.id, exercise]));
+        for (const focus of adjust.addFocus) {
+          const group = FOCUS_GROUP[focus];
+          const matches = (exercise?: AllowedExercise) => !!exercise && (exerciseMatchesMuscleGroup(exercise, group) || (focus === "GLUTES_HAMSTRINGS" && GLUTE_HAM_PRIORITY.test(exercise.exerciseName ?? "")));
+          const exercises: any[] = Array.isArray(day?.exercises) ? day.exercises : [];
+          if (!exercises.length || exercises.some((e) => matches(byId.get(e.exerciseId)))) continue;
+          const used = new Set(exercises.map((e) => e.exerciseId));
+          const candidate = catalog.find((exercise) => matches(exercise) && !used.has(exercise.id));
+          if (!candidate) continue;
+          const at = exercises.length - 1;
+          const from = exercises[at]?.name;
+          exercises[at] = buildExercisePrescription(candidate, at + 1, "Thêm theo yêu cầu điều chỉnh");
+          focusRepairs.push({ type: "adjustment_focus_guarantee", reason: `adjustment_focus_${focus.toLowerCase()}`, day: dayIndex + 1, from, to: candidate.exerciseName });
+        }
+      });
+      if (focusRepairs.length) appendTrackedPlanWarnings(parseResult.content, focusRepairs);
+    }
+
+    // "Đổi X thành Y": the explicit swap is guaranteed. Wherever X was in the previous plan, that day must hold Y (replacing X if
+    // the model kept it, otherwise the exercise the model put in X's slot). Labelled repair.
+    if (swap?.toExerciseId) {
+      const target = allowedExercises.find((exercise) => exercise.id === swap.toExerciseId);
+      const schedule: any[] = (parseResult.content as any).weeklySchedule ?? [];
+      const swapRepairs: Array<Record<string, unknown>> = [];
+      if (target) {
+        (previousPlan ?? []).forEach((prevDay, dayIndex) => {
+          const slot = prevDay.exercises.findIndex((e) => swap.fromNames.includes(e.name ?? ""));
+          const day = schedule[dayIndex];
+          if (slot < 0 || !Array.isArray(day?.exercises) || !day.exercises.length) return;
+          if (day.exercises.some((e: any) => e.exerciseId === target.id)) return;
+          const xAt = day.exercises.findIndex((e: any) => swap.fromNames.includes(String(e.name ?? "")));
+          const at = xAt >= 0 ? xAt : Math.min(slot, day.exercises.length - 1);
+          const from = day.exercises[at]?.name;
+          const prev = prevDay.exercises[slot];
+          const replacement = buildExercisePrescription(target, at + 1, "Đổi theo yêu cầu");
+          if (prev?.sets) (replacement as any).sets = prev.sets;
+          if (prev?.reps) (replacement as any).reps = prev.reps;
+          day.exercises[at] = replacement;
+          swapRepairs.push({ type: "adjustment_swap_guarantee", reason: "adjustment_swap", day: dayIndex + 1, from, to: target.exerciseName });
+        });
+      }
+      if (swapRepairs.length) appendTrackedPlanWarnings(parseResult.content, swapRepairs);
+    }
+
+    // "Tập nhẹ hơn / ít hiệp hơn": the explicit request is guaranteed (max 2 sets) even if the model kept the old volume.
+    if (adjust?.lighterVolume) {
+      for (const day of (parseResult.content as any).weeklySchedule ?? []) {
+        for (const exercise of day.exercises ?? []) {
+          if (typeof exercise.sets === "number" && exercise.sets > 2) exercise.sets = 2;
+        }
+      }
     }
 
     const countRepair = repairExerciseCountAndDayGoals(

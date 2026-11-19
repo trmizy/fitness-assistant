@@ -128,6 +128,7 @@ type InBodyLike = { weight?: number | null; muscleMass?: number | null; bodyFatP
 function delta(a: number | null | undefined, b: number | null | undefined): string {
   if (a == null || b == null) return "";
   const d = Number((a - b).toFixed(1));
+  if (d === 0) return "";
   return ` (${d < 0 ? "↓" : "↑"} ${Math.abs(d)} kg)`;
 }
 
@@ -136,13 +137,16 @@ function delta(a: number | null | undefined, b: number | null | undefined): stri
  * the wording is the design's Vietnamese greeting instead of web's untranslated English one.
  */
 export function greetingText(latest: InBodyLike, prev: InBodyLike): string {
-  if (!latest) {
+  // Không có bản quét, hoặc bản quét không có chỉ số nào dùng được (null/0) -> lời chào không số liệu, không "—".
+  const has = (v: number | null | undefined) => v != null && Number(v) > 0;
+  if (!latest || (!has(latest.weight) && !has(latest.muscleMass) && !has(latest.bodyFatPct))) {
     return "Chào bạn 👋 Mình là AI Coach. Bạn chưa có kết quả InBody nào — hãy hỏi mình bất cứ điều gì về tập luyện và dinh dưỡng nhé!";
   }
-  const w = latest.weight != null ? `${latest.weight} kg${delta(latest.weight, prev?.weight)}` : "—";
-  const m = latest.muscleMass != null ? `${latest.muscleMass} kg${delta(latest.muscleMass, prev?.muscleMass)}` : "—";
-  const f = latest.bodyFatPct != null ? `${latest.bodyFatPct}%` : "—";
-  return `Chào bạn 👋 Mình là AI Coach, mình đã xem dữ liệu của bạn. Hôm nay bạn cần hỗ trợ gì?\n\n📊 **Chỉ số mới nhất:**\n- Cân nặng: ${w}\n- Khối cơ: ${m}\n- Mỡ cơ thể: ${f}\n\nHỏi mình bất cứ điều gì về tiến độ của bạn nhé!`;
+  const lines: string[] = [];
+  if (has(latest.weight)) lines.push(`- Cân nặng: ${latest.weight} kg${delta(latest.weight, prev?.weight)}`);
+  if (has(latest.muscleMass)) lines.push(`- Khối cơ: ${latest.muscleMass} kg${delta(latest.muscleMass, prev?.muscleMass)}`);
+  if (has(latest.bodyFatPct)) lines.push(`- Mỡ cơ thể: ${latest.bodyFatPct}%`);
+  return `Chào bạn 👋 Mình là AI Coach, mình đã xem dữ liệu của bạn. Hôm nay bạn cần hỗ trợ gì?\n\n📊 **Chỉ số mới nhất:**\n${lines.join("\n")}\n\nHỏi mình bất cứ điều gì về tiến độ của bạn nhé!`;
 }
 
 const BASE_SUGGESTIONS = ["Lập lịch tập cho tôi", "Tôi nên ăn gì?", "Tạo lịch tập 3 ngày/tuần", "Tôi muốn giảm mỡ nhưng giữ cơ", "Tôi muốn tăng cơ"];

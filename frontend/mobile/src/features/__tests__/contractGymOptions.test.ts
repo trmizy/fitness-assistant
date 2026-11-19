@@ -167,6 +167,18 @@ describe("normalizeGymOptions", () => {
     assert.equal(g.offersMembershipPurchase, true);
   });
 
+  it("MEMBERSHIP_REQUIRED offers the purchase even when the branch is NOT the PT's training location (demo: Mekong)", () => {
+    const [g] = normalizeGymOptions(
+      options([
+        gymRow({ isPtTrainingLocation: false, eligibility: { canRequest: false, reason: "MEMBERSHIP_REQUIRED" } }),
+      ]),
+    ).gyms;
+    assert.equal(g.isPtTrainingLocation, false);
+    assert.equal(g.selectable, false);
+    assert.equal(g.offersMembershipPurchase, true);
+    assert.equal(g.blockedCopy, MEMBERSHIP_REQUIRED_COPY);
+  });
+
   it("blocks MEMBERSHIP_DOES_NOT_COVER_CONTRACT with its copy and NO purchase offer", () => {
     const view = normalizeGymOptions(
       options([

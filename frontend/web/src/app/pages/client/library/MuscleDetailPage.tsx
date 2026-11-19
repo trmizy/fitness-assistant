@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeftIcon as ArrowLeft, BarbellIcon as Dumbbell, CircleNotchIcon as Loader2, PersonSimpleIcon as PersonStanding } from "@phosphor-icons/react";
 import { statsService, workoutService } from "../../../services/api";
+import { bodyRegionLabel, muscleCodeLabel } from "../../../utils/labels.vi";
 import SingleMuscleMap from "../../../components/SingleMuscleMap";
 
 const PAGE_SIZE = 12;
@@ -75,12 +76,12 @@ export function MuscleDetailPage() {
         <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
           <PersonStanding className="w-5 h-5 text-sky-400" /> {muscle.nameVi}
         </h1>
-        <p className="text-zinc-500 text-sm mt-0.5">{muscle.nameEn ?? muscle.code}</p>
+        <p className="text-zinc-500 text-sm mt-0.5">{muscle.nameEn ?? muscleCodeLabel(muscle.code)}</p>
       </div>
 
       <div className="bg-zinc-900 border border-zinc-800/60 rounded-xl p-4">
         <h2 className="text-sm font-semibold text-zinc-200 mb-1">Vị trí trên cơ thể</h2>
-        <p className="text-xs text-zinc-500 mb-3">{muscle.anatomyRegion ?? "Chưa phân loại"}</p>
+        <p className="text-xs text-zinc-500 mb-3">{bodyRegionLabel(muscle.anatomyRegion) || "Chưa phân loại"}</p>
         <SingleMuscleMap muscleCode={muscle.code} />
       </div>
 

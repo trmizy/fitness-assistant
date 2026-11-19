@@ -272,8 +272,8 @@ function ConnectingUI() {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 w-80 text-center shadow-2xl">
         <div className="w-12 h-12 border-4 border-green-500/30 border-t-green-500 rounded-full animate-spin mx-auto mb-4" />
-        <h3 className="text-zinc-100 font-bold text-lg mb-1">Connecting...</h3>
-        <p className="text-zinc-400 text-sm">Establishing peer connection</p>
+        <h3 className="text-zinc-100 font-bold text-lg mb-1">Đang kết nối...</h3>
+        <p className="text-zinc-400 text-sm">Đang thiết lập kết nối cuộc gọi</p>
       </div>
     </div>
   );

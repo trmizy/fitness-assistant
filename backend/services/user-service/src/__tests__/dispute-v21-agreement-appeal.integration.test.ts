@@ -178,6 +178,33 @@ test("mutual agreement: both parties confirm the SAME content hash -> AGREED -> 
   assert.equal(events.length, 5, "2 proposals + 2 confirmations + 1 finding, all audited");
 });
 
+test("N13D-04: both parties confirm while the case is AWAITING_PARTIES -> the case moves to ASSESSING by itself and the finding can be recorded without a manual transition", async () => {
+  const s = await mkSession();
+  const P = admin();
+  const caseId = (await call("POST", "/admin/dispute-cases", A(P), { sessionId: s.session.id })).json.case.id;
+  await call("POST", `/admin/dispute-cases/${caseId}/assign`, A(P), {});
+  await call("POST", `/admin/dispute-cases/${caseId}/transition`, A(P), { to: "COLLECTING" });
+  await call("POST", `/admin/dispute-cases/${caseId}/transition`, A(P), { to: "AWAITING_PARTIES" });
+  assert.equal((await caseRow(caseId)).status, "AWAITING_PARTIES");
+  const ag = await call("POST", `/admin/dispute-cases/${caseId}/agreements`, A(P), { outcome: "COMPLETED", note: "Hai bên đã thống nhất" }, key());
+  assert.equal(ag.status, 201, JSON.stringify(ag.json));
+  const confirm = (tok: string) => call("POST", `/dispute-cases/${caseId}/agreements/${ag.json.id}/confirm`, tok, { contentHash: ag.json.contentHash });
+
+  const c1 = await confirm(`CUSTOMER:${s.clientUserId}`);
+  assert.deepEqual([c1.json.bothConfirmed, (await caseRow(caseId)).status], [false, "AWAITING_PARTIES"], "one confirmation moves nothing");
+  const c2 = await confirm(`PT:${s.ptUserId}`);
+  assert.deepEqual([c2.json.status, c2.json.bothConfirmed, c2.json.caseStatus], ["AGREED", true, "ASSESSING"]);
+  assert.equal((await caseRow(caseId)).status, "ASSESSING");
+  // audited: the confirming event itself carries the automatic transition
+  const ev = await prisma.disputeCaseEvent.findMany({ where: { caseId, action: "AGREEMENT_CONFIRMED", toStatus: "ASSESSING" } });
+  assert.deepEqual(ev.map((e) => e.fromStatus), ["AWAITING_PARTIES"]);
+
+  const fnd = await call("POST", `/admin/dispute-cases/${caseId}/agreements/${ag.json.id}/record-finding`, A(P), {});
+  assert.equal(fnd.status, 201, JSON.stringify(fnd.json));
+  assert.equal((await caseRow(caseId)).status, "FINDING_RECORDED");
+  assert.equal(writeCalls.length, 0);
+});
+
 test("mutual agreement and appeal routes are refused (409 DISPUTE_PROCESS_DISABLED) while the flag is OFF; reads stay open", async () => {
   const s = await mkSession();
   const { caseId, P } = await assessingCase(s);
@@ -381,10 +408,23 @@ test("B3 bounds are checked again UNDER THE CONTRACT LOCK when applied (the quot
   const { s: s2, a: a2 } = await executedCase(FINDING_FOR.CANCELLED);
   const ap2 = (await call("POST", `/dispute-cases/${a2.caseId}/appeals`, `CUSTOMER:${s2.clientUserId}`, { reason: "x" }, key())).json;
   const R2 = admin();
+  // N15B-02: the party's OWN appeal state on its case page - filed, then under review, then the result (never the reasoning)
+  const partyAppeal = async () => (await call("GET", `/dispute-cases/${a2.caseId}`, `CUSTOMER:${s2.clientUserId}`)).json.appeal;
+  const filed = await partyAppeal();
+  assert.deepEqual([filed.used, filed.status, filed.result], [true, "REQUESTED", null]);
+  assert.ok(filed.requestedAt && filed.closesAt);
   await call("POST", `/admin/dispute-cases/${a2.caseId}/appeals/${ap2.appealId}/assign-reviewer`, A(admin()), { reviewerId: R2.id });
+  assert.equal((await partyAppeal()).status, "UNDER_REVIEW");
+  // N15B-01: the assignment event note is words, not "reviewer <uuid>" (the id stays in the event detail)
+  const assignEvent = await prisma.disputeCaseEvent.findFirstOrThrow({ where: { caseId: a2.caseId, action: "APPEAL_REVIEWER_ASSIGNED" } });
+  assert.ok(!(assignEvent.note ?? "").includes(R2.id) && !/reviewer/i.test(assignEvent.note ?? ""), assignEvent.note ?? "");
   const up = await call("POST", `/admin/dispute-cases/${a2.caseId}/appeals/${ap2.appealId}/decision`, A(R2), { result: "UPHELD", reasoning: "Giữ nguyên" }, key());
   assert.deepEqual([up.status, up.json.result, up.json.newFindingId, up.json.fullyResolved], [200, "UPHELD", null, true]);
   assert.equal(await prisma.disputeCaseFinding.count({ where: { caseId: a2.caseId } }), 1);
+  const decided = await partyAppeal();
+  assert.deepEqual([decided.status, decided.result], ["DECIDED", "UPHELD"]);
+  assert.ok(decided.decidedAt);
+  assert.ok(!JSON.stringify(decided).includes("Giữ nguyên"), "the reviewer's reasoning is not part of the party view");
   const detail = (await call("GET", `/admin/dispute-cases/${a2.caseId}`, A(R2))).json;
   assert.deepEqual([detail.closure.fullyResolved, detail.closure.pendingAppeals], [true, 0]);
 });

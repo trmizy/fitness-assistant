@@ -139,6 +139,12 @@ export const AgentActionKindSchema = z.enum([
   // active session is a real-time logging interaction better suited to
   // the workout-logging UI itself, not a one-shot chat confirm.
   "WORKOUT_START", "WORKOUT_SKIP", "WORKOUT_CANCEL",
+  // "thay bài X bằng bài Y" against an ALREADY-SAVED active WorkoutProgram
+  // (2026-10-23 real Bug D follow-up — distinct from CREATE_WORKOUT_PLAN's
+  // own in-draft exercise revision, which never touches persisted data).
+  // Wraps the existing PATCH /workouts/program-exercises/:id endpoint —
+  // one exerciseId swap per confirmed day, nothing else on the row changes.
+  "SUBSTITUTE_SAVED_EXERCISE",
 ]);
 export type AgentActionKind = z.infer<typeof AgentActionKindSchema>;
 export function agentActionRisk(kind: AgentActionKind): "LOW" | "MEDIUM" | "HIGH" {

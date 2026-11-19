@@ -1,5 +1,5 @@
 import { useParams } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CaretRightIcon } from "@phosphor-icons/react";
 import { gymCaseApi } from "../admin/complaints/gymCaseApi";
 import { parseGymError } from "../admin/complaints/gymCaseErrors";
@@ -15,6 +15,7 @@ const withMoney = (text: string | null | undefined, m: { postedToWallet?: string
 };
 import { CARD, FOCUS, FailureBlock, LoadingBlock, MUTED, PartyLink, ReloadButton } from "../disputes/PartyParts";
 import { GymStatementForm, GymDocumentForm, GymMemberAppealForm } from "./GymMemberForms";
+import { MoreInfoNotice } from "./MoreInfoNotice";
 
 const ROOT = "/complaint-cases";
 const date = (value: string | null | undefined) => value ? new Date(value).toLocaleString("vi-VN") : "Chưa rõ";
@@ -58,6 +59,12 @@ export function MyGymComplaintCasePage() {
     enabled: !!keys && !!caseId,
     ...GYM_QUERY_OPTIONS,
   });
+  const queryClient = useQueryClient();
+  // N15A-08: after the member answers, the list sentence ("Cần bạn bổ sung") must not stay stale either
+  const saved = () => {
+    void query.refetch();
+    if (keys) void queryClient.invalidateQueries({ queryKey: keys.myList() });
+  };
   const failure = query.isError ? parseGymError(query.error) : null;
   const d = query.data;
   return <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-5 sm:px-6" data-testid="d6-member-detail">
@@ -67,6 +74,7 @@ export function MyGymComplaintCasePage() {
     {failure && !d && <FailureBlock title="Chưa tải được hồ sơ" message={failure.message} onRetry={failure.kind === "auth" ? undefined : () => void query.refetch()} retrying={query.isFetching} testId="d6-member-detail-error" />}
     {d && <>
       <header className={`${CARD} space-y-2 p-4`}><h1 className="text-xl font-bold text-[var(--text-color)]">Hồ sơ khiếu nại phòng gym</h1><p className="text-sm font-medium text-[var(--text-color)]">{d.case.progress}</p><p className={`text-xs ${MUTED}`}>Mở lúc {date(d.case.createdAt)}</p></header>
+      <MoreInfoNotice info={d.moreInfo} viewer="MEMBER" />
       <section className={`${CARD} space-y-2 p-4`}><h2 className="font-semibold text-[var(--text-color)]">Nội dung phản ánh</h2><p className={`text-sm ${MUTED}`}>{issueLabel(d.complaint.issueType)}</p><p className="whitespace-pre-wrap break-words text-sm text-[var(--text-color)]">{d.complaint.description}</p></section>
       <section className={`${CARD} space-y-2 p-4`}><h2 className="font-semibold text-[var(--text-color)]">Bằng chứng bạn được xem</h2><p className={`text-xs ${MUTED}`}>Mã băm của tài liệu chỉ là thông tin người nộp khai báo, chưa chứng minh tệp đã được xác minh.</p>
         {d.evidence.length === 0 ? <p className={`text-sm ${MUTED}`}>Chưa có mục nào được chia sẻ.</p> : <ul className="space-y-2">{d.evidence.map((e) => <li key={e.id} className="rounded-lg border border-[var(--border-color)] p-3 text-sm text-[var(--text-color)]">{e.mine ? "Bằng chứng của bạn" : "Thông tin được chia sẻ"} · {date(e.capturedAt)}</li>)}</ul>}
@@ -79,11 +87,11 @@ export function MyGymComplaintCasePage() {
           <GymStatementForm
             caseId={d.case.id}
             statementCount={d.statements.length}
-            onSaved={() => void query.refetch()}
+            onSaved={saved}
           />
           <GymDocumentForm
             caseId={d.case.id}
-            onSaved={() => void query.refetch()}
+            onSaved={saved}
           />
         </>
       ) : (
@@ -95,7 +103,7 @@ export function MyGymComplaintCasePage() {
       {d.appeal?.canFile && (
         <GymMemberAppealForm
           caseId={d.case.id}
-          onSaved={() => void query.refetch()}
+          onSaved={saved}
           closesAt={d.appeal?.closesAt}
         />
       )}

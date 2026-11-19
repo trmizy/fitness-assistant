@@ -106,6 +106,8 @@ export const SESSION_STATUS_VI: Record<string, string> = {
   COMPLETED: "Hoàn thành",
   CANCELLED: "Đã huỷ",
   NO_SHOW: "Vắng mặt",
+  DISPUTED: "Đang khiếu nại",
+  PT_NO_SHOW_REPORTED: "PT bị báo vắng mặt",
 };
 
 export const SESSION_MODE_VI: Record<string, string> = {
@@ -120,6 +122,15 @@ export const CONTRACT_STATUS_VI: Record<string, string> = {
   COMPLETED: "Hoàn thành",
   CANCELLED: "Đã huỷ",
   REJECTED: "Từ chối",
+};
+
+/** Trạng thái gói hội viên phòng gym (GymMembershipContract.status) - N13E-12: trang chi nhánh của chủ gym hiện chữ thô "CANCELLED". */
+export const MEMBERSHIP_STATUS_VI: Record<string, string> = {
+  PENDING_PAYMENT: "Chờ thanh toán",
+  ACTIVE: "Đang hoạt động",
+  EXPIRED: "Đã hết hạn",
+  CANCELLED: "Đã huỷ",
+  PENDING_ISSUE: "Có vấn đề thanh toán",
 };
 
 export const MEAL_TYPE_VI: Record<string, string> = {
@@ -158,4 +169,63 @@ export const PT_APP_STATUS_VI: Record<string, string> = {
 // Helper function — trả về label VI hoặc fallback về giá trị gốc
 export function viLabel(map: Record<string, string>, key: string): string {
   return map[key] ?? key;
+}
+
+// Mã cơ (snake_case) từ taxonomy của fitness-service → nhãn tiếng Việt (chỉ hiển thị).
+export const MUSCLE_CODE_VI: Record<string, string> = {
+  chest: "Ngực",
+  upper_chest: "Ngực trên",
+  mid_chest: "Ngực giữa",
+  lower_chest: "Ngực dưới",
+  front_delts: "Vai trước",
+  side_delts: "Vai giữa",
+  rear_delts: "Vai sau",
+  shoulders: "Vai",
+  rotator_cuff: "Chóp xoay vai",
+  triceps: "Tay sau",
+  biceps: "Tay trước",
+  forearms: "Cẳng tay",
+  lats: "Lưng xô",
+  upper_back: "Lưng trên",
+  mid_back: "Lưng giữa",
+  lower_back: "Lưng dưới",
+  back: "Lưng",
+  traps: "Cơ thang",
+  spinal_erectors: "Cơ dựng sống",
+  abs: "Cơ bụng",
+  transverse_abs: "Cơ bụng ngang",
+  obliques: "Cơ liên sườn (bụng chéo)",
+  core: "Cơ lõi",
+  glutes: "Mông",
+  quads: "Đùi trước",
+  hamstrings: "Đùi sau",
+  adductors: "Cơ khép đùi",
+  abductors: "Cơ dạng đùi",
+  hip_flexors: "Cơ gập hông",
+  calves: "Bắp chân",
+  cardiovascular: "Tim mạch",
+  mobility: "Linh hoạt",
+};
+
+function humanizeCode(code: string): string {
+  return code.replace(/_/g, " ").toLowerCase();
+}
+
+/** Nhãn tiếng Việt cho mã cơ; mã lạ thì hiện dạng chữ thường có dấu cách, không lộ snake_case. */
+export function muscleCodeLabel(code: string | null | undefined): string {
+  if (!code) return "";
+  return MUSCLE_CODE_VI[code.toLowerCase()] ?? humanizeCode(code);
+}
+
+/** Vùng giải phẫu / vùng cơ thể (lower_body, LOWER_BODY...) → tiếng Việt. */
+export function bodyRegionLabel(region: string | null | undefined): string {
+  if (!region) return "";
+  const key = region.toUpperCase();
+  return BODY_PART_VI[key] ?? MUSCLE_CODE_VI[region.toLowerCase()] ?? humanizeCode(region);
+}
+
+/** Dụng cụ (BODYWEIGHT, RESISTANCE_BAND...) → tiếng Việt. */
+export function equipmentLabel(value: string | null | undefined): string {
+  if (!value) return "";
+  return EQUIPMENT_VI[value.toUpperCase()] ?? humanizeCode(value);
 }

@@ -9,7 +9,7 @@ import { adminPtApplications, adminService, marketplaceService } from "../../src
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { designTokens } from "../../src/theme/colors";
 import { queueCounts } from "../../src/features/admin/adminPartners";
-import { listingRows, ptApplicationRows, ptAwaitingCount } from "../../src/features/admin/adminModeration";
+import { listingRows } from "../../src/features/admin/adminModeration";
 
 function QueueRow({
   icon: Icon,
@@ -59,7 +59,11 @@ export default function AdminApprovalsScreen() {
   // B40 — ONE source for the three review counts: the server's own queue (canonical keys), the same numbers
   // the Partners and Branches screens show. Brand renames are a separate line, never summed into branches.
   const queue = useQuery({ queryKey: ["admin-partner-queue"], queryFn: () => adminService.getPartnerQueue() });
-  const pts = useQuery({ queryKey: ["admin-pt-applications"], queryFn: () => adminPtApplications.list() });
+  // Waiting = SUBMITTED + UNDER_REVIEW: two one-row reads whose totals come from X-Total-Count (not the 10k list).
+  const pts = useQuery({
+    queryKey: ["admin-pt-applications", "awaiting-count"],
+    queryFn: async () => (await adminPtApplications.count("SUBMITTED")) + (await adminPtApplications.count("UNDER_REVIEW")),
+  });
   const plans = useQuery({
     queryKey: ["admin-marketplace", "SUBMITTED"],
     queryFn: () => marketplaceService.adminListForModeration("SUBMITTED"),
@@ -119,7 +123,7 @@ export default function AdminApprovalsScreen() {
               title="Đơn ứng tuyển huấn luyện viên"
               hint="Xác minh giấy tờ và chuyên môn"
               href="/admin/pt-applications"
-              count={ptAwaitingCount(ptApplicationRows(pts.data))}
+              count={pts.data ?? 0}
               loading={pts.isLoading}
             />
           </StaggerItem>

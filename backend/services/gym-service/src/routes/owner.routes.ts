@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { evidenceUploadController } from '../controllers/evidence-upload.controller';
 import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middleware';
 import { resolvePartnerContext, requirePartnerOwner, requirePermission, principalId } from '../middleware/partner-context.middleware';
 import { withdrawalsFor } from '../services/staff-views';
@@ -29,6 +30,7 @@ import { brandCreateSchema, brandUpdateSchema } from '../schemas/brand.schemas';
 import { gymQuickCreateSchema, gymUpdateSchema, gymOperationalStatusSchema, gymDraftUpdateSchema } from '../schemas/gym.schemas';
 import { sendUploadRouteRetired } from '../services/client-compat.service';
 import { planCreateSchema, planUpdateSchema } from '../schemas/plan.schemas';
+import { affiliationInviteSchema } from '../schemas/affiliation.schemas';
 import { onboardingController } from '../controllers/onboarding.controller';
 import { ownerPartnerController } from '../controllers/owner-partner.controller';
 import { ownerAmenityRouter, ownerListingRouter } from './owner-listing.routes';
@@ -100,7 +102,9 @@ router.patch('/gyms/:id/draft', requirePartnerOwner, validateBody(gymDraftUpdate
 router.post('/gyms/:id/submit', requirePartnerOwner, asyncHandler(gymDraftController.submit));
 // GYM_BRANCH_FORM_SPEC.md, Phase 2 — Step 3 "Opening Hours". §74: free edit whether DRAFT
 // or already APPROVED, so this isn't scoped under /draft the way the other new routes are.
-router.get('/gyms/:id/hours', requirePartnerOwner, asyncHandler(gymHoursController.get));
+// N15C-05: reading the hours is a branch VIEW (same gate as GET /gyms/:id) - a manager/receptionist/accountant scoped to the
+// branch needs it for the "đang mở/đã đóng" state; WRITING them stays owner-only below.
+router.get('/gyms/:id/hours', requirePermission('branch.view', { gymParam: 'id' }), asyncHandler(gymHoursController.get));
 router.put('/gyms/:id/hours', requirePartnerOwner, asyncHandler(gymHoursController.set));
 // GYM_BRANCH_FORM_SPEC.md, Phase 3 — Step 5 "Photos". Listing Management B1: the disk-photo WRITE routes are retired
 // for EVERY gym status - 410 UPLOAD_ROUTE_RETIRED, answered before any upload middleware runs, so nothing is ever
@@ -120,6 +124,10 @@ router.post(
   asyncHandler(gymBranchDocumentController.attach),
 );
 router.get('/branch-documents/:token', requirePartnerOwner, asyncHandler(branchDocumentPhotoController.serve));
+// Luồng chạy được trên Lambda (không ghi đĩa): presign -> POST thẳng S3 -> confirm (đính kèm luôn); xem qua link ngắn hạn.
+router.post('/gyms/:id/branch-documents/:docType/presign', requirePartnerOwner, asyncHandler(evidenceUploadController.branchDocumentPresign));
+router.post('/gyms/:id/branch-documents/:docType/confirm', requirePartnerOwner, asyncHandler(evidenceUploadController.branchDocumentConfirm));
+router.get('/branch-documents/:token/url', requirePartnerOwner, asyncHandler(evidenceUploadController.branchDocumentUrl));
 // GYM_BRANCH_FORM_SPEC.md, Phase 4 — the wizard's "fix loop" banner reads this to show which
 // categories admin flagged, so the owner knows exactly what to revisit before resubmitting.
 router.get('/gyms/:id/review-issues', requirePartnerOwner, asyncHandler(gymBranchReviewController.listOpenForOwner));
@@ -198,7 +206,7 @@ router.post('/gyms/:gymId/front-desk/exceptions/:exceptionId/reject', frontDeskN
 
 // Mời PT về đầu quân cho chi nhánh là việc "người" → chỉ chủ sở hữu, cùng nhóm với đàm
 // phán cộng tác PT bên dưới.
-router.post('/gyms/:gymId/trainers', requirePartnerOwner, asyncHandler(affiliationController.invite));
+router.post('/gyms/:gymId/trainers', requirePartnerOwner, validateBody(affiliationInviteSchema), asyncHandler(affiliationController.invite));
 
 // Gym-owner-initiated side of a revenue-share negotiation (plan §1.2/F3). Note this router
 // is mounted at /owner, so `POST /owner/gyms/:gymId/collaborations` and
@@ -222,11 +230,18 @@ router.post('/gyms/:gymId/withdrawals', requirePartnerOwner, asyncHandler(async 
   try {
     const ownerId = principalId(req);
     const gym = await gymService.getOwnedGym(req.params.gymId, ownerId);
+    if (gym.dataOrigin === 'SYNTHETIC') {
+      res.status(409).json({
+        success: false,
+        error: { code: 'SYNTHETIC_RECORD_NOT_TRANSACTABLE', message: 'Dữ liệu mẫu (SYNTHETIC) chỉ dùng để hiển thị, không thể rút tiền' },
+      });
+      return;
+    }
     // Phase 5 mục 5.1 — "Yêu cầu rút tiền ❌ đóng băng", điểm quan trọng nhất của tạm khoá:
     // tiền vẫn được ghi nhận vào ví bình thường, chỉ không rút ra được trong lúc điều tra.
     await partnerGuard.assertWithdrawalsAllowed(ownerId);
     const { amount, payoutInfo } = req.body ?? {};
-    const request = await paymentClient.requestGymWithdrawal(gym.id, amount, payoutInfo);
+    const request = await paymentClient.requestGymWithdrawal(gym.id, amount, payoutInfo, gym.dataOrigin);
     res.status(201).json({ success: true, data: request });
   } catch (e: any) {
     const status = e.response?.status || e.status || 500;

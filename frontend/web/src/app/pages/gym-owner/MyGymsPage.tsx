@@ -1,26 +1,11 @@
-import { useState } from "react";
-import { BarbellIcon as Dumbbell, MapPinIcon as MapPin, CircleNotchIcon as Loader2, PlusIcon as Plus, XIcon as X, ClockIcon as Clock, CheckCircleIcon as CheckCircle, XCircleIcon as XCircle, ProhibitIcon as Ban, BuildingsIcon as Building2, CaretDownIcon as ChevronDown, CaretRightIcon as ChevronRight, PencilSimpleIcon as Pencil, CheckIcon as Check, StarIcon as Star } from "@phosphor-icons/react";
+import { useRef, useState } from "react";
+import { BarbellIcon as Dumbbell, MapPinIcon as MapPin, CircleNotchIcon as Loader2, PlusIcon as Plus, ClockIcon as Clock, CheckCircleIcon as CheckCircle, XCircleIcon as XCircle, ProhibitIcon as Ban, BuildingsIcon as Building2, CaretDownIcon as ChevronDown, CaretRightIcon as ChevronRight, PencilSimpleIcon as Pencil, CheckIcon as Check, StarIcon as Star } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
-import { useApp } from "../../context/AppContext";
-import { ownerAmenityService, quickCreateGymService } from "../../services/gymListingApi";
-import { InlineAmenityPicker } from "../../components/listing/InlineAmenityPicker";
-import {
-  GYM_LISTING_ERROR_VI,
-  amenityPool,
-  amenitySelectionError,
-  errorCodeOf,
-  gymListingErrorMessage,
-  ownerAmenitiesKey,
-  type InlineProposalInput,
-} from "../../utils/gymListing";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { toast } from "sonner";
 import type { Gym, GymBrand, GymStatus } from "../../types";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
-import { GymLocationFields, type GymLocationValue } from "../../components/gym/GymLocationFields";
-import { MapLocationPicker } from "../../components/gym/MapLocationPicker";
-import { AutoPinStatus, useAutoPin, useLocationNames } from "../../components/gym/addressAutoPin";
+import { Modal, ModalTitle, ModalClose } from "../../components/ui/Modal";
 import { ABOUT_MAX, AboutCounter } from "../../components/gym/AboutCounter";
 
 const STATUS_CONFIG: Record<GymStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
@@ -31,7 +16,8 @@ const STATUS_CONFIG: Record<GymStatus, { label: string; color: string; bg: strin
   PENDING_REVIEW: { label: "Chờ duyệt", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20", icon: Clock },
   APPROVED:       { label: "Đã duyệt",       color: "text-green-400", bg: "bg-green-500/10 border-green-500/20", icon: CheckCircle },
   REJECTED:       { label: "Bị từ chối",       color: "text-red-400",   bg: "bg-red-500/10 border-red-500/20",     icon: XCircle },
-  SUSPENDED:      { label: "Tạm ngưng",      color: "text-zinc-400",  bg: "bg-zinc-700/50 border-zinc-700",      icon: Ban },
+  // N15C-08: an ADMIN suspension is a platform measure, not the owner's own pause - say so (the reason shows under the address).
+  SUSPENDED:      { label: "Đang bị tạm khoá trên Gymini", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20", icon: Ban },
 };
 
 const WIZARD_TOTAL_STEPS = 7;
@@ -62,11 +48,11 @@ function GymCard({ gym, onClick }: { gym: Gym; onClick: () => void }) {
       onClick={onClick}
       className="text-left bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 hover:border-green-500/40 transition-colors flex flex-col"
     >
-      <div className="flex items-start justify-between mb-2">
-        <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="w-10 h-10 shrink-0 rounded-xl bg-green-500/10 flex items-center justify-center">
           <Dumbbell className="w-5 h-5 text-green-400" />
         </div>
-        <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full font-semibold border ${cfg.bg} ${cfg.color}`}>
+        <span className={`inline-flex min-w-0 items-center gap-1.5 text-xs px-2 py-0.5 rounded-full font-semibold border ${cfg.bg} ${cfg.color}`}>
           <cfg.icon className="w-3 h-3" /> {cfg.label}
         </span>
       </div>
@@ -74,6 +60,9 @@ function GymCard({ gym, onClick }: { gym: Gym; onClick: () => void }) {
       <div className="flex items-center gap-1 text-xs text-zinc-500 mt-1">
         <MapPin className="w-3 h-3" /> {gym.address}{gym.city ? `, ${gym.city}` : ""}
       </div>
+      {gym.status === "SUSPENDED" && gym.adminSuspensionReason && (
+        <p data-testid="gym-card-suspension-reason" className="mt-2 text-xs text-amber-300/90 break-words">Lý do: {gym.adminSuspensionReason}</p>
+      )}
       <div className="mt-3 pt-3 border-t border-zinc-800/60 flex items-center justify-between">
         {gym.status === "PENDING_REVIEW" ? (
           <span className="text-xs text-amber-400">Đang chờ admin duyệt...</span>
@@ -193,28 +182,12 @@ function BrandGroup({
 export function MyGymsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [showCreateGym, setShowCreateGym] = useState(false);
-  useBackDismissible(!!showCreateGym, () => setShowCreateGym(false));
-  const [gymForm, setGymForm] = useState({ name: "", address: "", city: "", description: "" });
-  const [gymLocation, setGymLocation] = useState<GymLocationValue>({ provinceCode: null, wardCode: null, latitude: null, longitude: null });
-  // Listing Management D2: a new branch needs >= 1 amenity or proposal (the server answers 422 AMENITIES_REQUIRED otherwise).
-  const { user } = useApp();
-  const uid = user?.id ?? "guest";
-  const [amenityIds, setAmenityIds] = useState<string[]>([]);
-  const [amenityProposals, setAmenityProposals] = useState<InlineProposalInput[]>([]);
-  const amenityProblem = amenitySelectionError({ amenityIds, proposals: amenityProposals });
-  const catalogQuery = useQuery({
-    queryKey: ownerAmenitiesKey(uid),
-    queryFn: () => ownerAmenityService.catalog(),
-    enabled: showCreateGym && !!user,
-    staleTime: 30_000,
-  });
-
   // First-run brand setup — dismissible (X), not a hard block: an owner who closes it and
   // tries "New Gym" anyway just gets createGym's own "set up your brand first" error, so
   // there is no actual way around naming the brand before a gym can exist, this is just not a
   // modal they are trapped behind while looking around.
   const [brandPromptDismissed, setBrandPromptDismissed] = useState(false);
+  const brandNameRef = useRef<HTMLInputElement>(null);
   const [brandForm, setBrandForm] = useState({ name: "", description: "" });
 
   const { data: gyms = [], isLoading: gymsLoading } = useQuery<Gym[]>({
@@ -237,45 +210,11 @@ export function MyGymsPage() {
 
   const isLoading = gymsLoading || brandsLoading;
   const needsBrandSetup = !isLoading && brands.length === 0;
-  useBackDismissible(needsBrandSetup && !brandPromptDismissed, () => setBrandPromptDismissed(true));
 
   // One owner, one brand — every gym the owner creates joins THEIR brand, decided
   // server-side from ownership alone (see gym.service.ts's createGym). The brand itself is
   // only ever created through the prompt below, once, by the owner naming it themselves —
   // never auto-derived from whatever they happen to call their first branch.
-  const createGymMutation = useMutation({
-    mutationFn: () =>
-      quickCreateGymService.create(
-        {
-          name: gymForm.name,
-          address: gymForm.address,
-          city: gymForm.city,
-          description: gymForm.description,
-          ...gymLocation,
-        },
-        { amenityIds, proposals: amenityProposals },
-      ),
-    onSuccess: () => {
-      toast.success(
-        brands.length > 0 ? "Đã thêm chi nhánh — chờ admin duyệt" : "Đã tạo phòng gym — chờ admin duyệt",
-      );
-      setShowCreateGym(false);
-      setGymForm({ name: "", address: "", city: "", description: "" });
-      setGymLocation({ provinceCode: null, wardCode: null, latitude: null, longitude: null });
-      setAmenityIds([]);
-      setAmenityProposals([]);
-      queryClient.invalidateQueries({ queryKey: ["owned-gyms"] });
-      queryClient.invalidateQueries({ queryKey: ["owned-brands"] });
-      queryClient.invalidateQueries({ queryKey: ownerAmenitiesKey(uid) });
-    },
-    onError: (err: any) =>
-      toast.error(
-        errorCodeOf(err) === "AMENITIES_REQUIRED"
-          ? GYM_LISTING_ERROR_VI.AMENITIES_REQUIRED
-          : err?.response?.data?.error?.message || gymListingErrorMessage(err, "Không tạo được phòng gym"),
-      ),
-  });
-
   const createBrandMutation = useMutation({
     mutationFn: () => gymService.createBrand(brandForm),
     onSuccess: () => {
@@ -297,25 +236,9 @@ export function MyGymsPage() {
     onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Không thể đổi tên"),
   });
 
-  // Giống bước "Vị trí" của hồ sơ đối tác: đủ số nhà/đường + phường + tỉnh thì bản đồ tự ghim;
-  // kéo ghim tay xong thì không bị ghi đè. Hộp đóng thì tắt hẳn (không tra khi không ai nhìn).
-  const locationNames = useLocationNames(gymLocation.provinceCode, gymLocation.wardCode);
-  const autoPin = useAutoPin({
-    enabled: showCreateGym,
-    hadSavedPin: false,
-    street: gymForm.address.trim(),
-    ward: locationNames.ward,
-    province: locationNames.province,
-    onPin: (latitude, longitude) => setGymLocation((l) => ({ ...l, latitude, longitude })),
-  });
-
-  const openAddBranch = () => {
-    setGymForm({ name: "", address: "", city: "", description: "" });
-    setGymLocation({ provinceCode: null, wardCode: null, latitude: null, longitude: null });
-    setAmenityIds([]);
-    setAmenityProposals([]);
-    setShowCreateGym(true);
-  };
+  // N14G-05: "Thêm phòng gym" / "Thêm chi nhánh" mở thẳng wizard 7 bước (bản nháp tự lưu, gửi duyệt ở bước cuối).
+  // (Hộp thoại tạo nhanh cũ đã bị xoá — không còn đường mở vào; chỉ còn nút "Đang thiết lập" để tiếp tục bản nháp.)
+  const openAddBranch = () => navigate("/gym-owner/gyms/wizard");
 
   const standalone = standaloneGyms(gyms);
   const drafts = draftGyms(gyms);
@@ -338,19 +261,6 @@ export function MyGymsPage() {
             >
               <Plus className="w-4 h-4" /> Thêm phòng gym
             </button>
-            {/* GYM_BRANCH_FORM_SPEC.md, Phase 1 — new wizard shell, reachable alongside the
-                existing dialog above rather than replacing it (steps 1-6 are still
-                placeholders — see AddBranchWizardPage.tsx's own doc comment for the cutover
-                plan). Not shown to a MANAGER, same §95.2 gate as "New Gym". */}
-            {!needsBrandSetup && (
-              <button
-                type="button"
-                onClick={() => navigate("/gym-owner/gyms/wizard")}
-                className="flex items-center gap-2 border border-zinc-700 hover:border-zinc-600 text-zinc-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
-              >
-                🧪 Thử wizard mới
-              </button>
-            )}
           </div>
         )}
       </div>
@@ -388,21 +298,19 @@ export function MyGymsPage() {
 
       {/* First-run: nothing else on this page matters until the owner has named their brand —
           every gym they create from here on joins it automatically. */}
-      {needsBrandSetup && !brandPromptDismissed && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
+      <Modal
+        open={needsBrandSetup && !brandPromptDismissed}
+        onClose={() => setBrandPromptDismissed(true)}
+        closeOnBackdrop={false}
+        initialFocusRef={brandNameRef}
+        data-testid="brand-setup-modal"
+      >
+          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl max-h-full overflow-y-auto">
             <div className="p-5 border-b border-zinc-800/60 flex items-center justify-between">
-              <h3 className="text-zinc-100 font-bold flex items-center gap-2">
+              <ModalTitle className="text-zinc-100 font-bold flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-green-400" /> Đặt tên thương hiệu của bạn
-              </h3>
-              <button
-                type="button"
-                aria-label="Đóng"
-                onClick={() => setBrandPromptDismissed(true)}
-                className="text-zinc-500 hover:text-zinc-300"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              </ModalTitle>
+              <ModalClose className="-mr-2" />
             </div>
             <div className="p-5 space-y-3">
               <p className="text-xs text-zinc-500">
@@ -410,15 +318,15 @@ export function MyGymsPage() {
                 chi nhánh của thương hiệu này. Có thể đổi tên sau nếu cần.
               </p>
               <input
-                aria-label="Brand name"
-                autoFocus
+                aria-label="Tên thương hiệu"
+                ref={brandNameRef}
                 value={brandForm.name}
                 onChange={(e) => setBrandForm({ ...brandForm, name: e.target.value })}
                 placeholder="Tên thương hiệu"
                 className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
               />
               <textarea
-                aria-label="Brand description"
+                aria-label="Mô tả thương hiệu"
                 value={brandForm.description}
                 onChange={(e) => setBrandForm({ ...brandForm, description: e.target.value })}
                 rows={3}
@@ -447,8 +355,7 @@ export function MyGymsPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+      </Modal>
 
       {isLoading && (
         <div className="flex items-center justify-center py-20">
@@ -494,104 +401,6 @@ export function MyGymsPage() {
             {standalone.map((g) => (
               <GymCard key={g.id} gym={g} onClick={() => navigate(`/gym-owner/gyms/${g.id}`)} />
             ))}
-          </div>
-        </div>
-      )}
-
-      {/* Create gym / branch dialog */}
-      {showCreateGym && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl max-h-[92vh] flex flex-col">
-            <div className="p-5 border-b border-zinc-800/60 flex items-center justify-between">
-              <h3 className="text-zinc-100 font-bold">{brands.length > 0 ? "Thêm chi nhánh" : "Tạo phòng gym"}</h3>
-              <button type="button" aria-label="Đóng" onClick={() => setShowCreateGym(false)} className="text-zinc-500 hover:text-zinc-300">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="p-5 space-y-3 overflow-y-auto">
-              <input
-                aria-label="Gym name"
-                value={gymForm.name}
-                onChange={(e) => setGymForm({ ...gymForm, name: e.target.value })}
-                placeholder="Tên phòng gym"
-                className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
-              />
-              <input
-                aria-label="City"
-                value={gymForm.city}
-                onChange={(e) => setGymForm({ ...gymForm, city: e.target.value })}
-                placeholder="Thành phố"
-                className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
-              />
-              <textarea
-                aria-label="Description"
-                value={gymForm.description}
-                onChange={(e) => setGymForm({ ...gymForm, description: e.target.value })}
-                rows={3}
-                maxLength={ABOUT_MAX}
-                placeholder="Mô tả (tuỳ chọn)"
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50 resize-none"
-              />
-              <AboutCounter value={gymForm.description} />
-              <div className="pt-2 border-t border-zinc-800/60 space-y-2.5">
-                <p className="text-xs font-semibold text-zinc-300">Tiện ích *</p>
-                <InlineAmenityPicker
-                  catalog={amenityPool(catalogQuery.data?.amenities ?? [], [])}
-                  loading={catalogQuery.isLoading}
-                  error={catalogQuery.isError ? gymListingErrorMessage(catalogQuery.error, "Không tải được danh mục tiện ích.") : null}
-                  onRetry={() => void catalogQuery.refetch()}
-                  selectedIds={amenityIds}
-                  onSelectedChange={setAmenityIds}
-                  proposals={amenityProposals}
-                  onProposalsChange={setAmenityProposals}
-                  existing={[]}
-                  keptIds={[]}
-                  onKeptIdsChange={() => {}}
-                  disabled={createGymMutation.isPending}
-                />
-              </div>
-              <div className="pt-2 border-t border-zinc-800/60 space-y-2.5">
-                <input
-                  aria-label="Address"
-                  value={gymForm.address}
-                  onChange={(e) => setGymForm({ ...gymForm, address: e.target.value })}
-                  placeholder="Số nhà, tên đường"
-                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
-                />
-                <GymLocationFields
-                  value={gymLocation}
-                  onChange={(next) => {
-                    // "Dùng vị trí hiện tại" cũng là ghim tay → bỏ thông báo ghim-theo-địa-chỉ cũ.
-                    if (next.latitude !== gymLocation.latitude || next.longitude !== gymLocation.longitude) autoPin.markManual();
-                    setGymLocation(next);
-                  }}
-                />
-                <AutoPinStatus status={autoPin.status} />
-                <MapLocationPicker
-                  latitude={gymLocation.latitude}
-                  longitude={gymLocation.longitude}
-                  onChange={(p) => {
-                    autoPin.markManual();
-                    setGymLocation((l) => ({ ...l, ...p }));
-                  }}
-                />
-              </div>
-            </div>
-            <div className="p-5 border-t border-zinc-800/60 flex gap-3">
-              <button type="button" onClick={() => setShowCreateGym(false)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors">
-                Hủy
-              </button>
-              <button
-                type="button"
-                onClick={() => createGymMutation.mutate()}
-                disabled={!gymForm.name.trim() || !gymForm.address.trim() || !!amenityProblem || createGymMutation.isPending}
-                title={amenityProblem ?? undefined}
-                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:opacity-60 text-black text-sm font-bold rounded-lg transition-[background-color,opacity] flex items-center justify-center gap-2"
-              >
-                {createGymMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                Tạo
-              </button>
-            </div>
           </div>
         </div>
       )}

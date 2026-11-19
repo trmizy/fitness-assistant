@@ -1,6 +1,7 @@
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
@@ -32,12 +33,15 @@ import {
   healthSummary,
   moneyHeadline,
   ocrStats,
+  recentGymOwnerIds,
   recentUsers,
   roleBreakdown,
   systemAlerts,
   unclassifiedUsers,
   userGrowth,
 } from "../../src/features/admin/adminDashboard";
+import { fetchPartnerRoles } from "../../src/features/admin/partnerRoles";
+import { partnerRoleMap } from "../../src/features/admin/adminUsers";
 import { queueTotal, withdrawalRows } from "../../src/features/admin/adminWithdrawals";
 import { applicationCounts } from "../../src/features/adminApplications/adminApplications";
 
@@ -115,7 +119,18 @@ export default function AdminDashboardScreen() {
   const roles = roleBreakdown(d);
   const unclassified = unclassifiedUsers(d);
   const ocr = ocrStats(d);
-  const recent = recentUsers(d).slice(0, 5);
+  // Staff share the gym-owner account role; only ask who is the real owner when a recent row has an id.
+  // A failure silently keeps the neutral "Tài khoản phòng gym" label.
+  const ownerIds = recentGymOwnerIds(d);
+  const rolesQuery = useQuery({
+    queryKey: ["admin-partner-account-roles", ownerIds.join(",")],
+    queryFn: () => fetchPartnerRoles(ownerIds),
+    enabled: ownerIds.length > 0,
+    staleTime: 60_000,
+    retry: false,
+  });
+  const partnerRoles = useMemo(() => partnerRoleMap(rolesQuery.data), [rolesQuery.data]);
+  const recent = recentUsers(d, partnerRoles).slice(0, 5);
 
   const withdrawals = withdrawalRows(withdrawalsQuery.data);
   const applicationsWaiting = applicationCounts(applicationsQuery.data).IN_REVIEW ?? 0;

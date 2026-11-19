@@ -34,9 +34,8 @@ appId: vn.fitnessassistant.app
       visible: "Soạn bản sửa mới"
     commands:
       - tapOn: "Soạn bản sửa mới"
-- extendedWaitUntil:
-    visible: "Tiện ích & dịch vụ"
-    timeout: 20000
+- scrollUntilVisible:
+    element: "Tiện ích & dịch vụ"
 # toggle an amenity (Phòng Yoga is unselected on the seed)
 - scrollUntilVisible:
     element: "Phòng Yoga"

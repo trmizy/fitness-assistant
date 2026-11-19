@@ -4,7 +4,7 @@
  */
 import type { QueryKey } from "@tanstack/react-query";
 
-export type FinanceTabKey = "overview" | "reconciliation" | "withdrawals" | "refunds";
+export type FinanceTabKey = "overview" | "reconciliation" | "transactions" | "wallets" | "withdrawals" | "refunds";
 
 export interface FinanceTabLike {
   key: FinanceTabKey;
@@ -16,6 +16,8 @@ export interface FinanceTabLike {
 export const FINANCE_TITLE: Record<FinanceTabKey, string> = {
   overview: "Tổng quan tài chính",
   reconciliation: "Đối soát",
+  transactions: "Giao dịch",
+  wallets: "Ví",
   withdrawals: "Rút tiền",
   refunds: "Hoàn tiền",
 };
@@ -38,6 +40,10 @@ export function financeTitle(tab: FinanceTabKey | null): string {
 export const FINANCE_REFRESH_KEYS: Record<FinanceTabKey, readonly QueryKey[]> = {
   overview: [["admin", "finance"], ["admin", "finance-overview"], ["admin", "pending-withdrawals"], ["refund-requests"]],
   reconciliation: [["admin", "finance"]],
+  // B7: Giao dịch (list + drawer) — its own family, keys are ["admin","finance-transactions", <userId>, ...].
+  transactions: [["admin", "finance-transactions"]],
+  // G-09: Ví (list + drawer) — its own family, keys are ["admin","finance-wallets", <userId>, ...].
+  wallets: [["admin", "finance-wallets"]],
   withdrawals: [["admin", "pending-withdrawals"]],
   refunds: [["refund-requests"], ["refund-calculation"]],
 };

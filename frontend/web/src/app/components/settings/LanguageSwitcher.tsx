@@ -7,7 +7,7 @@ export function LanguageSwitcher() {
   const { text: ariaLabel } = useAutoTranslate("Chọn ngôn ngữ", "vi");
 
   return (
-    <label className="theme-control flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs">
+    <label className="theme-control flex min-h-10 items-center gap-1.5 rounded-lg border px-2 py-1 text-xs">
       <Languages className="h-3.5 w-3.5 text-current opacity-70" />
       <select
         aria-label={ariaLabel}

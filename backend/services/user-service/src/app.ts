@@ -20,9 +20,9 @@ import internalRoutes from "./routes/internal.routes";
 import locationRoutes from "./routes/location.routes";
 import trainingLocationRoutes from "./routes/training_location.routes";
 import adminRoutes from "./routes/admin.routes";
+import disputeCaseRoutes from "./routes/dispute-case.routes";
 import adminUsersRoutes from "./routes/admin-users.routes";
 import adminOverviewRoutes from "./routes/admin-overview.routes";
-import disputeCaseRoutes from "./routes/dispute-case.routes";
 import ptServicePackageRoutes from "./routes/pt_service_package.routes";
 import mediaRoutes from "./routes/media.routes";
 
@@ -163,5 +163,15 @@ app.use("/internal", internalRoutes);
 
 // PT Service Package management — /me/service-packages (PT) and /pts/:ptUserId/service-packages (client)
 app.use("/me/service-packages", ptServicePackageRoutes);
+
+// Handle malformed JSON request bodies cleanly without leaking raw body strings (e.g. GPS coordinates) into logs.
+app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err instanceof SyntaxError && (err as any)?.status === 400 && "body" in (err as any)) {
+    logger.warn({ code: "INVALID_JSON" }, "Malformed JSON request body rejected");
+    res.status(400).json({ error: "Dữ liệu JSON không hợp lệ", code: "INVALID_JSON" });
+    return;
+  }
+  next(err);
+});
 
 export default app;

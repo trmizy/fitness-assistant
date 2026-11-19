@@ -218,7 +218,7 @@ export function usersTotalStat(s: TodaySources): CompactView {
 export function usersNewStat(s: TodaySources): CompactView {
   if (s.users.status !== "ready") return s.users.status === "error" ? { status: "error", value: null, errorText: s.users.message } : { status: "loading", value: null };
   const n = s.users.data.newLast7d;
-  return n === null ? { status: "error", value: null, errorText: "Có tài khoản không đọc được ngày tạo — chưa biết số mới." } : { status: "ready", value: fmtInt(n) };
+  return n === null ? { status: "error", value: null, errorText: "Chưa biết số tài khoản mới: danh sách quá dài hoặc có tài khoản không đọc được ngày tạo." } : { status: "ready", value: fmtInt(n) };
 }
 
 export function servicesStat(s: TodaySources): CompactView {

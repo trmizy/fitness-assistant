@@ -5,6 +5,7 @@ import { partnerRepository } from '../repositories/partner.repository';
 import { brandService } from './brand.service';
 import { partnerService } from './partner.service';
 import type { PartnerContext } from './partner.service';
+import { isValidPhoneNumber, PHONE_INVALID_MESSAGE } from '../utils/phone.util';
 import { deriveAccessState, type AccessState } from './partner-application.state';
 
 function err(message: string, status: number, code?: string) {
@@ -111,8 +112,10 @@ export const onboardingService = {
   /** Bước 2 — cả OWNER lẫn MANAGER. Tên (firstName/lastName) là của auth-service, gọi qua
    * đúng token của người đang đăng nhập nên KHÔNG cần proxy — frontend gọi PATCH /auth/me
    * song song; ở đây chỉ giữ số điện thoại, thứ duy nhất gym-service thật sự sở hữu. */
-  async submitContact(accountId: string, phone: string) {
-    if (!phone?.trim()) throw err('Số điện thoại là bắt buộc', 400);
+  async submitContact(accountId: string, phone: unknown) {
+    if (typeof phone !== 'string' || !phone.trim()) throw err('Số điện thoại là bắt buộc', 400);
+    // N-A-02: "abc" used to be saved and finished the step; the same format rule as the PT application phone (C1-08).
+    if (!isValidPhoneNumber(phone)) throw err(PHONE_INVALID_MESSAGE, 400, 'INVALID_PHONE_NUMBER');
     await partnerRepository.updateAccount(accountId, { contactPhone: phone.trim() });
     return this.maybeCompleteOnboarding(accountId);
   },

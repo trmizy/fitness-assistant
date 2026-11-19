@@ -14,7 +14,7 @@ import { paymentClient } from "../clients/payment.client";
 import { gymClient, GymServiceUnavailableError } from "../clients/gym.client";
 import { authServiceClient, AuthServiceUnavailableError } from "../clients/auth-service.client";
 import { profileRepository, prisma } from "../repositories/profile.repository";
-import { enrichProfilesWithAuthNames } from "./profile.service";
+import { enrichProfilesWithAuthNames, signOtherUserPhotosInMap } from "./profile.service";
 import { notificationService } from "./notification.service";
 import { eSignService } from "./esign.service";
 import { generateContractPdf } from "./contractPdf.service";
@@ -29,7 +29,19 @@ import { PT_TERMS_VERSION } from "./pt-terms";
 import { assertClientMayRequestGymContract, assertGymContractStillCovered, hasFixedDuration, GYM_CONTRACT_REQUIRES_FIXED_DURATION } from "./contract-gym-membership.service";
 import { toPublicPtPackageDto } from "./pt-public-dto";
 import { recordClientCompatEvent } from "./client-compat.service";
+import {
+  INDEPENDENT_VENUE_ACK_REQUIRED,
+  INDEPENDENT_VENUE_ACK_REQUIRED_MESSAGE,
+  INDEPENDENT_VENUE_AUDIT_ACTION,
+  INDEPENDENT_VENUE_CONSENT_VERSION,
+  INDEPENDENT_VENUE_LEGACY_AUDIT_ACTION,
+  hasVenueConsentCapability,
+  independentVenueAuditMetadata,
+  isIndependentVenue,
+  legacyVenueGraceActive,
+} from "./independent-venue-consent";
 import { deriveForCompletedContract } from "./client-journey-derivation.service";
+import { assertAllNotSynthetic, assertNotSynthetic, isSynthetic, originOf } from "./synthetic-guard.util";
 import {
   activeRestrictedContractIds,
   activeRestrictedPtUserIds,
@@ -50,6 +62,34 @@ function err(message: string, status: number) {
 export const PT_NOT_ACCEPTING_CLIENTS = "PT_NOT_ACCEPTING_CLIENTS";
 /** B44: 400 - a gym contract was requested but the trainer has no active agreement with that gym's brand (none, or it is being terminated). */
 export const GYM_AGREEMENT_NOT_ACTIVE = "GYM_AGREEMENT_NOT_ACTIVE";
+type VenueConsent = "NOT_REQUIRED" | "ACKNOWLEDGED" | "LEGACY_GRACE";
+
+/**
+ * N15M-14: refuse an offline/hybrid request with no Gymini gym unless the client acknowledged the venue warning.
+ * Legacy grace (see independent-venue-consent.ts): a request from an app that predates the consent step - no
+ * X-Gymini-Venue-Consent header, flag field MISSING - is accepted while the grace is on. Only the HTTP route passes `ctx`;
+ * the agent path never does, so it never gets the grace.
+ */
+async function assertIndependentVenueAcknowledged(
+  sessionMode: string,
+  data: { gymId?: string; acknowledgedIndependentVenue?: boolean },
+  clientUserId: string,
+  ctx?: { clientHeader?: string | null; venueConsentHeader?: string | string[] | null },
+): Promise<VenueConsent> {
+  if (!isIndependentVenue(sessionMode, data.gymId)) return "NOT_REQUIRED";
+  if (data.acknowledgedIndependentVenue === true) return "ACKNOWLEDGED";
+  const clientHeader = ctx?.clientHeader ?? null;
+  const flagMissing = data.acknowledgedIndependentVenue === undefined || data.acknowledgedIndependentVenue === null;
+  if (ctx && flagMissing && !hasVenueConsentCapability(ctx.venueConsentHeader) && legacyVenueGraceActive()) return "LEGACY_GRACE";
+  await recordClientCompatEvent({
+    route: "POST /contracts/request",
+    actorUserId: clientUserId,
+    clientHeader,
+    outcome: "INDEPENDENT_VENUE_ACK_MISSING",
+  });
+  throw codedError(INDEPENDENT_VENUE_ACK_REQUIRED_MESSAGE, 409, INDEPENDENT_VENUE_ACK_REQUIRED);
+}
+
 function codedError(message: string, status: number, code: string) {
   return Object.assign(new Error(message), { status, code });
 }
@@ -358,6 +398,8 @@ async function counterpartyProfiles(
     }
   }
   await enrichProfilesWithAuthNames([...byId.values()]);
+  // The counterparty is ANOTHER user: an `s3://profile-photos/...` ref must leave as a signed URL.
+  await signOtherUserPhotosInMap(byId);
   return byId;
 }
 
@@ -538,9 +580,20 @@ export const contractService = {
        * client_compat_events (PACKAGE_VERSION_MISSING).
        */
       expectedPackageVersion?: number;
+      /**
+       * N15M-14: the client saw the "venue outside Gymini" warning and chose "Tôi đồng ý". Required (and recorded in
+       * the audit log) when the package is offline/hybrid and no Gymini gym is attached. A missing flag is REFUSED, old apps included.
+       */
+      acknowledgedIndependentVenue?: boolean;
     },
     agent?: { actionId: string; expectedPrice: number; expectedSessions: number; expectedMinutes: number; expectedMode: string },
-    ctx?: { clientHeader?: string | null },
+    ctx?: {
+      clientHeader?: string | null;
+      /** Raw X-Gymini-Venue-Consent header (a NEW client sends it). Only the HTTP route passes it. */
+      venueConsentHeader?: string | string[] | null;
+      ipAddress?: string | null;
+      userAgent?: string | null;
+    },
   ) {
     if (agent) {
       const prior = await prisma.contract.findUnique({ where: { agentActionId: agent.actionId } });
@@ -548,6 +601,11 @@ export const contractService = {
         if (prior.clientUserId !== clientUserId) throw err("Không tìm thấy thao tác", 404);
         return prior;
       }
+    }
+    // N13C-01: a trainer cannot buy their own package - the contract would pay the PT's own wallet and let one
+    // person be both parties of a coaching relationship. The caller identity (token) is authoritative.
+    if (data.ptUserId && data.ptUserId === clientUserId) {
+      throw codedError("Bạn không thể gửi yêu cầu hợp đồng cho chính mình", 400, "SELF_CONTRACT_NOT_ALLOWED");
     }
     // 1. Load the package (source of truth for price/sessions/mode)
     //
@@ -564,6 +622,14 @@ export const contractService = {
     if (!pkg.isActive || pkg.archivedAt) throw err("Gói dịch vụ này đã ngừng bán", 422);
     if (pkg.ptUserId !== data.ptUserId)
       throw err("Gói dịch vụ không thuộc PT này", 400);
+
+    const [ptProfile, clientProfile] = await Promise.all([
+      profileRepository.findByUserId(data.ptUserId),
+      profileRepository.findByUserId(clientUserId),
+    ]);
+    if (!ptProfile || !ptProfile.isPT)
+      throw err("PT không tồn tại hoặc chưa được duyệt", 404);
+    assertAllNotSynthetic([ptProfile, clientProfile]);
 
     // expectedPackageVersion: fail fast on the cheap read (a stale buyer should not wait for the slow checks below);
     // the AUTHORITATIVE comparison is repeated inside the transaction against the locked row (step 6).
@@ -584,15 +650,16 @@ export const contractService = {
       });
     }
 
-    // 2. Check PT profile
-    const ptProfile = await profileRepository.findByUserId(data.ptUserId);
-    if (!ptProfile || !ptProfile.isPT)
-      throw err("PT không tồn tại hoặc chưa được duyệt", 404);
+    // 2. Check PT business status
     // A restricted PT (temporarily suspended OR banned) takes no new business. The restriction record
     // decides (pt-restriction.service.ts); the profile flag is only its mirror and fails closed there.
     await assertPtAcceptsNewBusiness(data.ptUserId, "REQUEST_CONTRACT");
     if (!(ptProfile as any).isAcceptingClients)
       throw codedError("PT hiện đang tạm ngưng nhận khách mới", 422, PT_NOT_ACCEPTING_CLIENTS);
+
+    // 2b. N15M-14: a venue outside Gymini needs the client's explicit acknowledgement. Refused before any slow check and
+    //     before anything is written; re-checked on the locked package row inside the transaction below.
+    await assertIndependentVenueAcknowledged(pkg.sessionMode, data, clientUserId, ctx);
 
     // 3. Slot availability warning (L3 from plan)
     //    Count available slots; if fewer than package.sessionCount, require acknowledgement.
@@ -746,8 +813,11 @@ export const contractService = {
         if (pkg.validityDays != null && locked.validityDays > pkg.validityDays) throw packageChangedError(locked);
       }
 
+      // The package may have been switched to offline since the pre-check above: judge the LOCKED row.
+      const venueConsent = await assertIndependentVenueAcknowledged(locked.sessionMode, data, clientUserId, ctx);
+
       const snapshot = buildPackageSnapshot(locked);
-      return contractRepository.create(
+      const created = await contractRepository.create(
         {
           agentActionId: agent?.actionId,
           ptUserId: data.ptUserId,
@@ -782,6 +852,56 @@ export const contractService = {
         },
         tx,
       );
+      if (venueConsent === "LEGACY_GRACE") {
+        // An app that predates the consent step: accepted (owner decision), but auditable - no text was shown or accepted.
+        await tx.auditLog.create({
+          data: {
+            actorUserId: clientUserId,
+            action: INDEPENDENT_VENUE_LEGACY_AUDIT_ACTION,
+            entityType: AuditEntityType.CONTRACT,
+            entityId: created.id,
+            metadata: {
+              graceReason: "CLIENT_PREDATES_VENUE_CONSENT",
+              consentVersionNotAccepted: INDEPENDENT_VENUE_CONSENT_VERSION,
+              clientVersion: ctx?.clientHeader ?? null,
+              sessionMode: locked.sessionMode,
+              packageId: locked.id,
+              ptUserId: data.ptUserId,
+            },
+            ipAddress: ctx?.ipAddress ?? null,
+            userAgent: ctx?.userAgent ?? null,
+          },
+        });
+        await tx.clientCompatEvent.create({
+          data: {
+            route: "POST /contracts/request",
+            actorUserId: clientUserId,
+            clientHeader: ctx?.clientHeader ?? null,
+            outcome: "INDEPENDENT_VENUE_LEGACY_ACCEPTED",
+          },
+        });
+      }
+      if (venueConsent === "ACKNOWLEDGED") {
+        // Consent evidence, in the SAME transaction as the contract: who (actor), when (createdAt + acknowledgedAt),
+        // which text (version + sha256). Never read by product logic.
+        await tx.auditLog.create({
+          data: {
+            actorUserId: clientUserId,
+            action: INDEPENDENT_VENUE_AUDIT_ACTION,
+            entityType: AuditEntityType.CONTRACT,
+            entityId: created.id,
+            metadata: independentVenueAuditMetadata({
+              sessionMode: locked.sessionMode,
+              packageId: locked.id,
+              ptUserId: data.ptUserId,
+              clientHeader: ctx?.clientHeader ?? null,
+            }),
+            ipAddress: ctx?.ipAddress ?? null,
+            userAgent: ctx?.userAgent ?? null,
+          },
+        });
+      }
+      return created;
     });
 
     // 7. Notify PT
@@ -821,6 +941,12 @@ export const contractService = {
     price: number;
     paymentTransactionId?: string;
   }) {
+    const [ptProfile, clientProfile] = await Promise.all([
+      profileRepository.findByUserId(data.ptUserId),
+      profileRepository.findByUserId(data.clientUserId),
+    ]);
+    assertAllNotSynthetic([ptProfile, clientProfile]);
+
     // The order is ALREADY PAID when this runs, so a conflicting PT contract is never refused here (that would strand
     // the money): the conflict check lives before payment (ai-service purchaseService -> hasStandingPtContract).
     // What this does guarantee, under the pair lock: a retry of the same paid order returns its contract instead of
@@ -863,6 +989,7 @@ export const contractService = {
     const contract = await contractRepository.findById(contractId);
     if (!contract) throw err("Không tìm thấy hợp đồng", 404);
     if (contract.ptUserId !== ptUserId) throw err("Bạn không có quyền thực hiện thao tác này", 403);
+    assertNotSynthetic(contract);
     // Restricted mode: a suspended PT cannot take on a new contract (the request waits, the client may cancel it).
     await assertPtMayAct(ptUserId);
     if (contract.status !== ContractStatus.PENDING_REVIEW) {
@@ -1026,6 +1153,7 @@ export const contractService = {
     const contract = await contractRepository.findById(contractId);
     if (!contract) throw err("Không tìm thấy hợp đồng", 404);
     if (contract.ptUserId !== ptUserId) throw err("Bạn không có quyền thực hiện thao tác này", 403);
+    assertNotSynthetic(contract);
     await assertPtMayAct(ptUserId); // restricted mode
     if (contract.status !== ContractStatus.PENDING_REVIEW) {
       throw err("Không thể từ chối hợp đồng ở trạng thái hiện tại", 400);
@@ -1071,11 +1199,19 @@ export const contractService = {
     if (contract.ptUserId !== userId && contract.clientUserId !== userId) {
       throw err("Bạn không có quyền thực hiện thao tác này", 403);
     }
+    assertNotSynthetic(contract);
     // Restricted mode applies to the PT acting for themselves; the CLIENT may always withdraw their own unpaid contract.
     if (contract.ptUserId === userId) await assertPtMayAct(userId);
+    // CONTRACT-02: with e-sign OFF (REQUIRE_CONTRACT_ESIGN=false) nothing can ever sign a PENDING_SIGNATURE contract, so one
+    // left in that state (created while the flag was still on) was stuck forever and, via ACTIVE_CONTRACT_EXISTS, blocked the
+    // client-PT pair. It is still pre-money (payment comes after signing), so cancelling is the same safe status flip. With
+    // e-sign ON a signature request may be outstanding, so that case is left exactly as before.
+    const cancellableWhenEsignOff =
+      !REQUIRE_CONTRACT_ESIGN && contract.status === ContractStatus.PENDING_SIGNATURE;
     if (
       contract.status !== ContractStatus.PENDING_REVIEW &&
-      contract.status !== ContractStatus.PENDING_PAYMENT
+      contract.status !== ContractStatus.PENDING_PAYMENT &&
+      !cancellableWhenEsignOff
     ) {
       throw err(
         contract.status === ContractStatus.ACTIVE
@@ -1198,6 +1334,12 @@ export const contractService = {
       notes?: string;
     },
   ) {
+    const [ptProfile, clientProfile] = await Promise.all([
+      profileRepository.findByUserId(ptUserId),
+      profileRepository.findByUserId(data.clientUserId),
+    ]);
+    assertAllNotSynthetic([ptProfile, clientProfile]);
+
     return contractRepository.create({
       ...data,
       ptUserId,
@@ -1285,6 +1427,7 @@ export const contractService = {
     const contract = await contractRepository.findById(contractId);
     if (!contract) throw err("Không tìm thấy hợp đồng", 404);
     if (contract.ptUserId !== ptUserId) throw err("Bạn không có quyền thực hiện thao tác này", 403);
+    assertNotSynthetic(contract);
     await assertPtMayActOnContract(ptUserId, contractId); // restricted mode: no coaching messages while suspended (account or this contract)
     if (contract.status !== ContractStatus.ACTIVE) {
       throw err("Chỉ gửi được nhận xét khi hợp đồng đang hoạt động", 409);
@@ -1319,6 +1462,7 @@ export const contractService = {
     ) {
       throw err("Bạn không có quyền thực hiện thao tác này", 403);
     }
+    assertNotSynthetic(contract);
 
     // Admin fail-safe: force past a broken e-sign (PENDING_SIGNATURE/PENDING_REVIEW →
     // PENDING_PAYMENT, NOT ACTIVE — payment is still required; this bypass only skips the
@@ -1361,9 +1505,13 @@ export const contractService = {
       return this.cancelContract(id, userId, "Status changed to cancelled");
     }
 
-    // PT or admin can mark expired
-    if (newStatus === "EXPIRED" && (contract.ptUserId === userId || isAdmin)) {
-      return contractRepository.updateStatus(id, ContractStatus.EXPIRED);
+    // Bỏ đặt EXPIRED thủ công (quyết định 11/11): hết hạn do hệ thống tự xử lý khi qua
+    // ngày kết thúc (kèm quyết toán); kết thúc sớm phải đi qua luồng chấm dứt hợp đồng.
+    if (typeof newStatus === "string" && newStatus.trim().toUpperCase() === "EXPIRED") {
+      throw err(
+        "Không thể đặt trạng thái hết hạn thủ công — hết hạn do hệ thống tự xử lý khi qua ngày kết thúc; muốn kết thúc sớm vui lòng dùng chức năng chấm dứt hợp đồng.",
+        400,
+      );
     }
 
     throw err(
@@ -1386,6 +1534,7 @@ export const contractService = {
   ): Promise<{ requestId: string; provider: string }> {
     const contract = await contractRepository.findById(contractId);
     if (!contract) throw err("Không tìm thấy hợp đồng", 404);
+    assertNotSynthetic(contract);
     if (contract.status !== ContractStatus.PENDING_SIGNATURE) {
       throw err("Hợp đồng không ở bước chờ ký", 400);
     }
@@ -1475,6 +1624,7 @@ export const contractService = {
     if (contract.ptUserId !== ptUserId) {
       throw err("Chỉ huấn luyện viên mới sửa được hợp đồng này", 403);
     }
+    assertNotSynthetic(contract);
     if (contract.status !== ContractStatus.PENDING_REVIEW) {
       throw err("Chỉ sửa được hợp đồng khi đang chờ huấn luyện viên xem xét", 400);
     }
@@ -1492,6 +1642,7 @@ export const contractService = {
     if (contract.ptUserId !== ptUserId) {
       throw err("Chỉ huấn luyện viên mới ghi nhận được buổi tập", 403);
     }
+    assertNotSynthetic(contract);
     if (contract.status !== "ACTIVE") {
       throw err("Hợp đồng chưa có hiệu lực hoặc đã kết thúc", 400);
     }
@@ -1740,7 +1891,7 @@ export const contractService = {
 
   // ── PT earnings aggregate ──────────────────────────────────────────
   async getEarnings(ptUserId: string) {
-    const contracts = await contractRepository.findByPT(ptUserId);
+    const contracts = (await contractRepository.findByPT(ptUserId)).filter((c) => !isSynthetic(c));
     const active = contracts.filter((c) => c.status === "ACTIVE");
     const completed = contracts.filter((c) => c.status === "COMPLETED");
 
@@ -1777,6 +1928,7 @@ export const contractService = {
     if (!contract) throw err("Không tìm thấy hợp đồng", 404);
     if (contract.clientUserId !== clientUserId)
       throw err("Bạn không có quyền thực hiện thao tác này", 403);
+    assertNotSynthetic(contract);
     if (
       contract.status === ContractStatus.ACTIVE ||
       contract.paymentTransactionId
@@ -1832,6 +1984,7 @@ export const contractService = {
       orderInfo: `Hop dong PT ${contract.packageName}`.slice(0, 100),
       platform,
       returnBaseUrl,
+      entityOrigin: originOf(contract),
     });
 
     // Checkout đã khởi tạo thành công: từ giờ học viên có thể trả tiền thêm một lúc nữa, nên dời

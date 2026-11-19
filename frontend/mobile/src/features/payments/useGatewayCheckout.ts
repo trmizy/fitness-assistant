@@ -5,7 +5,7 @@ import { useMutation, useQueryClient, type QueryKey } from "@tanstack/react-quer
 import { useToast } from "../../components/ui";
 import { useApp } from "../../context/AppContext";
 import { openPaymentGateway } from "./openGateway";
-import { checkoutErrorMessage, readCheckout, resultHref } from "./payments";
+import { checkoutErrorMessage, isSyntheticCheckoutError, readCheckout, resultHref } from "./payments";
 
 /**
  * Phase 14.1 — the one flow behind every "Thanh toán" button: pick a gateway → the server creates
@@ -18,6 +18,11 @@ import { checkoutErrorMessage, readCheckout, resultHref } from "./payments";
  * A checkout response is a redirect, not a settled payment — nothing here says "paid". The only
  * exception the server itself can make (settling on the spot, `status: PAID`) still goes through
  * the result screen, which confirms it with sync like any other.
+ *
+ * A rejection because the record is sample data (SYNTHETIC) is the one error that keeps the sheet
+ * open: `blockedMessage` is shown inline and persistently (a toast raised while the sheet's own
+ * native window is dismissing is easy to miss — that was the "first tap closes it silently" bug).
+ * Every other error still closes the sheet and toasts, as before.
  */
 export function useGatewayCheckout<T>({
   start,
@@ -31,6 +36,7 @@ export function useGatewayCheckout<T>({
   const queryClient = useQueryClient();
   const { user } = useApp();
   const [target, setTarget] = useState<T | null>(null);
+  const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
 
   const mutation = useMutation({
     mutationFn: ({ target: t, provider }: { target: T; provider: string }) => start(t, provider),
@@ -60,6 +66,11 @@ export function useGatewayCheckout<T>({
       );
     },
     onError: (error) => {
+      if (isSyntheticCheckoutError(error)) {
+        // Nothing was created server-side, so nothing to refetch; keep the sheet open with the reason.
+        setBlockedMessage(checkoutErrorMessage(error));
+        return;
+      }
       setTarget(null);
       for (const queryKey of invalidate) void queryClient.invalidateQueries({ queryKey });
       toast.show(checkoutErrorMessage(error), "danger");
@@ -69,12 +80,19 @@ export function useGatewayCheckout<T>({
   return {
     /** What the open sheet is paying for; null while it is closed. */
     target,
-    choose: (next: T) => setTarget(next),
+    /** Persistent reason this target cannot be bought (sample data); null otherwise. */
+    blockedMessage,
+    choose: (next: T) => {
+      setBlockedMessage(null);
+      setTarget(next);
+    },
     close: () => {
-      if (!mutation.isPending) setTarget(null);
+      if (mutation.isPending) return;
+      setBlockedMessage(null);
+      setTarget(null);
     },
     pay: (provider: string) => {
-      if (target != null) mutation.mutate({ target, provider });
+      if (target != null && blockedMessage == null) mutation.mutate({ target, provider });
     },
     submitting: mutation.isPending,
   };

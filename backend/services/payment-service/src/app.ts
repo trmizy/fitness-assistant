@@ -1,16 +1,34 @@
+import { installAsyncRouteErrorForwarding } from './utils/async-route-errors';
+// N13F-05: must run before any router handles a request - an async route that rejects goes to the error middleware below, never crashes the process.
+installAsyncRouteErrorForwarding();
 import express from 'express';
+import { apiErrorHandler } from './middleware/error-handler';
 import { metricsMiddleware, register } from '@gym-coach/shared';
 import webhookRoutes from './routes/webhook.routes';
 import vnpayReturnRoutes from './routes/vnpay-return.routes';
 import paymentRoutes from './routes/payment.routes';
 import adminRoutes from './routes/admin.routes';
+import adminWithdrawalHistoryRoutes from './routes/admin-withdrawal-history.routes';
+import adminWalletsRoutes from './routes/admin-wallets.routes';
+import adminGatewayReconciliationRoutes from './routes/admin-gateway-reconciliation.routes';
 import internalRoutes from './routes/internal.routes';
 import walletRoutes from './routes/wallet.routes';
 
 const app = express();
 
+// On AWS every API Gateway route is ANY, so CORS preflight (OPTIONS) reaches this Lambda, where router-level auth
+// (e.g. /admin) answers 401 — browsers reject a non-2xx preflight and the page shows "Network Error". API Gateway's own
+// CORS config supplies the Access-Control-* headers; this only has to answer 2xx before any auth runs.
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    res.sendStatus(204);
+    return;
+  }
+  next();
+});
+
 // Webhook MUST be mounted before express.json() so raw body is preserved for
-// HMAC signature verification (MoMo, VNPay require the original bytes).
+// HMAC signature verification (ZaloPay, VNPay require the original bytes).
 app.use('/payments/webhook', express.raw({ type: '*/*' }), webhookRoutes);
 
 // VNPay return-URL (browser redirect after checkout) — GET, no body, no auth; the query
@@ -31,7 +49,15 @@ app.get('/metrics', async (_req, res) => {
 
 app.use('/me/payments', paymentRoutes);
 app.use('/me', walletRoutes);
+// B8 (L2) read-only gateway reconciliation: before the generic admin router so no '/:id/...' route can shadow it.
+app.use('/admin/payments/gateway-reconciliation', adminGatewayReconciliationRoutes);
+// G-08 withdrawal history and G-09/G-10 wallet explorer (read-only): mounted before the generic admin router (11/11).
+app.use('/admin/payments/withdrawal-history', adminWithdrawalHistoryRoutes);
+app.use('/admin/payments/wallets', adminWalletsRoutes);
 app.use('/admin/payments', adminRoutes);
 app.use('/internal', internalRoutes);
+
+// Last-resort error middleware (N13F-05): Prisma connection errors -> 503 SERVICE_BUSY, everything else -> 500 INTERNAL_ERROR.
+app.use(apiErrorHandler);
 
 export default app;

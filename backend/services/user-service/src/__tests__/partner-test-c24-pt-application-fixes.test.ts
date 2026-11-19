@@ -107,6 +107,7 @@ function draftHarness(opts: { profile: any | null }) {
       return { id: "profile-new", userId, isPT: false };
     }),
     patch(ptApplicationRepository, "findByUserId", async () => null),
+    patch(ptApplicationRepository, "countRejectionAudits", async () => 0),
     patch(ptApplicationRepository, "upsertDraft", async (profileId: string, data: any) => {
       calls.upsertDraft.push([profileId, data]);
       return { id: "draft-1", status: "DRAFT", ...data };
@@ -157,10 +158,12 @@ test("C1-08: submit also refuses a junk number that an older draft already store
     serviceMode: "ONLINE",
     mainSpecialties: ["a"],
   }));
+  const restoreCount = patch(ptApplicationRepository, "countRejectionAudits", async () => 0);
   try {
     await assert.rejects(ptApplicationService.submit("u1"), (e: any) => e.code === "INVALID_PHONE_NUMBER");
   } finally {
     restore();
+    restoreCount();
   }
 });
 
@@ -196,6 +199,7 @@ function approvalHarness(app: any) {
   const notes: any[] = [];
   const restores = [
     patch(ptApplicationRepository, "findById", async () => app),
+    patch(ptApplicationRepository, "recordRejectionAudit", async () => ({}) as any),
     patch(ptApplicationRepository, "updateStatus", async (_id: string, status: string, extra: any) => {
       updates.push({ status, extra });
       return app;
@@ -212,10 +216,12 @@ function approvalHarness(app: any) {
   return { updates, notes, restore: () => restores.forEach((r) => r()) };
 }
 
-test("C4-02: approving a previously REJECTED application clears rejectionReason on the row", async () => {
+// Q2 (14/11): a REJECTED application is terminal and can no longer be approved. The clear-on-approve still protects a
+// legacy row that is awaiting review but still carries a stale reason.
+test("C4-02: approving an awaiting-review application that still carries a stale rejectionReason clears it", async () => {
   const app = {
     id: "a1",
-    status: "REJECTED",
+    status: "SUBMITTED",
     rejectionReason: "QA c24: thử từ chối",
     userProfile: { userId: "u1", firstName: "A", email: "a@x" },
     certificates: [],

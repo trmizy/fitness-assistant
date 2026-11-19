@@ -12,8 +12,9 @@ import type {
 } from "../../types";
 import { formatVND } from "../../utils/currency";
 import { PaymentMethodDialog } from "../../components/payment/PaymentMethodDialog";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { Modal, ModalTitle } from "../../components/ui/Modal";
 import { normalizeCheckoutContext } from "../../utils/contractGymOptions";
+import { INDEPENDENT_VENUE_NOTE, isIndependentVenue } from "../../utils/independentVenue";
 
 const statusConfig: Record<
   ContractStatus,
@@ -170,7 +171,6 @@ export function ContractPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  useBackDismissible(!!showCancelDialog, () => setShowCancelDialog(false));
   // Set when the server says the no-fee exit the client was shown no longer applies (409). The
   // dialog then shows the ordinary terms and needs a fresh, explicit confirmation.
   const [termsChanged, setTermsChanged] = useState(false);
@@ -571,14 +571,7 @@ export function ContractPage() {
                         <div className="text-sm font-bold text-zinc-200 truncate">
                           {partyName(selected.ptProfile, "Huấn luyện viên")}
                         </div>
-                        {selected.ptProfile?.email && (
-                          <div className="text-xs text-zinc-500 truncate">
-                            {selected.ptProfile.email}
-                          </div>
-                        )}
-                        <div className="text-[11px] text-zinc-600 font-mono truncate">
-                          ID: {selected.ptUserId}
-                        </div>
+                        {/* LEAK-01: the trainer's e-mail and user id are not for the client to read; the name is. */}
                       </div>
                     </div>
                     <button
@@ -632,6 +625,14 @@ export function ContractPage() {
                         </div>
                       </div>
                     </div>
+                    {isIndependentVenue(selected.sessionMode, selected.gymId) && (
+                      <p
+                        className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-2 text-xs leading-snug text-amber-500"
+                        data-testid="contract-independent-venue-note"
+                      >
+                        {INDEPENDENT_VENUE_NOTE}
+                      </p>
+                    )}
                     <p className="text-[11px] text-zinc-600 leading-snug">
                       Hãy cung cấp mã hợp đồng này khi báo cáo sự cố — mã xác định hợp đồng, hai bên và mọi buổi tập thuộc hợp đồng.
                     </p>
@@ -778,15 +779,20 @@ export function ContractPage() {
       )}
 
       {/* Cancel Dialog */}
-      {showCancelDialog && selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <Modal
+        open={!!(showCancelDialog && selected)}
+        onClose={() => setShowCancelDialog(false)}
+        closeOnBackdrop={false}
+        data-testid="contract-cancel-modal"
+      >
+        {showCancelDialog && selected && (
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto shadow-2xl">
             <div className="p-5 border-b border-zinc-800/60">
-              <h3 className="text-zinc-100 font-bold">
+              <ModalTitle className="text-zinc-100 font-bold">
                 {selected.status === "PENDING_REVIEW"
                   ? "Rút yêu cầu"
                   : "Hủy hợp đồng"}
-              </h3>
+              </ModalTitle>
             </div>
             <div className="p-5 space-y-4">
               {selected.status === "ACTIVE" ? (
@@ -889,21 +895,23 @@ export function ContractPage() {
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button
+                type="button"
                 onClick={() => {
                   setShowCancelDialog(false);
                   setCancelReason("");
                 }}
-                className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+                className="min-h-10 flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 Giữ lại
  </button>
               {selected.status === "ACTIVE" ? (
                 <button
+                  type="button"
                   onClick={() =>
                     terminateMutation.mutate({ id: selected.id, expectNoPenalty: noFeeExit })
                   }
                   disabled={terminateMutation.isPending || !breakdownReady}
-                  className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                  className="min-h-10 flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
                 >
                   {terminateMutation.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -912,6 +920,7 @@ export function ContractPage() {
                 </button>
               ) : (
                 <button
+                  type="button"
                   onClick={() =>
                     cancelMutation.mutate({
                       id: selected.id,
@@ -919,7 +928,7 @@ export function ContractPage() {
                     })
                   }
                   disabled={!cancelReason.trim() || cancelMutation.isPending}
-                  className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                  className="min-h-10 flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
                 >
                   {cancelMutation.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -929,8 +938,8 @@ export function ContractPage() {
               )}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }

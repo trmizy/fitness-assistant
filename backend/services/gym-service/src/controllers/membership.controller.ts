@@ -3,6 +3,7 @@ import { logger } from '@gym-coach/shared';
 import { membershipService, ADMIN_REFUND_REASONS } from '../services/membership.service';
 import { principalId } from '../middleware/partner-context.middleware';
 import { membershipsFor } from '../services/staff-views';
+import { resolveDisplayNamesBatch } from '../services/display-name.service';
 
 // See the identical helper's comment in ai-service/controllers/personalized-service.controller.ts
 // — same signal (Capacitor's fixed `http://localhost` WebView origin), same purpose (pick the
@@ -104,7 +105,7 @@ export const membershipController = {
       const result = await membershipService.cancelPending(req.params.id, clientId);
       res.json({ success: true, data: result });
     } catch (e: any) {
-      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+      res.status(e.status || 500).json({ success: false, error: { ...(typeof e?.code === 'string' ? { code: e.code } : {}), message: e.message } });
     }
   },
 
@@ -124,7 +125,7 @@ export const membershipController = {
         return res.status(e.status || 409).json({ success: false, error: { code: e.code, message: e.message }, message: e.message });
       }
       logger.error(e, 'membership self-cancel error');
-      return res.status(e.status || 500).json({ success: false, error: { code: e.message, message: e.message } });
+      return res.status(e.status || 500).json({ success: false, error: { code: typeof e?.code === 'string' ? e.code : e.message, message: e.message } });
     }
   },
 
@@ -147,7 +148,7 @@ export const membershipController = {
         return res.status(409).json({ success: false, error: { code: e.code, message: e.message, ...(e.details === undefined ? {} : { details: e.details }) } });
       }
       logger.error(e, 'membership admin refund error');
-      return res.status(e.status || 500).json({ success: false, error: { code: e.message, message: e.message } });
+      return res.status(e.status || 500).json({ success: false, error: { code: typeof e?.code === 'string' ? e.code : e.message, message: e.message } });
     }
   },
 
@@ -165,7 +166,7 @@ export const membershipController = {
       return res.json({ success: true, data: result });
     } catch (e: any) {
       logger.error(e, 'resolve pending-issue membership error');
-      return res.status(e.status || 500).json({ success: false, error: { code: e.message, message: e.message } });
+      return res.status(e.status || 500).json({ success: false, error: { code: typeof e?.code === 'string' ? e.code : e.message, message: e.message } });
     }
   },
 
@@ -190,7 +191,15 @@ export const membershipController = {
       const ownerId = principalId(req);
       const list = await membershipService.listForOwner(req.params.gymId, ownerId);
       // D15: lễ tân thấy hạn/lượt, kế toán thấy doanh số (không có danh tính hội viên), chủ/quản lý thấy đủ.
-      res.json({ success: true, data: req.partner ? membershipsFor(req.partner.role, list) : list });
+      // N13I-04: tên hiển thị chỉ tra cho chủ / quản lý (xem đủ danh tính hội viên); lễ tân và kế toán không nhận tên.
+      const role = req.partner?.role;
+      const wantsNames = !role || role === 'OWNER' || role === 'MANAGER';
+      const names = wantsNames ? await resolveDisplayNamesBatch(list.map((m: any) => m.clientId)) : undefined;
+      if (!req.partner) {
+        res.json({ success: true, data: list.map((m: any) => (names!.has(m.clientId) ? { ...m, clientName: names!.get(m.clientId) } : m)) });
+        return;
+      }
+      res.json({ success: true, data: membershipsFor(req.partner.role, list, names) });
     } catch (e: any) {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });
     }

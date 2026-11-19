@@ -30,7 +30,7 @@ test('concurrent reset requests: exactly one password wins and refresh tokens ar
     return result;
   }) as typeof original;
   try {
-    const passwords = ['new-password-one', 'new-password-two'];
+    const passwords = ['New-password-one1', 'New-password-two2'];
     const results = await Promise.allSettled(passwords.map(p => authService.resetPasswordWithToken(f.raw, p)));
     assert.equal(results.filter(r => r.status === 'fulfilled').length, 1);
     const loser = results.find(r => r.status === 'rejected') as PromiseRejectedResult;

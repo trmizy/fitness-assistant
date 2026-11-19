@@ -6,7 +6,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-import { isForCurrentUser, pushTapRoute, readPushData, showsWhileOpen } from "../push/pushRouting";
+import { isForCurrentUser, pushTapRoute, readPushData, showsWhileOpen, staleCallNoticeIds } from "../push/pushRouting";
 
 const push = (over: Record<string, unknown> = {}) =>
   readPushData({ notificationId: "n1", userId: "u1", link: "", entityType: "SESSION", eventType: "SESSION_CONFIRMED", ...over });
@@ -18,6 +18,7 @@ describe("readPushData", () => {
       userId: null,
       link: null,
       entityType: null,
+      entityId: null,
       eventType: null,
       kind: null,
       callSessionId: null,
@@ -38,7 +39,9 @@ describe("isForCurrentUser", () => {
 describe("pushTapRoute", () => {
   it("khách: đi theo link như danh sách thông báo trong app", () => {
     assert.equal(pushTapRoute(push({ link: "/client/booking" }), "u1", "client"), "/client/services/booking");
-    assert.equal(pushTapRoute(push({ link: "", entityType: "CONTRACT" }), "u1", "client"), "/client/services");
+    assert.equal(pushTapRoute(push({ link: "", entityType: "CONTRACT" }), "u1", "client"), "/client/services?tab=contracts");
+    assert.equal(pushTapRoute(push({ link: "/client/contracts", entityType: "CONTRACT", entityId: "c1" }), "u1", "client"), "/client/services?tab=contracts&contractId=c1");
+    assert.equal(pushTapRoute(push({ link: "/client/booking", entityType: "SESSION", entityId: "s1" }), "u1", "client"), "/client/services/booking?sessionId=s1");
   });
 
   it("khách: không có chỗ riêng thì mở danh sách thông báo", () => {
@@ -47,7 +50,15 @@ describe("pushTapRoute", () => {
 
   it("PT: link phía khách đi theo khách, còn lại về trang chủ PT — không lạc vào route khách", () => {
     assert.equal(pushTapRoute(push({ link: "/client/booking" }), "u1", "pt"), "/client/services/booking");
-    assert.equal(pushTapRoute(push({ link: "/pt/schedule" }), "u1", "pt"), "/pt/dashboard");
+    assert.equal(pushTapRoute(push({ link: "/pt/schedule" }), "u1", "pt"), "/pt/schedule", "N15M-11: lịch dạy / hợp đồng của PT mở đúng màn hình");
+    assert.equal(pushTapRoute(push({ link: "/pt/contracts", entityType: null }), "u1", "pt"), "/pt/contracts");
+    assert.equal(pushTapRoute(push({ link: "/pt/contracts", entityType: "CONTRACT", entityId: "c9" }), "u1", "pt"), "/pt/contracts?contractId=c9");
+    assert.equal(pushTapRoute(push({ link: "/pt/schedule", entityType: "SESSION", entityId: "s9" }), "u1", "pt"), "/pt/schedule?sessionId=s9");
+    assert.equal(pushTapRoute(push({ link: "/pt/contracts", entityType: "SESSION", entityId: "s9" }), "u1", "pt"), "/pt/schedule?sessionId=s9", "N16M-02: push buổi tập của PT mang link /pt/contracts");
+    assert.equal(pushTapRoute(push({ link: "/client/contracts", entityType: "SESSION", entityId: "s9" }), "u1", "client"), "/client/services/booking?sessionId=s9");
+    assert.equal(pushTapRoute(push({ link: "/client/contracts", entityType: "SESSION", entityId: "s9" }), "u1", "pt"), "/client/services/booking?sessionId=s9", "PT bấm thông báo phía khách");
+    assert.equal(pushTapRoute(push({ link: "/pt/schedule" }), "u1", "client"), "/client/notifications", "khách thường không có màn PT");
+    assert.equal(pushTapRoute(push({ link: "/admin/disputes" }), "u1", "pt"), "/pt/dashboard");
     assert.equal(pushTapRoute(push({ link: "" }), "u1", "pt"), "/pt/dashboard");
   });
 
@@ -86,5 +97,34 @@ describe("E2/E3 — push cuộc gọi / tin nhắn từ chat-service", () => {
     assert.equal(showsWhileOpen(call({ kind: "CHAT" })), false);
     assert.equal(showsWhileOpen(push()), true);
     assert.equal(readPushData({ kind: "SOMETHING" }).kind, null);
+  });
+});
+
+describe("staleCallNoticeIds (NE-08)", () => {
+  const ringing = (id: string, sid: string) => ({ identifier: id, body: "Đang gọi thoại cho bạn…", data: { kind: "CALL", callSessionId: sid } });
+  const missed = (id: string, sid: string) => ({ identifier: id, body: "Cuộc gọi thoại nhỡ", data: { kind: "CALL", callSessionId: sid } });
+  const chat = { identifier: "c1", body: "Xin chào", data: { kind: "CHAT" } };
+  const other = { identifier: "o1", body: "Hợp đồng mới", data: { eventType: "CONTRACT_REQUESTED" } };
+
+  it("a call that ended / was answered / rejected clears only its own ringing notice", () => {
+    const shown = [ringing("a", "s1"), ringing("b", "s2"), chat, other];
+    assert.deepEqual(staleCallNoticeIds(shown, { endedCallSessionId: "s1" }), ["a"]);
+  });
+
+  it("on foreground every call notice but the live one goes (6 stacked ones, NE-08)", () => {
+    const shown = [1, 2, 3, 4, 5, 6].map((n) => ringing(`n${n}`, `s${n}`));
+    assert.equal(staleCallNoticeIds(shown, { activeCallSessionId: null }).length, 6);
+    assert.deepEqual(staleCallNoticeIds(shown, { activeCallSessionId: "s3" }).includes("n3"), false);
+    assert.equal(staleCallNoticeIds(shown, { activeCallSessionId: "s3" }).length, 5);
+  });
+
+  it("never touches the missed-call record, chat messages or other notices", () => {
+    const shown = [missed("m", "s1"), chat, other];
+    assert.deepEqual(staleCallNoticeIds(shown, { endedCallSessionId: "s1" }), []);
+    assert.deepEqual(staleCallNoticeIds(shown, { activeCallSessionId: null }), []);
+  });
+
+  it("a call push without a session id is left alone", () => {
+    assert.deepEqual(staleCallNoticeIds([{ identifier: "x", body: "Đang gọi", data: { kind: "CALL" } }], { activeCallSessionId: null }), []);
   });
 });

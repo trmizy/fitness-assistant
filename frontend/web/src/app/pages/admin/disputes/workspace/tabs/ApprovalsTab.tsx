@@ -1,5 +1,6 @@
 import { APPROVAL_RESULT_LABEL, outcomeLabel } from "../../disputeCaseLabels";
-import { formatDateTime, shortRef } from "../format";
+import { formatDateTime } from "../format";
+import { adminWhoLabel } from "../adminNames";
 import { ApprovalsActionsSlot, type ActionSlotProps } from "../actionSlots";
 import { blockedText } from "../workspaceModel";
 import { CARD, EmptyBox, Muted, Notice, Pill } from "../WorkspaceParts";
@@ -25,7 +26,7 @@ export function ApprovalsTab({ detail, currentUserId, onChanged, capabilities }:
               <div className="flex flex-wrap items-center gap-1.5">
                 <Pill tone="info">{outcomeLabel(p.outcome)}</Pill>
                 <span className="text-xs text-adm-text-2">
-                  Lập bởi {youProposed ? "bạn" : `mã ${shortRef(p.proposerId)}`} · {formatDateTime(p.createdAt)}
+                  Lập bởi {youProposed ? "bạn" : adminWhoLabel(p.proposerId, currentUserId)} · {formatDateTime(p.createdAt)}
                 </span>
               </div>
               {(youProposed || youInvestigate) && (
@@ -43,7 +44,7 @@ export function ApprovalsTab({ detail, currentUserId, onChanged, capabilities }:
                       <div className="flex flex-wrap items-center gap-1.5">
                         <Pill tone={a.result === "APPROVED" ? "success" : "danger"}>{APPROVAL_RESULT_LABEL[a.result] ?? "Chưa rõ"}</Pill>
                         <span className="text-xs text-adm-text-2">
-                          {currentUserId && a.approverId === currentUserId ? "Bạn" : `Mã ${shortRef(a.approverId)}`} · {formatDateTime(a.createdAt)}
+                          {currentUserId && a.approverId === currentUserId ? "Bạn" : adminWhoLabel(a.approverId, currentUserId)} · {formatDateTime(a.createdAt)}
                         </span>
                       </div>
                       <p className="mt-1 whitespace-pre-wrap break-words text-adm-text">{a.reason}</p>

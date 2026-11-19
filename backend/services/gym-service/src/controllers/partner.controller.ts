@@ -35,16 +35,31 @@ function appBaseUrl(req: Request): string {
   return (raw || resolveFrontendUrl()).replace(/\/$/, '');
 }
 
+const PARTNER_STATUS_FILTER = ['PROSPECT', 'INVITED', 'ACTIVE', 'SUSPENDED', 'TERMINATED'] as const;
+const PARTNER_VERIFICATION_FILTER = ['NOT_VERIFIED', 'IN_REVIEW', 'NEEDS_INFO', 'VERIFIED', 'REJECTED'] as const;
+const INVALID = Symbol('invalid-filter');
+/** undefined = no filter (absent / empty); INVALID = present but not one of the values (or sent more than once). */
+function parseEnumFilter<T extends string>(raw: unknown, allowed: readonly T[]): T | undefined | typeof INVALID {
+  if (raw === undefined || raw === '') return undefined;
+  return typeof raw === 'string' && (allowed as readonly string[]).includes(raw) ? (raw as T) : INVALID;
+}
+
 export const partnerController = {
   // ── Danh sách + hồ sơ ─────────────────────────────────────────────────────
   async list(req: Request, res: Response) {
-    const raw = req.query.status;
-    const VALID = ['PROSPECT', 'INVITED', 'ACTIVE', 'SUSPENDED', 'TERMINATED'];
-    const status = typeof raw === 'string' && VALID.includes(raw) ? (raw as any) : undefined;
-    const rawVerification = req.query.verificationStatus;
-    const VALID_VERIFICATION = ['NOT_VERIFIED', 'IN_REVIEW', 'NEEDS_INFO', 'VERIFIED', 'REJECTED'];
-    const verificationStatus =
-      typeof rawVerification === 'string' && VALID_VERIFICATION.includes(rawVerification) ? (rawVerification as any) : undefined;
+    // N-A-06: an unknown filter value used to be ignored (200 with every partner); now it is a 400. Absent or empty = no filter.
+    const status = parseEnumFilter(req.query.status, PARTNER_STATUS_FILTER);
+    const verificationStatus = parseEnumFilter(req.query.verificationStatus, PARTNER_VERIFICATION_FILTER);
+    if (status === INVALID || verificationStatus === INVALID) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: status === INVALID ? 'INVALID_STATUS_FILTER' : 'INVALID_VERIFICATION_FILTER',
+          message: status === INVALID ? 'Trạng thái lọc không hợp lệ. Hãy chọn lại bộ lọc.' : 'Trạng thái xác minh lọc không hợp lệ. Hãy chọn lại bộ lọc.',
+        },
+      });
+      return;
+    }
     const assignedAdminId = typeof req.query.assignedAdminId === 'string' ? req.query.assignedAdminId : undefined;
     const partners = await partnerService.listPartners({ status, verificationStatus, assignedAdminId });
     res.json({ success: true, data: partners });
@@ -174,6 +189,19 @@ export const partnerController = {
         };
       }),
     });
+  },
+
+  /**
+   * GET /admin/partner-accounts/role-index (admin only). The admin user list filtered by a partner role used to ask for the roles of every
+   * GYM_OWNER login 200 ids at a time (5+ sequential calls, ~3.6 s). The staff roles are few, so one call lists them all:
+   * { success, data: { MANAGER: [userId], RECEPTIONIST: [userId], ACCOUNTANT: [userId] } }. A GYM_OWNER login in none of the lists is an
+   * OWNER (a real OWNER account, or a legacy owner with no partner account - both are "OWNER" in the list).
+   */
+  async roleIndex(_req: Request, res: Response) {
+    const rows = await partnerRepository.listNonOwnerAccountRoles();
+    const index: Record<string, string[]> = { MANAGER: [], RECEPTIONIST: [], ACCOUNTANT: [] };
+    for (const r of rows) (index[r.role] ??= []).push(r.userId);
+    res.json({ success: true, data: index });
   },
 
   // ── Hành động lên từng tài khoản ──────────────────────────────────────────

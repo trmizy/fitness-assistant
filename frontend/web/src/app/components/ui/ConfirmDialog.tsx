@@ -21,6 +21,16 @@ import { Button } from "./button";
 const CONFIRM_CLASS =
   "bg-[var(--st-success)] text-[var(--primary-foreground)] hover:brightness-95 dark:bg-[var(--button-bg)] dark:text-[var(--button-text)] dark:hover:brightness-110";
 
+/**
+ * Destructive confirm button. The shared `destructive` variant is white on #ef4444 (3.76:1 in light) and on a 60% red
+ * in dark - below 4.5:1 for 14px text (N14T-05 measured 3.62 on "Từ chối"). `--st-danger` / `--primary-foreground`
+ * are the admin status tokens already used for danger text: #b91c1c on white (6.5:1) in light, #f87171 with
+ * near-black text (7.4:1) in dark.
+ */
+const DANGER_CLASS = "bg-[var(--st-danger)] text-[var(--primary-foreground)] hover:brightness-95 focus-visible:ring-[var(--st-danger)]/30";
+/** Touch target: 40px at every width (the base button is 36px). */
+const TOUCH_CLASS = "min-h-10 px-4";
+
 export interface ConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -74,10 +84,10 @@ export function ConfirmDialog({
         </AlertDialogHeader>
         {children}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending}>Huỷ</AlertDialogCancel>
+          <AlertDialogCancel disabled={pending} className={TOUCH_CLASS}>Huỷ</AlertDialogCancel>
           <Button
-            variant={danger ? "destructive" : "default"}
-            className={danger ? undefined : CONFIRM_CLASS}
+            variant="default"
+            className={`${TOUCH_CLASS} ${danger ? DANGER_CLASS : CONFIRM_CLASS}`}
             disabled={confirmDisabled || pending}
             onClick={handleConfirm}
           >

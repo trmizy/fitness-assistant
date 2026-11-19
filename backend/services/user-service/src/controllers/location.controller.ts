@@ -38,6 +38,47 @@ export const locationController = {
     }
   },
 
+  getWardByCode: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const raw = String(req.params.code ?? "").trim();
+      if (!/^\d{1,9}$/.test(raw)) {
+        res.status(400).json({ error: "code phải là số nguyên dương" });
+        return;
+      }
+      const code = Number(raw);
+      if (!Number.isSafeInteger(code) || code < 1 || code > 2_147_483_647) {
+        res.status(400).json({ error: "code phải là số nguyên dương" });
+        return;
+      }
+
+      const ward = await locationRepository.findWardWithGeoByCode(code);
+      if (!ward) {
+        res.status(404).json({ error: `Phường/xã có code ${code} không tồn tại` });
+        return;
+      }
+
+      res.json({
+        code: ward.code,
+        provinceCode: ward.provinceCode,
+        name: ward.name,
+        centroid: ward.geo
+          ? { lat: ward.geo.centroidLat, lng: ward.geo.centroidLng }
+          : null,
+        bbox: ward.geo
+          ? {
+              minLat: ward.geo.minLat,
+              maxLat: ward.geo.maxLat,
+              minLng: ward.geo.minLng,
+              maxLng: ward.geo.maxLng,
+            }
+          : null,
+      });
+    } catch (err) {
+      logDbError(err, "locationController.getWardByCode");
+      res.status(500).json({ error: "Failed to fetch ward" });
+    }
+  },
+
   searchLocations: async (req: Request, res: Response): Promise<void> => {
     try {
       const q = String(req.query.q ?? "").trim();

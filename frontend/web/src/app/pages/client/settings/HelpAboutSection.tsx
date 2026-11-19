@@ -1,5 +1,5 @@
-import { QuestionIcon as HelpCircle, InfoIcon as Info, ArrowSquareOutIcon as ExternalLink, CompassIcon as Compass } from "@phosphor-icons/react";
-import { useNavigate } from "react-router";
+import { QuestionIcon as HelpCircle, InfoIcon as Info, ArrowSquareOutIcon as ExternalLink, CompassIcon as Compass, ScalesIcon as LicenseIcon } from "@phosphor-icons/react";
+import { Link, useNavigate } from "react-router";
 import { SectionCard } from "./components/SectionCard";
 
 // Kept alongside frontend/web/package.json's "version" field — no build-time
@@ -80,14 +80,22 @@ export function HelpAboutSection() {
           Fitness Assistant — trợ lý tập luyện &amp; dinh dưỡng với AI Coach, giáo
           án tập luyện thích ứng và theo dõi tiến độ.
         </p>
-        <a
-          href="https://github.com/trmizy/fitness-assistant"
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 w-fit"
-        >
-          <ExternalLink className="w-3.5 h-3.5" /> Mã nguồn dự án
-        </a>
+        <div className="flex flex-wrap items-center gap-4">
+          <a
+            href="https://github.com/trmizy/fitness-assistant"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 w-fit"
+          >
+            <ExternalLink className="w-3.5 h-3.5" /> Mã nguồn dự án
+          </a>
+          <Link
+            to="/attributions"
+            className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 w-fit"
+          >
+            <LicenseIcon className="w-3.5 h-3.5" /> Nguồn ảnh &amp; giấy phép dữ liệu
+          </Link>
+        </div>
         <p className="text-[11px] text-zinc-600">
           Điều khoản sử dụng / Chính sách quyền riêng tư: chưa có trang riêng trong
           phiên bản này.

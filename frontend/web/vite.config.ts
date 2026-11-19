@@ -90,11 +90,9 @@ export default defineConfig({
         configure: forwardRealHost,
         // Frontend requests are prefixed with /api (see api.ts's default
         // baseURL); the gateway's own routes are NOT (e.g. "/auth/login",
-        // not "/api/auth/login") — strip it before forwarding. The one
-        // pre-existing exception, POST /api/translate, is already mounted
-        // on the gateway at that literal path, so after the frontend's
-        // baseURL adds its own /api prefix the double "/api/api/translate"
-        // has its FIRST /api stripped here, correctly leaving "/api/translate".
+        // not "/api/auth/login") — strip it before forwarding. POST /translate follows the
+        // same rule now (the gateway still keeps a literal "/api/translate" alias for old
+        // mobile builds, which reaches it through the stripped double prefix).
         rewrite: (requestPath) => requestPath.replace(/^\/api/, ""),
       },
       // BUG FIX (2026-09-06): VNPay's browser-side return trip is a real GET navigation to

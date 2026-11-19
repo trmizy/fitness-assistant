@@ -7,6 +7,9 @@
  *   node scripts/seed-marketplace/index.mjs --tier b --dry-run                      Tier B request plan, nothing is sent
  *   SEED_MARKETPLACE_CONFIRM=dev node scripts/seed-marketplace/index.mjs --target dev [--reseed] --tier all \
  *        --gateway http://localhost:3000       (needs verify-clean.ok + SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD + the compose override of SEED.md)
+ *   SEED_MARKETPLACE_CONFIRM=scale node scripts/seed-marketplace/index.mjs --target scale --counts   (isolated scale stack on localhost:55440)
+ *   SEED_MARKETPLACE_CONFIRM=official node scripts/seed-marketplace/index.mjs --target official --tier scale      (thesis-defense DBs gymcoach_<svc>_official:
+ *        scale-tier SYNTHETIC history, EMPTY DBs only, media env explicit)  and then  --target official --tier all --gateway <url>  (REAL business seed on top)
  *
  * Tier A = direct DB fixtures (accounts, profiles, InBody). Tier B = the real flows over HTTP through the gateway.
  * Guards: see lib/guard.mjs. The password is never printed. Nothing here ever deletes or updates an existing row.
@@ -15,10 +18,17 @@ import { assertSeedAllowed, resolveTarget, SeedGuardError } from "./lib/guard.mj
 import fs from 'node:fs';
 import path from 'node:path';
 import { closePools, devPassword, makePools, runTierA, seedCounts, seedDataPresent, SeedCollisionError, assertNoCollisions, ensureSeedAdmin, seedAdmin } from "./lib/tierA.mjs";
-import { checkFreshTarget } from "./lib/preflight.mjs";
+import { assertOfficialKnownAccountsOnly, checkFreshTarget } from "./lib/preflight.mjs";
+import { fileURLToPath } from "node:url";
 import { buildWorld, summarize } from "./lib/world/index.mjs";
 import { makeClient, redact } from "./lib/tierB/client.mjs";
 import { describeTierB, makeTierBContext, runTierB } from "./lib/tierB/run.mjs";
+import { runScaleSeed } from "./lib/scale/runner.mjs";
+import { applyRealAvatars, planRealAvatars } from "./lib/real-avatars.mjs";
+import { SCALE_NAMESPACE } from "./lib/scale/config.mjs";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const OFFICIAL_RUNTIME_DIR = path.join(here, ".runtime", "official"); // gitignored; never shared with the scale stack's .runtime files
 
 const args = process.argv.slice(2);
 const flag = (n, d) => {
@@ -53,7 +63,7 @@ async function main() {
   const pools = makePools(target);
   try {
     // 1. the guard decides BEFORE any connection is made (a refused run never touches a database, not even to read)
-    const gopts = { reseed: !!flag("reseed", false), allowSharedTestDb: !!flag("allow-shared-test-db", false) };
+    const gopts = { reseed: !!flag("reseed", false), allowSharedTestDb: !!flag("allow-shared-test-db", false), allowRemoteHost: !!flag("allow-remote-host", false) };
     let guard = assertSeedAllowed(target, gopts);
     // 2. on dev only: has the seed already run? then --reseed is required (ensure-only, deletes nothing)
     if (guard.kind === "dev") guard = assertSeedAllowed(target, { ...gopts, seedDataPresent: await seedDataPresent(pools).catch(() => false) });
@@ -62,9 +72,34 @@ async function main() {
       console.log(JSON.stringify(await seedCounts(pools), null, 2));
       return;
     }
+    if (tier === "scale") {
+      if (target.kind === "dev" || target.kind === "fresh" || target.kind === "partner") {
+        throw new SeedGuardError("TARGET_REFUSED", `--tier scale only supports --target scale (isolated 55440) or --target test (55433), never "${target.kind}".`);
+      }
+      const scaleFactorRaw = flag("scale-factor", target.kind === "test" ? "0.01" : "1");
+      const scaleFactor = Number(scaleFactorRaw);
+      const batchSize = Number(flag("batch", "1000"));
+      const resume = !!flag("resume", false);
+      const only = typeof flag("only", null) === "string" ? flag("only", null) : null;
+      const skipMedia = flag("with-media", false) ? false : flag("skip-media", target.kind === "test");
+      // official: own runtime dir (demo-account file, checkpoint, metrics) + avatar dir (--avatars-dir or SEED_AVATARS_DIR) so the scale stack's files are never overwritten
+      const official = target.kind === "official";
+      const runtimeDir = official ? OFFICIAL_RUNTIME_DIR : undefined;
+      const avatarsFlag = flag("avatars-dir", process.env.SEED_AVATARS_DIR || null);
+      const avatarsDir = typeof avatarsFlag === "string" ? path.resolve(avatarsFlag) : official ? path.join(OFFICIAL_RUNTIME_DIR, "profile-photos") : undefined;
+      const namespace = typeof flag("namespace", SCALE_NAMESPACE) === "string" ? flag("namespace", SCALE_NAMESPACE) : SCALE_NAMESPACE;
+      const out = await runScaleSeed({ target, pools, scaleFactor, batchSize, namespace, resume, only, skipMedia, log, ...(runtimeDir ? { runtimeDir } : {}), ...(avatarsDir ? { avatarsDir } : {}) });
+      console.log(JSON.stringify({ scaleMetrics: out.metrics }, null, 2));
+      return;
+    }
+    if (!["a", "b", "all"].includes(tier)) {
+      throw new SeedGuardError("UNKNOWN_TIER", `Unsupported --tier "${tier}" (expected a, b, all, or scale).`);
+    }
     if (guard.kind === "fresh") await checkFreshTarget(target, pools, { reseed: gopts.reseed });
+    // official: the business seed layers on top of the scale tier; refuse if any account is outside the scale/seed domains
+    if (guard.kind === "official") await assertOfficialKnownAccountsOnly(pools);
     await assertNoCollisions(pools, world);
-    if (guard.kind === "fresh" || guard.kind === "partner") {
+    if (guard.kind === "fresh" || guard.kind === "partner" || guard.kind === "official") {
       const count = await ensureSeedAdmin(pools);
       log(`[seed] seed admin +${count} (${seedAdmin.email})`);
     }
@@ -75,7 +110,7 @@ async function main() {
     if (tier === "b" || tier === "all") {
       const gateway = flag("gateway", null);
       if (!gateway || gateway === true) throw new SeedGuardError("NO_GATEWAY", "Tier B needs --gateway <url> (a running stack whose databases ARE the target ones).");
-      const ownedAdmin = guard.kind === "fresh" || guard.kind === "partner";
+      const ownedAdmin = guard.kind === "fresh" || guard.kind === "partner" || guard.kind === "official";
       const adminEmail = ownedAdmin ? seedAdmin.email : process.env.SEED_ADMIN_EMAIL;
       const adminPassword = ownedAdmin ? devPassword() : process.env.SEED_ADMIN_PASSWORD;
       if (!adminEmail || !adminPassword) throw new SeedGuardError("NO_ADMIN", "Tier B needs SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD.");
@@ -100,6 +135,14 @@ async function main() {
       const businessWrites = client.log.filter(r => !['GET','HEAD','OPTIONS'].includes(r.method) && r.path !== '/auth/login' && r.status >= 200 && r.status < 300).length;
       log(`[seed] Tier B done: ${JSON.stringify(redact({ ms: out.ms, requests: out.requests, businessWrites, stats: out.stats, errors: out.errors.length, warnings: out.warnings.length }))}`);
       if (out.errors.length) process.exitCode = 2;
+    }
+    if (guard.kind === "official") {
+      // REAL accounts get the same deterministic DiceBear avatar as the scale tier (only where photo_url IS NULL; idempotent). Files go to the same
+      // dir as the scale avatars (--avatars-dir / SEED_AVATARS_DIR / .runtime/official/profile-photos) and are copied to user-service in README step 5.
+      const avatarsFlag = flag("avatars-dir", process.env.SEED_AVATARS_DIR || null);
+      const avatarsDir = typeof avatarsFlag === "string" ? path.resolve(avatarsFlag) : path.join(OFFICIAL_RUNTIME_DIR, "profile-photos");
+      const av = await applyRealAvatars({ userPool: pools.user, plan: await planRealAvatars(pools.user), avatarsDir, log });
+      log(`[seed] real avatars: ${JSON.stringify({ planned: av.planned, rowsUpdated: av.rowsUpdated, filesWritten: av.filesWritten, raced: av.raced })}`);
     }
     log(`[seed] counts: ${JSON.stringify(await seedCounts(pools))}`);
   } finally {

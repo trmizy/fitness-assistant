@@ -1,8 +1,9 @@
 import { affiliationRepository } from '../repositories/affiliation.repository';
 import { gymService } from './gym.service';
+import { assertInvitablePt } from './pt-eligibility.service';
 
-function err(message: string, status: number) {
-  return Object.assign(new Error(message), { status });
+function err(message: string, status: number, code?: string) {
+  return Object.assign(new Error(message), { status, ...(code ? { code } : {}) });
 }
 
 export const affiliationService = {
@@ -12,14 +13,22 @@ export const affiliationService = {
 
   async invite(gymId: string, ownerId: string, ptId: string, data: { employmentType?: string; commissionRate?: number; visibility?: string }) {
     await gymService.getOwnedGym(gymId, ownerId);
-    return affiliationRepository.create({
-      gym: { connect: { id: gymId } },
-      ptId,
-      employmentType: (data.employmentType as any) ?? undefined,
-      commissionRate: data.commissionRate,
-      visibility: (data.visibility as any) ?? undefined,
-      invitedBy: ownerId,
-    });
+    // N13E-04: a real, active trainer only (a customer's id or an unknown id no longer leaves a dangling PENDING invitation); after the ownership check so it is no probe for strangers
+    ptId = await assertInvitablePt(ptId);
+    try {
+      return await affiliationRepository.create({
+        gym: { connect: { id: gymId } },
+        ptId,
+        employmentType: (data.employmentType as any) ?? undefined,
+        commissionRate: data.commissionRate,
+        visibility: (data.visibility as any) ?? undefined,
+        invitedBy: ownerId,
+      });
+    } catch (e: any) {
+      // (gymId, ptId) is unique: a second invite is a clear 409, not a raw Prisma 500.
+      if (e?.code === 'P2002') throw err('Huấn luyện viên này đã được mời hoặc đã thuộc chi nhánh này', 409, 'AFFILIATION_ALREADY_EXISTS');
+      throw e;
+    }
   },
 
   async listPendingForPT(ptId: string) {

@@ -7,6 +7,7 @@ import {
   GYM_NOT_ACCEPTING_CONTRACTS,
   GYM_TERMS_CHANGED,
 } from "./contract.service";
+import { assertNotSynthetic } from "./synthetic-guard.util";
 
 /**
  * Phase 3 / P3.5 - `GET /contracts/:id/checkout-context` : everything the payment step needs to
@@ -86,6 +87,7 @@ export const contractCheckoutContextService = {
     if (!c) throw err("Contract not found", 404);
     const isParty = c.clientUserId === actor.userId || c.ptUserId === actor.userId;
     if (!isParty && actor.role !== "ADMIN") throw err("Not authorized", 403);
+    assertNotSynthetic(c);
     if (c.status !== ContractStatus.PENDING_PAYMENT) {
       throw err(
         `Hợp đồng không ở trạng thái chờ thanh toán (${c.status})`,

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { collaborationService } from '../services/collaboration.service';
+import { assertInvitablePt } from '../services/pt-eligibility.service';
 import { principalId } from '../middleware/partner-context.middleware';
 import { partnerGuard } from '../services/partner-guard.service';
 import { withCollaborationLifecycle } from '../services/collaboration-lifecycle';
@@ -51,14 +52,17 @@ export const collaborationController = {
   async proposeAsGym(req: Request, res: Response) {
     try {
       const ownerId = principalId(req);
-      const { ptUserId, ptRate, gymRate, platformRate, note } = req.body;
-      if (!ptUserId) {
+      const { ptUserId: rawPtUserId, ptRate, gymRate, platformRate, note } = req.body;
+      if (!rawPtUserId) {
         res.status(400).json({ success: false, error: { message: 'ptUserId is required' } });
         return;
       }
+      const ptUserId = String(rawPtUserId).trim();
       // Same authorization gate propose() itself would apply to a response — verified up
       // front here since propose() does not otherwise check gym ownership for the GYM actor.
       await collaborationService.assertParty({ gymId: req.params.gymId, ptUserId }, 'GYM', ownerId);
+      // N13E-03: a real, active trainer only (UUID format -> 400, unknown -> 404, not a PT / locked -> 422); after the ownership gate so it is no probe for strangers
+      await assertInvitablePt(ptUserId);
       // Phase 5 mục 5.1 — "Cộng tác PT mới ❌ dừng" khi đối tác bị tạm khoá/chấm dứt; hợp
       // tác đang chạy (ACCEPTED trước đó) không bị đụng tới ở đây.
       await partnerGuard.assertAcceptsNewMoney(ownerId);

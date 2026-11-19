@@ -53,7 +53,7 @@ export const assessmentBody = z
 export const findingBody = z.object({ finding: z.enum(['ESTABLISHED', 'NOT_ESTABLISHED']), reasoning: text(8000) }).strict();
 
 /** No outcome, no amount, no reason: the outcome is computed from (class, finding) and the amount by the existing refund quote. */
-export const proposalBody = z.object({ note: text(2000).optional() }).strict();
+export const proposalBody = z.object({ note: text(2000).optional(), appealResult: z.enum(['UPHOLD', 'OVERTURN_MEMBER', 'OVERTURN_GYM']).optional() }).strict();
 
 export const decisionBody = z
   .object({

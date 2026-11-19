@@ -28,7 +28,11 @@ export async function resolvePartnerContext(req: Request, res: Response, next: N
   } catch (e: any) {
     res.status(e.status || 500).json({
       success: false,
-      error: { code: typeof e.code === 'string' && e.status === 403 ? e.code : 'PARTNER_CONTEXT_UNRESOLVED', message: e.message },
+      error: {
+        code: typeof e.code === 'string' && e.status === 403 ? e.code : 'PARTNER_CONTEXT_UNRESOLVED',
+        message: e.message,
+        ...(e.code === 'PARTNER_ACCESS_REVOKED' && typeof e.gymName === 'string' && e.gymName ? { gymName: e.gymName } : {}),
+      },
     });
   }
 }

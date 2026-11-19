@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { gymCaseApi } from "../gymCaseApi";
 import type { FormProps } from "./formTypes";
-import { actionOf, ACT_ASSIGN_REVIEWER, shortRefOf } from "../gymCaseModel";
+import { actionOf, ACT_ASSIGN_REVIEWER, adminDid } from "../gymCaseModel";
 import { isAppealReview } from "../gymCaseLabels";
 import { CARD, Muted, Notice } from "../GymParts";
 import {
@@ -107,7 +107,7 @@ export function GymAppealReviewerPanel({
           {appeal.reviewerId && (
             <p className="text-adm-text-2">
               Người xem xét hiện tại:{" "}
-              {appeal.reviewerId === currentUserId ? "bạn" : `mã ${shortRefOf(appeal.reviewerId)}`}
+              {adminDid(appeal.reviewerId, currentUserId)}
             </p>
           )}
         </div>
@@ -128,7 +128,7 @@ export function GymAppealReviewerPanel({
               <option value="">-- Để trống để tự nhận trách nhiệm --</option>
               {eligibleAdmins.map((adm) => (
                 <option key={adm.id} value={adm.id}>
-                  {adm.label} ({shortRefOf(adm.id)})
+                  {adm.label}
                 </option>
               ))}
             </select>

@@ -43,7 +43,7 @@ test.after(async () => {
 
 async function seedTopup(
   db: PrismaClientLike,
-  opts: { provider: 'VNPAY' | 'MOMO'; status?: 'PENDING' | 'PAID'; payerId: string },
+  opts: { provider: 'VNPAY' | 'ZALOPAY'; status?: 'PENDING' | 'PAID'; payerId: string },
 ) {
   const wallet = await db.wallet.upsert({
     where: { ownerType_ownerId: { ownerType: 'CLIENT', ownerId: opts.payerId } },
@@ -122,7 +122,7 @@ test("SECURITY: a failure reported under one gateway never closes another gatewa
   const { prisma: db, webhook: w } = await loadModules();
   const payerId = `gap22-${randomUUID()}`;
   try {
-    const { txn } = await seedTopup(db, { provider: 'MOMO', payerId });
+    const { txn } = await seedTopup(db, { provider: 'ZALOPAY', payerId });
     assert.equal(await w.failFromSignedGatewayResult({ provider: 'VNPAY', providerTransactionId: txn.id }), false);
     assert.equal((await db.paymentTransaction.findUnique({ where: { id: txn.id } }))!.status, 'PENDING');
   } finally {

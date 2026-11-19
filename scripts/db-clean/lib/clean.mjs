@@ -21,6 +21,7 @@ import { computeScriptVersion, staticChecks, confirmTokenOf } from './manifest.m
 import { recheck } from './audit.mjs';
 import { loadBackupSet } from './backup.mjs';
 import { denyParams, emptyDeny } from './deny.mjs';
+import { readDrift, driftProblem, walletsWithMoneyAmong, describeWalletsWithMoney } from './drift.mjs';
 import { allowlistEntry, triggerPreflight, guardTriggerLiveProblems, triggerStates, disableTriggerSql, enableTriggerSql, triggerStateSql } from './triggers.mjs';
 
 export const progressFile = (runDir) => path.join(runDir, 'cleanup-progress.json');
@@ -82,6 +83,15 @@ async function cleanOneDb(ctx, svc, manifest, maintPassword, progressEntry) {
       const keysByTable = new Map(mTables.map((t) => [`${t.schema}.${t.table}`, t]));
       const ord = deleteOrder([...keysByTable.keys()], (await loadSchema(db)).fks);
       if (!ord.order) throw new Refused(`${datname}: foreign-key cycle ${ord.cycle.join(' -> ')}`, 'FK_CYCLE');
+      // 1c. N13F-01 money guards (payment database only): never delete a wallet that holds money (no waiver), and remember the reconciliation drift so it can be compared before COMMIT
+      let driftBefore = null;
+      if (svc === 'payment') {
+        const walletTable = keysByTable.get('public.wallets');
+        const money = await walletsWithMoneyAmong(db, (walletTable?.keys ?? []).map((k) => String(k[0])));
+        if (money.length) throw new Refused(`${datname}: ${describeWalletsWithMoney(money)}`, 'WALLET_WITH_MONEY');
+        driftBefore = await readDrift(db);
+        progressEntry.driftBefore = driftBefore;
+      }
       const deleted = {};
       const guardUsed = [];
       for (const key of ord.order) {
@@ -125,6 +135,14 @@ async function cleanOneDb(ctx, svc, manifest, maintPassword, progressEntry) {
       for (const g of guardByTable.values()) {
         const s = JSON.stringify(await db.json(triggerStateSql(g)));
         if (s !== '["O"]') throw new Refused(`${datname}.${g.table}: trigger ${g.trigger} is not enabled before COMMIT (tgenabled ${s})`, 'GUARD_TRIGGERS');
+      }
+      // 3e. N13F-01: the reconciliation (escrow - claims) must read exactly what it read before the first DELETE, whatever it was - otherwise ROLLBACK
+      if (svc === 'payment') {
+        await runHook(ctx, svc, 'before-commit');
+        const driftAfter = await readDrift(db);
+        progressEntry.driftAfter = driftAfter;
+        const dp = driftProblem(driftBefore, driftAfter);
+        if (dp) throw new Refused(`${datname}: ${dp} - the payment cleanup is rolled back`, 'DRIFT_CHANGED');
       }
       await db.exec('COMMIT');
       progressEntry.rowsAfter = after;
@@ -235,6 +253,16 @@ export async function verifyClean(ctx, { runDir, manifest, token, maintPassword 
   const b = loadBackupSet(profile, runDir);
   const report = {};
   const problems = [];
+  // N13F-01: the books must still read what they read before the payment cleanup started (drift recorded in cleanup-progress.json)
+  if (manifest.parameters.cleanDbs.includes('payment') && progress.dbs.payment?.driftBefore) {
+    const pay = await openMaint(profile, maintPassword, profile.dbName('payment'));
+    try {
+      const dp = driftProblem(progress.dbs.payment.driftBefore, await readDrift(pay));
+      if (dp) problems.push(`${profile.dbName('payment')}: ${dp} (compared with the reading taken inside the cleanup transaction)`);
+    } finally {
+      await pay.close();
+    }
+  }
   for (const svc of CLEAN_ORDER) {
     const datname = profile.dbName(svc);
     const inScope = manifest.parameters.cleanDbs.includes(svc);

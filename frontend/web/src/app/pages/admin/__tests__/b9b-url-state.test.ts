@@ -19,10 +19,14 @@ test("user filter parsers fall back to All", () => {
   assert.equal(parseUserRole("root"), "All"); assert.equal(parseUserRole(null), "All");
   assert.equal(parseUserStatus("Inactive"), "Inactive"); assert.equal(parseUserStatus("x"), "All");
 });
+test("N15B-05: filters that can never match are not accepted (the list excludes admins and has no Pending status)", () => {
+  assert.equal(parseUserRole("Admin"), "All");
+  assert.equal(parseUserStatus("Pending"), "All");
+});
 test("buildUserParams omits defaults", () => {
   assert.deepEqual(buildUserParams({}), {});
   assert.deepEqual(buildUserParams({ role: "All", status: "All", q: "  ", page: 1 }), {});
-  assert.deepEqual(buildUserParams({ id: "u1", role: "PT", status: "Pending", q: "an", page: 3 }), { id: "u1", role: "PT", status: "Pending", q: "an", page: "3" });
+  assert.deepEqual(buildUserParams({ id: "u1", role: "PT", status: "Inactive", q: "an", page: 3 }), { id: "u1", role: "PT", status: "Inactive", q: "an", page: "3" });
 });
 test("AI tab/filter parsers and params", () => {
   assert.equal(parseAiTab("queue"), "queue"); assert.equal(parseAiTab("nope"), "requests");

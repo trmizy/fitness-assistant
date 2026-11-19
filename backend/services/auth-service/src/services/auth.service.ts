@@ -13,6 +13,7 @@ function assertNotTestAccount(email: string) {
 }
 import { authRepository, prisma } from "../repositories/auth.repository";
 import type { Role } from "../generated/prisma";
+import { passwordPolicyViolation } from "../models/auth.models";
 import { relayPtActiveStateChange } from "./pt-deactivation-relay.service";
 import type {
   ChangePasswordDto,
@@ -134,10 +135,16 @@ export const authService = {
     return authRepository.listUsers(role);
   },
 
+  /** FIX5-ADMIN-PERF — one filtered page of the admin user list (see authRepository.listUsersPage). */
+  async listUsersPage(q: Parameters<typeof authRepository.listUsersPage>[0]) {
+    return authRepository.listUsersPage(q);
+  },
+
   /** Ids of accounts on reserved test email domains (see assertNotTestAccount). */
   async listTestAccountIds(): Promise<string[]> {
-    const users = await prisma.user.findMany({ select: { id: true, email: true } });
-    return users.filter((u) => isTestAccountEmail(u.email)).map((u) => u.id);
+    // Decided by the database (only the ids come back). It used to read every account (id + email) into memory and filter with
+    // isTestAccountEmail; the SQL applies the same rule through TEST_ACCOUNT_DOMAIN_PATTERNS (shared/test-accounts.ts).
+    return authRepository.listTestAccountIds();
   },
 
   async register(data: RegisterStartDto) {
@@ -145,7 +152,7 @@ export const authService = {
     const existing = await authRepository.findUserByEmail(data.email);
     // BUG-001 / TC-AUTH-02: must be a hard 409 conflict, not 400 — clearer for
     // the frontend to distinguish "already verified" from "validation error".
-    if (existing) throw { status: 409, message: "Email đã đăng ký" };
+    if (existing) throw { status: 409, message: "Email đã đăng ký", code: "EMAIL_ALREADY_REGISTERED" };
 
     const previous = await authRepository.findEmailVerificationByEmail(
       data.email,
@@ -156,7 +163,8 @@ export const authService = {
       if (secondsSinceLastSend < OTP_RESEND_SECONDS) {
         throw {
           status: 429,
-          message: `OTP recently sent. Please wait ${Math.ceil(
+          code: "OTP_RECENTLY_SENT",
+          message: `Mã vừa được gửi. Vui lòng đợi ${Math.ceil(
             OTP_RESEND_SECONDS - secondsSinceLastSend,
           )}s`,
         };
@@ -208,27 +216,27 @@ export const authService = {
     const record = await authRepository.findEmailVerificationByEmail(
       data.email,
     );
-    if (!record) throw { status: 400, message: "OTP not found" };
+    if (!record) throw { status: 400, message: "Không tìm thấy mã xác nhận. Hãy yêu cầu gửi lại mã.", code: "OTP_NOT_FOUND" };
 
     if (record.expiresAt < new Date()) {
-      throw { status: 400, message: "OTP expired" };
+      throw { status: 400, message: "Mã xác nhận đã hết hạn. Hãy yêu cầu gửi lại mã.", code: "OTP_EXPIRED" };
     }
 
     if (record.attempts >= OTP_MAX_ATTEMPTS) {
-      throw { status: 429, message: "OTP attempts exceeded" };
+      throw { status: 429, message: "Bạn đã nhập sai quá nhiều lần. Hãy yêu cầu gửi lại mã mới.", code: "OTP_ATTEMPTS_EXCEEDED" };
     }
 
     const otpHash = hashOtp(data.otp);
     if (otpHash !== record.otpHash) {
       await authRepository.incrementEmailVerificationAttempts(data.email);
-      throw { status: 400, message: "Invalid OTP" };
+      throw { status: 400, message: "Mã xác nhận không đúng.", code: "OTP_INVALID" };
     }
 
     assertNotTestAccount(data.email);
     const existing = await authRepository.findUserByEmail(data.email);
     if (existing) {
       await authRepository.deleteEmailVerification(data.email);
-      throw { status: 400, message: "Email already registered" };
+      throw { status: 409, message: "Email đã đăng ký", code: "EMAIL_ALREADY_REGISTERED" };
     }
 
     const user = await authRepository.createUser({
@@ -274,7 +282,7 @@ export const authService = {
    */
   async resendRegistrationOtp(email: string) {
     const existing = await authRepository.findUserByEmail(email);
-    if (existing) throw { status: 409, message: "Email đã đăng ký" };
+    if (existing) throw { status: 409, message: "Email đã đăng ký", code: "EMAIL_ALREADY_REGISTERED" };
 
     const pending = await authRepository.findEmailVerificationByEmail(email);
     if (!pending) {
@@ -288,6 +296,7 @@ export const authService = {
     if (secondsSinceLastSend < OTP_RESEND_SECONDS) {
       throw {
         status: 429,
+        code: "OTP_RECENTLY_SENT",
         message: `Mã vừa được gửi. Vui lòng đợi ${Math.ceil(
           OTP_RESEND_SECONDS - secondsSinceLastSend,
         )}s`,
@@ -448,7 +457,6 @@ export const authService = {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
-        mustChangePassword: (user as any).mustChangePassword ?? false,
       },
       accessToken,
       refreshToken,
@@ -617,12 +625,12 @@ export const authService = {
       user.password,
     );
     if (!validPassword) {
-      throw { status: 401, message: "Current password is incorrect" };
+      throw { status: 401, message: "Mật khẩu hiện tại không đúng", code: "CURRENT_PASSWORD_INCORRECT" };
     }
 
     const samePassword = await bcrypt.compare(data.newPassword, user.password);
     if (samePassword) {
-      throw { status: 400, message: "New password must be different" };
+      throw { status: 400, message: "Mật khẩu mới phải khác mật khẩu hiện tại", code: "NEW_PASSWORD_SAME_AS_CURRENT" };
     }
 
     const passwordHash = await bcrypt.hash(data.newPassword, 10);
@@ -705,9 +713,8 @@ export const authService = {
    */
   async resetPasswordWithToken(rawToken: string, newPassword: string) {
     if (!rawToken) throw { status: 400, message: "Thiếu mã đặt lại" };
-    if (!newPassword || newPassword.length < 8) {
-      throw { status: 400, message: "Mật khẩu mới phải có ít nhất 8 ký tự" };
-    }
+    const weak = passwordPolicyViolation(newPassword);
+    if (weak) throw { status: 400, message: weak, code: "WEAK_PASSWORD" };
 
     const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
     const record = await authRepository.findPasswordResetByHash(tokenHash);
@@ -754,9 +761,8 @@ export const authService = {
     assertNotTestAccount(email);
     const existing = await authRepository.findUserByEmail(email);
     if (existing) throw { status: 409, message: "Email đã được sử dụng" };
-    if (!data.password || data.password.length < 8) {
-      throw { status: 400, message: "Mật khẩu phải có ít nhất 8 ký tự" };
-    }
+    const weak = passwordPolicyViolation(data.password);
+    if (weak) throw { status: 400, message: weak, code: "WEAK_PASSWORD" };
 
     const passwordHash = await bcrypt.hash(data.password, 10);
     const user = await authRepository.createUser({

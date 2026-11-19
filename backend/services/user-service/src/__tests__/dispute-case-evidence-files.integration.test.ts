@@ -15,7 +15,7 @@ import { guardedTest as test } from "./test-db-guard";
 import { authServiceClient } from "../clients/auth-service.client";
 import { prisma } from "../repositories/profile.repository";
 import { disputeCaseService as svc } from "../services/dispute-case/dispute-case.service";
-import { storageDir, sniffMime, MAX_EVIDENCE_BYTES } from "../services/dispute-case/evidence-storage";
+import { storageDir, sniffMime, MAX_EVIDENCE_BYTES, MAX_EVIDENCE_FILES_PER_PARTY } from "../services/dispute-case/evidence-storage";
 import { addSession, makeContract } from "./pt-restriction.test-helpers";
 import { admin, disableExecutionFlags, enableExecutionFlags } from "./dispute-case-exec.test-helpers";
 
@@ -249,6 +249,22 @@ test("idempotent upload: the same Idempotency-Key replays the first answer and l
   const c = await upload(x.caseId, x.client, { bytes: JPG, mime: "image/jpeg" }, undefined, { "Idempotency-Key": key });
   assert.equal(c.status, 409);
   assert.equal(filesOf(x.caseId).length, 1);
+});
+
+test("N13D-02: one party may attach at most MAX_EVIDENCE_FILES_PER_PARTY files per case; the next is 409 EVIDENCE_FILE_LIMIT_REACHED and leaves nothing; the other party has its own allowance", async () => {
+  const x = await mkCase();
+  for (let i = 0; i < MAX_EVIDENCE_FILES_PER_PARTY; i++) {
+    const ok = await upload(x.caseId, x.client, { bytes: PNG, mime: "image/png" });
+    assert.equal(ok.status, 201, `file ${i + 1}: ${JSON.stringify(ok.json)}`);
+  }
+  assert.equal(filesOf(x.caseId).length, MAX_EVIDENCE_FILES_PER_PARTY);
+  const over = await upload(x.caseId, x.client, { bytes: PNG, mime: "image/png" });
+  assert.deepEqual([over.status, over.json.code], [409, "EVIDENCE_FILE_LIMIT_REACHED"]);
+  assert.match(over.json.error, /tối đa 10 tệp/);
+  assert.equal(filesOf(x.caseId).length, MAX_EVIDENCE_FILES_PER_PARTY, "the refused upload's bytes were removed");
+  assert.equal(await prisma.disputeCaseEvidence.count({ where: { caseId: x.caseId, submittedBy: x.clientUserId, source: "party.external_document_file" } }), MAX_EVIDENCE_FILES_PER_PARTY);
+  // the PT is a different party: its own allowance is untouched
+  assert.equal((await upload(x.caseId, x.pt, { bytes: JPG, mime: "image/jpeg" })).status, 201);
 });
 
 test("the evidence directory can never be inside an 'uploads' folder", () => {

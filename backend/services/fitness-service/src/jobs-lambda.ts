@@ -42,7 +42,7 @@ export async function runFitnessServiceJob(event: FitnessServiceJobEvent) {
 export async function handler(event: FitnessServiceJobEvent = {}) {
   try {
     await ensureDatabaseUrlConfigured();
-    validateRequiredRuntimeConfig();
+    validateRequiredRuntimeConfig("jobs");
     const result = await runFitnessServiceJob(event);
     return {
       statusCode: 200,

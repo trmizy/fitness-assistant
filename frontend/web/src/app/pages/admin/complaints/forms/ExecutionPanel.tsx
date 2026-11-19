@@ -8,9 +8,8 @@ import { useId, useState } from "react";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react";
 import { gymCaseApi } from "../gymCaseApi";
 import { execBlockedText } from "../gymCaseErrors";
-import { EXECUTE_CONFIRM_NOTICE, EXECUTE_WALLET_NOTE, gymOutcomeLabel } from "../gymCaseLabels";
-import { executeResultText } from "../gymCaseModel";
-import { formatMoneyExact } from "../../adminFinanceOverview.utils";
+import { EXECUTE_CONFIRM_NOTICE, EXECUTE_SUPPLEMENT_CONFIRM_NOTICE, EXECUTE_WALLET_NOTE, gymOutcomeLabel } from "../gymCaseLabels";
+import { executeAmountText, executeResultText } from "../gymCaseModel";
 import type { GymExecuteResult, GymReconcileResult } from "../gymCaseTypes";
 import { ActionButton, ButtonRow, Check, ConfirmModal, ErrorBox, FormCard, ResultNote, useCloseOnResult, useGymWrite } from "../gymCaseKit";
 import type { FormProps } from "./formTypes";
@@ -33,6 +32,7 @@ export function ExecuteCard({ detail, onChanged, push }: FormProps) {
   useCloseOnResult(open, setOpen, w);
   const outcome = detail.decision?.outcome;
   const refund = !!outcome && outcome.startsWith("REFUND_");
+  const supplement = outcome === "REFUND_APPEAL_SUPPLEMENT";
   const outcomeText = detail.decision?.outcomeLabel || gymOutcomeLabel(outcome);
   const blocked = detail.case.execStatus === "EXEC_BLOCKED" ? [...detail.execution.history].reverse().find((h) => h.state === "BLOCKED") : null;
 
@@ -50,7 +50,7 @@ export function ExecuteCard({ detail, onChanged, push }: FormProps) {
   return (
     <FormCard
       title="Thực thi quyết định"
-      caption={refund ? `Hoàn gói hội viên đúng một lần. ${EXECUTE_WALLET_NOTE}` : "Ghi nhận kết quả và đóng khiếu nại. Kết quả này không có hoàn tiền."}
+      caption={supplement ? `Hoàn thêm đúng phần chênh lệch sau kháng nghị, một lần. ${EXECUTE_WALLET_NOTE}` : refund ? `Hoàn gói hội viên đúng một lần. ${EXECUTE_WALLET_NOTE}` : "Ghi nhận kết quả và đóng khiếu nại. Kết quả này không có hoàn tiền."}
       testId="d6-execute"
     >
       {blocked && (
@@ -75,18 +75,13 @@ export function ExecuteCard({ detail, onChanged, push }: FormProps) {
             ? [
                 // INT-21: the refund is FIXED at the complaint date (refundQuote); show it before the admin confirms. What really reaches the
                 // wallet is only known afterwards (the money may already have been released to the gym -> NEEDS_RECONCILIATION).
-                {
-                  label: "Số tiền",
-                  value: detail.refundQuote
-                    ? `${formatMoneyExact(detail.refundQuote.amount)}: mức hoàn đã chốt theo ngày khiếu nại. Máy chủ kiểm lại khi thực thi; số tiền thực ghi vào ví hiện sau khi thực thi.`
-                    : "Do máy chủ tính theo phần chưa dùng của gói, hiện sau khi thực thi",
-                },
+                { label: supplement ? "Số tiền hoàn thêm" : "Số tiền", value: executeAmountText(detail) },
                 { label: "Nơi nhận", value: "Ví Gymini của hội viên (không chuyển về ngân hàng)" },
               ]
             : []),
         ]}
-        notice={refund ? EXECUTE_CONFIRM_NOTICE : "Thao tác ghi nhận kết quả và đóng khiếu nại. Không thể hoàn tác."}
-        confirmLabel={refund ? "Thực thi và hoàn gói" : "Thực thi"}
+        notice={supplement ? EXECUTE_SUPPLEMENT_CONFIRM_NOTICE : refund ? EXECUTE_CONFIRM_NOTICE : "Thao tác ghi nhận kết quả và đóng khiếu nại. Không thể hoàn tác."}
+        confirmLabel={supplement ? "Thực thi và hoàn thêm" : refund ? "Thực thi và hoàn gói" : "Thực thi"}
         pendingLabel="Đang thực thi…"
         confirmDisabled={refund && !ack}
         pending={w.pending}

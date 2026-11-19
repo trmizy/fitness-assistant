@@ -8,6 +8,7 @@ router.get(
   "/provinces/:provinceCode/wards",
   locationController.getWardsByProvince,
 );
+router.get("/wards/:code", locationController.getWardByCode);
 router.get("/search", locationController.searchLocations);
 
 export default router;

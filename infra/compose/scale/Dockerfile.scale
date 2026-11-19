@@ -1,0 +1,33 @@
+# Image of ONE service of the isolated Scale environment (project gymini-scale).
+# Source is copied into the image (no bind mount of working tree, no .env/env_file), and the Prisma client
+# is generated during build so each service applies `prisma migrate deploy` only to its own *_scale database.
+#   ARG DIR             service directory relative to the repo root
+#   ARG PKG             pnpm package name
+#   ARG PRISMA          "1" for services with Prisma (default), "0" for api-gateway
+#   ARG SEED_LOCATIONS  "1" for user-service so vietnam_provinces/vietnam_wards exist on first boot
+FROM node:20-slim
+ARG DIR
+ARG PKG
+ARG PRISMA=1
+ARG SEED_LOCATIONS=0
+RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
+RUN apt-get update && apt-get install -y --no-install-recommends openssl wget ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY patches ./patches
+COPY backend/shared/package.json ./backend/shared/
+COPY ${DIR}/package.json ./${DIR}/
+RUN pnpm install --filter ${PKG}
+COPY tsconfig.base.json ./
+COPY backend/shared/tsconfig.json ./backend/shared/
+COPY backend/shared/src ./backend/shared/src
+RUN pnpm --filter @gym-coach/shared build
+COPY ${DIR} ./${DIR}
+RUN if [ "$PRISMA" = "1" ]; then pnpm --filter ${PKG} db:generate; fi
+WORKDIR /app/${DIR}
+RUN if [ "$SEED_LOCATIONS" = "1" ]; then mkdir -p uploads/pt-applications; fi
+ENV RUN_PRISMA=${PRISMA}
+ENV RUN_SEED_LOCATIONS=${SEED_LOCATIONS}
+CMD ["sh", "-c", "if [ \"$RUN_PRISMA\" = \"1\" ]; then node_modules/.bin/prisma migrate deploy || exit 1; fi; if [ \"$RUN_SEED_LOCATIONS\" = \"1\" ]; then node_modules/.bin/tsx -e \"import { PrismaClient } from './src/generated/prisma'; const p = new PrismaClient(); p.vietnamWard.count().then((c) => { console.log('[scale] vietnam_wards=' + c); process.exit(c > 0 ? 0 : 2); }).catch(() => process.exit(2));\" || node_modules/.bin/tsx prisma/seed_vietnam_locations.ts || exit 1; fi; exec node_modules/.bin/tsx src/server.ts"]
+

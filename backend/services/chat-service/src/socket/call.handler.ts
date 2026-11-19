@@ -8,6 +8,7 @@ import { verifyJoinToken } from "../utils/joinToken";
 import { onlineUsers } from "./index";
 import { chatRepository } from "../repositories/chat.repository";
 import { callRepository } from "../repositories/call.repository";
+import { callErrorText, VALID_CALL_TYPES } from "../utils/callErrors";
 import { CALL_RING_SECONDS, displayName, pushIncomingCall, pushMissedCall } from "../services/push-relay";
 
 // Track ring timeouts: callSessionId → timeout handle
@@ -16,7 +17,7 @@ const ringTimeouts = new Map<string, NodeJS.Timeout>();
 // Track reconnect grace timers: userId → { callSessionId, timeout }
 export const graceTimers = new Map<
   string,
-  { callSessionId: string; timeout: NodeJS.Timeout }
+  { callSessionId: string; timeout: NodeJS.Timeout; otherUserId?: string }
 >();
 
 // STUN alone only helps two peers on simple/compatible NATs find each other directly — it
@@ -89,6 +90,9 @@ async function getIceServers(): Promise<any[]> {
   // an earlier one (within the process's lifetime) succeeded.
   return meteredCache?.servers ?? staticIceServers();
 }
+
+/** Call states in which a dropped participant may come back into the same call. */
+const REJOINABLE_STATUSES: string[] = ["ACCEPTED", "CONNECTING", "ACTIVE"];
 
 function clearRingTimeout(callSessionId: string) {
   const t = ringTimeouts.get(callSessionId);
@@ -185,8 +189,21 @@ export function registerCallHandlers(
         } = payload;
 
         const isSessionCall = origin === "SESSION" && coachingSessionId;
+        if (
+          typeof callType === "string" &&
+          callType &&
+          !(VALID_CALL_TYPES as readonly string[]).includes(callType)
+        ) {
+          socket.emit("call:error", { message: callErrorText("Invalid call type") });
+          return;
+        }
         if (!calleeId || !callType || (!conversationId && !isSessionCall)) {
-          socket.emit("call:error", { message: "Missing required fields" });
+          socket.emit("call:error", { message: callErrorText("Missing required fields") });
+          return;
+        }
+        // N13H-07: a call to yourself would ring your own tabs, block your real calls and log a "nhỡ" line.
+        if (calleeId === user.id) {
+          socket.emit("call:error", { message: callErrorText("You cannot call yourself") });
           return;
         }
 
@@ -247,9 +264,7 @@ export function registerCallHandlers(
             authToken,
           );
           if (!perm.allowed) {
-            socket.emit("call:error", {
-              message: perm.reason || "Not allowed",
-            });
+            socket.emit("call:error", { message: callErrorText(perm.reason || "Not allowed") });
             return;
           }
         }
@@ -274,7 +289,7 @@ export function registerCallHandlers(
         });
 
         if ("error" in result) {
-          socket.emit("call:error", { message: result.error });
+          socket.emit("call:error", { message: callErrorText(result.error) });
           return;
         }
 
@@ -367,7 +382,7 @@ export function registerCallHandlers(
         );
       } catch (error) {
         logger.error(error, "call:initiate error");
-        socket.emit("call:error", { message: "Failed to initiate call" });
+        socket.emit("call:error", { message: callErrorText("Failed to initiate call") });
       }
     },
   );
@@ -380,10 +395,12 @@ export function registerCallHandlers(
         const result = await callService.acceptCall(callSessionId, user.id);
         if ("error" in result) {
           if (result.alreadyHandled) {
-            // Multi-tab: this tab lost the race
-            socket.emit("call:accepted_elsewhere", { callSessionId });
+            // Multi-tab: this tab lost the race (first accept wins, see callRepository.claimRinging)
+            const message = callErrorText("Call accepted on another device");
+            socket.emit("call:accepted_elsewhere", { callSessionId, message });
+            socket.emit("call:error", { message });
           } else {
-            socket.emit("call:error", { message: result.error });
+            socket.emit("call:error", { message: callErrorText(result.error) });
           }
           return;
         }
@@ -411,7 +428,7 @@ export function registerCallHandlers(
         logger.info({ callSessionId, acceptedBy: user.id }, "Call accepted");
       } catch (error) {
         logger.error(error, "call:accept error");
-        socket.emit("call:error", { message: "Failed to accept call" });
+        socket.emit("call:error", { message: callErrorText("Failed to accept call") });
       }
     },
   );
@@ -423,7 +440,7 @@ export function registerCallHandlers(
       try {
         const result = await callService.rejectCall(callSessionId, user.id);
         if ("error" in result) {
-          socket.emit("call:error", { message: result.error });
+          socket.emit("call:error", { message: callErrorText(result.error) });
           return;
         }
 
@@ -436,7 +453,7 @@ export function registerCallHandlers(
         logger.info({ callSessionId, rejectedBy: user.id }, "Call rejected");
       } catch (error) {
         logger.error(error, "call:reject error");
-        socket.emit("call:error", { message: "Failed to reject call" });
+        socket.emit("call:error", { message: callErrorText("Failed to reject call") });
       }
     },
   );
@@ -448,7 +465,7 @@ export function registerCallHandlers(
       try {
         const result = await callService.cancelCall(callSessionId, user.id);
         if ("error" in result) {
-          socket.emit("call:error", { message: result.error });
+          socket.emit("call:error", { message: callErrorText(result.error) });
           return;
         }
 
@@ -468,7 +485,7 @@ export function registerCallHandlers(
         logger.info({ callSessionId, cancelledBy: user.id }, "Call cancelled");
       } catch (error) {
         logger.error(error, "call:cancel error");
-        socket.emit("call:error", { message: "Failed to cancel call" });
+        socket.emit("call:error", { message: callErrorText("Failed to cancel call") });
       }
     },
   );
@@ -593,7 +610,7 @@ export function registerCallHandlers(
           reason,
         );
         if ("error" in result) {
-          socket.emit("call:error", { message: result.error });
+          socket.emit("call:error", { message: callErrorText(result.error) });
           return;
         }
 
@@ -610,7 +627,7 @@ export function registerCallHandlers(
         logger.info({ callSessionId, endedBy: user.id, reason }, "Call ended");
       } catch (error) {
         logger.error(error, "call:end error");
-        socket.emit("call:error", { message: "Failed to end call" });
+        socket.emit("call:error", { message: callErrorText("Failed to end call") });
       }
     },
   );
@@ -675,33 +692,30 @@ export function registerCallHandlers(
   );
 
   // ── Rejoin after disconnect (grace period) ───────────────────
+  // The reconnect itself already cancelled the grace timer (socket/index.ts) and told the peer, so by the time a
+  // client sends this the timer is usually gone. A participant of a still-live call is therefore accepted too,
+  // and the peer is (re)told — a repeat is harmless, the clients just mark the peer present (N13H-08).
   socket.on(
     "call:rejoin",
     async ({ callSessionId }: { callSessionId: string }) => {
       try {
         const grace = graceTimers.get(user.id);
-        if (grace && grace.callSessionId === callSessionId) {
-          clearTimeout(grace.timeout);
+        const hadGrace = !!grace && grace.callSessionId === callSessionId;
+        if (hadGrace) {
+          clearTimeout(grace!.timeout);
           graceTimers.delete(user.id);
-          logger.info(
-            { callSessionId, userId: user.id },
-            "Call rejoined within grace period",
-          );
-
-          // Notify the other party that user reconnected
-          const call = await callService.findById(callSessionId);
-          if (call) {
-            const otherUserId =
-              user.id === call.callerId ? call.calleeId : call.callerId;
-            io.to(`user:${otherUserId}`).emit("call:peer_reconnected", {
-              callSessionId,
-            });
-          }
-        } else {
-          socket.emit("call:error", {
-            message: "No active grace period for this call",
-          });
         }
+
+        const call = callSessionId ? await callService.findById(callSessionId) : null;
+        const live = !!call && isCallParticipant(user.id, call) && REJOINABLE_STATUSES.includes(call.status);
+        if (!call || !live) {
+          socket.emit("call:error", { message: callErrorText("No active grace period for this call") });
+          return;
+        }
+
+        logger.info({ callSessionId, userId: user.id, hadGrace }, "Call rejoined");
+        const otherUserId = user.id === call.callerId ? call.calleeId : call.callerId;
+        io.to(`user:${otherUserId}`).emit("call:peer_reconnected", { callSessionId });
       } catch (error) {
         logger.error(error, "call:rejoin error");
       }

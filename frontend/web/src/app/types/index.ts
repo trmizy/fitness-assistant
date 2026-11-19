@@ -11,10 +11,8 @@ export interface User {
   goal?: string;
   fitnessLevel?: "beginner" | "intermediate" | "advanced";
   isPT?: boolean;
-  /** True only for an admin-created account (currently just gym owners) still on its random
-   * temporary password. AppShell blocks all navigation behind a forced change-password
-   * screen while this is true; cleared server-side the moment any password change succeeds. */
-  mustChangePassword?: boolean;
+  searchProvinceCode?: number | null;
+  searchWardCode?: number | null;
 }
 
 export interface InBodyEntry {
@@ -301,7 +299,7 @@ export type NotificationEventType =
   | "PT_FEEDBACK_RECEIVED"
   | "DISPUTE_CASE_UPDATED";
 
-export type NotificationEntityType = "CONTRACT" | "SESSION" | "WORKOUT_SCHEDULE" | "TRAINING_PROGRAM" | "DISPUTE_CASE";
+export type NotificationEntityType = "CONTRACT" | "SESSION" | "WORKOUT_SCHEDULE" | "TRAINING_PROGRAM" | "DISPUTE_CASE" | "GYM_COMPLAINT_CASE" | "WITHDRAWAL_REQUEST";
 
 export interface AppNotification {
   id: string;
@@ -406,6 +404,14 @@ export interface Wallet {
   status: "ACTIVE" | "FROZEN" | "CLOSED";
   createdAt: string;
   updatedAt: string;
+  /** Chỉ ví chi nhánh (GYM): nền tảng đã tự trừ bao nhiêu nợ từ thu nhập mới và còn nợ bao nhiêu (payment-service, FIX3-PAY). */
+  gymDebt?: GymDebtSummary;
+}
+
+export interface GymDebtSummary {
+  openUnpaid: string;
+  recoveredTotal: string;
+  recent: Array<{ at: string; amount: string; unpaidAfter: string }>;
 }
 
 export interface WalletLedgerEntry {
@@ -623,6 +629,9 @@ export interface Gym {
   /** GYM_MANAGEMENT master spec §61 (Phase 1) — owner-entered expected reopen date, only
    * meaningful while operationalStatus is TEMPORARILY_CLOSED. */
   expectedReopenAt?: string | null;
+  /** N15C-08: only on the owner / manager views of an admin-SUSPENDED branch — why, and when. */
+  adminSuspensionReason?: string | null;
+  adminSuspendedAt?: string | null;
   closedAt?: string | null;
   reopenedAt?: string | null;
   /** GET /gyms/:id (public) — chi nhánh đóng cửa tạm thời vẫn trả về, kèm cờ trạng thái. */
@@ -654,6 +663,8 @@ export interface Gym {
   photos?: { id: string; url: string | null; category?: string | null; isCover?: boolean }[];
   /** Chi tiết công khai: mọi chi nhánh đang mở của cùng thương hiệu (kể cả chi nhánh này) — cho bản đồ. */
   brandBranches?: { id: string; name: string; address: string; latitude: number | null; longitude: number | null }[];
+  /** Chi tiết công khai: giờ mở cửa chủ gym nhập ở wizard (Thứ 2..Chủ nhật). [] = chưa có dữ liệu. */
+  operatingHours?: { day: WeekDay; type: DayScheduleType; openMinute: number | null; closeMinute: number | null }[];
 }
 
 export interface GymMembershipPlan {
@@ -676,8 +687,12 @@ export interface GymMembershipPlan {
 export interface GymMembershipContract {
   id: string;
   gymId: string;
+  /** GET /me/gym-memberships: tên hiển thị của chi nhánh (đã duyệt), để dialog/thẻ không phải hiện mã. */
+  gymName?: string;
   planId: string;
   clientId: string;
+  /** N13I-04: display name, sent only to the branch owner / manager (absent for other roles or when the name service is down). */
+  clientName?: string;
   status: GymMembershipContractStatus;
   paymentTxnId?: string;
   startDate?: string;
@@ -1059,4 +1074,98 @@ export interface GymDirectEditSource {
   published: GymListingPayload;
   amenities: AdminGymPublishedListing["amenities"];
   photos: ListingPhoto[];
+}
+
+// ── U1 Discovery search & location contracts (D0b-2 / D1 / D2) ─────────────────────────────────
+export type DiscoveryScope = "near" | "province" | "national";
+export type DiscoveryDistanceBasis = "GPS" | "WARD_CENTER" | null;
+
+export interface PtSearchRequest {
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
+  areaProvince?: number;
+  areaWard?: number;
+  scope?: DiscoveryScope;
+  mode?: "ANY" | "ONLINE" | "OFFLINE" | "HYBRID";
+  sortBy?: "default" | "distance" | "ratingDesc" | "ratingAsc" | "priceAsc" | "priceDesc" | "nameAsc";
+  filters?: {
+    q?: string;
+    specialties?: string[];
+    minPrice?: number;
+    maxPrice?: number;
+    gymId?: string;
+  };
+  cursor?: string | null;
+  limit?: number;
+}
+
+export interface PtSearchResponse {
+  pts: Array<Record<string, any> & { distanceKm?: number | null; distanceBasis?: DiscoveryDistanceBasis }>;
+  nextCursor: string | null;
+  hasMore: boolean;
+  appliedScope: DiscoveryScope;
+}
+
+export interface GymSearchRequest {
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
+  scope?: DiscoveryScope;
+  areaProvince?: number;
+  areaWard?: number;
+  q?: string;
+  amenityIds?: string[];
+  priceMax?: number;
+  sort?: "relevance" | "distance" | "rating" | "price";
+  cursor?: string | null;
+  limit?: number;
+}
+
+export interface GymSearchResultItem extends Gym {
+  distanceKm?: number | null;
+  amenities?: Array<{
+    id?: string;
+    slug?: string;
+    name?: string;
+    category?: string;
+    iconKey?: string | null;
+  }>;
+  coverPhotoUrl?: string | null;
+}
+
+export interface GymSearchResponse {
+  gyms: GymSearchResultItem[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  appliedScope: DiscoveryScope;
+}
+
+export interface BrandOptionBranch {
+  id: string;
+  name: string;
+  city: string | null;
+  closed: boolean;
+}
+
+export interface BrandOptionDto {
+  scope: "BRAND" | "BRANCH";
+  brandId: string;
+  brandName: string;
+  branches: BrandOptionBranch[];
+  proposeBranchId: string;
+}
+
+export interface BrandOptionsResponse {
+  options: BrandOptionDto[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
+export interface WardGeoDto {
+  code: number;
+  provinceCode: number;
+  name: string;
+  centroid: { lat: number; lng: number } | null;
+  bbox: { minLat: number; maxLat: number; minLng: number; maxLng: number } | null;
 }

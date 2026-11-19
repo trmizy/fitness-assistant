@@ -57,6 +57,8 @@ let payServer: http.Server;
 let userServer: http.Server;
 let appServer: http.Server;
 let base = '';
+let batchDown = false;
+let batchCalls = 0;
 let prisma: typeof import('../repositories/prisma').prisma;
 let ownerRouter: any;
 const sentMails: Array<{ to: string; subject: string }> = [];
@@ -84,6 +86,13 @@ test.before(async () => {
         const b = JSON.parse(Buffer.concat(chunks).toString() || '{}');
         sentMails.push({ to: b.to, subject: b.subject });
         return res.end(JSON.stringify({ ok: true }));
+      }
+      if (req.method === 'POST' && req.url === '/auth/internal/users/batch') {
+        // N13I-04: tra tên theo LÔ cho danh sách hội viên của chủ / quản lý (kèm e-mail để chứng minh e-mail không bị chuyển tiếp).
+        batchCalls++;
+        if (batchDown) { req.socket.destroy(); return; } // auth-service unreachable (headers are already written above)
+        const b = JSON.parse(Buffer.concat(chunks).toString() || '{}');
+        return res.end(JSON.stringify({ users: (b.userIds as string[]).map((uid) => ({ id: uid, email: `secret-${uid.slice(0, 8)}@mail.test`, firstName: 'Ten', lastName: uid.slice(0, 4) })) }));
       }
       if (req.url?.startsWith('/auth/internal/users/')) {
         // Tên + e-mail + SĐT: chỉ TÊN được phép tới lễ tân (xem test field allow-list).
@@ -193,7 +202,7 @@ test.before(async () => {
   const yesterdayD = new Date(todayD.getTime() - 864e5);
   await prisma.gymPtCheckIn.createMany({
     data: [
-      { gymId: gym.a1, brandId: brand.a, ptUserId: id.pt, localDate: todayD, firstScanAt: new Date(), lastScanAt: new Date(), scanCount: 3, qualifyingSessionIds: ['s-1'], contractIds: ['c-1'] },
+      { gymId: gym.a1, brandId: brand.a, ptUserId: id.pt, localDate: todayD, firstScanAt: new Date(), lastScanAt: new Date(), scanCount: 3, qualifyingSessionIds: ['SENTINEL_SESSION_LEAK_s1'], contractIds: ['SENTINEL_CONTRACT_LEAK_c1'] },
       { gymId: gym.a1, brandId: brand.a, ptUserId: id.pt2, localDate: yesterdayD, firstScanAt: new Date(now - 864e5), lastScanAt: new Date(now - 864e5), scanCount: 1, qualifyingSessionIds: ['s-2'], contractIds: ['c-2'] },
       { gymId: gym.a2, brandId: brand.a, ptUserId: id.pt2, localDate: todayD, firstScanAt: new Date(), lastScanAt: new Date(), scanCount: 1, qualifyingSessionIds: ['s-3'], contractIds: ['c-3'] },
     ],
@@ -255,6 +264,8 @@ const matrix: Row[] = [
   { name: 'danh sách chi nhánh', method: 'GET', path: () => '/owner/gyms', allow: [O, M, R1, R2, AA, A1] },
   { name: 'xem chi nhánh a1', method: 'GET', path: () => `/owner/gyms/${gym.a1}`, allow: [O, M, R1, AA, A1] },
   { name: 'xem chi nhánh a2', method: 'GET', path: () => `/owner/gyms/${gym.a2}`, allow: [O, R2, AA] },
+  { name: 'giờ mở cửa a1 (N15C-05: đọc theo quyền xem chi nhánh, trong phạm vi)', method: 'GET', path: () => `/owner/gyms/${gym.a1}/hours`, allow: [O, M, R1, AA, A1] },
+  { name: 'giờ mở cửa a2', method: 'GET', path: () => `/owner/gyms/${gym.a2}/hours`, allow: [O, R2, AA] },
   { name: 'ví a1', method: 'GET', path: () => `/owner/gyms/${gym.a1}/wallet`, allow: [O, AA, A1] },
   { name: 'ví a2', method: 'GET', path: () => `/owner/gyms/${gym.a2}/wallet`, allow: [O, AA] },
   { name: 'lịch sử rút tiền a1', method: 'GET', path: () => `/owner/gyms/${gym.a1}/withdrawals`, allow: [O, AA, A1] },
@@ -303,7 +314,6 @@ integrationTest('mọi route GHI / nhân sự / cộng tác PT / listing → 403
     ['POST', '/owner/gyms/draft'],
     ['PATCH', `/owner/gyms/${gym.a1}`, { name: 'Hack' }],
     ['PUT', `/owner/gyms/${gym.a1}/hours`, { days: [] }],
-    ['GET', `/owner/gyms/${gym.a1}/hours`],
     ['GET', `/owner/gyms/${gym.a1}/photos`],
     ['GET', `/owner/gyms/${gym.a1}/branch-documents`],
     ['GET', `/owner/gyms/${gym.a1}/closure-impact`],
@@ -365,6 +375,34 @@ integrationTest('KẾ TOÁN thấy doanh số (giá, mã giao dịch) nhưng KH�
   assert.equal(JSON.stringify(r.body).includes(id.clientX), false);
   const owner = await call(O, 'GET', `/owner/gyms/${gym.a1}/memberships`);
   assert.equal(owner.body.data[0].clientId, id.clientX);
+});
+
+integrationTest('N13I-04 · danh sách hội viên: CHỦ / QUẢN LÝ nhận thêm clientName (1 lần tra lô); kế toán KHÔNG có tên; auth-service lỗi ⇒ vẫn trả danh sách, không có tên', async () => {
+  const want = `Ten ${id.clientX.slice(0, 4)}`;
+  batchCalls = 0;
+  const owner = await call(O, 'GET', `/owner/gyms/${gym.a1}/memberships`);
+  assert.equal(owner.status, 200);
+  assert.equal(owner.body.data[0].clientName, want);
+  assert.equal(owner.body.data[0].clientId, id.clientX, 'clientId vẫn còn');
+  assert.equal(JSON.stringify(owner.body).includes('@mail.test'), false, 'e-mail của hội viên không được chuyển tiếp');
+  const manager = await call(M, 'GET', `/owner/gyms/${gym.a1}/memberships`);
+  assert.equal(manager.body.data[0].clientName, want);
+  assert.equal(batchCalls, 2, 'mỗi lần tải danh sách chỉ 1 lần tra lô (không N+1)');
+  batchCalls = 0;
+  const acct = await call(AA, 'GET', `/owner/gyms/${gym.a1}/memberships`);
+  assert.equal(acct.status, 200);
+  assert.equal('clientName' in acct.body.data[0], false);
+  assert.equal(JSON.stringify(acct.body).includes(want), false);
+  assert.equal(batchCalls, 0, 'kế toán: không tra tên');
+  batchDown = true;
+  try {
+    const down = await call(O, 'GET', `/owner/gyms/${gym.a1}/memberships`);
+    assert.equal(down.status, 200);
+    assert.equal(down.body.data[0].clientId, id.clientX);
+    assert.equal('clientName' in down.body.data[0], false, 'thiếu tên ⇒ không bịa tên');
+  } finally {
+    batchDown = false;
+  }
 });
 
 integrationTest('KẾ TOÁN: ví đọc được; lịch sử rút tiền CHE số tài khoản; chủ thấy nguyên văn', async () => {
@@ -525,7 +563,7 @@ integrationTest('D15b · LỄ TÂN: PT đã check-in HÔM NAY chỉ ở chi nhá
   assert.deepEqual(Object.keys(r.body.data.pts[0]).sort(), ['firstScanAt', 'id', 'lastScanAt', 'ptName']);
   assert.equal(r.body.data.pts[0].ptName, `Ten ${id.pt.slice(0, 4)}`);
   const text = JSON.stringify(r.body);
-  for (const leak of [id.pt, id.pt2, 'scanCount', 'qualifying', 'contract', 'secret-', '@mail.test', 's-1', 'c-1']) assert.equal(text.includes(leak), false, `lộ ${leak}`);
+  for (const leak of [id.pt, id.pt2, 'scanCount', 'qualifying', 'contract', 'secret-', '@mail.test', 'SENTINEL_SESSION_LEAK_s1', 'SENTINEL_CONTRACT_LEAK_c1']) assert.equal(text.includes(leak), false, `lộ ${leak}`);
   // Chi nhánh khác trong CÙNG đối tác: lễ tân a1 → 403; lễ tân a2 chỉ thấy PT của a2.
   assert.equal((await call(R1, 'GET', `/owner/gyms/${gym.a2}/pt-checkins/today`)).status, 403);
   assert.equal((await call(R1, 'GET', `/owner/gyms/${gym.a2}/front-desk/today`)).status, 403);

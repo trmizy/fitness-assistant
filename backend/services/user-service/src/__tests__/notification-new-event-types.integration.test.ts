@@ -35,6 +35,23 @@ const CASES: [eventType: string, entityType: string][] = [
   ["GYM_AMENITY_PROPOSAL_REVIEWED", "GYM_BRANCH"],
   // payment-service: late payment for a cancelled order / membership / contract was auto-refunded
   ["PAYMENT_AUTO_REFUNDED", "PAYMENT"],
+  // N09C-01: gym-service complaint-case notices (the delivered MORE_INFO notice is what starts a response deadline)
+  ["GYM_COMPLAINT_CASE_OPENED", "GYM_COMPLAINT_CASE"],
+  ["GYM_COMPLAINT_CASE_MORE_INFO", "GYM_COMPLAINT_CASE"],
+  ["GYM_COMPLAINT_CASE_SLA_WARNING", "GYM_COMPLAINT_CASE"],
+  ["GYM_COMPLAINT_CASE_SLA_OVERDUE", "GYM_COMPLAINT_CASE"],
+  ["GYM_COMPLAINT_CASE_APPEAL_FILED", "GYM_COMPLAINT_CASE"],
+  ["GYM_COMPLAINT_CASE_RESOLVED", "GYM_COMPLAINT_CASE"],
+  // Q9: payment-service withdrawal notices (owner: approved / paid / rejected; other admins: waiting for a second admin)
+  ["WITHDRAWAL_AWAITING_SECOND_ADMIN", "WITHDRAWAL_REQUEST"],
+  ["WITHDRAWAL_APPROVED", "WITHDRAWAL_REQUEST"],
+  ["WITHDRAWAL_PAID", "WITHDRAWAL_REQUEST"],
+  ["WITHDRAWAL_REJECTED", "WITHDRAWAL_REQUEST"],
+  // FIX3-NOTIFY: gym-service branch lifecycle notices (admin suspend / lift / temporary close / reopen) to the owner and scoped managers
+  ["GYM_BRANCH_SUSPENDED", "GYM_BRANCH"],
+  ["GYM_BRANCH_SUSPENSION_LIFTED", "GYM_BRANCH"],
+  ["GYM_BRANCH_TEMPORARILY_CLOSED", "GYM_BRANCH"],
+  ["GYM_BRANCH_REOPENED", "GYM_BRANCH"],
 ];
 
 test("every session-settlement / application-review notification type is stored", skipOpts, async () => {

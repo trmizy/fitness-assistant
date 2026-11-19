@@ -140,3 +140,57 @@ export function conversationIdOf(reply: any): string | null {
   const id = reply?.id ?? reply?.conversation?.id ?? reply?.data?.id;
   return typeof id === "string" && id ? id : null;
 }
+
+/** One page of a thread (newest first, older pages on demand via the `before` cursor). */
+export const CHAT_PAGE_SIZE = 30;
+
+/** Union by id, oldest first; a later list wins for the same id (same rule as web's mergeMessages). */
+export function mergeMessageLists(...lists: Array<readonly ChatMessage[] | undefined>): ChatMessage[] {
+  const byId = new Map<string, ChatMessage>();
+  for (const list of lists) for (const m of list ?? []) if (m?.id) byId.set(m.id, m);
+  return Array.from(byId.values()).sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+}
+
+/** Show "Xem tin cũ hơn" while the newest page came back full (or older pages were loaded) and none came back short. */
+export function canLoadOlder(latestCount: number, olderCount: number, noMoreOlder: boolean, pageSize = CHAT_PAGE_SIZE): boolean {
+  return !noMoreOlder && (olderCount > 0 || latestCount >= pageSize);
+}
+
+/** The id to pass as `before`: the oldest message currently shown. */
+export function olderCursor(messages: readonly ChatMessage[]): string | null {
+  return messages[0]?.id ?? null;
+}
+
+/** Text for a chat:error event: the server's Vietnamese `detail` when present, else a generic line. */
+export function chatErrorText(p: { message?: string; detail?: string } | null | undefined): string {
+  if (typeof p?.detail === "string" && p.detail.trim()) return p.detail.trim();
+  return p?.message === "Failed to send message" ? "Không gửi được tin nhắn." : "Có lỗi trò chuyện, thử lại sau.";
+}
+
+/** Text for a rejected REST send (axios error): the server's own sentence when there is one, else a generic line. */
+export function sendFailureText(err: unknown): string {
+  const e = (err as { response?: { data?: { error?: unknown } } } | undefined)?.response?.data?.error;
+  return typeof e === "string" && e.trim() ? e.trim() : "Không gửi được tin nhắn. Nội dung vẫn còn trong ô nhập, hãy thử lại.";
+}
+
+/** N15M-03 — how often an open thread re-reads its messages when no live socket is delivering them. */
+export const THREAD_POLL_MS = 4000;
+
+/**
+ * Poll interval for the open thread, or false for none. With realtime ON (socket connected) pushed
+ * messages arrive on their own; with it OFF (the aws-dev build) or while the socket is down, a light
+ * poll is the only way the peer's new messages show up. Never polls while the screen is not in front
+ * or the app is in the background.
+ */
+export function threadPollInterval(screenActive: boolean, socketConnected: boolean): number | false {
+  return screenActive && !socketConnected ? THREAD_POLL_MS : false;
+}
+
+/**
+ * Merge a freshly fetched newest page into what the thread already holds. A refetch that was already in
+ * flight when the user sent a message returns without it; replacing the cache would make that message
+ * vanish until the next poll. Union by id, oldest first — no duplicates, no reordering.
+ */
+export function mergeThreadPage(cached: readonly ChatMessage[] | undefined, fetched: readonly ChatMessage[]): ChatMessage[] {
+  return mergeMessageLists(cached, fetched);
+}

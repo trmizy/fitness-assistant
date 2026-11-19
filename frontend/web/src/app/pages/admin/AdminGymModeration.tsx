@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { BuildingsIcon as Building2, CheckIcon as Check, XIcon as X, CircleNotchIcon as Loader2, MapPinIcon as MapPin, WarningIcon as AlertTriangle, StorefrontIcon as Store, PencilSimpleIcon as Pencil, MagnifyingGlassIcon as Search, NotePencilIcon as NotePencil, EyeIcon as Eye } from "@phosphor-icons/react";
+import { BuildingsIcon as Building2, CheckIcon as Check, XIcon as X, MapPinIcon as MapPin, WarningIcon as AlertTriangle, StorefrontIcon as Store, PencilSimpleIcon as Pencil, MagnifyingGlassIcon as Search, NotePencilIcon as NotePencil, EyeIcon as Eye } from "@phosphor-icons/react";
 import { adminService } from "../../services/api";
 import type { Gym, GymBrand } from "../../types";
-import { GymStatusPill } from "./shared/b9aStatusPill";
+import { GymOperationalPill, GymStatusPill } from "./shared/b9aStatusPill";
 import { useRestoreFocus } from "./shared/b9aReturnFocus";
 import { RequestChangesPanel } from "../../components/gym-management/RequestChangesPanel";
 import { BranchReviewIssuesPanel } from "../../components/gym-management/BranchReviewIssuesPanel";
@@ -13,6 +13,8 @@ import { BranchReviewDetail } from "../../components/gym-management/BranchReview
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { DEFAULT_GYM_TAB, GYM_TABS, parseGymTab, parseIdParam, shortRef, type GymTab } from "./shared/b9aUrlState";
 import { onTablistKeyDown, tabProps } from "./shared/tablistKeys";
+import { AdminGymBranchEdit } from "./AdminGymBranchEdit";
+import { AdminGymLifecycleMenu } from "./AdminGymLifecycle";
 
 /**
  * Vòng 4 / Phase C — there was no admin-facing gym/brand moderation screen at all before this
@@ -144,18 +146,9 @@ export function AdminGymModeration() {
     onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể duyệt"),
   });
 
+  // N14A-01: the edit form lives in AdminGymBranchEdit (sends only changed fields; asks for a reason only when the public introduction changed).
   const [editingGymId, setEditingGymId] = useState<string | null>(null);
-  const [gymEditForm, setGymEditForm] = useState({ name: "", address: "", city: "", phone: "", email: "", description: "" });
   const [gymSearch, setGymSearch] = useState("");
-  const updateGymMutation = useMutation({
-    mutationFn: ({ id, ...patch }: { id: string } & typeof gymEditForm) => adminService.updateGymDetails(id, patch),
-    onSuccess: () => {
-      toast.success("Đã cập nhật thông tin chi nhánh");
-      setEditingGymId(null);
-      invalidateGyms();
-    },
-    onError: (e: any) => toast.error(e?.response?.data?.error?.message || "Không thể cập nhật"),
-  });
 
   const pendingGyms = gyms.filter((g) => g.status === "PENDING_REVIEW");
   const gymsWithPendingRename = gyms.filter((g) => g.status !== "PENDING_REVIEW" && (g.pendingName || g.pendingAddress));
@@ -185,7 +178,7 @@ export function AdminGymModeration() {
         </h1>
         <p className="text-zinc-500 text-sm mt-0.5">
           Duyệt phòng gym mới, duyệt đổi tên/địa chỉ, duyệt đổi tên thương hiệu, sửa trực tiếp
-          thông tin bất kỳ chi nhánh nào, và theo dõi các phòng gym đã đóng cửa vĩnh viễn còn
+          thông tin bất kỳ chi nhánh nào, tạm khoá / tạm đóng cửa / mở lại chi nhánh, và theo dõi các phòng gym đã đóng cửa vĩnh viễn còn
           hội viên đang hoạt động cần hoàn tiền. Mọi việc liên quan tới tài khoản chủ gym —
           tạo, đặt lại mật khẩu, thu hồi, chuyển quyền sở hữu — nằm ở trang Đối tác.
         </p>
@@ -468,74 +461,22 @@ export function AdminGymModeration() {
           ) : (
             filteredGyms.map((g) => {
               const isEditingGym = editingGymId === g.id;
+              const operational = g.operationalStatus ?? "OPEN";
               return (
-                <div key={g.id} data-testid="admin-all-gym-card" data-gym-id={g.id} className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-2">
+                <div key={g.id} data-testid="admin-all-gym-card" data-gym-id={g.id} className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-3">
                   {isEditingGym ? (
-                    <div className="space-y-2">
-                      <input
-                        value={gymEditForm.name}
-                        onChange={(e) => setGymEditForm({ ...gymEditForm, name: e.target.value })}
-                        placeholder="Tên chi nhánh"
-                        className="w-full px-2.5 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200"
-                      />
-                      <input
-                        value={gymEditForm.address}
-                        onChange={(e) => setGymEditForm({ ...gymEditForm, address: e.target.value })}
-                        placeholder="Địa chỉ"
-                        className="w-full px-2.5 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200"
-                      />
-                      <div className="grid grid-cols-2 gap-2">
-                        <input
-                          value={gymEditForm.city}
-                          onChange={(e) => setGymEditForm({ ...gymEditForm, city: e.target.value })}
-                          placeholder="Thành phố"
-                          className="px-2.5 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200"
-                        />
-                        <input
-                          value={gymEditForm.phone}
-                          onChange={(e) => setGymEditForm({ ...gymEditForm, phone: e.target.value })}
-                          placeholder="SĐT"
-                          className="px-2.5 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200"
-                        />
-                      </div>
-                      <input
-                        value={gymEditForm.email}
-                        onChange={(e) => setGymEditForm({ ...gymEditForm, email: e.target.value })}
-                        placeholder="Email"
-                        className="w-full px-2.5 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200"
-                      />
-                      <textarea
-                        value={gymEditForm.description}
-                        onChange={(e) => setGymEditForm({ ...gymEditForm, description: e.target.value })}
-                        placeholder="Mô tả"
-                        rows={2}
-                        className="w-full px-2.5 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 resize-none"
-                      />
-                      <div className="flex gap-2 pt-1">
-                        <button
-                          data-testid="admin-gym-save-edit-button"
-                          onClick={() => updateGymMutation.mutate({ id: g.id, ...gymEditForm })}
-                          disabled={!gymEditForm.name.trim() || !gymEditForm.address.trim() || updateGymMutation.isPending}
-                          className="flex items-center gap-1 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                        >
-                          {updateGymMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Lưu
-                        </button>
-                        <button onClick={() => setEditingGymId(null)} className="px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200">
-                          Huỷ
-                        </button>
-                      </div>
-                    </div>
+                    <AdminGymBranchEdit gym={g} onClose={() => setEditingGymId(null)} />
                   ) : (
                     <>
                       <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-zinc-200">{g.approvedName ?? g.name}</p>
-                          <p className="text-xs text-zinc-500 flex items-center gap-1 mt-0.5">
-                            <MapPin className="w-3 h-3" /> {g.approvedAddress ?? g.address}
-                            {g.city ? `, ${g.city}` : ""}
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-zinc-200 break-words">{g.approvedName ?? g.name}</p>
+                          <p className="text-xs text-zinc-500 flex items-start gap-1 mt-0.5">
+                            <MapPin className="w-3 h-3 mt-0.5 shrink-0" /> <span className="break-words">{g.approvedAddress ?? g.address}
+                            {g.city ? `, ${g.city}` : ""}</span>
                           </p>
                           {(g.phone || g.email) && (
-                            <p className="text-[11px] text-zinc-600 mt-1">
+                            <p className="text-[11px] text-zinc-600 mt-1 break-all">
                               {g.phone}
                               {g.phone && g.email ? " · " : ""}
                               {g.email}
@@ -543,25 +484,32 @@ export function AdminGymModeration() {
                           )}
                           {g.brand && <p className="text-[11px] text-zinc-600 mt-1">Thương hiệu: {g.brand.name}</p>}
                         </div>
-                        <GymStatusPill status={g.status} />
+                        <div className="flex shrink-0 flex-col items-end gap-1" data-testid="admin-gym-status-pills">
+                          <GymStatusPill status={g.status} />
+                          {operational !== "OPEN" && <GymOperationalPill status={operational} />}
+                        </div>
                       </div>
-                      <button
-                        data-testid="admin-gym-edit-button"
-                        onClick={() => {
-                          setEditingGymId(g.id);
-                          setGymEditForm({
-                            name: g.approvedName ?? g.name,
-                            address: g.approvedAddress ?? g.address,
-                            city: g.city ?? "",
-                            phone: g.phone ?? "",
-                            email: g.email ?? "",
-                            description: g.description ?? "",
-                          });
-                        }}
-                        className="flex items-center gap-1 border border-zinc-700 text-zinc-300 hover:bg-zinc-800 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                      >
-                        <Pencil className="w-3.5 h-3.5" /> Sửa thông tin
-                      </button>
+                      {operational === "TEMPORARILY_CLOSED" && (
+                        <p data-testid="admin-gym-closure-note" className="rounded-lg border border-st-warning-border bg-st-warning-bg px-3 py-2 text-xs text-st-warning">
+                          Tạm đóng cửa{g.closureReason ? `: ${g.closureReason}` : ""}
+                          {g.expectedReopenAt ? ` · dự kiến mở lại ${new Date(g.expectedReopenAt).toLocaleDateString("vi-VN")}` : ""}
+                        </p>
+                      )}
+                      {g.status === "SUSPENDED" && (
+                        <p data-testid="admin-gym-suspended-note" className="rounded-lg border border-st-danger-border bg-st-danger-bg px-3 py-2 text-xs text-st-danger">
+                          Chi nhánh đang bị tạm khoá: không hiện trong tìm kiếm, không bán gói mới và không check-in được. Dùng menu Trạng thái để bỏ tạm khoá.
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          data-testid="admin-gym-edit-button"
+                          onClick={() => setEditingGymId(g.id)}
+                          className="inline-flex min-h-10 items-center gap-1 border border-zinc-700 text-zinc-300 hover:bg-zinc-800 px-3 rounded-lg text-xs font-medium transition-colors"
+                        >
+                          <Pencil className="w-3.5 h-3.5" /> Sửa thông tin
+                        </button>
+                        <AdminGymLifecycleMenu gym={g} />
+                      </div>
                     </>
                   )}
                 </div>

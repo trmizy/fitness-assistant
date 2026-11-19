@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusEffect } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Banknote, Building2, Clock, Wallet as WalletIcon } from "lucide-react-native";
 
@@ -25,6 +26,7 @@ import { designTokens } from "../../src/theme/colors";
 import { formatVND } from "../../src/utils/currency";
 import { money, parseAmountInput, withdrawFormError, withdrawalStatus } from "../../src/features/wallet/wallet";
 import { BranchSwitcher } from "../../src/features/gymOwner/BranchSwitcher";
+import { WalletLoadError } from "../../src/features/gymOwner/WalletLoadError";
 import {
   branchName,
   isManagerAccount,
@@ -76,6 +78,12 @@ export default function GymOwnerWalletScreen() {
     queryFn: () => gymService.getOwnedWallet(activeId),
     enabled: canSeeMoney,
   });
+  // N13I-01: re-read the wallet when the owner returns to this screen (a timed-out read must not stay on screen).
+  useFocusEffect(
+    useCallback(() => {
+      void qc.refetchQueries({ queryKey: ["owned-gym-wallet", activeId] }, { cancelRefetch: false });
+    }, [qc, activeId]),
+  );
   const withdrawalsQuery = useQuery({
     queryKey: ["owned-gym-withdrawals", activeId],
     queryFn: () => gymService.listGymWithdrawals(activeId),
@@ -150,7 +158,7 @@ export default function GymOwnerWalletScreen() {
                   {walletQuery.isLoading ? (
                     <ActivityIndicator className="mt-3 self-start" color={accent.primary} />
                   ) : walletQuery.isError ? (
-                    <Text className="mt-2 font-body text-sm text-destructive">Không tải được ví chi nhánh.</Text>
+                    <WalletLoadError onRetry={() => void walletQuery.refetch()} retrying={walletQuery.isFetching} />
                   ) : (
                     <CountUp
                       to={money((walletQuery.data as any)?.availableBalance)}

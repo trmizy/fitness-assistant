@@ -14,6 +14,8 @@ export type PushData = {
   userId: string | null;
   link: string | null;
   entityType: string | null;
+  /** The id of that entity (the contract / session the notice is about) — the tap opens exactly it. */
+  entityId: string | null;
   /** What happened ("CONTRACT_REQUESTED", …) — says which lists the push has made stale. */
   eventType: string | null;
   /** E2/E3 — chat-service's realtime nudges (no notifications row): "CALL" | "CHAT", else null. */
@@ -30,6 +32,7 @@ export function readPushData(raw: unknown): PushData {
     userId: str(data.userId),
     link: str(data.link),
     entityType: str(data.entityType),
+    entityId: str(data.entityId),
     eventType: str(data.eventType),
     kind: data.kind === "CALL" || data.kind === "CHAT" ? data.kind : null,
     callSessionId: str(data.callSessionId),
@@ -71,12 +74,12 @@ export function pushTapRoute(
   // Listing Management (M1): a PT's listing decision opens that PT's "Tin đăng" screen. Only a PT has one;
   // anyone else falls through to their own home like every other workspace-specific link.
   if (!data.kind && role === "pt") {
-    const own = notificationRoute({ link: data.link, entityType: data.entityType });
+    const own = notificationRoute({ link: data.link, entityType: data.entityType, entityId: data.entityId });
     if (own?.startsWith("/pt/")) return own;
   }
   // Listing Management (M2): the same for a Gym Owner — their listing decisions open "Tin đăng & tiện ích" on that branch.
   if (!data.kind && role === "gym_owner") {
-    const own = notificationRoute({ link: data.link, entityType: data.entityType });
+    const own = notificationRoute({ link: data.link, entityType: data.entityType, entityId: data.entityId });
     if (own?.startsWith("/gym-owner/")) return own;
   }
   // E2/E3: straight to the conversation (a PT chats from the client-side screen too). An incoming
@@ -87,9 +90,41 @@ export function pushTapRoute(
   }
   const clientSide = role === "client" || (role === "pt" && (data.link ?? "").startsWith("/client"));
   if (clientSide) {
-    const route = notificationRoute({ link: data.link, entityType: data.entityType });
+    const route = notificationRoute({ link: data.link, entityType: data.entityType, entityId: data.entityId });
     // A /pt/... target is for the PT workspace (handled above); a plain client has no such screen.
     return route && !route.startsWith("/pt/") && !route.startsWith("/gym-owner/") ? route : "/client/notifications";
   }
   return ROLE_HOME[role];
+}
+
+/** The part of a presented notification the call tidy-up needs (a subset of expo's NotificationContent). */
+export type PresentedNotice = { identifier: string; body?: string | null; data?: unknown };
+
+const MISSED_NOTICE = /nhỡ/i;
+
+/**
+ * NE-08 — which "Đang gọi…" notices in the shade are stale.
+ *
+ * With `endedCallSessionId` only that call's notice goes (it was answered, rejected, cancelled or
+ * ended). Without it, every call notice except the live one (`activeCallSessionId`) goes — used
+ * when the app comes to the foreground, because calls that ended while the app was closed never
+ * reached it as a socket event. The "Cuộc gọi … nhỡ" notice shares the ringing notice's tag and
+ * is a record the user wants to keep, so it is never returned.
+ */
+export function staleCallNoticeIds(
+  shown: PresentedNotice[],
+  opts: { endedCallSessionId?: string | null; activeCallSessionId?: string | null },
+): string[] {
+  const ids: string[] = [];
+  for (const n of shown) {
+    const data = readPushData(n.data);
+    if (data.kind !== "CALL" || !data.callSessionId) continue;
+    if (n.body && MISSED_NOTICE.test(n.body)) continue;
+    if (opts.endedCallSessionId) {
+      if (data.callSessionId === opts.endedCallSessionId) ids.push(n.identifier);
+    } else if (data.callSessionId !== opts.activeCallSessionId) {
+      ids.push(n.identifier);
+    }
+  }
+  return ids;
 }

@@ -104,10 +104,12 @@ export const ownerPartnerController = {
       }
       const { invitation, rawToken } = await partnerInvitationService.resendInvitation(req.params.id, principalId(req));
       const link = `${appBaseUrl(req)}/partner/invite/${rawToken}`;
+      // Cùng nhãn vai trò với lần mời đầu (trước đây luôn ghi "quản lý chi nhánh", kể cả khi mời lễ tân/kế toán).
+      const label = ROLE_EMAIL_LABEL[invitation.role] ?? 'thành viên';
       const emailed = await authClient.sendEmail({
         to: invitation.email,
-        subject: 'Lời mời quản lý chi nhánh (gửi lại)',
-        text: `Liên kết mới:\n\n${link}\n\nHiệu lực đến ${invitation.expiresAt.toLocaleString('vi-VN')}.`,
+        subject: `Lời mời làm ${label} phòng tập (gửi lại)`,
+        text: `Liên kết mới để làm ${label}:\n\n${link}\n\nHiệu lực đến ${invitation.expiresAt.toLocaleString('vi-VN')}.`,
       });
       res.json({ success: true, data: { invitation, inviteLink: link, emailSent: emailed } });
     } catch (e: any) {

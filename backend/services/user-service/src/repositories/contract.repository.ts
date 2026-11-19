@@ -336,16 +336,16 @@ export const contractRepository = {
       data: { holdbackReleasedAt: now },
     }),
 
-  /** Admin: list all contracts with pagination */
-  findAll: (skip = 0, take = 50, status?: ContractStatus) =>
+  /** Admin: list all REAL contracts with pagination */
+  findAll: (skip = 0, take?: number, status?: ContractStatus) =>
     prisma.contract.findMany({
-      where: status ? { status } : undefined,
+      where: { ...(status ? { status } : {}), dataOrigin: "REAL" },
       orderBy: { createdAt: "desc" },
       skip,
-      take,
+      ...(take !== undefined ? { take } : {}),
     }),
 
-  /** Admin: count contracts per user for a list of user IDs.
+  /** Admin: count contracts per user for a list of user IDs (REAL only).
    *  Returns { [userId]: count } combining both PT and client roles.
    */
   /**
@@ -356,7 +356,7 @@ export const contractRepository = {
    */
   async countActiveByGyms(gymIds: string[]): Promise<number> {
     if (gymIds.length === 0) return 0;
-    return prisma.contract.count({ where: { gymId: { in: gymIds }, status: 'ACTIVE' } });
+    return prisma.contract.count({ where: { gymId: { in: gymIds }, status: 'ACTIVE', dataOrigin: 'REAL' } });
   },
 
   async countByUsers(userIds: string[]): Promise<Record<string, number>> {
@@ -364,12 +364,12 @@ export const contractRepository = {
     const [asPT, asClient] = await Promise.all([
       prisma.contract.groupBy({
         by: ["ptUserId"],
-        where: { ptUserId: { in: userIds } },
+        where: { ptUserId: { in: userIds }, dataOrigin: "REAL" },
         _count: true,
       }),
       prisma.contract.groupBy({
         by: ["clientUserId"],
-        where: { clientUserId: { in: userIds } },
+        where: { clientUserId: { in: userIds }, dataOrigin: "REAL" },
         _count: true,
       }),
     ]);
@@ -381,10 +381,10 @@ export const contractRepository = {
     return result;
   },
 
-  /** Admin: count total active contracts in the system */
+  /** Admin: count total active REAL contracts in the system */
   countActive: () =>
     prisma.contract.count({
-      where: { status: ContractStatus.ACTIVE },
+      where: { status: ContractStatus.ACTIVE, dataOrigin: "REAL" },
     }),
 
   updateESignFields: (id: string, data: Record<string, unknown>) =>

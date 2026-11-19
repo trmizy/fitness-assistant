@@ -11,6 +11,7 @@ import assert from "node:assert/strict";
 import {
   APPLICANT_STATES,
   accessStateText,
+  partnerAccessError,
   acceptedCollabCount,
   attentionItems,
   branchAddress,
@@ -152,6 +153,7 @@ describe("branches", () => {
     assert.equal(branchAddress(g2), "Mới");
     assert.equal(branchName(g3), "Chi nhánh chưa đặt tên");
     assert.equal(branchAddress(g3), "Chưa có địa chỉ");
+    assert.equal(branchAddress({ ...g1, address: "388 Cầu Giấy, Xã Tân Hội, Tỉnh An Giang", pendingAddress: null, city: "Tỉnh An Giang" }), "388 Cầu Giấy, Xã Tân Hội, Tỉnh An Giang", "N16M-01: tỉnh không in hai lần");
   });
 
   it("status labels cover the real GymStatus enum and nothing invented", () => {
@@ -294,9 +296,12 @@ describe("dashboard figures", () => {
     assert.equal(pendingCollabCount(collabs), 1);
   });
 
-  it("a member is shown by a short id — the owner is never handed an invented name", () => {
+  it("a member is shown by the server's display name, else a short id — a name is never invented", () => {
     assert.equal(memberLabel("1234567890abcdef"), "Khách #12345678");
     assert.equal(memberLabel(null), "Khách");
+    assert.equal(memberLabel("1234567890abcdef", "Nguyễn Văn An"), "Nguyễn Văn An");
+    assert.equal(memberLabel("1234567890abcdef", "   "), "Khách #12345678");
+    assert.equal(memberLabel("1234567890abcdef", null), "Khách #12345678");
   });
 
   it("recent memberships are newest first and capped", () => {
@@ -366,5 +371,25 @@ describe("geocoding the address into a pin", () => {
   it("an address with no house number does not retry the identical query twice", () => {
     const { attempts } = geocodeAttempts({ street: "Phan Xích Long", ward: "P. Cầu Kiệu", province: "HCM" });
     assert.equal(attempts.length, 2);
+  });
+});
+
+describe("partnerAccessError (NE-12)", () => {
+  const forbidden = (data: unknown, status = 403) => ({ response: { status, data } });
+
+  it("a revoked staff member gets a plain Vietnamese answer, not a retryable glitch", () => {
+    const e = partnerAccessError(forbidden({ success: false, error: { code: "PARTNER_ACCESS_REVOKED", message: "x" } }));
+    assert.equal(e?.kind, "revoked");
+    assert.match(e!.title, /thu hồi/);
+    assert.equal(partnerAccessError(forbidden({ code: "PARTNER_ACCESS_REVOKED" }))?.kind, "revoked");
+  });
+
+  it("other 403 partner codes are 'forbidden'; unknown 403s, other statuses and network errors are not", () => {
+    assert.equal(partnerAccessError(forbidden({ error: { code: "OWNER_ROLE_REQUIRED" } }))?.kind, "forbidden");
+    assert.equal(partnerAccessError(forbidden({ error: { code: "PARTNER_CONTEXT_UNRESOLVED" } }))?.kind, "forbidden");
+    assert.equal(partnerAccessError(forbidden({ error: { code: "SOMETHING_ELSE" } })), null);
+    assert.equal(partnerAccessError(forbidden({ error: { code: "PARTNER_ACCESS_REVOKED" } }, 500)), null);
+    assert.equal(partnerAccessError(new Error("Network Error")), null);
+    assert.equal(partnerAccessError(null), null);
   });
 });

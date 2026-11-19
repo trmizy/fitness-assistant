@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { invokeHttpLambda, throwForLambdaHttpError } from './lambda-http.client';
+import type { EntityOrigin } from '../services/synthetic-guard';
 
 const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL || 'http://localhost:3007';
 const INTERNAL_SERVICE_SECRET =
@@ -47,6 +48,18 @@ export interface CheckoutResult {
   provider: string;
 }
 
+/** payment-service's answer to the supplementary membership refund (see refundMembershipSupplement). */
+export interface MembershipSupplementAnswer {
+  refundedToClient: string;
+  shortfall: string;
+  gymShare?: string;
+  gymDebited?: string;
+  gymShortfall?: string;
+  platformShare?: string;
+  platformDebited?: string;
+  obligationId?: string;
+}
+
 export const paymentClient = {
   /**
    * Start a gateway checkout for a membership. The client pays the gateway directly; the
@@ -67,6 +80,7 @@ export const paymentClient = {
     orderInfo?: string;
     platform?: 'web' | 'mobile';
     returnBaseUrl?: string;
+    entityOrigin?: EntityOrigin;
   }): Promise<CheckoutResult> {
     const platformRateNum = Number(params.platformRate);
     try {
@@ -92,6 +106,7 @@ export const paymentClient = {
           orderInfo: params.orderInfo,
           platform: params.platform,
           returnBaseUrl: params.returnBaseUrl,
+          ...(params.entityOrigin ? { entityOrigin: params.entityOrigin } : {}),
         },
       });
     } catch (e: any) {
@@ -111,6 +126,7 @@ export const paymentClient = {
     idempotencyKey: string;
     initiatedBy: string;
     gymId?: string;
+    entityOrigin?: EntityOrigin;
   }): Promise<WalletTransferResult> {
     return paymentRequest<WalletTransferResult>({
       method: 'POST',
@@ -130,6 +146,7 @@ export const paymentClient = {
         sourceService: 'gym-service',
         gymId: params.gymId,
         membershipId: params.relatedEntityId,
+        ...(params.entityOrigin ? { entityOrigin: params.entityOrigin } : {}),
       },
     });
   },
@@ -144,7 +161,7 @@ export const paymentClient = {
   },
 
   /** Move a referral commission from the gym's pending bucket into the referring PT's. */
-  async settleReferral(body: { transactionId: string; gymId: string; ptUserId: string; amount: string; label: string; idempotencyKey: string }) {
+  async settleReferral(body: { transactionId: string; gymId: string; ptUserId: string; amount: string; label: string; idempotencyKey: string; entityOrigin?: EntityOrigin }) {
     return paymentRequest<{ moved: string; shortfall: string }>({
       method: 'POST',
       path: '/internal/contracts/referral',
@@ -154,7 +171,7 @@ export const paymentClient = {
   },
 
   /** Reclaim a proportional share of a referral commission when an admin refunds a membership. */
-  async clawbackReferral(body: { transactionId: string; gymId: string; ptUserId: string; amount: string; label: string; idempotencyKey: string }) {
+  async clawbackReferral(body: { transactionId: string; gymId: string; ptUserId: string; amount: string; label: string; idempotencyKey: string; entityOrigin?: EntityOrigin }) {
     return paymentRequest<{ recovered: string; shortfall: string }>({
       method: 'POST',
       path: '/internal/contracts/referral/clawback',
@@ -173,6 +190,7 @@ export const paymentClient = {
     membershipStatus: 'CANCELLED' | 'EXPIRED' | 'PENDING_ISSUE';
     label: string;
     idempotencyKey: string;
+    entityOrigin?: EntityOrigin;
   }) {
     return paymentRequest<{
       released: { gym: string; platform: string; ptReferral: string };
@@ -186,6 +204,31 @@ export const paymentClient = {
     });
   },
 
+  /**
+   * Q5/Q1: the SUPPLEMENTARY refund of an after-refund appeal won by the member - ONLY the difference, idempotent on `idempotencyKey` (GYM_CASE_APPEAL_SUPPLEMENT:<approvalId>).
+   * payment-service route: POST /internal/contracts/membership-appeal-supplement  { transactionId, gymId, clientId, amount, label, idempotencyKey, entityOrigin? }
+   *   -> data { refundedToClient, shortfall, gymShare, gymDebited, gymShortfall, platformShare, platformDebited, obligationId? }.
+   * `shortfall` is what the MEMBER is still short and is always "0.00" (the member is paid in full); `gymShortfall` is the part of the gym's 90 % share its wallet could not fund -
+   * the platform fronted it and payment-service recorded a GYM_DEBT obligation (obligationId). A 4xx (409 EXCEEDS_REFUNDABLE / PLATFORM_FUNDS_INSUFFICIENT / MEMBERSHIP_PENDING_NOT_RELEASED ...)
+   * means nothing moved: the executor records the case as EXEC_BLOCKED (retriable). It never invents a ledger movement of its own.
+   */
+  async refundMembershipSupplement(body: {
+    transactionId: string;
+    gymId: string;
+    clientId: string;
+    amount: string;
+    label: string;
+    idempotencyKey: string;
+    entityOrigin?: EntityOrigin;
+  }) {
+    try {
+      return await paymentRequest<MembershipSupplementAnswer>({ method: 'POST', path: '/internal/contracts/membership-appeal-supplement', timeout: 20_000, body });
+    } catch (e: any) {
+      const status: number | undefined = e?.response?.status ?? e?.status;
+      throw Object.assign(new Error(e?.response?.data?.error?.code || e?.message || 'SUPPLEMENT_REFUND_FAILED'), status ? { status } : {});
+    }
+  },
+
   /** Client self-cancelled — forfeit everything to the parties immediately, no client credit. */
   async forfeitMembershipOnCancel(body: {
     transactionId: string;
@@ -194,6 +237,7 @@ export const paymentClient = {
     ptUserId?: string | null;
     label: string;
     idempotencyKey: string;
+    entityOrigin?: EntityOrigin;
   }) {
     return paymentRequest<{
       released: { gym: string; platform: string; ptReferral: string };
@@ -214,6 +258,7 @@ export const paymentClient = {
     idempotencyKey: string;
     initiatedBy: string;
     reason: string;
+    entityOrigin?: EntityOrigin;
   }): Promise<{ transactionId: string; status: string; refundAmount: number; commissionAmount: number; netToReceiver: number }> {
     try {
       return await paymentRequest<{
@@ -231,6 +276,7 @@ export const paymentClient = {
           idempotencyKey: params.idempotencyKey,
           initiatedBy: params.initiatedBy,
           reason: params.reason,
+          ...(params.entityOrigin ? { entityOrigin: params.entityOrigin } : {}),
         },
       });
     } catch (e: any) {
@@ -264,12 +310,12 @@ export const paymentClient = {
   // owner.routes.ts's /gyms/:gymId/withdrawals) before ever reaching here; payment-service
   // trusts the gymId because this call only comes over the service-secret-gated /internal
   // boundary, never from a browser.
-  async requestGymWithdrawal(gymId: string, amount: string, payoutInfo: string): Promise<any> {
+  async requestGymWithdrawal(gymId: string, amount: string, payoutInfo: string, entityOrigin?: EntityOrigin): Promise<any> {
     return paymentRequest<any>({
       method: 'POST',
       path: `/internal/withdrawals/gym/${gymId}`,
       timeout: 10_000,
-      body: { amount, payoutInfo },
+      body: { amount, payoutInfo, ...(entityOrigin ? { entityOrigin } : {}) },
     });
   },
 

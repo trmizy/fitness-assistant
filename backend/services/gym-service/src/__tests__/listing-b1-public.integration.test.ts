@@ -168,10 +168,12 @@ for (const label of ['DRAFT', 'PENDING_REVIEW', 'REJECTED', 'SUSPENDED', 'TEMPOR
       assert.equal(r.status, 404, p);
       assert.equal(r.json?.success, false, p);
     }
+    // N15C-06: the photos of an APPROVED, temporarily closed branch are served (its direct-link page is reachable); every other hidden branch keeps the 404.
+    const mediaStatus = detailStays ? 200 : 404;
     const media = await get(`/media/gym-photos/${h.photoId}`);
-    assert.equal(media.status, 404, 'media of a hidden gym');
+    assert.equal(media.status, mediaStatus, 'media of a hidden gym');
     const legacy = await get(`/uploads/gym-photos/${h.fileName}`);
-    assert.equal(legacy.status, 404, 'legacy static URL of a hidden gym');
+    assert.equal(legacy.status, mediaStatus, 'legacy static URL of a hidden gym');
 
     const pt = await get(`/pt/${PT_USER}/gyms`);
     assert.ok(!pt.json.data.some((r: any) => r.gym.id === h.gymId), 'offered to a PT');
@@ -193,15 +195,16 @@ test('visibility follows the data: a gym that leaves APPROVED/OPEN disappears at
   assert.equal((await get(`/media/gym-photos/${photo.id}`)).status, 200);
 
   await seed((tx) => tx.gym.update({ where: { id: gymId }, data: { operationalStatus: 'TEMPORARILY_CLOSED' } }));
-  // B43: still reachable by its direct link, flagged as closed; hidden from the list; photos/sub-resources stay hidden.
+  // B43: still reachable by its direct link, flagged as closed; hidden from the list; sub-resources stay hidden. N15C-06: its photos are served.
   const closed = await get(`/gyms/${gymId}`);
   assert.equal(closed.status, 200);
   assert.equal(closed.json.data.isTemporarilyClosed, true);
   assert.ok(!(await get('/gyms')).json.data.some((g: any) => g.id === gymId), 'a closed branch is not in the search list');
-  assert.equal((await get(`/media/gym-photos/${photo.id}`)).status, 404);
+  assert.equal((await get(`/media/gym-photos/${photo.id}`)).status, 200);
 
   await seed((tx) => tx.gym.update({ where: { id: gymId }, data: { operationalStatus: 'PERMANENTLY_CLOSED' } }));
   assert.equal((await get(`/gyms/${gymId}`)).status, 404, 'permanently closed stays hidden');
+  assert.equal((await get(`/media/gym-photos/${photo.id}`)).status, 404);
 
   await seed((tx) => tx.gym.update({ where: { id: gymId }, data: { operationalStatus: 'OPEN' } }));
   assert.equal((await get(`/gyms/${gymId}`)).status, 200);

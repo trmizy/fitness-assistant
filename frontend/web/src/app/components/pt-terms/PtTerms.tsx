@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CircleNotchIcon as Loader2, FileTextIcon as FileText, WarningIcon as Warning, XIcon as X } from "@phosphor-icons/react";
+import { CircleNotchIcon as Loader2, FileTextIcon as FileText, WarningIcon as Warning } from "@phosphor-icons/react";
 import { useApp } from "../../context/AppContext";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { Modal, ModalTitle, ModalClose } from "../ui/Modal";
 import { ptApplicationService } from "../../services/ptApplicationService";
 import { isPtTermsVersionStale, ptTermsBannerState } from "../../utils/ptTerms";
 
@@ -58,27 +57,18 @@ export function PtTermsModal({
   confirming?: boolean;
   confirmLabel?: string;
 }) {
-  useBackDismissible(open, onClose);
   const { data: terms, isLoading, isError, refetch } = usePtTerms(open);
-  if (!open) return null;
-  // Portal to <body>: rendered inside the page's scroll container the modal sat under the always-visible AI Coach
-  // button (a sibling at z-40 in the shell), which covered the right end of the confirm button on a phone.
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Điều khoản dành cho Huấn luyện viên"
-      data-testid="pt-terms-modal"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
+  // <Modal> portals to <body> (rendered inside the page's scroll container the modal sat under the always-visible AI
+  // Coach button, which covered the right end of the confirm button on a phone) and gives Esc / focus trap / scroll lock.
+  return (
+    <Modal open={open} onClose={onClose} placement="sheet" className="sm:p-4" data-testid="pt-terms-modal">
       <div className="flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-2xl border border-zinc-700/60 bg-zinc-900 shadow-2xl sm:max-h-[85dvh] sm:rounded-2xl">
         <div className="flex items-start justify-between gap-3 border-b border-zinc-800/60 p-4 sm:p-5">
           <div className="min-w-0">
-            <h3 className="flex items-center gap-2 font-bold text-zinc-100">
+            <ModalTitle className="flex items-center gap-2 font-bold text-zinc-100">
               <FileText className="h-4 w-4 shrink-0 text-green-400" />
               <span data-testid="pt-terms-title">{terms?.title ?? "Điều khoản dành cho Huấn luyện viên"}</span>
-            </h3>
+            </ModalTitle>
             {terms?.isDraft && (
               <span
                 data-testid="pt-terms-draft-tag"
@@ -88,9 +78,7 @@ export function PtTermsModal({
               </span>
             )}
           </div>
-          <button onClick={onClose} aria-label="Đóng" className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200">
-            <X className="h-4 w-4" />
-          </button>
+          <ModalClose className="-mr-2 -mt-1 text-zinc-500 hover:text-zinc-200" />
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5" data-testid="pt-terms-body">
@@ -102,7 +90,7 @@ export function PtTermsModal({
           {isError && (
             <div className="space-y-3 py-6 text-center">
               <p className="text-sm text-zinc-400">Không tải được điều khoản. Vui lòng thử lại.</p>
-              <button onClick={() => refetch()} className="rounded-lg border border-zinc-700/60 px-4 py-2 text-sm font-semibold text-zinc-200 hover:bg-zinc-800">
+              <button type="button" onClick={() => refetch()} className="min-h-10 rounded-lg border border-zinc-700/60 px-4 py-2 text-sm font-semibold text-zinc-200 hover:bg-zinc-800">
                 Tải lại
               </button>
             </div>
@@ -126,17 +114,19 @@ export function PtTermsModal({
 
         <div className="flex gap-3 border-t border-zinc-800/60 p-4 sm:p-5">
           <button
+            type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg border border-zinc-700/60 py-2.5 text-sm font-semibold text-zinc-300 transition-colors hover:bg-zinc-800"
+            className="min-h-10 flex-1 rounded-lg border border-zinc-700/60 py-2.5 text-sm font-semibold text-zinc-300 transition-colors hover:bg-zinc-800"
           >
             Đóng
           </button>
           {onConfirm && (
             <button
+              type="button"
               data-testid="pt-terms-confirm"
               onClick={() => terms && onConfirm(terms.version)}
               disabled={!terms || confirming}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-green-500 py-2.5 text-sm font-bold text-black transition-all hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500"
+              className="flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-green-500 py-2.5 text-sm font-bold text-black transition-all hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500"
             >
               {confirming && <Loader2 className="h-4 w-4 animate-spin" />}
               {confirmLabel}
@@ -144,8 +134,7 @@ export function PtTermsModal({
           )}
         </div>
       </div>
-    </div>,
-    document.body,
+    </Modal>
   );
 }
 
@@ -176,9 +165,10 @@ export function PtTermsBanner({ open: controlledOpen, onOpenChange }: { open?: b
             </div>
           </div>
           <button
+            type="button"
             data-testid="pt-terms-banner-action"
             onClick={() => setOpen(true)}
-            className="shrink-0 rounded-lg bg-green-500 px-4 py-2.5 text-sm font-bold text-black transition-colors hover:bg-green-400"
+            className="shrink-0 min-h-10 rounded-lg bg-green-500 px-4 py-2.5 text-sm font-bold text-black transition-colors hover:bg-green-400"
           >
             {state.action}
           </button>

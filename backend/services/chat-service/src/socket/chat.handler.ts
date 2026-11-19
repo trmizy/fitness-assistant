@@ -3,6 +3,7 @@ import { logger, chatMessagesTotal } from "@gym-coach/shared";
 import { chatRepository } from "../repositories/chat.repository";
 import { sendMessageSchema } from "../models/chat.models";
 import { pushNewMessage } from "../services/push-relay";
+import { chatService, NOT_PARTICIPANT_MESSAGE } from "../services/chat.service";
 
 interface JoinPayload {
   conversationId: string;
@@ -28,7 +29,7 @@ export function registerChatHandlers(
         );
         if (!ok) {
           socket.emit("chat:error", {
-            message: "Not a participant of this conversation",
+            message: NOT_PARTICIPANT_MESSAGE,
           });
           return;
         }
@@ -39,7 +40,7 @@ export function registerChatHandlers(
         );
       } catch (error) {
         logger.error(error, "chat:join_conversation error");
-        socket.emit("chat:error", { message: "Failed to join conversation" });
+        socket.emit("chat:error", { message: "Không tham gia được cuộc trò chuyện" });
       }
     },
   );
@@ -66,7 +67,7 @@ export function registerChatHandlers(
       const parsed = sendMessageSchema.safeParse({ content });
       if (!parsed.success) {
         socket.emit("chat:error", {
-          message: parsed.error.errors[0]?.message || "Invalid message content",
+          message: parsed.error.errors[0]?.message || "Nội dung tin nhắn không hợp lệ",
         });
         return;
       }
@@ -79,15 +80,26 @@ export function registerChatHandlers(
       // query, with no separate cache to keep in sync or ever go stale relative to reality.
       if (!socket.rooms.has(conversationId)) {
         socket.emit("chat:error", {
-          message: "Not a participant of this conversation",
+          message: NOT_PARTICIPANT_MESSAGE,
         });
         return;
+      }
+
+      // Refuse (nothing stored, nobody notified) when the other person's account is locked.
+      try {
+        await chatService.assertPeersActive(conversationId, user.id);
+      } catch (lockedError: any) {
+        if (lockedError?.statusCode === 403) {
+          socket.emit("chat:error", { message: lockedError.message });
+          return;
+        }
+        throw lockedError;
       }
 
       const message = await chatRepository.createMessage(
         conversationId,
         user.id,
-        content.trim(),
+        parsed.data.content,
       );
 
       // Record chat message metric
@@ -119,7 +131,7 @@ export function registerChatHandlers(
       }
     } catch (error) {
       logger.error(error, "chat:send_message error");
-      socket.emit("chat:error", { message: "Failed to send message" });
+      socket.emit("chat:error", { message: "Không gửi được tin nhắn" });
     }
   };
 

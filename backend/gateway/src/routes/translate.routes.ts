@@ -185,8 +185,11 @@ async function translateText(
   return translated;
 }
 
+// "/translate" is the canonical path (every other gateway route has no "/api" prefix; the web
+// client's baseURL already supplies it). "/api/translate" is kept as an alias for clients that
+// already call that literal path (mobile app builds in the field).
 router.post(
-  "/api/translate",
+  ["/translate", "/api/translate"],
   express.json({ limit: "16kb" }),
   async (req: Request, res: Response) => {
   const body = req.body as TranslateRequest;

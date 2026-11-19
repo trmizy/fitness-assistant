@@ -463,7 +463,7 @@ const DAYS_IN_APRIL = 30;
 const FIRST_DAY_OFFSET = 2;
 const trainingMarkers = [1, 3, 5, 8, 10, 12, 15, 17, 19, 22, 24, 26, 29];
 
-type MetricKey = "weight" | "bodyfat" | "muscle" | "water";
+type MetricKey = "weight" | "bodyfat" | "muscle";
 type MetricUnit = "kg" | "%";
 type MetricDataKey = "kg" | "pct";
 type BodyMetricPoint = {
@@ -483,14 +483,10 @@ type BodyMetricOption = {
   dataKey: MetricDataKey;
   domain: [number, number] | ["auto", "auto"];
   hasData: boolean;
-  canPersist: boolean;
 };
 
 const METRIC_BASE_OPTIONS: Array<
-  Pick<
-    BodyMetricOption,
-    "key" | "label" | "unit" | "color" | "dataKey" | "canPersist"
-  >
+  Pick<BodyMetricOption, "key" | "label" | "unit" | "color" | "dataKey">
 > = [
   {
     key: "weight",
@@ -498,7 +494,6 @@ const METRIC_BASE_OPTIONS: Array<
     unit: "kg",
     color: "#10b981",
     dataKey: "kg",
-    canPersist: true,
   },
   {
     key: "bodyfat",
@@ -506,7 +501,6 @@ const METRIC_BASE_OPTIONS: Array<
     unit: "%",
     color: "#f59e0b",
     dataKey: "pct",
-    canPersist: true,
   },
   {
     key: "muscle",
@@ -514,15 +508,6 @@ const METRIC_BASE_OPTIONS: Array<
     unit: "kg",
     color: "#3b82f6",
     dataKey: "kg",
-    canPersist: true,
-  },
-  {
-    key: "water",
-    label: "Nước cơ thể",
-    unit: "%",
-    color: "#06b6d4",
-    dataKey: "pct",
-    canPersist: false,
   },
 ];
 
@@ -563,16 +548,6 @@ function bodyMetricValue(entry: any, key: MetricKey): number | null {
       entry.muscleMassKg,
       entry.skeletalMuscleKg,
     );
-  if (key === "water") {
-    return metricNumber(
-      entry.bodyWaterPct,
-      entry.bodyWaterPercentage,
-      entry.bodyWater,
-      entry.waterPct,
-      entry.totalBodyWaterPct,
-    );
-  }
-
   const bodyFatPct = metricNumber(entry.bodyFatPct, entry.bodyFatPercentage);
   if (bodyFatPct !== null) return bodyFatPct;
   const bodyFatKg = metricNumber(entry.bodyFat, entry.bodyFatKg);
@@ -598,16 +573,10 @@ function metricTarget(profile: any, key: MetricKey): number | null {
     return metricNumber(profile.targetWeight, profile.targetWeightKg);
   if (key === "bodyfat")
     return metricNumber(profile.targetBodyFatPct, profile.bodyFatTargetPct);
-  if (key === "muscle")
-    return metricNumber(
-      profile.targetMuscleMass,
-      profile.targetMuscleMassKg,
-      profile.skeletalMuscleTargetKg,
-    );
   return metricNumber(
-    profile.targetBodyWaterPct,
-    profile.bodyWaterTargetPct,
-    profile.waterTargetPct,
+    profile.targetMuscleMass,
+    profile.targetMuscleMassKg,
+    profile.skeletalMuscleTargetKg,
   );
 }
 
@@ -4421,12 +4390,6 @@ export function WorkoutLogPage() {
 
   const handleSaveMetricLog = async () => {
     if (!selectedLogMetric) return;
-    if (!selectedLogMetric.canPersist) {
-      toast.warning(
-        "Chỉ số nước cơ thể chưa có cột lưu trong InBody. Hãy nhập qua phiếu InBody khi backend hỗ trợ.",
-      );
-      return;
-    }
 
     const value = Number(logValue);
     if (!Number.isFinite(value) || value <= 0) {
@@ -4611,10 +4574,10 @@ export function WorkoutLogPage() {
                   <AlertCircle className="w-5 h-5 text-emerald-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm text-emerald-100/90">
+                  <p className="text-sm text-zinc-100">
                     Đã đến lúc cập nhật chỉ số cơ thể
                   </p>
-                  <p className="text-xs text-emerald-500/40 mt-0.5">
+                  <p className="text-xs text-zinc-400 mt-0.5">
                     {daysSinceInBody !== null
                       ? `Cập nhật ${daysSinceInBody} ngày trước · Nên quét InBody`
                       : "Chưa có dữ liệu InBody · Bắt đầu bằng cách tải ảnh lên"}
@@ -4631,7 +4594,7 @@ export function WorkoutLogPage() {
           )}
 
           {/* Cinematic Hero */}
-          <div className="group relative rounded-2xl overflow-hidden border border-zinc-700/20 h-60">
+          <div className="on-media group relative rounded-2xl overflow-hidden border border-zinc-700/20 h-60">
             <img
               src={heroImg}
               alt="Training"
@@ -4657,7 +4620,7 @@ export function WorkoutLogPage() {
             </div>
 
             <div className="absolute bottom-0 left-0 right-0 p-6">
-              <span className="text-[10px] text-emerald-400/50 uppercase tracking-[0.2em] mb-1.5 block">
+              <span className="text-[10px] text-emerald-400 uppercase tracking-[0.2em] mb-1.5 block">
                 Chương trình
               </span>
               <h2 className="text-2xl text-white mb-2 tracking-tight">
@@ -8368,12 +8331,6 @@ export function WorkoutLogPage() {
                   {selectedLogMetric?.unit}
                 </span>
               </div>
-              {!selectedLogMetric?.canPersist && (
-                <p className="text-xs text-amber-300/80 mt-2">
-                  Chỉ số này chưa có cột lưu trong InBody, nên không thể ghi vào
-                  DB lúc này.
-                </p>
-              )}
             </div>
 
             {/* Auto-add chart toggle */}
@@ -8403,7 +8360,7 @@ export function WorkoutLogPage() {
               </button>
               <button
                 onClick={handleSaveMetricLog}
-                disabled={isSavingMetric || !selectedLogMetric?.canPersist}
+                disabled={isSavingMetric}
                 className="flex-1 py-3 rounded-xl bg-emerald-500 text-black text-sm hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isSavingMetric ? "Đang lưu..." : "Lưu"}

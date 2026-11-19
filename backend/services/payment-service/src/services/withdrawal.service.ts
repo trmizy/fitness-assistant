@@ -1,10 +1,12 @@
 import { logger } from '@gym-coach/shared';
-import { Prisma, WalletOwnerType } from '../generated/prisma';
+import { Prisma, WalletOwnerType, WithdrawalRequestStatus } from '../generated/prisma';
 import { withdrawalRepository } from '../repositories/withdrawal.repository';
 import { walletRepository } from '../repositories/wallet.repository';
 import { prisma } from '../repositories/prisma';
 import { walletService } from './wallet.service';
+import { gymDebtUnpaid } from './gym-debt-recovery';
 import { withIdempotentLedgerOp } from './ledger-idempotency';
+import { notifyAdminsAwaitingSecondApproval, notifyWithdrawalOwner } from './withdrawal-notification.service';
 
 function err(message: string, status: number, code?: string) {
   return Object.assign(new Error(message), { status, code });
@@ -31,6 +33,80 @@ export const MIN_WITHDRAWAL_AMOUNT: Prisma.Decimal = (() => {
   }
   return parsed;
 })();
+
+/**
+ * BE-2 "four-eyes" on large withdrawals (Ngài's decision 10/11/2026): for a request whose amount is
+ * >= this threshold, the admin who CONFIRMS IT WAS PAID (markPaid, the money-out step) must be a
+ * DIFFERENT admin from the one who approved it (WithdrawalRequest.reviewedBy). Below it nothing
+ * changes. The single ADMIN role is kept — this is a separation of duties between two people, not a
+ * new role. Admin refunds are not covered.
+ *
+ * Env WITHDRAWAL_FOUR_EYES_MIN_VND, default 5,000,000. Parsed strictly (plain positive integer);
+ * anything else falls back to the default with one warning per distinct bad value. Read per call
+ * (not at module load) so a test can set it, and compared as Prisma.Decimal — no float math.
+ */
+export const DEFAULT_FOUR_EYES_MIN_VND = 5000000;
+const warnedFourEyesValues = new Set<string>();
+
+export function parseFourEyesMinAmount(raw: string | undefined | null): Prisma.Decimal {
+  if (raw === undefined || raw === null || raw.trim() === '') return new Prisma.Decimal(DEFAULT_FOUR_EYES_MIN_VND);
+  const text = raw.trim();
+  if (/^[0-9]+$/.test(text)) {
+    const parsed = new Prisma.Decimal(text);
+    if (parsed.greaterThan(0)) return parsed;
+  }
+  if (!warnedFourEyesValues.has(text)) {
+    warnedFourEyesValues.add(text);
+    logger.warn({
+      message: 'WITHDRAWAL_FOUR_EYES_MIN_VND is not a positive integer — using the default',
+      value: text,
+      default: DEFAULT_FOUR_EYES_MIN_VND,
+    });
+  }
+  return new Prisma.Decimal(DEFAULT_FOUR_EYES_MIN_VND);
+}
+
+export function getFourEyesMinAmount(): Prisma.Decimal {
+  return parseFourEyesMinAmount(process.env.WITHDRAWAL_FOUR_EYES_MIN_VND);
+}
+
+/** "5.000.000" — the threshold as shown in Vietnamese text (whole đồng, dot-grouped). */
+function formatThresholdVnd(threshold: Prisma.Decimal): string {
+  return threshold.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+export function isFourEyesRequired(amount: Prisma.Decimal, threshold: Prisma.Decimal = getFourEyesMinAmount()): boolean {
+  return amount.greaterThanOrEqualTo(threshold);
+}
+
+/**
+ * Throws FOUR_EYES_REQUIRED when `adminId` may not confirm this payout. A request that was never
+ * approved (still PENDING, reviewedBy null) is refused too for a large amount: the old "pay straight
+ * from PENDING" shortcut would let one admin approve AND pay in a single call, which is exactly what
+ * the rule forbids — so a large request must be approved first by one admin and paid by another.
+ */
+function assertFourEyes(
+  request: { amount: Prisma.Decimal; status: string; reviewedBy: string | null },
+  adminId: string,
+) {
+  const threshold = getFourEyesMinAmount();
+  if (!isFourEyesRequired(request.amount, threshold)) return;
+  const label = formatThresholdVnd(threshold);
+  if (request.status === 'PENDING' || !request.reviewedBy) {
+    throw err(
+      `Khoản rút từ ${label} ₫ trở lên cần được duyệt trước bởi một quản trị viên, rồi một quản trị viên khác xác nhận đã chi.`,
+      409,
+      'FOUR_EYES_REQUIRED',
+    );
+  }
+  if (request.reviewedBy === adminId) {
+    throw err(
+      `Khoản rút từ ${label} ₫ trở lên cần một quản trị viên khác với người đã duyệt xác nhận đã chi.`,
+      409,
+      'FOUR_EYES_REQUIRED',
+    );
+  }
+}
 
 /**
  * WalletLedgerEntry.transactionId is a hard FK to PaymentTransaction — every other caller of
@@ -132,11 +208,22 @@ export const withdrawalService = {
     // (into lockedBalance), so it must not be subtracted here a second time.
     withdrawable = Prisma.Decimal.min(withdrawable, wallet.availableBalance.minus(pendingReserved));
 
+    // FIX3-PAY: a gym cannot withdraw money that is needed to cover what it owes the platform (an open GYM_DEBT). New income repays the debt automatically
+    // (gym-debt-recovery.ts), so this only bites on money that reached the available bucket by a path that does not recover (a debt being collected by hand,
+    // or opened after the money arrived). NET rule - not a blanket block: the gym may still withdraw whatever exceeds its debt.
+    let gymDebt = new Prisma.Decimal(0);
+    if (ownerType === 'GYM') {
+      gymDebt = await gymDebtUnpaid(prisma, ownerId);
+      if (gymDebt.greaterThan(0)) withdrawable = Prisma.Decimal.min(withdrawable, wallet.availableBalance.minus(pendingReserved).minus(gymDebt));
+    }
+
     if (amountDecimal.greaterThan(withdrawable)) {
       throw err(
         ownerType === 'CLIENT'
           ? 'Số tiền vượt quá phần tiền hoàn trả có thể rút'
-          : 'Số tiền vượt quá số dư khả dụng (đã trừ các yêu cầu đang chờ)',
+          : gymDebt.greaterThan(0)
+            ? `Số tiền vượt quá số dư có thể rút: chi nhánh còn nợ nền tảng ${gymDebt.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}đ và khoản này được giữ lại để trừ nợ`
+            : 'Số tiền vượt quá số dư khả dụng (đã trừ các yêu cầu đang chờ)',
         400,
         'EXCEEDS_WITHDRAWABLE_BALANCE',
       );
@@ -157,8 +244,26 @@ export const withdrawalService = {
     return withdrawalRepository.findByWallet(wallet.id);
   },
 
+  /**
+   * Admin queue. Every row keeps its original fields; BE-2 adds, per item (the response stays a flat
+   * array so the existing frontend keeps working): `fourEyesRequired` (this amount needs two admins),
+   * `approvedBy` (= reviewedBy, the admin who approved; null while PENDING) and `fourEyesMinAmount`
+   * (the configured threshold as an exact string, e.g. "5000000.00").
+   */
   async listPending() {
-    return withdrawalRepository.listPending();
+    const rows = await withdrawalRepository.listPending();
+    const threshold = getFourEyesMinAmount();
+    const minAmount = threshold.toFixed(2);
+    return rows.map((r) => ({
+      ...r,
+      fourEyesRequired: isFourEyesRequired(r.amount, threshold),
+      approvedBy: r.reviewedBy ?? null,
+      fourEyesMinAmount: minAmount,
+    }));
+  },
+
+  async listByStatus(status: WithdrawalRequestStatus) {
+    return withdrawalRepository.listByStatus(status);
   },
 
   /**
@@ -176,25 +281,36 @@ export const withdrawalService = {
     const request = await withdrawalRepository.findById(id);
     if (!request) throw err('Yêu cầu không tồn tại', 404, 'NOT_FOUND');
     if (request.status !== 'PENDING') {
-      throw err(`Không thể duyệt yêu cầu ở trạng thái ${request.status}`, 400, 'INVALID_STATUS');
+      throw err(`Không thể duyệt yêu cầu ở trạng thái ${request.status}`, 409, 'INVALID_STATUS');
     }
 
     const payoutTxn = await getOrCreatePayoutTransaction(request, adminId);
-    return walletService.withWallets([request.walletId], payoutTxn.id, async (ops) => {
+    // Q9: notify only when THIS call really moved PENDING -> APPROVED (a replay of an approved request changes nothing, tells nobody).
+    let transitioned = false;
+    const approved = await walletService.withWallets([request.walletId], payoutTxn.id, async (ops) => {
+      transitioned = false;
       // Every transition holds this wallet lock. Re-read AFTER acquiring it; the
       // preflight snapshot may predate a rejection or a payout.
       const current = await ops.tx.withdrawalRequest.findUniqueOrThrow({ where: { id } });
       if (current.status === 'APPROVED') return current;
-      if (current.status !== 'PENDING') throw err(`Không thể duyệt yêu cầu ở trạng thái ${current.status}`, 400, 'INVALID_STATUS');
+      if (current.status !== 'PENDING') throw err(`Không thể duyệt yêu cầu ở trạng thái ${current.status}`, 409, 'INVALID_STATUS');
       return withIdempotentLedgerOp(ops, `WITHDRAWAL_LOCK:${request.id}`, async () => {
         await ops.debit(request.walletId, request.amount, `Withdrawal ${request.id} approved — locked for payout`, 'AVAILABLE');
         await ops.credit(request.walletId, request.amount, `Withdrawal ${request.id} approved — locked for payout`, 'LOCKED');
-        return ops.tx.withdrawalRequest.update({
+        const row = await ops.tx.withdrawalRequest.update({
           where: { id },
           data: { status: 'APPROVED', reviewedBy: adminId, reviewedAt: new Date() },
         });
+        transitioned = true;
+        return row;
       });
     });
+    if (transitioned) {
+      // After commit, best-effort, never throws (withdrawal-notification.service.ts).
+      await notifyWithdrawalOwner('APPROVED', approved);
+      if (isFourEyesRequired(approved.amount)) await notifyAdminsAwaitingSecondApproval(approved, adminId);
+    }
+    return approved;
   },
 
   /** P0 cluster F — a request rejected AFTER approval had its money moved to LOCKED; that
@@ -206,13 +322,15 @@ export const withdrawalService = {
     const request = await withdrawalRepository.findById(id);
     if (!request) throw err('Yêu cầu không tồn tại', 404, 'NOT_FOUND');
     if (request.status === 'PAID') {
-      throw err('Không thể từ chối một yêu cầu đã chi trả', 400, 'ALREADY_PAID');
+      throw err('Không thể từ chối một yêu cầu đã chi trả', 409, 'ALREADY_PAID');
     }
 
     const payoutTxn = await getOrCreatePayoutTransaction(request, adminId);
-    return walletService.withWallets([request.walletId], payoutTxn.id, async (ops) => {
+    let transitioned = false;
+    const rejected = await walletService.withWallets([request.walletId], payoutTxn.id, async (ops) => {
+      transitioned = false;
       const current = await ops.tx.withdrawalRequest.findUniqueOrThrow({ where: { id } });
-      if (current.status === 'PAID') throw err('Không thể từ chối một yêu cầu đã chi trả', 400, 'ALREADY_PAID');
+      if (current.status === 'PAID') throw err('Không thể từ chối một yêu cầu đã chi trả', 409, 'ALREADY_PAID');
       if (current.status === 'REJECTED') return current;
       if (current.status === 'APPROVED') {
         await withIdempotentLedgerOp(ops, `WITHDRAWAL_UNLOCK:${request.id}`, async () => {
@@ -221,11 +339,15 @@ export const withdrawalService = {
           return { unlocked: request.amount.toFixed(2) };
         });
       }
-      return ops.tx.withdrawalRequest.update({
+      const row = await ops.tx.withdrawalRequest.update({
         where: { id },
         data: { status: 'REJECTED', reviewedBy: adminId, reviewedAt: new Date(), rejectionReason: reason.trim() },
       });
+      transitioned = true;
+      return row;
     });
+    if (transitioned) await notifyWithdrawalOwner('REJECTED', rejected, { reason: rejected.rejectionReason });
+    return rejected;
   },
 
   /**
@@ -244,8 +366,12 @@ export const withdrawalService = {
     const request = await withdrawalRepository.findById(id);
     if (!request) throw err('Yêu cầu không tồn tại', 404, 'NOT_FOUND');
     if (request.status !== 'PENDING' && request.status !== 'APPROVED') {
-      throw err(`Không thể chi trả một yêu cầu ở trạng thái ${request.status}`, 400, 'INVALID_STATUS');
+      throw err(`Không thể chi trả một yêu cầu ở trạng thái ${request.status}`, 409, 'INVALID_STATUS');
     }
+    // BE-2 fast path: refuse BEFORE the payout PaymentTransaction row is created, so a refused
+    // attempt writes nothing. Only a snapshot read — the authoritative check re-runs below inside
+    // the wallet lock, on the re-read row.
+    assertFourEyes(request, adminId);
 
     const payoutTxn = await getOrCreatePayoutTransaction(request, adminId);
     const escrowWallet = await walletService.getEscrowWallet();
@@ -257,12 +383,18 @@ export const withdrawalService = {
     // wallet. withIdempotentLedgerOp guards the debit itself: two concurrent markPaid calls
     // serialize on the wallet's FOR UPDATE lock, and the loser finds this key already claimed
     // and replays instead of debiting a second time.
+    let transitioned = false;
     return walletService.withWallets([request.walletId, escrowWallet.id], payoutTxn.id, async (ops) => {
+      transitioned = false;
       const current = await ops.tx.withdrawalRequest.findUniqueOrThrow({ where: { id } });
       if (current.status === 'PAID') return current;
       if (current.status !== 'PENDING' && current.status !== 'APPROVED') {
-        throw err(`Không thể chi trả một yêu cầu ở trạng thái ${current.status}`, 400, 'INVALID_STATUS');
+        throw err(`Không thể chi trả một yêu cầu ở trạng thái ${current.status}`, 409, 'INVALID_STATUS');
       }
+      // BE-2 authoritative four-eyes check: same wallet lock + same transaction as the status
+      // change, on the freshly re-read row, so a concurrent approve/pay cannot slip past it. A
+      // refusal throws inside withWallets -> the transaction rolls back, nothing is written.
+      assertFourEyes(current, adminId);
       return withIdempotentLedgerOp(ops, `WITHDRAWAL:${request.id}`, async () => {
         if (current.status === 'PENDING') {
           // Never explicitly approved — lock it now, in the same operation, so a request paid
@@ -281,17 +413,33 @@ export const withdrawalService = {
         // before this line existed).
         await ops.debit(escrowWallet.id, request.amount, `Withdrawal ${request.id} paid out — ref ${bankReference.trim()}`);
         await ops.tx.paymentTransaction.update({ where: { id: payoutTxn.id }, data: { status: 'PAID', paidAt: new Date() } });
-        return ops.tx.withdrawalRequest.update({
+        const row = await ops.tx.withdrawalRequest.update({
           where: { id },
           data: {
             status: 'PAID',
             bankReference: bankReference.trim(),
+            // Q7 (14/11): a straight PENDING -> PAID (below the four-eyes threshold) also records the approval - the paying admin is
+            // the approver (reviewedBy / reviewedAt, the same columns approve() writes and the history reads as approvedBy), so a paid
+            // withdrawal never has no approver. An earlier approval is kept as it was.
             reviewedBy: current.reviewedBy ?? adminId,
             reviewedAt: current.reviewedAt ?? new Date(),
             paidAt: new Date(),
           },
         });
+        transitioned = true;
+        return row;
       });
+    }).then(async (paid) => {
+      // There is no paidBy column, so who confirmed the payout is recorded here (after commit).
+      logger.info({
+        message: 'Withdrawal paid',
+        withdrawalId: id,
+        approvedBy: paid.reviewedBy ?? null,
+        paidBy: adminId,
+        fourEyesRequired: isFourEyesRequired(paid.amount),
+      });
+      if (transitioned) await notifyWithdrawalOwner('PAID', paid, { bankReference: paid.bankReference });
+      return paid;
     }).catch((e) => {
       logger.error({ error: 'Withdrawal markPaid failed', withdrawalId: id, message: (e as Error).message });
       throw e;

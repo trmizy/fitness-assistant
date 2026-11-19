@@ -50,3 +50,11 @@ describe("walletEntryLabel", () => {
     assert.equal(old(`Session ${ID} SETTLED_X`, "DEBIT"), "Tiền ra khỏi ví");
   });
 });
+
+describe("N15A-08: the supplementary refund of a won gym-complaint appeal", () => {
+  it("the member's credit reads 'Hoàn thêm sau kháng nghị khiếu nại phòng gym' by category and by the old description", () => {
+    assert.equal(walletEntryLabel({ category: "REFUND_MEMBERSHIP_APPEAL_SUPPLEMENT", entryType: "CREDIT", description: `Membership ${ID} appeal supplement - appeal supplement - refund` }), "Hoàn thêm sau kháng nghị khiếu nại phòng gym");
+    assert.equal(walletEntryLabel({ entryType: "CREDIT", description: `Membership ${ID} appeal supplement - appeal supplement - refund` }), "Hoàn thêm sau kháng nghị khiếu nại phòng gym");
+    assert.equal(walletEntryLabel({ category: "APPEAL_SUPPLEMENT_GYM_SHARE", entryType: "DEBIT" }), "Hoàn thêm cho hội viên sau kháng nghị (phần của phòng gym)");
+  });
+});

@@ -8,7 +8,7 @@ let cachedHandler: ReturnType<typeof serverless> | null = null;
 
 async function getHandler() {
   await ensureDatabaseUrlConfigured();
-  validateRequiredRuntimeConfig();
+  validateRequiredRuntimeConfig("http");
   if (!cachedHandler) {
     const { default: app } = await import("./app");
     cachedHandler = serverless(app, {

@@ -77,7 +77,9 @@ export const partnerService = {
 
     if (account.status === 'REVOKED') {
       // C1-11: mã riêng để ứng dụng hiện "đã bị thu hồi" thay vì màn lỗi chung PARTNER_CONTEXT_UNRESOLVED.
-      throw Object.assign(err('Quyền truy cập của bạn vào phòng gym đã bị thu hồi', 403), { code: 'PARTNER_ACCESS_REVOKED' });
+      // gymName: tên thương hiệu công khai, chỉ để màn "bị thu hồi" nói rõ phòng gym nào (lỗi tra cứu không được che mất lỗi chính).
+      const gymName = await partnerRepository.findBrandNameForPartner(account.partnerId).catch(() => null);
+      throw Object.assign(err('Quyền truy cập của bạn vào phòng gym đã bị thu hồi', 403), { code: 'PARTNER_ACCESS_REVOKED', gymName });
     }
     if (account.status !== 'ACTIVE') {
       throw err('Tài khoản đối tác chưa kích hoạt', 403);

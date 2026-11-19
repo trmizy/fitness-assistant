@@ -13,6 +13,7 @@ import type {
   WeeklyScheduleItem,
   WorkoutPlanRecord,
 } from "../../services/api";
+import { formatPlanWarnings } from "./planWarnings";
 
 export type PlanFilter = "all" | "active" | "completed" | "failed";
 export type TrainingLocation = "HOME" | "GYM";
@@ -220,10 +221,9 @@ export function locationLabel(loc: TrainingLocation | null): string {
 
 export function extractPlanWarnings(content: PlanContent | null): string[] {
   const metadata = (content as any)?._metadata;
-  if (!isRecord(metadata) || !Array.isArray(metadata.aiWarnings)) return [];
-  return metadata.aiWarnings
-    .map((w) => (typeof w === "string" ? w : JSON.stringify(w)).trim())
-    .filter(Boolean);
+  if (!isRecord(metadata)) return [];
+  // aiWarnings mixes strings and structured objects (see planWarnings.ts): never print raw JSON to the user.
+  return formatPlanWarnings(metadata.aiWarnings);
 }
 
 export type PlanEvidenceItem = {

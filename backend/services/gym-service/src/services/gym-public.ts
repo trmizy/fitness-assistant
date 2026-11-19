@@ -45,6 +45,17 @@ export async function isGymPubliclyVisible(gymId: string): Promise<boolean> {
 }
 
 /**
+ * N15C-06: may the PHOTOS of this branch be served to anyone? Same set as the detail page (gymDetailWhere): a publicly visible
+ * branch, or an APPROVED one that is only TEMPORARILY_CLOSED - it is still a real gym, and its direct-link page (reason + reopen
+ * date) would otherwise show broken images. Unapproved, suspended-by-admin-and-hidden and permanently closed branches stay hidden.
+ */
+export async function isGymPhotoVisible(gymId: string): Promise<boolean> {
+  const where = await gymDetailWhere();
+  const row = await prisma.gym.findFirst({ where: { AND: [{ id: gymId }, where] }, select: { id: true } });
+  return row !== null;
+}
+
+/**
  * C2-03: the closed-state of a branch whose DETAIL page is reachable (gymDetailWhere) but which is not strictly public - i.e. a
  * TEMPORARILY_CLOSED one. null when the branch is OPEN (use the normal path) or not reachable at all (404).
  */
@@ -126,6 +137,18 @@ export const gymPublicRepository = {
     const where = await gymDetailWhere();
     const row = await prisma.gym.findFirst({ where: { AND: [{ id }, where] }, include: DETAIL_INCLUDE });
     return row as PublishedGymSource | null;
+  },
+
+  /** Ordered page hydration for POST /gyms/search: preserves caller's SQL-ordered id array. */
+  async findPublishedByIds(ids: string[]): Promise<PublishedGymListSource[]> {
+    if (ids.length === 0) return [];
+    const where = await gymPublicWhere();
+    const rows = await prisma.gym.findMany({
+      where: { AND: [{ id: { in: ids } }, where] },
+      include: LIST_INCLUDE,
+    });
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    return ids.map((id) => byId.get(id)).filter((r): r is NonNullable<typeof r> => Boolean(r)) as PublishedGymListSource[];
   },
 
   /** Every publicly visible branch of one brand (for the brand's branch map). */
@@ -231,4 +254,32 @@ export function toPublicGymDto(
 /** The detail view's gallery: PUBLISHED photos only (the source type guarantees it), stable URLs, reader order. */
 export function toPublicGymPhotos(g: PublishedGymSource): PublicGymPhotoDto[] {
   return g.photos.map((p) => ({ id: p.id, category: p.category, isCover: p.isCover, url: gymPhotoMediaUrl(p.id) }));
+}
+
+export interface PublicOperatingHoursDto {
+  day: 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
+  type: 'OPEN' | 'CLOSED' | 'ALL_DAY';
+  openMinute: number | null;
+  closeMinute: number | null;
+}
+
+const WEEK_ORDER: PublicOperatingHoursDto['day'][] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+
+/**
+ * The opening hours the owner entered in the wizard, shaped for the PUBLIC detail (no ids, no timestamps).
+ * A branch that never saved any row (legacy / seeded) answers [] — "no hours known", NOT seven closed days — so
+ * the client hides the section instead of claiming the gym is shut all week. Any day missing from a partial set is
+ * filled as CLOSED; the result is always Monday..Sunday.
+ */
+export function toPublicOperatingHours(
+  rows: { day: string; type: string; openMinute: number | null; closeMinute: number | null }[],
+): PublicOperatingHoursDto[] {
+  if (!rows.length) return [];
+  const byDay = new Map(rows.map((r) => [r.day, r]));
+  return WEEK_ORDER.map((day) => {
+    const r = byDay.get(day);
+    if (!r || (r.type !== 'OPEN' && r.type !== 'ALL_DAY')) return { day, type: 'CLOSED' as const, openMinute: null, closeMinute: null };
+    if (r.type === 'ALL_DAY') return { day, type: 'ALL_DAY' as const, openMinute: null, closeMinute: null };
+    return { day, type: 'OPEN' as const, openMinute: r.openMinute, closeMinute: r.closeMinute };
+  });
 }

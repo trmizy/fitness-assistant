@@ -20,10 +20,23 @@ test("the CURRENT build is internally consistent: draft flag <=> draft version i
   assert.equal(publicPtTerms().isDraft, PT_TERMS_IS_DRAFT);
 });
 
+test("owner release 11/11/2026: the CURRENT build is the OFFICIAL 2026-11-pt-v1 - not a draft, releasable even in production", () => {
+  assert.equal(PT_TERMS_VERSION, "2026-11-pt-v1");
+  assert.equal(PT_TERMS_IS_DRAFT, false);
+  assert.equal(isDraftTermsVersionId(PT_TERMS_VERSION), false);
+  assert.equal(publicPtTerms().version, "2026-11-pt-v1");
+  assert.equal(publicPtTerms().isDraft, false);
+  assert.equal(ptTermsReleaseProblem({ NODE_ENV: "production" }), null);
+  assert.equal(ptTermsReleaseProblem({ NODE_ENV: "development" }), null);
+});
+
 test("flipping the flag alone is rejected: official text must carry a NEW non-draft id, a draft text must carry a draft id", () => {
   assert.match(ptTermsReleaseProblem({}, { version: "2026-10-pt-draft-1", isDraft: false }) ?? "", /OFFICIAL but still carry the draft id/);
   assert.match(ptTermsReleaseProblem({}, { version: "2026-10-pt-v1", isDraft: true }) ?? "", /DRAFT but version/);
   assert.equal(ptTermsReleaseProblem({ NODE_ENV: "production" }, { version: "2026-11-pt-v1", isDraft: false }), null, "an official id with the flag off is releasable");
+  // the old draft id with only the flag flipped is still refused (explicit params: the rule outlives the release)
+  assert.match(ptTermsReleaseProblem({}, { version: "2026-10-pt-draft-6", isDraft: false }) ?? "", /OFFICIAL but still carry the draft id/);
+  assert.match(ptTermsReleaseProblem({ NODE_ENV: "production" }, { version: "2026-10-pt-draft-6", isDraft: false }) ?? "", /OFFICIAL but still carry the draft id/);
 });
 
 test("draft id detection", () => {
@@ -36,21 +49,21 @@ test("draft terms are refused for production and allowed elsewhere", () => {
   for (const env of ["development", "test", undefined]) assert.equal(ptTermsReleaseProblem({ NODE_ENV: env }, { version: "2026-10-pt-draft-1", isDraft: true }), null);
 });
 
-test("the pre-deploy script check: FAILS (ok=false -> exit 1) in production while the terms are draft; ok elsewhere", () => {
-  if (PT_TERMS_IS_DRAFT) {
-    const r = checkPtTermsRelease({ NODE_ENV: "production" });
-    assert.equal(r.ok, false);
-    assert.match(r.message, /FAILED/);
-  }
+test("the pre-deploy script check: the official terms pass in production and elsewhere (ok=true -> exit 0)", () => {
+  const prod = checkPtTermsRelease({ NODE_ENV: "production" });
+  assert.equal(prod.ok, true);
+  assert.match(prod.message, /version 2026-11-pt-v1 \(official\)/);
   assert.equal(checkPtTermsRelease({ NODE_ENV: "development" }).ok, true);
 });
 
 test("a confirmation of the draft id does not match any other id (draft rows cannot validate an official version)", () => {
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-v1");
   assert.equal(isDraftTermsVersionId("2026-10-pt-v1"), false);
+  assert.equal(isDraftTermsVersionId("2026-10-pt-draft-6"), true, "the old draft id stays recognised as a draft");
+  assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-6", "a draft-6 row no longer matches the current version, so those PTs must re-confirm");
 });
 
-test("Điều 3 says an online session is recorded by the system when the room closes (room-close-resolution runs it without the PT reporting) - draft-4 text, still in draft-5", () => {
+test("Điều 3 says an online session is recorded by the system when the room closes (room-close-resolution runs it without the PT reporting) - draft-4 text, unchanged in 2026-11-pt-v1", () => {
   const clause = PT_TERMS_SECTIONS.find((s) => s.id === "sessions");
   assert.ok(clause, "clause 3 exists");
   assert.match(clause.title, /^3\./);
@@ -58,17 +71,18 @@ test("Điều 3 says an online session is recorded by the system when the room c
   assert.match(first, /Sau khi buổi tập kết thúc, bạn báo hoàn thành buổi đó\. Với buổi học trực tuyến, hệ thống tự ghi nhận khi phòng học đóng\./);
   // the rest of the clause is unchanged
   assert.match(clause.body.join(" "), /Nếu khách không phản hồi trong 3 ngày, hệ thống tự xác nhận/);
-  assert.equal(PT_TERMS_IS_DRAFT, true);
+  assert.equal(PT_TERMS_IS_DRAFT, false);
 });
 
-test("Điều 5 states DQ-2(a)/DQ-1/D77 and the text was re-versioned (draft-5 added the privacy notice, clause 10; draft-6 added the holdback clause and the gym fixed-duration rule) (earlier drafts had other text, so their ids must not be reused)", () => {
+test("Điều 5 states DQ-2(a)/DQ-1/D77 and the text was re-versioned (draft-5 added the privacy notice, clause 10; draft-6 added the holdback clause and the gym fixed-duration rule; 2026-11-pt-v1 is the official release of the draft-6 wording) (earlier drafts had other text, so their ids must not be reused)", () => {
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-1");
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-2");
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-3");
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-4");
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-5");
-  assert.equal(PT_TERMS_VERSION, "2026-10-pt-draft-6");
-  assert.equal(PT_TERMS_IS_DRAFT, true);
+  assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-6");
+  assert.equal(PT_TERMS_VERSION, "2026-11-pt-v1");
+  assert.equal(PT_TERMS_IS_DRAFT, false);
   const clause = PT_TERMS_SECTIONS.find((s) => s.id === "pt-cancel");
   assert.ok(clause, "clause 5 exists");
   assert.match(clause.title, /^5\./);
@@ -102,9 +116,9 @@ test("Điều 5 states DQ-2(a)/DQ-1/D77 and the text was re-versioned (draft-5 a
   assert.deepEqual(publicPtTerms().sections.map((s) => s.title.slice(0, 2)), ["1.", "2.", "3.", "4.", "5.", "6.", "7.", "8.", "9.", "10"]);
 });
 
-test("draft-6 (privacy notice from draft-5): clause 10 is the PT privacy notice (purpose, data, who sees it, 12-month retention with the dispute exception, rights) and every client renders it as an ordinary section", () => {
-  assert.equal(PT_TERMS_VERSION, "2026-10-pt-draft-6");
-  assert.equal(PT_TERMS_IS_DRAFT, true, "still a draft: the notice does not make the terms official");
+test("2026-11-pt-v1 (privacy notice from draft-5): clause 10 is the PT privacy notice (purpose, data, who sees it, 12-month retention with the dispute exception, rights) and every client renders it as an ordinary section", () => {
+  assert.equal(PT_TERMS_VERSION, "2026-11-pt-v1");
+  assert.equal(PT_TERMS_IS_DRAFT, false, "official since the owner's release (11/11/2026)");
   const clause = PT_TERMS_SECTIONS.find((s) => s.id === "privacy-notice");
   assert.ok(clause, "clause 10 exists");
   assert.equal(PT_TERMS_SECTIONS[PT_TERMS_SECTIONS.length - 1], clause, "it is the LAST section, so no earlier clause number moves");
@@ -127,7 +141,7 @@ test("draft-6 (privacy notice from draft-5): clause 10 is the PT privacy notice 
   assert.equal(JSON.stringify(publicPtTerms()).includes("PtTermsAcceptance"), false, "the server-side source note is never served");
 });
 
-test("draft-6: Điều 1 states the gym-linked contract rule (fixed duration + a membership that covers it, checked at request / accept / pay)", () => {
+test("2026-11-pt-v1: Điều 1 states the gym-linked contract rule (fixed duration + a membership that covers it, checked at request / accept / pay)", () => {
   const text = PT_TERMS_SECTIONS.find((s) => s.id === "contract-flow")!.body.join(" ");
   assert.match(text, /Hợp đồng gắn với một phòng gym phải có thời hạn cố định/);
   assert.match(text, /gói hội viên đang có của khách tại gym đó phải còn hiệu lực đủ dài để bao phủ toàn bộ thời hạn của hợp đồng/);
@@ -135,7 +149,7 @@ test("draft-6: Điều 1 states the gym-linked contract rule (fixed duration + a
   assert.match(text, /trước khi có bất kỳ khoản tiền nào được chuyển/);
 });
 
-test("draft-6: Điều 2 states the holdback exactly as the ledger runs it - amount on the PT's EXPECTED income, collection, nature, release after end + reconciliation (no fixed date), use only for a VERIFIED PT-responsible obligation of the SAME contract (PT share, PENDING first, not automatic), reserve + review deadline, decision outcomes, non-retroactive", () => {
+test("2026-11-pt-v1: Điều 2 states the holdback exactly as the ledger runs it - amount on the PT's EXPECTED income, collection, nature, release after end + reconciliation (no fixed date), use only for a VERIFIED PT-responsible obligation of the SAME contract (PT share, PENDING first, not automatic), reserve + review deadline, decision outcomes, non-retroactive", () => {
   const clause = PT_TERMS_SECTIONS.find((s) => s.id === "revenue-split")!;
   assert.match(clause.title, /^2\. Chia tiền của hợp đồng và khoản tạm giữ một phần thu nhập$/);
   const text = clause.body.join(" ");
@@ -158,7 +172,7 @@ test("draft-6: Điều 2 states the holdback exactly as the ledger runs it - amo
   assert.match(text, /chỉ giữ lại phần tối đa bạn có thể phải chịu cho khoản cụ thể đó/);
   assert.match(text, /tự nó không phải là lý do để giữ lại khoản tạm giữ/);
   assert.match(text, /toàn bộ khoản tạm giữ được trả lại cho bạn ngay khi hợp đồng kết thúc/);
-  assert.match(text, /\(Nội dung khoản tạm giữ dưới đây đang chờ rà soát pháp lý — bản nháp\.\)/, "the holdback clause is marked as pending legal review");
+  assert.doesNotMatch(text, /bản nháp|đang chờ rà soát pháp lý/, "the official text carries no draft / pending-legal-review notice");
   assert.doesNotMatch(text, /bồi thường khi bị xác minh là hủy hợp đồng|vắng mặt nhiều lần, hoặc/, "no wording implies an automatic penalty reserve for cancelling");
   assert.match(text, /hạn xem xét \(14 ngày\)/);
   assert.match(text, /nếu không được xác minh là lỗi của bạn, toàn bộ phần dự phòng được trả lại cho bạn/);
@@ -169,7 +183,9 @@ test("draft-6: Điều 2 states the holdback exactly as the ledger runs it - amo
   assert.match(PT_TERMS_SECTIONS.find((s) => s.id === "neutral-exit")!.body.join(" "), /không dùng khoản tạm giữ ở mục 2 để bồi thường/);
   assert.match(PT_TERMS_SECTIONS.find((s) => s.id === "pt-cancel")!.body.join(" "), /khoản tạm giữ chỉ được dùng cho một nghĩa vụ riêng của chính hợp đồng đó đã được quản trị viên xem xét và xác minh là thuộc trách nhiệm của bạn/);
   assert.match(PT_TERMS_SECTIONS.find((s) => s.id === "pt-cancel")!.body.join(" "), /Nếu không có nghĩa vụ riêng nào như vậy, khoản tạm giữ của hợp đồng đó được trả lại cho bạn khi hợp đồng kết thúc/);
-  assert.match(PT_TERMS_SECTIONS.find((s) => s.id === "privacy-notice")!.body[0], /^\(Nội dung đang chờ rà soát pháp lý — bản nháp\.\)$/, "clause 10 is marked as pending legal review");
+  const privacyBody = PT_TERMS_SECTIONS.find((s) => s.id === "privacy-notice")!.body;
+  assert.match(privacyBody[0], /^Khi bạn bấm đồng ý điều khoản này, Gymini ghi lại địa chỉ IP/, "clause 10 starts with the notice itself, no draft banner");
+  assert.doesNotMatch(JSON.stringify(publicPtTerms()), /bản nháp|đang chờ rà soát pháp lý/, "no served paragraph carries a draft notice");
   assert.equal(PT_TERMS_SECTIONS.length, 10, "numbering is unchanged: the holdback lives in clause 2, the privacy notice stays clause 10");
   assert.ok(PT_TERMS_SECTIONS.some((s) => s.id === "privacy-notice"));
 });

@@ -5,6 +5,8 @@
  * screen that shows the same thing; an unknown link opens nothing rather than a dead route.
  */
 
+import { anchorOptionsFor } from "../../config/returnPath";
+
 export type AppNotification = {
   id: string;
   text: string;
@@ -74,7 +76,28 @@ export function notificationMeta(eventType: string | null): { title: string; ico
       return { title: "Khiếu nại buổi tập", icon: "alert", tone: "warning" };
     case "SESSION_DISPUTE_RESOLVED":
     case "GYM_COMPLAINT_RESOLVED":
+    case "GYM_COMPLAINT_CASE_RESOLVED":
       return { title: "Khiếu nại đã xử lý", icon: "shield", tone: "primary" };
+    // Gym complaint case (N09C-01): no mobile case screen exists yet, so these only get a title/icon and open nothing.
+    case "GYM_COMPLAINT_CASE_OPENED":
+      return { title: "Báo cáo đã được tiếp nhận", icon: "shield", tone: "primary" };
+    case "GYM_COMPLAINT_CASE_MORE_INFO":
+      return { title: "Cần bổ sung thông tin", icon: "alert", tone: "warning" };
+    case "GYM_COMPLAINT_CASE_SLA_WARNING":
+      return { title: "Hồ sơ sắp đến hạn xử lý", icon: "alert", tone: "warning" };
+    case "GYM_COMPLAINT_CASE_SLA_OVERDUE":
+      return { title: "Hồ sơ đã quá hạn xử lý", icon: "alert", tone: "danger" };
+    case "GYM_COMPLAINT_CASE_APPEAL_FILED":
+      return { title: "Kháng nghị đã được tiếp nhận", icon: "shield", tone: "primary" };
+    // Withdrawal (Q9): the owner's approved / paid / rejected notices and the admins' "waiting for a second admin" notice.
+    case "WITHDRAWAL_APPROVED":
+      return { title: "Yêu cầu rút tiền đã được duyệt", icon: "money", tone: "primary" };
+    case "WITHDRAWAL_PAID":
+      return { title: "Rút tiền đã chuyển khoản", icon: "money", tone: "primary" };
+    case "WITHDRAWAL_REJECTED":
+      return { title: "Yêu cầu rút tiền bị từ chối", icon: "alert", tone: "danger" };
+    case "WITHDRAWAL_AWAITING_SECOND_ADMIN":
+      return { title: "Rút tiền chờ duyệt lần hai", icon: "money", tone: "warning" };
     case "CONTRACT_REQUESTED":
     case "CONTRACT_ACCEPTED":
       return { title: "Hợp đồng PT", icon: "file", tone: "primary" };
@@ -111,6 +134,15 @@ export function notificationMeta(eventType: string | null): { title: string; ico
       return { title: "Tin đăng chi nhánh vừa được cập nhật", icon: "file", tone: "warning" };
     case "GYM_AMENITY_PROPOSAL_REVIEWED":
       return { title: "Đề xuất tiện ích đã được xử lý", icon: "sparkles", tone: "primary" };
+    // Gym branch lifecycle (FIX3-NOTIFY): the admin suspended / lifted / temporarily closed / reopened the owner's (or manager's) branch. All four open that branch.
+    case "GYM_BRANCH_SUSPENDED":
+      return { title: "Chi nhánh bị tạm khoá", icon: "alert", tone: "danger" };
+    case "GYM_BRANCH_SUSPENSION_LIFTED":
+      return { title: "Chi nhánh được mở khoá", icon: "check", tone: "primary" };
+    case "GYM_BRANCH_TEMPORARILY_CLOSED":
+      return { title: "Chi nhánh tạm đóng cửa", icon: "alert", tone: "warning" };
+    case "GYM_BRANCH_REOPENED":
+      return { title: "Chi nhánh mở cửa lại", icon: "check", tone: "primary" };
     default:
       return { title: "Thông báo", icon: "bell", tone: "primary" };
   }
@@ -119,12 +151,18 @@ export function notificationMeta(eventType: string | null): { title: string; ico
 const LINK_MAP: Record<string, string> = {
   "/client/booking": "/client/services/booking",
   "/client/schedule": "/client/services/booking",
-  "/client/contracts": "/client/services",
+  "/client/contracts": "/client/services?tab=contracts",
   "/client/services": "/client/services",
   "/client/workout": "/client/workout",
   "/client/training": "/client/workout",
   "/client/nutrition": "/client/workout/nutrition",
   "/client/wallet": "/client/profile/wallet",
+  // Withdrawal notices (Q9): the PT's wallet screen and the admin's withdrawals screen.
+  "/pt/wallet": "/pt/wallet",
+  // A PT's contract / schedule notices (user-service links them to the web's /pt/contracts and /pt/schedule).
+  "/pt/contracts": "/pt/contracts",
+  "/pt/schedule": "/pt/schedule",
+  "/admin/finance/withdrawals": "/admin/withdrawals",
   "/client/dashboard": "/client/dashboard",
   "/client/pt-application": "/client/profile/pt-application",
   // Listing Management (M1): the server links PT listing notifications to "/pt/listing".
@@ -143,21 +181,61 @@ export function gymListingRoute(link: string): string | null {
   return id ? `/gym-owner/listing?gymId=${id}` : "/gym-owner/listing";
 }
 
+/**
+ * Gym branch lifecycle notices (FIX3-NOTIFY): gym-service links them to the web branch page `/gym-owner/gyms/<id>`; the mobile screen is
+ * `/gym-owner/branch?gymId=<id>`.
+ */
+const GYM_BRANCH_LINK = /^\/gym-owner\/gyms\/([A-Za-z0-9_-]+)$/;
+export function gymBranchRoute(link: string): string | null {
+  const id = GYM_BRANCH_LINK.exec(link.split("#")[0].split("?")[0].replace(/\/+$/, ""))?.[1];
+  return id ? `/gym-owner/branch?gymId=${id}` : null;
+}
+
+const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
+
+/**
+ * N15M-11 — land on the exact thing. A contract notice opens Dịch vụ > Hợp đồng with that contract
+ * highlighted; a session notice opens "Buổi tập" with that session's sheet open. The id is only added
+ * when it really is that entity's id (a dispute-case notice carries the CASE id, which is not a session
+ * id) and is well-formed; without it the route is the list.
+ */
+function refine(route: string, entityType: string | null, entityId: string | null): string {
+  const id = entityId && SAFE_ID.test(entityId) ? entityId : null;
+  // N16M-02 — a session notice is about the session, whatever tab the server's link names (the PT's session
+  // requests carry /pt/contracts; a client's may carry /client/contracts): route to the schedule, never to a list
+  // the session is not on ("Yêu cầu · 0").
+  if (entityType === "SESSION") {
+    if (route === "/pt/contracts" || route === "/pt/schedule") return id ? `/pt/schedule?sessionId=${id}` : "/pt/schedule";
+    if (route === "/client/services?tab=contracts" || route === "/client/services") return refine("/client/services/booking", entityType, entityId);
+  }
+  if (route === "/client/services/booking") return entityType === "SESSION" && id ? `${route}?sessionId=${id}` : route;
+  if (route === "/client/services?tab=contracts") return entityType === "CONTRACT" && id ? `${route}&contractId=${id}` : route;
+  // A contract notice the server links to the bare Dịch vụ tab (PT feedback) belongs on Hợp đồng too.
+  if (route === "/client/services" && entityType === "CONTRACT") return refine("/client/services?tab=contracts", entityType, entityId);
+  // The PT's own screens take the same ids: the contract opens expanded, the session's day opens with that session outlined.
+  if (route === "/pt/contracts") return entityType === "CONTRACT" && id ? `${route}?contractId=${id}` : route;
+  if (route === "/pt/schedule") return entityType === "SESSION" && id ? `${route}?sessionId=${id}` : route;
+  return route;
+}
+
 /** Where tapping a notification goes on mobile, or null when there is nothing to open. */
-export function notificationRoute(n: Pick<AppNotification, "link" | "entityType">): string | null {
+export function notificationRoute(n: Pick<AppNotification, "link" | "entityType"> & { entityId?: string | null }): string | null {
+  const entityId = n.entityId ?? null;
   if (n.link) {
     const gymListing = gymListingRoute(n.link);
     if (gymListing) return gymListing;
+    const gymBranch = gymBranchRoute(n.link);
+    if (gymBranch) return gymBranch;
     const path = n.link.split("?")[0].replace(/\/+$/, "");
-    if (LINK_MAP[path]) return LINK_MAP[path];
-    for (const [prefix, target] of Object.entries(LINK_MAP)) if (path.startsWith(`${prefix}/`)) return target;
+    if (LINK_MAP[path]) return refine(LINK_MAP[path], n.entityType, entityId);
+    for (const [prefix, target] of Object.entries(LINK_MAP)) if (path.startsWith(`${prefix}/`)) return refine(target, n.entityType, entityId);
     return null;
   }
   switch (n.entityType) {
     case "SESSION":
-      return "/client/services/booking";
+      return refine("/client/services/booking", n.entityType, entityId);
     case "CONTRACT":
-      return "/client/services";
+      return refine("/client/services?tab=contracts", n.entityType, entityId);
     case "WORKOUT_SCHEDULE":
       return "/client/workout";
     case "PT_LISTING":
@@ -165,6 +243,22 @@ export function notificationRoute(n: Pick<AppNotification, "link" | "entityType"
     default:
       return null;
   }
+}
+
+/**
+ * N17M-01 — how to push a notification route.
+ *
+ * A route that lands INSIDE a tab's own stack (`/client/services/booking`, `/client/profile/wallet`,
+ * `/pt/service-orders/<id>` ...) pushed from another tab is applied to a navigator that is not mounted yet.
+ * expo-router then starts that stack with ONLY the pushed screen: the layout's
+ * `unstable_settings.initialRouteName` is skipped (it only applies to cold-start links), so the tab's hub
+ * stays unreachable: its back arrow follows the global history and the tab keeps showing the sub-screen.
+ * `withAnchor: true` makes expo-router load the stack's initial route (the hub) under the pushed screen.
+ * Plain tab roots (`/client/services?tab=contracts`, `/pt/schedule`) have nothing to anchor, so they are
+ * left alone (the flag would only add a stray `initial` param to their search params).
+ */
+export function notificationPushOptions(route: string): { withAnchor: true } | undefined {
+  return anchorOptionsFor(route);
 }
 
 /** "Hôm nay" / "Tuần này" / "Trước đó" groups, newest first, empty groups dropped. */

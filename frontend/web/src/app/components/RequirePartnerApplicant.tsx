@@ -3,6 +3,7 @@ import { Navigate } from "react-router";
 import { CircleNotchIcon as Loader2 } from "@phosphor-icons/react";
 import { useGymOwnerAccessState } from "../hooks/useGymOwnerAccessState";
 import { APPLICANT_STATES } from "../services/partnerApplication";
+import { PartnerAccessRevokedScreen, isPartnerAccessRevoked, revokedGymName } from "./PartnerAccessRevokedScreen";
 
 function Splash() {
   return (
@@ -26,8 +27,10 @@ export function RequirePartnerApplicant({ children }: { children: ReactNode }) {
  * UX, backend vẫn từ chối mọi route vận hành với người chưa được duyệt.
  */
 export function RequireApprovedPartner({ children }: { children: ReactNode }) {
-  const { data, isLoading } = useGymOwnerAccessState();
+  const { data, isLoading, error, refetch } = useGymOwnerAccessState();
   if (isLoading) return <Splash />;
+  // Nhân viên đã bị thu hồi quyền: màn riêng thay vì cho vào để mọi trang con báo lỗi chung (N14G-07).
+  if (isPartnerAccessRevoked(error)) return <PartnerAccessRevokedScreen gymName={revokedGymName(error)} onRetry={() => void refetch()} />;
   if (data && APPLICANT_STATES.includes(data.accessState)) return <Navigate to="/partner/application" replace />;
   return <>{children}</>;
 }

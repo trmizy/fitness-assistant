@@ -383,7 +383,7 @@ export function ActionButton({
       aria-busy={pending ? true : undefined}
       aria-disabled={pending ? true : undefined}
       data-testid={testId}
-      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-wait aria-disabled:opacity-70 motion-reduce:transition-none xl:min-h-9 ${VARIANT[variant]} ${FOCUS}`}
+      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-wait aria-disabled:opacity-70 motion-reduce:transition-none xl:min-h-10 ${VARIANT[variant]} ${FOCUS}`}
     >
       {pending && <CircleNotchIcon className="size-4 animate-spin motion-reduce:animate-none" aria-hidden />}
       {children}

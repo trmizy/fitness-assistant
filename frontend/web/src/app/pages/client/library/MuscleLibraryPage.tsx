@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { CircleNotchIcon as Loader2, PersonSimpleIcon as PersonStanding, MagnifyingGlassIcon as Search } from "@phosphor-icons/react";
 import { workoutService } from "../../../services/api";
+import { bodyRegionLabel, muscleCodeLabel } from "../../../utils/labels.vi";
 
 export function MuscleLibraryPage() {
   const navigate = useNavigate();
@@ -64,10 +65,10 @@ export function MuscleLibraryPage() {
               className="text-left bg-zinc-900 border border-zinc-800/60 hover:border-zinc-700 rounded-xl p-3.5 transition-all"
             >
               <p className="text-sm font-semibold text-zinc-200">{muscle.nameVi}</p>
-              <p className="text-xs text-zinc-500 mt-0.5">{muscle.nameEn ?? muscle.code}</p>
+              <p className="text-xs text-zinc-500 mt-0.5">{muscle.nameEn ?? muscleCodeLabel(muscle.code)}</p>
               {muscle.anatomyRegion && (
                 <span className="inline-block text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/20 mt-2">
-                  {muscle.anatomyRegion}
+                  {bodyRegionLabel(muscle.anatomyRegion)}
                 </span>
               )}
             </button>

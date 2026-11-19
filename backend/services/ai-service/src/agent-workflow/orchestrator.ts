@@ -5,6 +5,7 @@ import { allowsUseOnce } from "./types";
 import { workflowStateRepository } from "./workflow-state.repository";
 import { missingRequiredSlots, buildMissingSlotsQuestion, buildKnownMissingSummary } from "./slot-resolver";
 import { normalizeAgentText } from "../services/fitness-agent-intent";
+import { classifyAgentTurnAct } from "../services/agent-turn-act";
 import { ciMode, hasSemanticContent, interpretDeterministic, semanticTurn, withCiState, type PolicyDecision } from "../conversational-intelligence";
 
 /**
@@ -111,6 +112,13 @@ export async function runWorkflowTurn(
     if (switchingTo && switchingTo.type !== def.type) {
       await workflowStateRepository.cancel(active.id);
       return startWorkflow(switchingTo, question, identity, sessionId, deps);
+    }
+
+    // V1 RC 2026-11-12: a HYPOTHETICAL ("Nếu tập 90 phút thì có quá dài không?") is not an answer to the pending slot or
+    // confirmation — it used to fill sessionMinutes=90 and generate a draft. The workflow stays waiting, untouched; the normal
+    // chat answers the scenario. (A question-shaped answer such as "T2, T4 được không?" is still read as the slot reply.)
+    if ((active.status === "COLLECTING_SLOTS" || active.status === "AWAITING_SLOT_CONFIRMATION") && classifyAgentTurnAct(question) === "HYPOTHETICAL") {
+      return null;
     }
 
     if (active.status === "AWAITING_SLOT_CONFIRMATION") {

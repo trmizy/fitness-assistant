@@ -5,6 +5,7 @@
  * nothing is asked and nothing changes (the outbound guard of the tests would refuse the call anyway).
  */
 import axios from "axios";
+import { installLambdaAdapter, serviceBaseUrl } from "../../clients/lambda-http.client";
 import { evaluateRuntimeGate, verdictSignature, type GateVerdict } from "./runtime-gate";
 
 export const PEER_REFRESH_MS = 30_000;
@@ -34,7 +35,8 @@ export function peerAgrees(ours: Pick<GateVerdict, "mode" | "open">, now = Date.
 }
 
 export async function refreshPeerVerdict(env: NodeJS.ProcessEnv = process.env): Promise<PeerState> {
-  const base = env.PAYMENT_SERVICE_URL || "http://localhost:3007";
+  installLambdaAdapter();
+  const base = serviceBaseUrl("PAYMENT", "http://localhost:3007", env);
   const secret = env.INTERNAL_SERVICE_SECRET || "";
   try {
     const { data } = await axios.get(`${base}/internal/dispute-runtime-verdict`, { headers: { "x-service-secret": secret }, timeout: 5_000 });

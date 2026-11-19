@@ -38,6 +38,8 @@ export const publicPartnerController = {
   async previewInvitation(req: Request, res: Response) {
     try {
       const invitation = await partnerInvitationService.validateToken(req.params.token);
+      // Q4: lời mời để kích hoạt lại nhân sự đã bị thu hồi - trang nhận lời mời không đòi đặt mật khẩu mới.
+      const reactivation = await partnerInvitationService.findReactivationTarget(invitation);
       res.json({
         success: true,
         data: {
@@ -45,6 +47,7 @@ export const publicPartnerController = {
           email: invitation.email,
           partnerName: invitation.partner.legalName,
           expiresAt: invitation.expiresAt,
+          existingAccount: Boolean(reactivation),
         },
       });
     } catch (e: any) {
@@ -60,7 +63,23 @@ export const publicPartnerController = {
    */
   async acceptInvitation(req: Request, res: Response) {
     try {
+      // Q4: nhân sự đã bị thu hồi nhận lời mời mới = kích hoạt lại tài khoản CŨ (đã có mật khẩu), không tạo tài khoản mới.
+      // Bằng chứng vẫn là cầm được token trong thư; không đặt/đổi mật khẩu ở bước này.
+      let tokenInvitation: Awaited<ReturnType<typeof partnerInvitationService.validateToken>> | null = null;
+      let tokenError: unknown = null;
+      try {
+        tokenInvitation = await partnerInvitationService.validateToken(req.params.token);
+      } catch (e) {
+        tokenError = e; // a body WITH a password keeps the old order (field errors first, then the token error); a body without one gets the token error right away
+      }
+      const reactivation = tokenInvitation ? await partnerInvitationService.findReactivationTarget(tokenInvitation) : null;
+      if (reactivation) {
+        const account = await partnerInvitationService.acceptInvitation(req.params.token, reactivation.userId);
+        res.status(201).json({ success: true, data: { email: tokenInvitation!.email, role: account.role, reactivated: true } });
+        return;
+      }
       const { password, firstName, lastName } = req.body ?? {};
+      if (tokenError && !password) throw tokenError;
       if (!password || typeof password !== 'string' || !firstName?.trim()) {
         res.status(400).json({ success: false, error: { code: 'MISSING_FIELDS', message: 'Vui lòng nhập mật khẩu và tên của bạn' } });
         return;

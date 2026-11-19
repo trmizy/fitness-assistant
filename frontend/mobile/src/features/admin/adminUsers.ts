@@ -87,6 +87,52 @@ export function userRows(raw: unknown): AdminUserRow[] {
   return (Array.isArray(list) ? list : []).filter((u: any) => u?.id && u?.email);
 }
 
+// ── FIX5-ADMIN-PERF: the server pages and searches (37k accounts); the screen scrolls through pages. ──
+
+/** Rows per page of the "Người dùng" list (`limit` of GET /admin/users). */
+export const USER_PAGE_SIZE = 20;
+
+const ROLE_TO_SERVER: Record<string, string> = { Client: "CUSTOMER", PT: "PT", "Gym Owner": "GYM_OWNER" };
+const STATUS_TO_SERVER: Record<string, string> = { Active: "ACTIVE", Inactive: "INACTIVE" };
+
+/** Query string of one page: filter chips + search text (trimmed) + page number. "ALL" / empty are omitted. */
+export function userListParams(f: { q?: string; role?: string; status?: string; page?: number }, limit: number = USER_PAGE_SIZE): Record<string, string | number> {
+  const out: Record<string, string | number> = { page: f.page && f.page > 1 ? f.page : 1, limit };
+  const role = ROLE_TO_SERVER[f.role ?? ""];
+  if (role) out.role = role;
+  const status = STATUS_TO_SERVER[f.status ?? ""];
+  if (status) out.status = status;
+  const q = (f.q ?? "").trim();
+  if (q) out.search = q;
+  return out;
+}
+
+/** `{ success, data: { total, page, totalPages, users } }` -> the rows and paging facts of that page. */
+export function userPage(raw: unknown): { rows: AdminUserRow[]; total: number; page: number; totalPages: number } {
+  const d: any = (raw as any)?.data ?? raw ?? {};
+  const rows = userRows(raw);
+  const total = Number.isFinite(Number(d?.total)) ? Number(d.total) : rows.length;
+  const page = Number.isInteger(d?.page) && d.page >= 1 ? d.page : 1;
+  const totalPages = Number.isInteger(d?.totalPages) && d.totalPages >= 1 ? d.totalPages : 1;
+  return { rows, total, page, totalPages };
+}
+
+/** React-Query `getNextPageParam`: the next page number, or undefined on the last page. */
+export function nextUserPage(last: unknown): number | undefined {
+  const p = userPage(last);
+  return p.page < p.totalPages ? p.page + 1 : undefined;
+}
+
+/** Every loaded page flattened, a row that appears twice (the list moved under the scroll) kept once. */
+export function mergeUserPages(pages: unknown[] | undefined): AdminUserRow[] {
+  const seen = new Set<string>();
+  const out: AdminUserRow[] = [];
+  for (const p of pages ?? []) {
+    for (const u of userPage(p).rows) if (!seen.has(u.id)) (seen.add(u.id), out.push(u));
+  }
+  return out;
+}
+
 export function filterUsers(rows: AdminUserRow[], q: string, role: string, status: string): AdminUserRow[] {
   const f = foldVi(q);
   return rows.filter(

@@ -334,6 +334,36 @@ describe("gym detail (CL-09, 21/9)", () => {
     assert.equal(fullAddress({ address: "12 Hai Bà Trưng", city: "Hà Nội" }, {}), "12 Hai Bà Trưng, Hà Nội");
   });
 
+  it("N15M-13: no ward/province twice when the address line already carries them", () => {
+    const names = { ward: "Xã Tân Hội", province: "Tỉnh An Giang" };
+    assert.equal(
+      fullAddress({ address: "Số 5 đường Cửu Long, Xã Tân Hội, Tỉnh An Giang", city: null }, names),
+      "Số 5 đường Cửu Long, Xã Tân Hội, Tỉnh An Giang",
+    );
+    // the address line carries them without the Xã/Tỉnh prefix, other case, no diacritics
+    assert.equal(fullAddress({ address: "5 Cuu Long, tan hoi, an giang", city: null }, names), "5 Cuu Long, tan hoi, an giang");
+    // only one of the two is in the line: the missing one is still appended
+    assert.equal(fullAddress({ address: "5 Cửu Long, Xã Tân Hội", city: null }, names), "5 Cửu Long, Xã Tân Hội, Tỉnh An Giang");
+    // data that was already duplicated inside the stored line
+    assert.equal(
+      fullAddress({ address: "5 Cửu Long, Xã Tân Hội, Tỉnh An Giang, Xã Tân Hội, Tỉnh An Giang", city: null }, names),
+      "5 Cửu Long, Xã Tân Hội, Tỉnh An Giang",
+    );
+    // a numeric ward is not "found" in a house number
+    assert.equal(
+      fullAddress({ address: "Số 1 Nguyễn Huệ", city: null }, { ward: "Phường 1", province: "Thành phố Hồ Chí Minh" }),
+      "Số 1 Nguyễn Huệ, Phường 1, Thành phố Hồ Chí Minh",
+    );
+  });
+
+  it("N16M-01: list-card form (no ward/province names, only the legacy city) never repeats the province", () => {
+    assert.equal(
+      fullAddress({ address: "388 Đường Cầu Giấy, Xã Tân Hội, Tỉnh An Giang", city: "Tỉnh An Giang" }, {}),
+      "388 Đường Cầu Giấy, Xã Tân Hội, Tỉnh An Giang",
+    );
+    assert.equal(fullAddress({ address: "388 Đường Cầu Giấy", city: "Tỉnh An Giang" }, {}), "388 Đường Cầu Giấy, Tỉnh An Giang");
+  });
+
   it("directions only when the branch has coordinates", () => {
     assert.equal(
       directionsUrl(normalizeGym(DETAIL)),

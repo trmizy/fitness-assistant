@@ -219,6 +219,14 @@ function main() {
     }
   }
 
+  // The admin exercise-review screens read the curated catalog CSV at request time (loadCatalog). A Lambda has no
+  // repo checkout, so bundle it next to dist/ (resolveCatalogCsvPath looks at <root>/data/catalog/plans/).
+  const catalogCsv = path.join(REPO_ROOT, "data", "catalog", "plans", "gym_exercises.csv");
+  if (!fs.existsSync(catalogCsv)) throw new Error(`catalog CSV missing, cannot build artifact: ${catalogCsv}`);
+  fs.mkdirSync(path.join(ARTIFACT_ROOT, "data", "catalog", "plans"), { recursive: true });
+  fs.copyFileSync(catalogCsv, path.join(ARTIFACT_ROOT, "data", "catalog", "plans", "gym_exercises.csv"));
+  console.log("  bundled data/catalog/plans/gym_exercises.csv");
+
   console.log("== 8: write zip ==");
   const result = makeZip(ARTIFACT_ROOT, ZIP_OUT);
   console.log(`Wrote ${ZIP_OUT}`);

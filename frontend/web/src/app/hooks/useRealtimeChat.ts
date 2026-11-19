@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   REALTIME_EVENTS,
@@ -70,32 +70,61 @@ export function useRealtimeChat(
     };
   }, [queryClient, socket, userScopeId]);
 
+  // Which thread is open, read by the (re)connect handler without re-subscribing it.
+  const activeConversationRef = useRef<string | null | undefined>(activeConversationId);
+  activeConversationRef.current = activeConversationId;
+  const conversationIdsKey = JSON.stringify(allConversationIds);
+
+  // Join every conversation room, and do it AGAIN after every reconnect: a reconnect is a brand-new
+  // server-side socket that sits in no room, so without this nothing sent after the drop is pushed.
+  // Messages sent while the socket was down were never pushed to it either, so once the rooms are
+  // joined again (acknowledged by the gateway, so nothing can slip in between) the open thread and the
+  // conversation list are read again from the server.
   useEffect(() => {
     if (!socket || allConversationIds.length === 0) return;
 
-    allConversationIds.forEach((conversationId) => {
-      socket.emit(REALTIME_EVENTS.chatJoinConversation, { conversationId });
-    });
+    let cancelled = false;
+    const joinAll = () => {
+      const joins = allConversationIds.map(
+        (conversationId) =>
+          new Promise<void>((resolve) => {
+            const timer = setTimeout(resolve, 4000);
+            socket.emit(REALTIME_EVENTS.chatJoinConversation, { conversationId }, () => {
+              clearTimeout(timer);
+              resolve();
+            });
+          }),
+      );
+      void Promise.all(joins).then(() => {
+        if (cancelled) return;
+        const open = activeConversationRef.current;
+        if (open) queryClient.invalidateQueries({ queryKey: ["messages", userScopeId, open] });
+        queryClient.invalidateQueries({ queryKey: ["conversations", userScopeId] });
+      });
+    };
+
+    if (socket.connected) joinAll();
+    socket.on("connect", joinAll);
 
     return () => {
+      cancelled = true;
+      socket.off("connect", joinAll);
       allConversationIds.forEach((conversationId) => {
         socket.emit(REALTIME_EVENTS.chatLeaveConversation, { conversationId });
       });
     };
-  }, [socket, JSON.stringify(allConversationIds)]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket, conversationIdsKey, queryClient, userScopeId]);
 
-  // Over the socket when it is actually connected; over REST otherwise. `socket.emit` on a socket
-  // that never connected only buffers: the box cleared, nothing was saved and nothing said so
-  // (real browser, 7/10). The gateway relays a REST send to the conversation room, so the other
-  // side still gets it live. A REST failure rejects — the caller keeps the text and says why.
+  // The message is saved over REST so the answer is a real acknowledgement: this resolves only once the
+  // server has stored it, and REJECTS (the caller keeps the text and offers a retry) when it has not. The
+  // socket used to carry sends, but `socket.emit` returns at once whether or not the socket is really still
+  // up, so text typed in the seconds before a drop was noticed was cleared and lost with no error. The
+  // gateway relays a REST send to the conversation room, so the other side still receives it live.
   const sendMessage = useCallback(
     async (conversationId: string, content: string) => {
       const text = content.trim();
       if (!text) return false;
-      if (socket?.connected) {
-        socket.emit(REALTIME_EVENTS.chatMessageSend, { conversationId, content: text });
-        return true;
-      }
       const saved = await chatService.sendMessage(conversationId, text);
       if (saved?.id) {
         const mapped = normalizeMessage({ ...saved, conversationId: saved.conversationId ?? conversationId });
@@ -111,7 +140,7 @@ export function useRealtimeChat(
       queryClient.invalidateQueries({ queryKey: ["conversations", userScopeId] });
       return true;
     },
-    [socket, queryClient, userScopeId],
+    [queryClient, userScopeId],
   );
 
   const sendTyping = useCallback(

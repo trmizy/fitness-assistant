@@ -67,7 +67,7 @@ async function requestWith(opts: { gymId?: string; collab?: unknown; sessionMode
     }),
   ];
   try {
-    const created = await contractService.requestContract(clientUserId, { ptUserId, packageId, gymId: opts.gymId });
+    const created = await contractService.requestContract(clientUserId, { ptUserId, packageId, gymId: opts.gymId, ...(opts.gymId ? {} : { acknowledgedIndependentVenue: true }) });
     // Read it back from the database: the snapshot must be on the ROW, not just on the returned object.
     return await prisma.contract.findUniqueOrThrow({ where: { id: created.id } });
   } finally {

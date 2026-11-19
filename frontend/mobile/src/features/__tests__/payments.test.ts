@@ -8,12 +8,18 @@ import assert from "node:assert/strict";
 
 import {
   checkoutErrorMessage,
+  isSyntheticCheckoutError,
+  SYNTHETIC_CHECKOUT_NOTICE,
   destinationFor,
   normalizeMethods,
   phaseFromSync,
   readCheckout,
   resultHref,
+  retryActionFor,
+  retryTargetFor,
+  returnHintFromUrl,
   txnIdFromReturnUrl,
+  shortTransactionRef,
 } from "../payments/payments";
 import { PENDING_CHECKOUT_TTL_MS, resumableTransaction } from "../payments/pendingCheckout";
 import { redirectSystemPath } from "../../../app/+native-intent";
@@ -22,7 +28,7 @@ describe("normalizeMethods", () => {
   const live = {
     methods: [
       { provider: "VNPAY", label: "VNPay", description: "Thẻ ATM", configured: true, unavailableReason: null },
-      { provider: "MOMO", label: "MoMo", description: "Ví", configured: false, unavailableReason: "Chưa cấu hình khoá" },
+      { provider: "ZALOPAY", label: "ZaloPay", description: "Ví", configured: false, unavailableReason: "Chưa cấu hình khoá" },
     ],
     defaultProvider: "VNPAY",
   };
@@ -35,8 +41,15 @@ describe("normalizeMethods", () => {
     assert.equal(defaultProvider, "VNPAY");
   });
 
+  it("PAY-01: lý do kiểu tên biến/tiếng Anh thành câu tiếng Việt thân thiện", () => {
+    const raw = { methods: [{ provider: "ZALOPAY", label: "ZaloPay", configured: false, unavailableReason: "ZALOPAY_APP_ID is not set" }] };
+    assert.equal(normalizeMethods(raw).methods[0].unavailableReason, "Phương thức này tạm thời chưa dùng được");
+    const noReason = { methods: [{ provider: "ZALOPAY", label: "ZaloPay", configured: false }] };
+    assert.equal(normalizeMethods(noReason).methods[0].unavailableReason, "Phương thức này tạm thời chưa dùng được");
+  });
+
   it("không chọn sẵn một cổng mà chính server nói không dùng được", () => {
-    assert.equal(normalizeMethods({ ...live, defaultProvider: "MOMO" }).defaultProvider, null);
+    assert.equal(normalizeMethods({ ...live, defaultProvider: "ZALOPAY" }).defaultProvider, null);
     assert.equal(normalizeMethods({ ...live, defaultProvider: "PAYPAL" }).defaultProvider, null);
   });
 
@@ -141,6 +154,31 @@ describe("checkoutErrorMessage", () => {
   });
 });
 
+describe("dữ liệu mẫu (SYNTHETIC) bị từ chối khi thanh toán", () => {
+  const err = (data: unknown) => ({ response: { data } });
+  const coded = { success: false, error: { code: "SYNTHETIC_RECORD_NOT_TRANSACTABLE", message: "Dữ liệu mẫu (SYNTHETIC) chỉ dùng để hiển thị, không thể thực hiện giao dịch" } };
+
+  it("nhận ra bằng mã ổn định, hiện câu cố định không lộ chữ SYNTHETIC", () => {
+    assert.equal(isSyntheticCheckoutError(err(coded)), true);
+    assert.equal(checkoutErrorMessage(err(coded)), SYNTHETIC_CHECKOUT_NOTICE);
+    assert.doesNotMatch(checkoutErrorMessage(err(coded)), /SYNTHETIC/);
+    assert.match(SYNTHETIC_CHECKOUT_NOTICE, /không mua được/);
+  });
+
+  it("mã khác thì không bị coi là dữ liệu mẫu, kể cả khi câu chữ nhắc tới", () => {
+    assert.equal(isSyntheticCheckoutError(err({ error: { code: "ALREADY_HAS_PENDING_MEMBERSHIP", message: "dữ liệu mẫu" } })), false);
+    assert.equal(isSyntheticCheckoutError(err({ error: "PROVIDER_NOT_CONFIGURED" })), false);
+    assert.equal(isSyntheticCheckoutError(new Error("Network Error")), false);
+    assert.equal(isSyntheticCheckoutError(null), false);
+  });
+
+  it("không có mã (đường cũ) thì dựa vào câu chữ của server", () => {
+    assert.equal(isSyntheticCheckoutError(err({ message: "Dữ liệu mẫu (SYNTHETIC) chỉ dùng để hiển thị" })), true);
+    assert.equal(isSyntheticCheckoutError(err({ error: "Dữ liệu mẫu (SYNTHETIC) chỉ dùng để hiển thị" })), true);
+    assert.equal(isSyntheticCheckoutError(err({ message: "Gói này đã ngừng bán" })), false);
+  });
+});
+
 describe("resumableTransaction — app bị tắt giữa lúc thanh toán", () => {
   const now = 1_800_000_000_000;
   const rec = (over: Record<string, unknown> = {}) =>
@@ -165,4 +203,62 @@ describe("resumableTransaction — app bị tắt giữa lúc thanh toán", () =
     assert.equal(resumableTransaction(rec({ startedAt: now + 5 * 60_000 }), "u1", now), null);
     assert.equal(resumableTransaction(null, "u1", now), null);
   });
+});
+
+describe("N17M-03 — liên kết quay về báo chưa hoàn tất", () => {
+  it("ZaloPay: status là số khác 1 → gợi ý failed; status=1 hoặc thiếu → không", () => {
+    assert.equal(returnHintFromUrl("fitnessassistant://client/payments/result?txnId=t1&amount=1&status=-49&checksum=x"), "failed");
+    assert.equal(returnHintFromUrl("fitnessassistant://client/payments/result?txnId=t1&status=2"), "failed");
+    assert.equal(returnHintFromUrl("fitnessassistant://client/payments/result?txnId=t1&status=1&checksum=x"), null);
+    assert.equal(returnHintFromUrl("fitnessassistant://client/payments/result?txnId=t1"), null);
+    assert.equal(returnHintFromUrl(null), null);
+  });
+  it("VNPay: status là chữ (server đã chốt trước khi chuyển hướng) → không thành gợi ý, sync quyết định", () => {
+    for (const status of ["success", "failed", "invalid"]) {
+      assert.equal(returnHintFromUrl(`fitnessassistant://client/payments/result?txnId=t1&status=${status}`), null);
+    }
+  });
+  it("resultHref chỉ thêm gw khi có gợi ý", () => {
+    assert.equal(resultHref("t1"), "/client/payments/result?txnId=t1");
+    assert.equal(resultHref("t1", "failed"), "/client/payments/result?txnId=t1&gw=failed");
+  });
+  it("+native-intent giữ gợi ý failed của ZaloPay nhưng vẫn bỏ status", () => {
+    assert.equal(
+      redirectSystemPath({ path: "fitnessassistant://client/payments/result?txnId=t9&amount=5&status=-49&checksum=z", initial: false }),
+      "/client/payments/result?txnId=t9&gw=failed",
+    );
+    assert.equal(
+      redirectSystemPath({ path: "fitnessassistant://client/payments/result?txnId=t9&status=1", initial: false }),
+      "/client/payments/result?txnId=t9",
+    );
+  });
+});
+
+describe("N17M-02 — thanh toán lại cùng món", () => {
+  it("chỉ gói hội viên / hợp đồng có id mới thanh toán lại được", () => {
+    assert.deepEqual(retryTargetFor({ relatedEntityType: "GYM_MEMBERSHIP", relatedEntityId: "m1" }), { kind: "membership", id: "m1" });
+    assert.deepEqual(retryTargetFor({ relatedEntityType: "PT_CONTRACT", relatedEntityId: "c1" }), { kind: "contract", id: "c1" });
+    assert.equal(retryTargetFor({ relatedEntityType: "GYM_MEMBERSHIP" }), null);
+    assert.equal(retryTargetFor({ relatedEntityType: "PERSONALIZED_SERVICE_PURCHASE", relatedEntityId: "p1" }), null);
+    assert.equal(retryTargetFor(null), null);
+  });
+  it("PENDING_PAYMENT → thanh toán lại đúng số tiền của món", () => {
+    assert.deepEqual(retryActionFor({ status: "PENDING_PAYMENT", price: 330000, gymId: "g1" }, "membership"), { type: "pay", amount: 330000 });
+    assert.deepEqual(retryActionFor({ status: "PENDING_PAYMENT", price: 500000 }, "contract"), { type: "pay", amount: 500000 });
+  });
+  it("gói đã bị huỷ → chọn lại gói tại phòng gym; hợp đồng đã đóng / món chưa tải → không có nút", () => {
+    assert.deepEqual(retryActionFor({ status: "CANCELLED", price: 1, gymId: "g1" }, "membership"), { type: "rebuy", gymId: "g1" });
+    assert.equal(retryActionFor({ status: "CANCELLED", price: 1, gymId: "g1" }, "contract"), null);
+    assert.equal(retryActionFor({ status: "ACTIVE", price: 1, gymId: "g1" }, "membership"), null);
+    assert.equal(retryActionFor(null, "membership"), null);
+  });
+});
+
+describe("shortTransactionRef - AWS-MOB-UI-02", () => {
+  it("shows a short reference, never the raw uuid", () => {
+    const ref = shortTransactionRef("ee421f0e-3e0e-4326-ba6e-88d8952241e3");
+    assert.equal(ref, "GD-EE421F0E");
+    assert.ok(!ref.includes("4326"));
+  });
+  it("an empty id gives an empty reference", () => assert.equal(shortTransactionRef(""), ""));
 });

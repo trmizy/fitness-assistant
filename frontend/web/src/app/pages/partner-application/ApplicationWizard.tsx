@@ -32,7 +32,7 @@ import { Card, Field, GhostButton, PrimaryButton, inputCls } from "./ui";
 import { InlineAmenityPicker } from "../../components/listing/InlineAmenityPicker";
 import { AmenityChipGroups } from "../../components/listing/AmenityEditor";
 import { applicationAmenityService } from "../../services/gymListingApi";
-import { SECTION_TO_STEP, STEPS, firstIncompleteIndex } from "../../utils/applicationSteps";
+import { SECTION_TO_STEP, STEPS, applicationProgress, firstIncompleteIndex, stepIsDone } from "../../utils/applicationSteps";
 import { GYM_LISTING_ERROR_VI, amenityPool, amenitySelectionError, type CatalogAmenity, type InlineProposalInput } from "../../utils/gymListing";
 import { useApp } from "../../context/AppContext";
 
@@ -54,9 +54,9 @@ export function ApplicationWizard({ view, onChanged }: { view: ApplicationView; 
   const [idx, setIdx] = useState(firstIncomplete);
   const step = STEPS[idx];
   const editable = view.editable;
-  const isDone = (s: (typeof STEPS)[number]) => !view.missing.some((m) => s.sections.includes(m.section));
-  const doneCount = STEPS.filter((s) => s.id !== "review" && isDone(s)).length;
-  const percent = Math.round((doneCount / (STEPS.length - 1)) * 100);
+  const hasBranch = !!view.branch;
+  const isDone = (s: (typeof STEPS)[number]) => stepIsDone(s, view.missing, hasBranch);
+  const { percent } = applicationProgress(view.missing, hasBranch);
 
   const goTo = (id: string) => {
     const i = STEPS.findIndex((s) => s.id === id);

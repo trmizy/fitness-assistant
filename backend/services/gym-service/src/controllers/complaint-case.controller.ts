@@ -153,7 +153,8 @@ export const complaintCaseController = {
     }),
   propose: (req: Request, res: Response) =>
     run(req, res, 'propose', async (a, k) => {
-      const r = await complaintCaseService.propose(a, idParam(req), parse(proposalBody, req.body).note, k);
+      const body = parse(proposalBody, req.body);
+      const r = await complaintCaseService.propose(a, idParam(req), body.note, k, body.appealResult);
       return { status: 201, data: r.result, replayed: r.replayed };
     }),
   decision: (req: Request, res: Response) =>

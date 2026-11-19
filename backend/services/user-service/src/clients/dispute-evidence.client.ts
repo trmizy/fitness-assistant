@@ -1,4 +1,5 @@
 import axios from "axios";
+import { installLambdaAdapter, serviceBaseUrl } from "./lambda-http.client";
 
 /**
  * Dispute Case slice 2 / S2.3 - READ-ONLY clients for the evidence sources that live in other services (chat-service call sessions, gym-service PT /
@@ -9,7 +10,8 @@ import axios from "axios";
  */
 const TIMEOUT_MS = 3000;
 const chatUrl = () => process.env.CHAT_SERVICE_URL || "http://chat-service:3005";
-const gymUrl = () => process.env.GYM_SERVICE_URL || "http://localhost:3006";
+installLambdaAdapter();
+const gymUrl = () => serviceBaseUrl("GYM", "http://localhost:3006");
 const chatHeaders = () => ({ "x-internal-secret": process.env.INTERNAL_API_SECRET || "" });
 const gymHeaders = () => ({ "x-service-secret": process.env.INTERNAL_SERVICE_SECRET || "dev_internal_service_secret_change_in_production" });
 

@@ -104,3 +104,52 @@ export function declaredEndingNoticeHooks(reason: "PT_CANCELLED" | "CLIENT_CANCE
     },
   };
 }
+
+// ── NB-01: endings the ADMIN / the platform decides ──────────────────────────────────────────────────────────────────
+// MUTUAL (admin-only reason), EXPIRED and SERVICE_DISCONTINUED_BY_PLATFORM used to credit / settle with no notice to
+// either party. Same rules as above: after the commit, only by the call that wrote the final status, best-effort.
+
+export type PlatformEndingReason = "MUTUAL" | "EXPIRED" | "SERVICE_DISCONTINUED_BY_PLATFORM";
+
+const CLIENT_MONEY_TAIL_WITH_AMOUNT = (credited: string) => ` Bạn được hoàn ${credited} vào ví, các buổi chưa tập đã được huỷ.`;
+const CLIENT_MONEY_TAIL_UNKNOWN = " Phần giá trị chưa sử dụng (nếu có) sẽ được hoàn vào ví, các buổi chưa tập đã được huỷ.";
+
+export function platformEndingClientText(reason: PlatformEndingReason, packageName: string, credited: string | null): string {
+  switch (reason) {
+    case "MUTUAL":
+      return `Hợp đồng "${packageName}" đã được quản trị viên kết thúc theo thoả thuận giữa hai bên.${credited ? CLIENT_MONEY_TAIL_WITH_AMOUNT(credited) : CLIENT_MONEY_TAIL_UNKNOWN}`;
+    case "SERVICE_DISCONTINUED_BY_PLATFORM":
+      return `Hợp đồng "${packageName}" đã được nền tảng chấm dứt dịch vụ.${credited ? CLIENT_MONEY_TAIL_WITH_AMOUNT(credited) : CLIENT_MONEY_TAIL_UNKNOWN}`;
+    default:
+      return `Hợp đồng "${packageName}" đã hết hạn và được quyết toán.${credited ? ` Bạn được hoàn ${credited} vào ví.` : " Các buổi chưa tập đã hết hạn."}`;
+  }
+}
+
+export function platformEndingPtText(reason: PlatformEndingReason, packageName: string): string {
+  switch (reason) {
+    case "MUTUAL":
+      return `Hợp đồng "${packageName}" đã được quản trị viên kết thúc theo thoả thuận giữa hai bên. Các buổi chưa tập đã được huỷ.`;
+    case "SERVICE_DISCONTINUED_BY_PLATFORM":
+      return `Hợp đồng "${packageName}" đã được nền tảng chấm dứt dịch vụ. Các buổi chưa tập đã được huỷ.`;
+    default:
+      return `Hợp đồng "${packageName}" đã hết hạn và được quyết toán. Các buổi chưa tập đã hết hạn.`;
+  }
+}
+
+/** Hooks for an ending recorded with an admin / platform `reason`: tells the client and the PT once the ending is committed. */
+export function platformEndingNoticeHooks(reason: PlatformEndingReason): TerminationHooks {
+  return {
+    afterCommit: async (info?: EndingInfo) => {
+      if (!info?.contract) return;
+      try {
+        const { contract, result } = info;
+        await Promise.all([
+          send(contract.clientUserId, platformEndingClientText(reason, contract.packageName, creditedToClient(result)), contract.id, "/client/contracts"),
+          send(contract.ptUserId, platformEndingPtText(reason, contract.packageName), contract.id, "/pt/contracts"),
+        ]);
+      } catch (e) {
+        logger.warn({ message: (e as Error)?.message }, "[ContractTermination] platform ending notices failed");
+      }
+    },
+  };
+}

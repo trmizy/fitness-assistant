@@ -5,7 +5,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { CATEGORY_STEP, SECTION_TO_STEP, STEPS, firstIncompleteIndex, stepIndexOf, stepIsDone } from "../applicationSteps";
+import { CATEGORY_STEP, SECTION_TO_STEP, STEPS, applicationProgress, firstIncompleteIndex, stepIndexOf, stepIsDone } from "../applicationSteps";
 import { CLIENT_HEADER, LISTING_FLOW_HEADER, clientHeaderValue, isListingFlowRequest, listingFlowHeaders } from "../../services/listingFlow";
 import { FACILITY_LABEL, SYSTEM_FACILITIES, isGymFacility } from "../facilityLabels";
 import { AMENITY_ICON_KEYS } from "../amenityIcons";
@@ -109,5 +109,32 @@ describe("legacy facility mirror and the standard catalogue", () => {
   it("isGymFacility tells the 18 enum values from anything else (unknown values stay visible as text)", () => {
     assert.equal(isGymFacility("WIFI"), true);
     assert.equal(isGymFacility("NOPE"), false);
+  });
+});
+
+describe("application progress (N14G-09)", () => {
+  // what the server lists for an application with nothing filled in yet (computeMissing with no branch row)
+  const EMPTY = (["REPRESENTATIVE", "BRAND", "SCALE", "BRANCH", "PHOTOS", "LEGAL", "TERMS"] as const).map((section) => ({ section }));
+
+  it("an empty application is 0%, not 33% (optional Mạng xã hội and the not-yet-reachable Vị trí / Tiện ích no longer count as done)", () => {
+    const p = applicationProgress(EMPTY, false);
+    assert.equal(p.done, 0);
+    assert.equal(p.percent, 0);
+    assert.equal(p.total, 8);
+  });
+
+  it("Vị trí and Tiện ích are not done while there is no branch, even though the server lists nothing for them", () => {
+    const location = STEPS.find((s) => s.id === "location")!;
+    assert.equal(stepIsDone(location, [], false), false);
+    assert.equal(stepIsDone(location, [], true), true);
+    assert.equal(stepIsDone(location, [{ section: "LOCATION" }], true), false);
+  });
+
+  it("progress grows with the filled steps and reaches 100% when only the review (terms) is left", () => {
+    const afterRep = applicationProgress(EMPTY.filter((m) => m.section !== "REPRESENTATIVE" && m.section !== "BRAND"), false);
+    assert.equal(afterRep.done, 2);
+    assert.equal(afterRep.percent, 25);
+    assert.equal(applicationProgress([{ section: "TERMS" }], true).percent, 100);
+    assert.equal(applicationProgress([], true).percent, 100);
   });
 });

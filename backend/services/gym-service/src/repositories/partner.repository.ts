@@ -82,6 +82,14 @@ export const partnerRepository = {
     });
   },
 
+  /** Every partner account whose role is NOT OWNER (user id + role). Small by nature: staff invited by an owner. */
+  listNonOwnerAccountRoles() {
+    return prisma.gymPartnerAccount.findMany({
+      where: { role: { not: 'OWNER' } },
+      select: { userId: true, role: true },
+    });
+  },
+
   listAccountsByPartner(partnerId: string) {
     return prisma.gymPartnerAccount.findMany({
       where: { partnerId },
@@ -104,6 +112,14 @@ export const partnerRepository = {
       where: { role: PartnerAccountRole.OWNER, status: 'ACTIVE', partner: { status: { in: ['SUSPENDED', 'TERMINATED'] } } },
       select: { userId: true },
     });
+  },
+
+  /** Tên thương hiệu (công khai) của đối tác — để câu "quyền đã bị thu hồi" nói rõ là ở phòng gym nào. null nếu chưa có. */
+  async findBrandNameForPartner(partnerId: string): Promise<string | null> {
+    const owner = await prisma.gymPartnerAccount.findFirst({ where: { partnerId, role: PartnerAccountRole.OWNER }, orderBy: { createdAt: 'asc' }, select: { userId: true } });
+    if (!owner) return null;
+    const brand = await prisma.gymBrand.findFirst({ where: { ownerId: owner.userId }, orderBy: { createdAt: 'asc' }, select: { name: true, approvedName: true } });
+    return brand?.approvedName ?? brand?.name ?? null;
   },
 
   findActiveOwnerAccount(partnerId: string) {

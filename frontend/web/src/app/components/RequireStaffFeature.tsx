@@ -3,6 +3,7 @@ import { Navigate } from "react-router";
 import { CircleNotchIcon as Loader2 } from "@phosphor-icons/react";
 import { canUseFeature, homePathFor, type StaffFeature } from "../utils/gymStaffRole";
 import { useStaffRole } from "../hooks/useStaffRole";
+import { PartnerAccessRevokedScreen, isPartnerAccessRevoked, revokedGymName } from "./PartnerAccessRevokedScreen";
 
 /**
  * D15 — chặn UX cho từng trang của /gym-owner theo vai trò nội bộ (lễ tân, kế toán, quản lý, chủ). Backend mới là
@@ -10,7 +11,7 @@ import { useStaffRole } from "../hooks/useStaffRole";
  * chính vai trò mình. Không tải được vai trò → KHÔNG cho qua (fail-closed), kèm nút thử lại.
  */
 export function RequireStaffFeature({ feature, children }: { feature: StaffFeature; children: ReactNode }) {
-  const { role, isLoading, isError, refetch } = useStaffRole();
+  const { role, isLoading, isError, error, refetch } = useStaffRole();
   if (isLoading) {
     return (
       <div className="min-h-[40vh] flex items-center justify-center" data-testid="staff-role-loading">
@@ -18,6 +19,7 @@ export function RequireStaffFeature({ feature, children }: { feature: StaffFeatu
       </div>
     );
   }
+  if (isPartnerAccessRevoked(error)) return <PartnerAccessRevokedScreen gymName={revokedGymName(error)} onRetry={() => void refetch()} />;
   if (isError || !role) {
     return (
       <div className="p-6 max-w-md mx-auto text-center space-y-3" data-testid="staff-role-error">

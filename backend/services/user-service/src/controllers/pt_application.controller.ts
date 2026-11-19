@@ -23,6 +23,8 @@ import {
 } from "../services/s3-upload.service";
 
 const MAX_PAGE_SIZE = 200;
+/** Rows of a list that was asked for with neither `page` nor `limit`. */
+const DEFAULT_BARE_PAGE_SIZE = 50;
 
 /**
  * C1-10: optional pagination for the admin list. Neither `page` nor `limit` present -> null (the caller keeps
@@ -101,7 +103,7 @@ export const ptApplicationController = {
       return res.json(app);
     } catch (error: any) {
       logger.error(error, "Save PT application draft error");
-      return res.status(400).json({ error: clientErrorMessage(error, INVALID_INPUT), ...errorCodeBody(error) });
+      return res.status(error?.status === 409 ? 409 : 400).json({ error: clientErrorMessage(error, INVALID_INPUT), ...errorCodeBody(error) });
     }
   },
 
@@ -115,7 +117,9 @@ export const ptApplicationController = {
       if (typeof error?.code === "string" && error.code.startsWith("PT_TERMS_") && error.status) {
         return res.status(error.status).json({ error: error.message, code: error.code, termsVersion: error.termsVersion });
       }
-      return res.status(400).json({ error: clientErrorMessage(error, INVALID_INPUT) });
+      return res
+        .status(error?.status === 409 ? 409 : 400)
+        .json({ error: clientErrorMessage(error, INVALID_INPUT), ...errorCodeBody(error) });
     }
   },
 
@@ -255,21 +259,32 @@ export const ptApplicationController = {
           code: "INVALID_STATUS_FILTER",
         });
       }
-      const paging = parsePaging(req.query);
-      if (paging === "invalid") {
+      // FIX5-ADMIN-PERF: `q` = applicant name / email search (one string, at most 100 chars).
+      const rawQ = req.query.q;
+      if (rawQ !== undefined && (typeof rawQ !== "string" || rawQ.length > 100)) {
+        return res.status(400).json({ error: "Từ khoá tìm kiếm không hợp lệ (tối đa 100 ký tự).", code: "INVALID_SEARCH" });
+      }
+      // `order=oldest`: review-queue order (earliest submitted first). Anything else is the caller's mistake.
+      const rawOrder = req.query.order;
+      if (rawOrder !== undefined && rawOrder !== "oldest") {
+        return res.status(400).json({ error: "Thứ tự sắp xếp không hợp lệ (chấp nhận: oldest).", code: "INVALID_ORDER" });
+      }
+      const requested = parsePaging(req.query);
+      if (requested === "invalid") {
         return res.status(400).json({
           error: `Phân trang không hợp lệ: page là số nguyên từ 1, limit là số nguyên từ 1 đến ${MAX_PAGE_SIZE}.`,
           code: "INVALID_PAGINATION",
         });
       }
-      const apps = await ptApplicationService.listApplications(req.query, paging ?? undefined);
-      if (paging) {
-        // Backward compatible: the body stays the same plain array; the totals travel in headers.
-        res.setHeader("X-Total-Count", String(await ptApplicationService.countApplications(req.query)));
-        res.setHeader("X-Page", String(paging.page));
-        res.setHeader("X-Limit", String(paging.limit));
-        res.setHeader("Access-Control-Expose-Headers", "X-Total-Count, X-Page, X-Limit");
-      }
+      // FIX5-ADMIN-PERF: the answer is ALWAYS one page (10k applications, 53 MB as one answer). A caller that sends
+      // neither page nor limit gets page 1 of DEFAULT_BARE_PAGE_SIZE rows; the totals travel in the headers.
+      const paging = requested ?? { page: 1, limit: DEFAULT_BARE_PAGE_SIZE };
+      const apps = await ptApplicationService.listApplications(req.query, paging);
+      // The body stays a plain array; the totals travel in headers.
+      res.setHeader("X-Total-Count", String(await ptApplicationService.countApplications(req.query)));
+      res.setHeader("X-Page", String(paging.page));
+      res.setHeader("X-Limit", String(paging.limit));
+      res.setHeader("Access-Control-Expose-Headers", "X-Total-Count, X-Page, X-Limit");
       const mapped = apps.map((app: any) => ({
         ...app,
         user: {
@@ -318,7 +333,8 @@ export const ptApplicationController = {
     } catch (error: any) {
       logger.error(error, "Admin review action error");
       // C1-06: an unknown application is a 404 (the service tags it), not a generic 400.
-      const status = error?.status === 404 ? 404 : 400;
+      // Q2: an invalid state transition is a 409 INVALID_APPLICATION_TRANSITION.
+      const status = error?.status === 404 ? 404 : error?.status === 409 ? 409 : 400;
       return res.status(status).json({ error: clientErrorMessage(error, INVALID_INPUT), ...errorCodeBody(error) });
     }
   },

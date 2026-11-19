@@ -1,101 +1,80 @@
-# Fitness Assistant documentation
+# Tài liệu Gymini — mục lục
 
-Updated 2026-09-07. Use the topic guides below; session reports and duplicate
-roadmaps have been retired. Current code, migrations, package scripts and
-`.env.example` take precedence over historical text.
+Mọi tài liệu `.md` của dự án nằm trong thư mục này (ngoại lệ: các `README.md` cạnh mã và vài file
+mà script/test đọc theo đường dẫn — xem bảng cuối). **Mã nguồn luôn có thẩm quyền cao hơn tài liệu.**
 
-## Start here
+## Agent / người mới nên đọc gì trước
 
-- [Fitness Assistant](../README.md)
-- [Work remaining and documentation policy](STATUS.md)
-- [Nutrition — architecture and continuation](nutrition.md)
-- [Development Setup](setup/README.md)
-- [Docker Test Environment](../docker/test/README.md)
+| Việc sắp làm | Đọc trước | Rồi đọc |
+| --- | --- | --- |
+| Bất kỳ việc nào | `../README.md` (chạy local), `CLAUDE.md` / `AGENTS.md` ở gốc repo trên máy dự án (không đẩy lên Git) | [`HANDBOOK.md` §1](HANDBOOK.md#1-cách-dùng-sổ-tay) |
+| Luật nghiệp vụ: vai trò, hợp đồng PT, lịch, check-in | [`HANDBOOK.md` §2.1–2.5](HANDBOOK.md#2-luật-nghiệp-vụ) | mã `backend/services/user-service`, `gym-service` |
+| Tiền: ví, escrow, phí, hoàn tiền, rút tiền, khiếu nại | [`HANDBOOK.md` §2.6–2.7](HANDBOOK.md#2-luật-nghiệp-vụ) | `backend/services/payment-service/src/services/reconcile.service.ts` |
+| Mô hình nào sở hữu dữ liệu nào (source of truth) | [`HANDBOOK.md` §2.2](HANDBOOK.md#22-mô-hình-nào-sở-hữu-dữ-liệu-nào) | |
+| Đối tác gym, tin đăng, kiểm duyệt | [`HANDBOOK.md` §2.9–2.10](HANDBOOK.md#2-luật-nghiệp-vụ) | |
+| AI coach, RAG, agent | [`HANDBOOK.md` §3.3](HANDBOOK.md#3-kiến-trúc--vận-hành) | `ai-training/`, `backend/services/ai-service/DATASETS.md` |
+| Tập luyện, dinh dưỡng, roadmap | [`HANDBOOK.md` §3.5](HANDBOOK.md#3-kiến-trúc--vận-hành) | |
+| Mobile (Expo) | [`HANDBOOK.md` §3.6](HANDBOOK.md#3-kiến-trúc--vận-hành) | `frontend/mobile/` |
+| Chạy local, bẫy dev, kiểm thử, seed | [`HANDBOOK.md` §3.7–3.10](HANDBOOK.md#3-kiến-trúc--vận-hành) | |
+| Triển khai / vận hành AWS dev | `deployment/AWS_DEPLOYMENT_RUNBOOK.md`, `deployment/AWS_DEV_DAILY_START_STOP_RUNBOOK.md` | `HANDBOOK.md` §3.11–3.12, `deployment/AWS_DEV_THAY_DOI_17-18-11-2026.md` |
+| Lỗi/việc còn mở, quyết định đang chờ | [`HANDBOOK.md` §4](HANDBOOK.md#4-việc-còn-mở-cập-nhật-17112026) | |
+| Nghiên cứu khoa học, nguồn dữ liệu, giấy phép | `research/`, `legal/` | |
+| Tìm báo cáo của một đợt đã đóng | mục "Đã lưu trữ" cuối trang | |
 
-## Operations and architecture
+Tra nhanh: tìm theo mã lỗi/nhãn (`N13G-01`, `GAP-14`, `CLIENT_PT_LIMIT_REACHED`…) hoặc tên file mã trong `HANDBOOK.md`.
 
-- [AI Service Operations](ai-service-operations.md)
-- [AI Fitness Assistant: RAG Architecture](ai-rag-architecture.md)
-- [Database Architecture - Fitness Assistant](setup/DATABASE_ARCHITECTURE.md)
-- [AWS deployment runbook — dev](aws-deployment/AWS_DEPLOYMENT_RUNBOOK.md)
-- [Realtime Socket.IO Architecture](realtime-socket-architecture.md)
-- [Ứng dụng di động (Capacitor) — tài liệu bàn giao](mobile-capacitor.md)
+## Cấu trúc thư mục
 
-## Business rules and training
+```text
+docs/
+├─ README.md                     mục lục (file này)
+├─ HANDBOOK.md                   sổ tay chính: luật nghiệp vụ, kiến trúc & vận hành, việc còn mở
+├─ deployment/                   triển khai AWS dev
+│  ├─ AWS_DEPLOYMENT_RUNBOOK.md            runbook triển khai từng service
+│  ├─ AWS_DEV_DAILY_START_STOP_RUNBOOK.md  bật/tắt môi trường dev theo ngày (scripts/aws/dev-start|dev-stop.ps1)
+│  ├─ AWS_DEV_THAY_DOI_17-18-11-2026.md    lịch sử thay đổi + cấu hình đặt tay đợt 17–18/11
+│  ├─ terraform-requirements-v2.md         yêu cầu hạ tầng Terraform
+│  └─ generated/                           JSON sinh cho IaC API Gateway (CI đọc — không sửa tay)
+├─ ai-training/                  huấn luyện mô hình: RUNPOD_RUNBOOK, audit mà training/*.json trỏ tới, và bộ pilot gán nhãn
+│                                (`pilot_*.csv`, `pilot_annotations_PROVENANCE.md`) mà manifest trong data/eval liệt kê đường dẫn/băm — giữ nguyên
+├─ research/                     nghiên cứu khoa học (workout-plan-bpm — test đọc trực tiếp; nckh-pt-matching; nguồn dữ liệu)
+└─ legal/                        ghi công thư viện/tài nguyên của web
+```
 
-- [Dòng tiền — hợp đồng PT, gói hội viên, ví hai ngăn](money-flow.md)
-- [Lịch rảnh, dời lịch hai phía, tìm kiếm và ưu tiên PT](pt-scheduling-and-discovery.md)
-- [Session Feedback, PT/Coach Mode & Plan Marketplace — Audit + Design](SESSION_FEEDBACK_AND_PT_PLAN_AUDIT.md)
-- [Training Progression Architecture — Target Design](TRAINING_PROGRESSION_ARCHITECTURE.md)
-- [Body State & Adaptive Planning](body-state-and-adaptive-planning.md)
-- [Đánh giá chu kỳ tập luyện và điều chỉnh lịch tập thích ứng (Adaptive Training Cycle Evaluation)](adaptive-training-cycle-evaluation.md)
-- [Use Case & Test Case — Chức năng Chu kỳ tập luyện (Training Cycle)](training-cycle-usecases-and-testcases.md)
+Thiết kế/kế hoạch/đánh giá/báo cáo cũ không còn nằm trong `docs/`: nội dung còn hiệu lực đã gộp vào `HANDBOOK.md`, bản gốc ở mục "Đã lưu trữ" bên dưới.
 
-## Design and provenance referenced by source code
+## Tài liệu buộc nằm cạnh mã (không di chuyển)
 
-These records are retained because code, tests, migrations, or data provenance
-refer to them. Their original status claims are historical, not a current backlog.
-Use [STATUS](STATUS.md) for follow-ups.
+Script hoặc test đọc/ghi các file này theo đường dẫn, nên chúng ở lại chỗ cũ:
 
-- [CLOUDCODE_IMPLEMENTATION_AUDIT.md](CLOUDCODE_IMPLEMENTATION_AUDIT.md)
-- [Rà soát câu hỏi "dạo đầu" — Onboarding Wizard & Intake Form](ONBOARDING_INTAKE_QUESTIONNAIRE_REVIEW.md)
-- [Onboarding + PT Intake + Safety — Redesign (Design Record)](ONBOARDING_PT_INTAKE_SAFETY_REDESIGN.md)
-- [openGym P0 Closure Report](OPENGYM_FINAL_P0_CLOSURE_REPORT.md)
-- [openGym P0 Completion Pass — Final Report](OPENGYM_P0_COMPLETION_REPORT.md)
-- [openGym Research — Sources](OPENGYM_RESEARCH_SOURCES.md)
-- [openGym vs Fitness Assistant — Gap Analysis (Workout/Training Domain)](OPENGYM_VS_FITNESS_ASSISTANT_GAP_ANALYSIS.md)
-- [Open Gym Roadmap Closure](OPEN_GYM_ROADMAP_CLOSURE.md)
-- [Training Cycle Decision Engine — Đề xuất nâng cấp](TRAINING_CYCLE_DECISION_ENGINE.md)
-- [Training Knowledge Base Plan — Nguồn dữ liệu & Schema](TRAINING_KNOWLEDGE_BASE_PLAN.md)
-- [User-Level Personalization Plan — 4 nhóm người dùng](USER_LEVEL_PERSONALIZATION_PLAN.md)
-- [Advanced Set-Logging (Professional-Athlete Persona)](advanced-set-logging.md)
-- [Exercise & Nutrition Data — Impact Map](audit/exercise-nutrition-data-impact-map.md)
-- [Audit — Flow AI dinh dưỡng hiện tại (12 câu hỏi)](audit/nutrition-ai-current-flow-audit.md)
-- [04 — Backend migration plan](aws-deployment/04-backend-migration-plan.md)
-- [Active-Workout Offline Resilience — Impact Analysis](features/ACTIVE_WORKOUT_OFFLINE_RESILIENCE_IMPACT_ANALYSIS.md)
-- [Activity Heatmap — Impact Analysis](features/ACTIVITY_HEATMAP_IMPACT_ANALYSIS.md)
-- [Canonical Import Framework + Hevy Import — Impact Analysis](features/CANONICAL_IMPORT_FRAMEWORK_IMPACT_ANALYSIS.md)
-- [Catalog Quality Matrix — Impact Analysis](features/CATALOG_QUALITY_MATRIX_IMPACT_ANALYSIS.md)
-- [Custom Exercises — Impact Analysis](features/CUSTOM_EXERCISES_IMPACT_ANALYSIS.md)
-- [Exercise History Detail Page — Impact Analysis](features/EXERCISE_HISTORY_DETAIL_IMPACT_ANALYSIS.md)
-- [Exercise Progress Charts — Impact Analysis](features/EXERCISE_PROGRESS_CHARTS_IMPACT_ANALYSIS.md)
-- [FitNotes Import — Impact Analysis](features/FITNOTES_IMPORT_IMPACT_ANALYSIS.md)
-- [GYMINI PHOSPHOR ICON MIGRATION REPORT](features/GYMINI_PHOSPHOR_ICON_MIGRATION_REPORT.md)
-- [InBody Scan Extraction — Local Vision Model Migration](features/INBODY_LOCAL_VISION_MIGRATION.md)
-- [JSON / CSV Export — Impact Analysis](features/JSON_CSV_EXPORT_IMPACT_ANALYSIS.md)
-- [Muscle Heatmap — Impact Analysis](features/MUSCLE_HEATMAP_IMPACT_ANALYSIS.md)
-- [Notifications/Reminders — Impact Analysis](features/NOTIFICATIONS_REMINDERS_IMPACT_ANALYSIS.md)
-- [Planned vs Actual Training Volume — Impact Analysis](features/PLANNED_VS_ACTUAL_VOLUME_IMPACT_ANALYSIS.md)
-- [Product Completeness Pass — Impact Analysis](features/PRODUCT_COMPLETENESS_IMPACT_ANALYSIS.md)
-- [Reschedule Workout — Impact Analysis](features/RESCHEDULE_WORKOUT_IMPACT_ANALYSIS.md)
-- [True Set-by-Set Table UI — Impact Analysis](features/SET_BY_SET_TABLE_UI_IMPACT_ANALYSIS.md)
-- [Strong Import — Impact Analysis](features/STRONG_IMPORT_IMPACT_ANALYSIS.md)
-- [Superset / Exercise Grouping — Impact Analysis](features/SUPERSET_GROUPING_IMPACT_ANALYSIS.md)
-- [Training Consistency and Adherence — Impact Analysis](features/TRAINING_CONSISTENCY_ADHERENCE_IMPACT_ANALYSIS.md)
-- [Undo Last Set — Impact Analysis](features/UNDO_LAST_SET_IMPACT_ANALYSIS.md)
-- [User Service — AWS Lambda Deployment Prep — Impact Analysis](features/USER_SERVICE_LAMBDA_IMPACT_ANALYSIS.md)
-- [Workout Template Sharing/Import — Impact Analysis](features/WORKOUT_TEMPLATE_SHARING_IMPACT_ANALYSIS.md)
-- [Nghiên cứu khoa học tập luyện & dinh dưỡng — nền tảng cho các tính năng gym/fitness](gym-fitness-research.md)
-- [Báo cáo — Sửa 2 lỗi thật Persona B/C, đưa `24-ai-nutrition-persona-b-c.spec.ts` về xanh](nutrition-persona-testing-and-bugfixes-2026-08-20.md)
-- [Checkpoint: Production-Hardening Pass — Chức năng Tập luyện](production-hardening-checkpoint.md)
-- [Fitness & Nutrition Data Source and License Review](research/fitness-data-source-and-license-review.md)
-- [Fitness & Nutrition Evidence Registry](research/fitness-nutrition-evidence.md)
-- [Nutrition AI — Product & Expert Review](research/nutrition-ai-product-and-expert-review.md)
-- [Vòng 4 — Tài liệu bàn giao](vong-4.md)
-- [Workout Log Audit](workout-log-audit.md)
+| File | Ai dùng |
+| --- | --- |
+| `docs/deployment/generated/*.json` | `pr-validation.yml`, `ci/service-impact-map.json`, `scripts/aws/api-gateway/*` |
+| `backend/services/ai-service/DATASETS.md` | Provider dataset của ai-service tham chiếu |
+| `data/eval/query-routing-independent/*.md`, `data/eval/model/*.md` | Test ai-service và `scripts/run-ai-gym-100-review.mjs` đọc/ghi |
+| `scripts/seed-marketplace/SEED.md`, `scripts/seed-marketplace/assets/ATTRIBUTION.md` | Seed marketplace, Maestro; `generate-assets.mjs` sinh ATTRIBUTION |
+| `tools/db-migrator/reports/*.md`, `reports/data/existing-catalog-audit.md` | Script/test ghi hoặc đọc |
+| `results/**`, `test/conversational-intelligence/results/*.md` | Kết quả chạy thực nghiệm/test |
+| `README.md` các thành phần (`docker/test`, `scripts/*`, `tools/db-migrator`, `training`, `infra/terraform`, `data/*`, test setup của service) | Hướng dẫn thành phần |
 
-## Component guides
+## Quy ước
 
-- [Fitness Assistant Web](../frontend/web/README.md)
-- [Terraform bootstrap](../infra/terraform/bootstrap/README.md)
-- [Fitness Assistant AWS dev environment](../infra/terraform/environments/dev/README.md)
-- [Dataset Integration — AI Service](../backend/services/ai-service/DATASETS.md)
-- [Optional Coach Fine-Tuning Pipeline](../training/README.md)
-- [RunPod Launch Runbook — QLoRA Fine-Tune](../training/RUNPOD_RUNBOOK.md)
+- Thêm tài liệu mới vào `docs/` (hook pre-commit chặn `.md` ở nơi khác, trừ `README.md`).
+- Cập nhật `HANDBOOK.md` thay vì viết báo cáo riêng cho mỗi phiên; việc đã sửa và xác minh thì xoá khỏi §4.
+- Ghi chú chỉ dùng local đặt tên `*.local.md` (bị `.gitignore`). Repo công khai: không ghi secret, credential,
+  chi tiết lỗ hổng chưa vá, dữ liệu người dùng thật.
+- Nhãn bằng chứng đúng loại: `REAL BROWSER` · `REAL HTTP/API` · `BACKEND INTEGRATION` · `TEST FIXTURE` · `CODE AUDIT`.
+- Quy tắc làm việc cho agent: `CLAUDE.md` / `AGENTS.md` ở gốc repo trên máy dự án (không đẩy lên Git).
 
-## Maintenance
+## Đã lưu trữ
 
-Update the existing topic guide instead of adding a session report. Keep active
-follow-ups in [STATUS](STATUS.md). Local backup and Git recovery are documented
-there. Scientific references, license/attribution files, runtime prompts and
-component runbooks are not disposable QA output.
+Tài liệu cũ được đóng gói **ngoài repo**, trên hai máy (không có trên Git). Hỏi chủ dự án để lấy lại.
+
+| Gói | Máy | Nội dung |
+| --- | --- | --- |
+| `D:\FitnessAssistant-backups\md-archive-20261117.zip` | máy của nhóm dự án (nhánh `feature/payment-gateways`) | ~640 báo cáo, kế hoạch, sổ lỗi cũ — nguồn của `HANDBOOK.md` (17/11/2026) |
+| `C:\D_Backup\md-cleanup-20261118\md-archive-20261118.zip` | máy chủ dự án (nhánh `aws-deploy`) | 295 file: báo cáo IMPLEMENTATION / VERIFICATION / E2E / audit của các đợt đã đóng, 5 bản ` - Copy.md`, các file `GYM_*.md`, `MOBILE_*.md`, `PERFORMANCE_BASELINE.md` ở gốc cũ (sau khi gộp phần luật còn hiệu lực vào `HANDBOOK.md`) |
+| `C:\D_Backup\md-cleanup-20261118\md-archive-20261118-docs-rest.zip` | máy chủ dự án | 161 file: phần còn lại của `docs/` mà nhánh payment-gateways không có (thiết kế/kế hoạch/đánh giá phẳng, `ai-product/`, `production-readiness/`, `setup/`, `audit/`, bằng chứng `deployment/evidence/`…) và `frontend/web/CAPACITOR-NOTES.md` |
+
+Mỗi gói 18/11 kèm `*.manifest.csv` (SHA256 từng file) và `*.zip.sha256`; đã kiểm giải nén thử trước khi gỡ file khỏi Git.
+Mã nguồn còn vài chú thích trỏ tới tên các file cũ; nội dung còn hiệu lực của chúng nằm trong `HANDBOOK.md`.

@@ -13,6 +13,7 @@
 import type { PartnerAccessState } from "../../services/api";
 import { canRespondAs, collabStatusFor, type CollabRow } from "../collaboration/collaboration";
 import { awaitingMyReplyCount, partneredPtCount } from "../collaboration/brandPartnership";
+import { fullAddress } from "../services/gymDirectory";
 export { withdrawableCeiling } from "../wallet/wallet";
 
 // ── Access state: who may see the operational workspace ────────────────────────────────────
@@ -103,6 +104,34 @@ export const ACCESS_STATE_TEXT: Record<PartnerAccessState, { title: string; body
   TERMINATED: { title: "Đã chấm dứt hợp tác", body: "Hợp tác giữa bạn và Gymini đã kết thúc." },
 };
 
+/**
+ * NE-12 — why the access-status call failed, when the server said so. A revoked staff member gets
+ * 403 PARTNER_ACCESS_REVOKED: that is an answer ("you no longer have access"), not a glitch to
+ * retry. Error body is `{ error: { code } }` (gym-service) — a flat `{ code }` is read too.
+ */
+export type PartnerAccessError = { kind: "revoked" | "forbidden"; title: string; body: string };
+
+export function partnerAccessError(error: unknown): PartnerAccessError | null {
+  const res = (error as { response?: { status?: number; data?: any } } | null)?.response;
+  if (!res || res.status !== 403) return null;
+  const code = res.data?.error?.code ?? res.data?.code;
+  if (code === "PARTNER_ACCESS_REVOKED") {
+    return {
+      kind: "revoked",
+      title: "Quyền truy cập đã bị thu hồi",
+      body: "Quyền truy cập của bạn vào phòng gym này đã bị thu hồi. Bạn có thể đăng xuất để dùng tài khoản khác.",
+    };
+  }
+  if (typeof code === "string" && /^(PARTNER_|OWNER_ROLE_REQUIRED|STAFF_)/.test(code)) {
+    return {
+      kind: "forbidden",
+      title: "Không có quyền truy cập",
+      body: "Tài khoản của bạn hiện không có quyền dùng khu vực quản lý phòng gym. Bạn có thể đăng xuất để dùng tài khoản khác.",
+    };
+  }
+  return null;
+}
+
 export function accessStateText(state: PartnerAccessState | null | undefined) {
   return (
     (state && ACCESS_STATE_TEXT[state]) ?? {
@@ -178,7 +207,7 @@ export function branchName(g: OwnedGym): string {
 export function branchAddress(g: OwnedGym): string {
   const base = (g.pendingAddress ?? g.address ?? "").trim();
   if (!base) return "Chưa có địa chỉ";
-  return g.city?.trim() ? `${base}, ${g.city.trim()}` : base;
+  return fullAddress({ address: base, city: g.city?.trim() || null }, {});
 }
 
 export type StatusTone = "success" | "warning" | "danger" | "neutral" | "info";
@@ -335,8 +364,13 @@ export function pendingCollabCount(collabs: unknown) {
   return awaitingMyReplyCount(collabs, "GYM");
 }
 
-/** Members are anonymous to the owner beyond their id — never invent a name. */
-export function memberLabel(clientId: string | null | undefined): string {
+/**
+ * N13I-04: the owner sees the member's display name when the server supplies one (`clientName`, same field the owner/manager
+ * check-in rows carry); until a row has it, the short id stays — a name is never invented.
+ */
+export function memberLabel(clientId: string | null | undefined, clientName?: string | null): string {
+  const name = (clientName ?? "").trim();
+  if (name) return name;
   const id = (clientId ?? "").trim();
   return id ? `Khách #${id.slice(0, 8)}` : "Khách";
 }

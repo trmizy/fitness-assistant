@@ -72,6 +72,18 @@ export const bookingController = {
     }
   },
 
+  // N15B-06: the PT's finished-but-not-closed sessions.
+  async listAwaitingCompletion(req: any, res: Response) {
+    try {
+      const userId = req.headers["x-user-id"] as string;
+      const sessions = await bookingService.listAwaitingCompletionForPT(userId);
+      res.json(redactContractSplit(sessions, { userId, role: req.headers["x-user-role"] as string | undefined }));
+    } catch (error: any) {
+      logger.error(error, "List awaiting completion error");
+      res.status(500).json({ error: "Không tải được các buổi cần chốt" });
+    }
+  },
+
   // PT confirms a session
   async confirmSession(req: any, res: Response) {
     try {

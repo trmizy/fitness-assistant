@@ -30,6 +30,7 @@ import { paymentClient } from "../clients/payment.client";
 import { authServiceClient } from "../clients/auth-service.client";
 import { notificationService } from "./notification.service";
 import { formatVnd } from "./pt-fault-session-wording";
+import { assertNotSynthetic } from "./synthetic-guard.util";
 
 export interface Actor {
   id: string;
@@ -358,6 +359,7 @@ export const d65bResolutionService = {
     if (!head) throw err(404, "SESSION_NOT_FOUND", "Không tìm thấy buổi tập");
     const c0 = await contractRepository.findById(head.contractId);
     if (!c0) throw err(404, "CONTRACT_NOT_FOUND", "Không tìm thấy hợp đồng của buổi tập");
+    assertNotSynthetic(c0);
     assertNotParty(actor.id, c0, "Người đề xuất");
     await assessDb(prisma, sessionId, "PROPOSE"); // the system's own facts first (specific codes), then the ledger
     const ledgerBefore = await readLedger(head.contractId, sessionId);
@@ -416,6 +418,7 @@ export const d65bResolutionService = {
     if (!r0) throw err(404, "RESOLUTION_NOT_FOUND", "Không tìm thấy đề xuất");
     const contract = await contractRepository.findById(r0.contractId);
     if (!contract) throw err(404, "CONTRACT_NOT_FOUND", "Không tìm thấy hợp đồng");
+    assertNotSynthetic(contract);
     assertNotParty(actor.id, contract, "Người từ chối");
     if (actor.id === r0.proposedBy) throw err(403, "SELF_REJECT_FORBIDDEN", "Người đề xuất không được tự từ chối đề xuất của mình (cần người thứ hai)");
     if (b.conflictOfInterestDeclaredNone !== true) throw err(403, "CONFLICT_OF_INTEREST", "Người từ chối phải khai báo không có xung đột lợi ích");
@@ -496,6 +499,7 @@ export const d65bResolutionService = {
     if (!r0) throw err(404, "RESOLUTION_NOT_FOUND", "Không tìm thấy đề xuất");
     const contract = await contractRepository.findById(r0.contractId);
     if (!contract) throw err(404, "CONTRACT_NOT_FOUND", "Không tìm thấy hợp đồng");
+    assertNotSynthetic(contract);
 
     if (r0.rejectedAt) throw err(409, "PROPOSAL_REJECTED", "Đề xuất này đã bị từ chối");
     // a repeated approve by the RECORDED approver is a RESUME of the execution (idempotent); anybody else is refused

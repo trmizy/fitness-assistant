@@ -96,6 +96,29 @@ test("login() with the correct password succeeds and issues both tokens", async 
   }
 });
 
+test("login() response no longer exposes mustChangePassword (forced-password screen removed, Q4 15/11)", async () => {
+  const passwordHash = await bcrypt.hash("correct-password", 10);
+  const restoreUser = patch(authRepository, "findUserByEmail", async () => ({
+    id: "u1",
+    email: "user@example.com",
+    password: passwordHash,
+    firstName: "U",
+    lastName: "Ser",
+    role: "CUSTOMER",
+    isActive: true,
+    mustChangePassword: true, // legacy DB column kept; must not leak into the response
+  }));
+  const restoreToken = patch(authRepository, "createRefreshToken", async () => ({}));
+
+  try {
+    const result = await authService.login("user@example.com", "correct-password");
+    assert.deepEqual(Object.keys(result.user).sort(), ["email", "firstName", "id", "lastName", "role"]);
+  } finally {
+    restoreUser();
+    restoreToken();
+  }
+});
+
 test("login() for a disabled (isActive:false) account is rejected 403 even with the correct password", async () => {
   const passwordHash = await bcrypt.hash("correct-password", 10);
   const restoreUser = patch(authRepository, "findUserByEmail", async () => ({

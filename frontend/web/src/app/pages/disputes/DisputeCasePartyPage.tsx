@@ -9,12 +9,13 @@ import { DISPUTE_QUERY_OPTIONS, useDisputeQueryKeys } from "../admin/disputes/di
 import { DocumentForm } from "./DocumentForm";
 import { StatementForm } from "./StatementForm";
 import { PartyAppealForm } from "./PartyAppealForm";
+import { PartyAppealStatus } from "./PartyAppealStatus";
 import { PartyAgreementPanel } from "./PartyAgreementPanel";
 import { PartyEvidenceFileForm, PartyFileDownload } from "./PartyEvidenceFileForm";
 import { BackLink, CARD, FailureBlock, LoadingBlock, MUTED, Notice, Panel, Pill, ReloadButton } from "./PartyParts";
 import { partyAllowed, partyRefusal, partyVerdictOf } from "./partyActions";
 import { CANNOT_SUBMIT_NOTE, CAN_SUBMIT_NOTE, NOT_FOUND_TEXT, NOT_FOUND_TITLE, NO_AUTO_REFRESH_NOTE, VISIBLE_ONLY_NOTE } from "./partyLabels";
-import { accusationViews, caseHeader, evidenceViews, moneyView, nextStatementVersion, parseCaseId, statementViews } from "./partyModel";
+import { accusationViews, caseHeader, partyAppealStatusView, evidenceViews, moneyView, nextStatementVersion, parseCaseId, statementViews } from "./partyModel";
 
 function NotFound() {
   return (
@@ -285,6 +286,8 @@ function DetailBody({
           closesAt={detail.appeal?.closesAt}
         />
       ) : (() => {
+        const appealView = partyAppealStatusView(detail.appeal);
+        if (appealView) return <PartyAppealStatus view={appealView} />;
         const code = partyVerdictOf(detail, "requestAppeal")?.code;
         if (code === "APPEAL_WINDOW_CLOSED" || code === "APPEAL_ALREADY_REQUESTED" || code === "APPEAL_NOTICE_NOT_RECORDED") {
           const msg = partyRefusal(detail, "requestAppeal");

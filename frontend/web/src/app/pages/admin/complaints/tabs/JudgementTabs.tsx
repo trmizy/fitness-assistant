@@ -1,6 +1,6 @@
 /** D6 - finding & proposal, and the four-eyes decision tabs of a gym case. */
-import { findingConsequence, gymFindingLabel, gymOutcomeLabel } from "../gymCaseLabels";
-import { approvalHint, gatesOf, newestProposal, shortRefOf } from "../gymCaseModel";
+import { gymFindingLabel, gymOutcomeConsequence, gymOutcomeLabel, proposalConsequence } from "../gymCaseLabels";
+import { adminDid, approvalHint, gatesOf, newestProposal } from "../gymCaseModel";
 import { formatDateTimeSafe } from "../gymFormat";
 import { FindingCard, ProposeCard } from "../forms/JudgementForms";
 import { DecisionCard } from "../forms/DecisionForm";
@@ -31,7 +31,7 @@ export function FindingTab(props: FormProps) {
                 </div>
                 <p className="whitespace-pre-wrap break-words text-sm text-adm-text">{f.reasoning}</p>
                 <p className="text-xs text-adm-text-2">
-                  {formatDateTimeSafe(f.createdAt)} · {currentUserId && f.recordedBy === currentUserId ? "bạn ghi" : `người ghi mã ${shortRefOf(f.recordedBy)}`}
+                  {formatDateTimeSafe(f.createdAt)} · {adminDid(f.recordedBy, currentUserId, "ghi")}
                 </p>
               </li>
             ))}
@@ -47,7 +47,7 @@ export function FindingTab(props: FormProps) {
               <li key={p.id} className={`${BOX} space-y-1.5`} data-testid="d6-proposal-row">
                 <p className="text-sm font-semibold text-adm-text">{p.outcomeLabel || gymOutcomeLabel(p.outcome)}</p>
                 <p className="text-xs text-adm-text-2">
-                  {formatDateTimeSafe(p.createdAt)} · {currentUserId && p.proposerId === currentUserId ? "bạn lập" : `người lập mã ${shortRefOf(p.proposerId)}`}
+                  {formatDateTimeSafe(p.createdAt)} · {adminDid(p.proposerId, currentUserId, "lập")}
                 </p>
               </li>
             ))}
@@ -55,7 +55,7 @@ export function FindingTab(props: FormProps) {
         )}
         <Muted>Kết quả do máy chủ tính từ loại hồ sơ và kết luận. Đề xuất không có số tiền.</Muted>
         {detail.findings.length > 0 && (
-          <Muted testId="d6-consequence">{findingConsequence(classText, detail.findings[detail.findings.length - 1].finding)}</Muted>
+          <Muted testId="d6-consequence">{proposalConsequence(classText, detail.proposals.length ? detail.proposals[detail.proposals.length - 1].outcome : null, detail.findings[detail.findings.length - 1].finding)}</Muted>
         )}
       </Section>
       {!g.writeOff && (
@@ -86,6 +86,12 @@ export function DecisionTab(props: FormProps) {
             {detail.proposals.map((p) => (
               <li key={p.id} className={`${BOX} space-y-2`} data-testid="d6-approval-proposal">
                 <p className="text-sm font-semibold text-adm-text">{p.outcomeLabel || gymOutcomeLabel(p.outcome)}</p>
+                {gymOutcomeConsequence(p.outcome) && (
+                  <p className="text-xs text-adm-text-2" data-testid="d6-approval-consequence">
+                    <span className="font-medium text-adm-text">Hệ quả: </span>
+                    {gymOutcomeConsequence(p.outcome)}
+                  </p>
+                )}
                 {p.approvals.length === 0 ? (
                   <p className="text-sm text-adm-text-2">{p.id === latest?.id && detail.case.status === "AWAITING_APPROVAL" ? "Đang chờ một quản trị viên khác duyệt." : "Chưa có lượt duyệt hoặc bác nào."}</p>
                 ) : (
@@ -94,7 +100,7 @@ export function DecisionTab(props: FormProps) {
                       <Pill tone={a.result === "APPROVED" ? "success" : "danger"}>{a.result === "APPROVED" ? "Đã duyệt" : "Đã bác"}</Pill>
                       <p className="break-words text-adm-text">{a.reason}</p>
                       <p className="text-xs text-adm-text-2">
-                        {formatDateTimeSafe(a.createdAt)} · {currentUserId && a.approverId === currentUserId ? "bạn" : `người duyệt mã ${shortRefOf(a.approverId)}`}
+                        {formatDateTimeSafe(a.createdAt)} · {adminDid(a.approverId, currentUserId)}
                         {a.conflictOfInterestDeclaredNone ? " · đã khai báo không có xung đột lợi ích" : ""}
                         {a.evidenceChangeAcknowledged ? " · đã xác nhận thay đổi bằng chứng" : ""}
                       </p>

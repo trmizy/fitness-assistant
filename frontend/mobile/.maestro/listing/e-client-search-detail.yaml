@@ -61,8 +61,10 @@ appId: vn.fitnessassistant.app
     timeout: 30000
 - tapOn: "Tìm theo tên, thương hiệu hoặc thành phố..."
 - inputText: "Iron District"
+# U2: the area card pushed the list down, so on a 1080x2400 phone only the first card's photo is above the keyboard, and the seed's
+# first Iron District branch is no longer the Bình Thạnh one: wait for any Iron District card (its accessibility label starts with "Ảnh ...")
 - extendedWaitUntil:
-    visible: "Iron District Fitness B.*"
+    visible: ".*Iron District Fitness.*"
     timeout: 30000
 - takeScreenshot: e-05-gym-list
 - tapOn:

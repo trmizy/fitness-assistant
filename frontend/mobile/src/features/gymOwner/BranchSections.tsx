@@ -23,6 +23,7 @@ import {
 import { InlineAmenityPicker, type InlineProposal } from "../gymListing/InlineAmenityPicker";
 import { useServerSeededState } from "../../hooks/useServerSeededState";
 import { AmenityBadgeGroups } from "../gymListing/AmenityWidgets";
+import * as WebBrowser from "expo-web-browser";
 import { shareLocalFile } from "../../services/files";
 import { pickErrorMessage } from "../../lib/pickError";
 import { pickApplicationFile, pickImages } from "../../lib/pickFile";
@@ -691,7 +692,11 @@ function DocumentPreview({ token, label }: { token: string; label: string }) {
         onPress={async () => {
           setOpening(true);
           try {
-            await shareLocalFile(await gymService.fetchBranchDocumentFile(token), "application/pdf");
+            // AWS-MOB-UI-05 — a viewer (browser tab on the presigned link), not the share sheet. Only a
+            // legacy file without a presigned URL still falls back to handing the downloaded file over.
+            const url = await gymService.getBranchDocumentUrl(token);
+            if (url) await WebBrowser.openBrowserAsync(url);
+            else await shareLocalFile(await gymService.fetchBranchDocumentFile(token), "application/pdf");
           } catch (e) {
             toast.show(serverMessage(e, "Không thể mở tệp"), "danger");
           } finally {
@@ -851,7 +856,7 @@ export function MembersSection({ gymId }: { gymId: string }) {
             <View key={m.id} className="flex-row items-center justify-between gap-2 rounded-xl border border-border bg-panel px-3 py-2.5">
               <View className="min-w-0 flex-1">
                 <Text className="font-body-semibold text-xs text-foreground" numberOfLines={1}>
-                  {memberLabel(m.clientId)}
+                  {memberLabel(m.clientId, m.clientName)}
                 </Text>
                 {m.status === "ACTIVE" ? (
                   <Text className="font-body text-[11px] text-muted-foreground">

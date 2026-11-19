@@ -14,6 +14,16 @@ export function getIo(): Server | null {
   return _io;
 }
 
+/**
+ * Cuts every live socket of one user (all tabs/devices) — used when the account is locked. Returns whether a
+ * socket server was there to ask.
+ */
+export function disconnectUserSockets(server: Pick<Server, "in"> | null, userId: string): boolean {
+  if (!server) return false;
+  server.in(`user:${userId}`).disconnectSockets(true);
+  return true;
+}
+
 export function initSocket(httpServer: http.Server) {
   const io = new Server(httpServer, {
     cors: {
@@ -76,6 +86,12 @@ export function initSocket(httpServer: http.Server) {
     if (existingGrace) {
       clearTimeout(existingGrace.timeout);
       graceTimers.delete(user.id);
+      // The other side was told peer_disconnected when this user dropped; tell it they are back (N13H-08).
+      if (existingGrace.otherUserId) {
+        io.to(`user:${existingGrace.otherUserId}`).emit("call:peer_reconnected", {
+          callSessionId: existingGrace.callSessionId,
+        });
+      }
       logger.info(
         { userId: user.id, callSessionId: existingGrace.callSessionId },
         "Grace timer cleared on reconnect",
@@ -96,6 +112,8 @@ export function initSocket(httpServer: http.Server) {
           callService
             .findActiveCallForUser(user.id)
             .then((activeCall) => {
+              // The user may already be back (a reconnect inside the DB lookup): nothing to wait out then.
+              if (onlineUsers.has(user.id)) return;
               if (
                 activeCall &&
                 (activeCall.status === "ACTIVE" ||
@@ -126,6 +144,7 @@ export function initSocket(httpServer: http.Server) {
 
                 const timeout = setTimeout(async () => {
                   graceTimers.delete(user.id);
+                  if (onlineUsers.has(user.id)) return;
                   // Grace period expired — end the call
                   const ended = await callService.endCall(
                     activeCall.id,
@@ -147,6 +166,7 @@ export function initSocket(httpServer: http.Server) {
                 graceTimers.set(user.id, {
                   callSessionId: activeCall.id,
                   timeout,
+                  otherUserId,
                 });
 
                 // Notify the other party about temporary disconnect

@@ -32,6 +32,49 @@ export const APPEAL_NOTICE_TEXT =
 export const APPEAL_SUCCESS_TEXT =
   "Đã gửi yêu cầu xem xét lại. Kết quả hiện tại chưa thay đổi.";
 
+export interface PartyAppealStatusView {
+  tone: PillTone;
+  badge: string;
+  headline: string;
+  detail: string;
+  when: string | null;
+}
+
+/**
+ * N15B-02: what a party sees of ITS OWN appeal after sending it (the form disappears once the appeal exists, so without this the page
+ * showed nothing and the only trace was a bell notification). Returns null when no appeal was filed. The reasoning of the decision stays
+ * admin-only; the party learns the result in words.
+ */
+export function partyAppealStatusView(
+  appeal: { used?: boolean; status?: string | null; result?: string | null; requestedAt?: string | null; decidedAt?: string | null } | null | undefined,
+): PartyAppealStatusView | null {
+  if (!appeal || (!appeal.used && !appeal.status)) return null;
+  const requested = appeal.requestedAt ? `Gửi lúc ${formatDateTime(appeal.requestedAt)}` : null;
+  if (appeal.status === "DECIDED") {
+    const kept = appeal.result === "UPHELD";
+    const changed = appeal.result === "NEW_FINDING";
+    return {
+      tone: changed ? "success" : "neutral",
+      badge: "Đã có kết quả",
+      headline: kept ? "Kết luận ban đầu được giữ nguyên." : changed ? "Quản trị viên đã đưa ra kết luận mới sau khi xem xét lại." : "Yêu cầu xem xét lại đã có kết quả.",
+      detail: kept
+        ? "Sau khi xem xét lại, kết luận trước đó không thay đổi. Mỗi bên chỉ được yêu cầu xem xét lại một lần."
+        : changed
+          ? "Kết luận mới được ghi vào hồ sơ. Nếu cần xử lý thêm về buổi tập hoặc tiền, hệ thống sẽ thông báo cho bạn."
+          : "Hệ thống sẽ thông báo nếu có thay đổi cần bạn biết.",
+      when: appeal.decidedAt ? `Có kết quả lúc ${formatDateTime(appeal.decidedAt)}` : requested,
+    };
+  }
+  const underReview = appeal.status === "UNDER_REVIEW";
+  return {
+    tone: "pending",
+    badge: "Đang xem xét lại",
+    headline: underReview ? "Một quản trị viên độc lập đang xem xét lại yêu cầu của bạn." : "Yêu cầu xem xét lại của bạn đã được ghi nhận, đang chờ phân người xem xét.",
+    detail: "Trong lúc chờ, kết luận hiện tại chưa thay đổi. Bạn sẽ nhận thông báo khi có kết quả.",
+    when: requested,
+  };
+}
+
 export function validateAppealReason(reason: string): { ok: boolean; message?: string } {
   const trimmed = reason.trim();
   if (trimmed.length < 1) {

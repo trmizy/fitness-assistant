@@ -354,6 +354,9 @@ enum ContractUnpaidObligationKind {
   OVER_RELEASED
   /// E5: created after a won appeal whose approved finding established an amount and a responsible party.
   APPEAL_AWARD
+  /// Q1 (15/11/2026): a gym's share of a supplementary membership refund (won appeal) that its AVAILABLE wallet could not fund. The member was paid in full,
+  /// the platform fronted the shortfall from REVENUE; party = GYM (the DEBTOR). Not payable through the client-payout lifecycle (party is not CLIENT).
+  GYM_DEBT
 }
 
 /// OPEN = recorded; UNDER_REVIEW = an owner/operator is looking at it.
@@ -542,6 +545,8 @@ enum ContractUnpaidObligationEventAction {
   SETTLE_VIA_LEDGER
   /// E5: the append-only record of an obligation created from a won appeal.
   CREATE_FROM_APPEAL
+  /// FIX3-PAY (15/11/2026): GYM_DEBT repaid automatically from the gym's next AVAILABLE income (actor SYSTEM:GYM_DEBT_AUTO_RECOVERY, approvalRef = the credit's ledger entry id).
+  RECOVER_FROM_INCOME
 }
 
 /// FH-8. Append-only audit trail of status changes on ContractUnpaidObligation. A status change records who and why;
@@ -642,4 +647,27 @@ model PaymentWebhookEvent {
   @@unique([provider, providerEventId])
   @@index([processedAt, retryCount])
   @@map("payment_webhook_events")
+}
+
+/// G-06 (11/11/2026). One row per run of the wallet invariant check (ESCROW = sum of claims).
+/// ADMIN = an admin opened the balance view; JOB = the 5-minute reconciliation job. Append-only history:
+/// nothing here is ever read back to change a balance. `summary` holds whitelisted figures only (breakdown strings + counts), no PII.
+model ReconciliationRun {
+  id            String    @id @default(uuid())
+  startedAt     DateTime  @map("started_at")
+  finishedAt    DateTime? @map("finished_at")
+  /// "ADMIN" | "JOB"
+  trigger       String
+  /// Admin user id for ADMIN runs; NULL for JOB.
+  triggeredBy   String?   @map("triggered_by")
+  /// "BALANCED" | "DRIFT" | "ERROR"
+  status        String
+  escrowBalance Decimal?  @map("escrow_balance") @db.Decimal(14, 2)
+  claimsTotal   Decimal?  @map("claims_total") @db.Decimal(14, 2)
+  drift         Decimal?  @db.Decimal(14, 2)
+  summary       Json
+  errorCode     String?   @map("error_code")
+
+  @@index([startedAt])
+  @@map("reconciliation_runs")
 }

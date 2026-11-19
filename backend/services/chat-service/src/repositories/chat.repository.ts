@@ -40,7 +40,12 @@ export const chatRepository = {
         participants: true,
         messages: { take: 1, orderBy: { createdAt: "desc" } },
       },
-      orderBy: { lastMessageAt: "desc" },
+      // Conversations never written to (lastMessageAt NULL) go last, not first: an empty thread
+      // must not outrank the one with the newest message (N13H-02).
+      orderBy: [
+        { lastMessageAt: { sort: "desc", nulls: "last" } },
+        { createdAt: "desc" },
+      ],
     });
   },
 
@@ -52,16 +57,38 @@ export const chatRepository = {
   },
 
   // ── Messages ─────────────────────────────────────────────────
+  // Newest-first window, handed back oldest-first. `skip`/`take` page from the newest message
+  // (page 1 = the latest `take`); `beforeId` instead returns the `take` messages older than that
+  // one, which stays correct while new messages keep arriving.
   findMessagesByConversationId: async (
     conversationId: string,
-    { skip, take }: { skip: number; take: number },
-  ) => {
-    return prisma.message.findMany({
-      where: { conversationId },
-      orderBy: { createdAt: "asc" },
+    {
       skip,
       take,
+      beforeId,
+    }: { skip: number; take: number; beforeId?: string },
+  ) => {
+    let olderThan: object = {};
+    if (beforeId) {
+      const anchor = await prisma.message.findFirst({
+        where: { id: beforeId, conversationId },
+        select: { createdAt: true, id: true },
+      });
+      if (!anchor) return [];
+      olderThan = {
+        OR: [
+          { createdAt: { lt: anchor.createdAt } },
+          { createdAt: anchor.createdAt, id: { lt: anchor.id } },
+        ],
+      };
+    }
+    const newestFirst = await prisma.message.findMany({
+      where: { conversationId, ...olderThan },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: beforeId ? 0 : skip,
+      take,
     });
+    return newestFirst.reverse();
   },
 
   createMessage: async (

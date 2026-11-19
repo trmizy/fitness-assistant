@@ -3,6 +3,7 @@ import { llmService } from "../services/llm.service";
 import { getVectorStore } from "../vector-store/provider";
 import type { RetrievalDocument, RetrievalResult } from "./types";
 import { retrieveV2 } from "./retrieval-v2";
+import { rankChatDocuments } from "./retrieval_ranking";
 
 // Chat may use semantic exercise data. AI Plan generation must not use the
 // Qdrant exercises collection for exercise selection; it receives exercises
@@ -467,7 +468,9 @@ export const retriever = {
       }
     }
 
-    const documents = dedupeAndSort(collected);
+    // Source-aware ranking (retrieval_ranking.ts): template-generated FAQ rows are tagged + capped, curated evidence is
+    // preferred, near-duplicate template rows collapse. Same TOP_K and MIN_SCORE as before.
+    const documents = rankChatDocuments(collected, TOP_K);
     if (documents.length === 0) {
       return {
         documents: [],

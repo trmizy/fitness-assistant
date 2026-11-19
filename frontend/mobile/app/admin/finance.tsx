@@ -235,7 +235,7 @@ function Recon() {
                 <Text className={`font-body-semibold text-xs ${r.balanced ? "text-primary" : "text-destructive"}`}>{r.balanced ? "Cân bằng" : "Phát hiện lệch"}</Text>
               </View>
             </View>
-            <Line label="Tiền giữ hộ (ESCROW)" value={formatVND(r.escrow)} strong />
+            <Line label="Tiền giữ hộ" value={formatVND(r.escrow)} strong />
             <Line label="Tổng các bên nhận quyền lợi" value={formatVND(r.claims)} />
             <Line label="Chênh lệch" value={formatVND(r.drift)} tone={r.drift === 0 ? "good" : "bad"} />
           </Card>

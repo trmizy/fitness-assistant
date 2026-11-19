@@ -452,10 +452,11 @@ function ActionTile({
       <View className="h-9 w-9 items-center justify-center rounded-xl bg-primary/15">
         <Icon size={18} color={accent.primary} />
       </View>
-      <Text className="mt-2.5 font-body-semibold text-sm text-foreground" numberOfLines={1}>
+      {/* NE-04 — three tiles share a 360 px row (~100 px each): let label and hint wrap to two lines instead of cutting them ("Không có yêu…"). */}
+      <Text className="mt-2.5 font-body-semibold text-sm text-foreground" numberOfLines={2}>
         {label}
       </Text>
-      <Text className="font-body text-xs text-muted-foreground" numberOfLines={1}>
+      <Text className="font-body text-xs text-muted-foreground" numberOfLines={2}>
         {hint}
       </Text>
     </Card>

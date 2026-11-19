@@ -346,7 +346,7 @@ export const ptDeactivationService = {
     const settled = await settleContractTermination(contract.id, "SERVICE_DISCONTINUED_BY_PLATFORM", {
       cancelledBy: SYSTEM_ACTOR,
       cancellationReason: reason,
-    });
+    }, {}); // NB-01: explicit empty hooks - this path sends its own client notice below, so the registry's platform-ending notice must not double it
     if (!settled) throw new Error(`Contract ${contract.id} no longer exists`);
 
     const unusedSessions = getRemainingEntitlements(settled.contract);

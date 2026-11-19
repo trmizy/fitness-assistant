@@ -7,6 +7,7 @@ import { fetch as streamingFetch } from "expo/fetch";
 import { File as FSFile, UploadType as FSUploadType } from "expo-file-system";
 import Constants from "expo-constants";
 import { listingFlowHeaders } from "./listingFlow";
+import { currentClientHeaders } from "./clientHeader";
 import { Preferences } from "./storage";
 import { makeRefreshOnce } from "./refresh-once";
 import { aiStreamUrl, apiBaseUrl, onServerUrlChange } from "../config/serverUrl";
@@ -15,7 +16,7 @@ import { emitSessionExpired } from "./sessionEvents";
 import { readRefreshToken, writeRefreshToken, clearRefreshToken } from "./secureStorage";
 import { tokenStore } from "./tokenStore";
 import { sessionGuard, SessionChangedError } from "./sessionGuard";
-import { downloadAuthenticatedFile, shareLocalFile, writeLocalFile } from "./files";
+import { downloadAuthenticatedFile, downloadPresignedFile, shareLocalFile, writeLocalFile } from "./files";
 
 export interface PlanExplanationResponse {
   planId: string;
@@ -158,7 +159,7 @@ export type TranslateRequest = {
 // eslint-disable-next-line import/no-named-as-default-member -- axios.create() is axios's documented API
 const refreshClient = axios.create({
   baseURL: API_URL,
-  headers: { "Content-Type": "application/json" },
+  headers: { "Content-Type": "application/json", ...currentClientHeaders() },
   timeout: 10000,
 });
 
@@ -251,6 +252,8 @@ api.interceptors.request.use(async (config) => {
   const request = config as typeof config & RetriableRequestConfig;
   if (request._sessionGeneration !== undefined) sessionGuard.assertCurrent(request._sessionGeneration);
   request._sessionGeneration = sessionGuard.current();
+  // U2: X-Gymini-Client on every gateway request (measurement only; see services/clientHeader.ts).
+  for (const [name, value] of Object.entries(currentClientHeaders())) config.headers[name] = value;
   // Vòng 4 / Phase D3 — was `await Preferences.get({ key: "accessToken" })` here: a
   // native-bridge round-trip on EVERY single request. tokenStore is kept in sync with
   // storage on every write (see tokenStore.ts's doc comment) — reading it is synchronous.
@@ -480,11 +483,24 @@ export const profileService = {
     return data;
   },
 
-  /** One PT's public profile for the discovery detail modal — adds avgRating/ratingCount
-   *  (already on the list rows too) plus recentReviews: the last 5 commented reviews, which
-   *  the list endpoint never sends. */
-  getPTDetail: async (ptUserId: string) => {
-    const { data } = await api.get(`/profile/pts/${ptUserId}`);
+  /**
+   * Location-aware cursor search (D0b-2). GPS, when the user chose it, travels ONLY in this POST body (rounded to
+   * 3 decimals by discoverySearch.buildPtSearchBody) — never in the URL — and is not logged or stored.
+   */
+  searchPTs: async (body: Record<string, any>) => {
+    const { data } = await api.post("/profile/pts/search", body);
+    return data as {
+      pts: any[];
+      nextCursor: string | null;
+      hasMore: boolean;
+      appliedScope: "near" | "province" | "national";
+    };
+  },
+
+  /** One PT's public profile (D1): the full discovery fields (ptApplication, availableSlotsNext28Days, trainingLocations,
+   *  avgRating) plus recentReviews and ratingDistribution. A PT with no package on sale still answers 200; a hidden PT 404. */
+  getPTDetail: async (ptUserId: string, region?: { areaProvince?: number; areaWard?: number }) => {
+    const { data } = await api.get(`/profile/pts/${ptUserId}`, region?.areaProvince ? { params: region } : undefined);
     return data;
   },
 
@@ -588,6 +604,26 @@ export const inbodyService = {
   getLatest: async () => {
     const { data } = await api.get("/inbody/latest"); // We need to add /latest to backend too or just use history[0]
     return data;
+  },
+
+  /** "Giải thích thể trạng" — same endpoint and contract as the web InBodyExplanationCard. */
+  interpret: async (entryId?: string) => {
+    const { data } = await api.post("/ai/inbody/interpret", entryId ? { entryId } : {}, { timeout: 35000 });
+    return (data?.data ?? data) as {
+      entryId: string | null;
+      explanation: string | null;
+      source: "llm" | null;
+      explanationError?: string;
+      facts: {
+        daysSincePrevious: number | null;
+        metrics: Array<{ key: string; labelVi: string; value: number; unit: string; source: "MEASURED" | "COMPUTED"; status: "low" | "good" | "slightly_high" | "high" | "info"; statusVi: string; noteVi?: string }>;
+        bodyType: { code: string; labelVi: string; explanationVi: string } | null;
+        balance: Array<{ partVi: string; leftKg: number; rightKg: number; diffPct: number; status: "normal" | "mild" | "significant" }>;
+        changes: Array<{ key: string; labelVi: string; from: number; to: number; delta: number; unit: string; meaningful: boolean }>;
+        flags: Array<{ code: string; messageVi: string }>;
+        dataQuality: string[];
+      } | null;
+    };
   },
 
   getHistory: async () => {
@@ -3826,6 +3862,7 @@ export const coachService = {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              ...currentClientHeaders(),
               ...(hasUsableToken(token)
                 ? { Authorization: `Bearer ${token}` }
                 : {}),
@@ -3953,9 +3990,9 @@ export const chatService = {
     return data;
   },
 
-  getMessages: async (conversationId: string, page = 1, limit = 30) => {
+  getMessages: async (conversationId: string, page = 1, limit = 30, beforeId?: string) => {
     const { data } = await api.get(
-      `/chat/conversations/${conversationId}/messages?page=${page}&limit=${limit}`,
+      `/chat/conversations/${conversationId}/messages?page=${page}&limit=${limit}${beforeId ? `&before=${encodeURIComponent(beforeId)}` : ""}`,
     );
     return data;
   },
@@ -3982,8 +4019,16 @@ export const adminService = {
 
   // Gateway aggregate (auth + user-service): name/email/role/status per account — the admin
   // "Người dùng" list, and the name lookup for withdrawal/dispute rows that only carry an id.
-  listUserDirectory: async () => {
-    const { data } = await api.get("/admin/users");
+  // FIX5-ADMIN-PERF: the server answers ONE page (37k accounts) — filters and search run there.
+  listUserDirectory: async (params: Record<string, string | number> = { page: 1, limit: 20 }) => {
+    const { data } = await api.get("/admin/users", { params });
+    return data;
+  },
+  // Names behind a list of account ids (withdrawal rows): one call for up to 200 ids, never the whole directory.
+  lookupUsers: async (ids: string[]) => {
+    const unique = [...new Set(ids.filter(Boolean))].slice(0, 200);
+    if (unique.length === 0) return { data: { users: [] } };
+    const { data } = await api.get("/admin/users", { params: { ids: unique.join(","), page: 1, limit: 200 } });
     return data;
   },
   // AD-05 — lock/unlock ANY account (auth-service setUserActive). For a PT this also relays a
@@ -4049,26 +4094,15 @@ export const adminService = {
 
   // Vòng 4 / Phase C — gym/brand moderation. There was no admin-facing gym/brand list at all
   // before this phase.
-  // No self-registration path for GYM_OWNER — an admin creates the account directly after
-  // arranging the partnership out of band (phone/email); returns the random temporary
-  // password ONCE, never retrievable again after this call.
-  createGymOwner: async (payload: { email: string; firstName: string; lastName?: string }) => {
-    const { data } = await api.post('/admin/gym-owners', payload);
-    return data?.data ?? data;
-  },
-  // "Quản lý gym & owner" — admin can only CREATE an owner account before this; these three
-  // fill the gap the user pointed out (suspend/reactivate + name fix, no email edit — see
-  // authService.updateUserNameAsAdmin's doc comment for why email is excluded).
-  listGymOwners: async () => {
-    const { data } = await api.get('/admin/gym-owners');
-    return data?.data ?? data;
-  },
+  // NE: /admin/gym-owners (create + list) and /admin/workflows* were removed — the gateway has no such routes
+  // (404 even for an admin, N-A-04) and no screen called them. Owner accounts come from partner applications.
+  // Fixing a name goes through auth-service via the gateway's ADMIN-only /auth/users/:id/name (same as web's role route).
   setGymOwnerActive: async (userId: string, isActive: boolean) => {
     const { data } = await api.patch(`/admin/users/${userId}/${isActive ? 'enable' : 'disable'}`);
     return data?.data ?? data;
   },
   updateGymOwnerName: async (userId: string, payload: { firstName?: string; lastName?: string }) => {
-    const { data } = await api.patch(`/admin/users/${userId}/name`, payload);
+    const { data } = await api.patch(`/auth/users/${userId}/name`, payload);
     return data?.data ?? data;
   },
   listGymsForAdmin: async (status?: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED') => {
@@ -4112,47 +4146,6 @@ export const adminService = {
     return data?.data ?? data;
   },
 
-  getWorkflowMeta: async () => {
-    const { data } = await api.get("/admin/workflows/meta");
-    return data;
-  },
-
-  getStudioAuthState: async () => {
-    const { data } = await api.get("/admin/workflows/studio-auth-state", {
-      withCredentials: true,
-    });
-    return data;
-  },
-
-  listWorkflows: async () => {
-    const { data } = await api.get("/admin/workflows");
-    return data;
-  },
-
-  getWorkflowExecutions: async (workflowId: string, limit = 20) => {
-    const { data } = await api.get(
-      `/admin/workflows/${workflowId}/executions?limit=${limit}`,
-    );
-    return data;
-  },
-
-  getExecutionDetail: async (executionId: string) => {
-    const { data } = await api.get(
-      `/admin/workflows/executions/${executionId}`,
-    );
-    return data;
-  },
-
-  runSmokeTest: async () => {
-    const { data } = await api.post("/admin/workflows/smoke-test", {});
-    return data;
-  },
-
-  setupSampleWorkflows: async () => {
-    const { data } = await api.post("/admin/workflows/setup-samples", {});
-    return data;
-  },
-
   listPTProfiles: async () => {
     const { data } = await api.get("/profile/pts");
     return data;
@@ -4167,15 +4160,6 @@ export const adminService = {
     const { data } = await api.patch(
       `/profile/admin/users/${userId}/pt-status`,
       { isPT },
-    );
-    return data;
-  },
-
-  runFullSystemTest: async () => {
-    const { data } = await api.post(
-      "/admin/workflows/full-system-test",
-      {},
-      { timeout: 120000 },
     );
     return data;
   },
@@ -4461,9 +4445,7 @@ export const adminService = {
     return data?.data ?? data;
   },
   /** Returns a local `file://` URI, not a Blob — see the note above exportService. */
-  fetchBranchDocumentFile: async (token: string): Promise<string> => {
-    return downloadAuthenticatedFile(`/admin/branch-documents/${token}`, `branch-document-${token}`);
-  },
+  fetchBranchDocumentFile: (token: string): Promise<string> => fetchPrivateEvidenceFile("/admin/branch-documents", token, "branch-document"),
 
   // GYM_MANAGEMENT master spec, Phase 5 — Khiếu nại/Vi phạm (một hàng đợi chung, mọi nguồn).
   listComplaints: async (status?: string) => {
@@ -4498,9 +4480,7 @@ export const adminService = {
     return data?.data ?? data;
   },
   /** Returns a local `file://` URI, not a Blob — see the note above exportService. */
-  fetchComplaintPhotoFile: async (token: string): Promise<string> => {
-    return downloadAuthenticatedFile(`/admin/complaint-photos/${token}`, `complaint-photo-${token}`);
-  },
+  fetchComplaintPhotoFile: (token: string): Promise<string> => fetchPrivateEvidenceFile("/admin/complaint-photos", token, "complaint-photo"),
 };
 
 export interface FoodCatalogItem {
@@ -5033,8 +5013,12 @@ export const contractService = {
     acknowledgedLowAvailability?: boolean;
     /** `version` of the package on screen; a changed package answers 409 PACKAGE_CHANGED with the current one. */
     expectedPackageVersion?: number;
+    /** N15M-14: the client accepted the "venue outside Gymini" warning (offline/hybrid with no Gymini gym). */
+    acknowledgedIndependentVenue?: boolean;
   }) => {
-    const { data } = await api.post("/contracts/request", requestData);
+    // N15M-14 grace: this build knows the venue-consent step. The server accepts a request without the flag ONLY from an app that
+    // lacks this header (an older install), so a new client that skips the dialog is still refused.
+    const { data } = await api.post("/contracts/request", requestData, { headers: { "X-Gymini-Venue-Consent": "1" } });
     return data;
   },
   // Phase 3 / P3.6 — read-only. Branches the client could pick for this PT + package, with the
@@ -5679,6 +5663,55 @@ async function fileSizeBytes(uri: string): Promise<number> {
 }
 
 /**
+ * Private evidence files (complaint photos, branch documents). On AWS the API runs on Lambda, which cannot write to disk,
+ * so they go presign -> multipart POST straight to storage -> confirm, and are read back through a short-lived link.
+ * Same upload mechanics as `uploadApplicationFile` (expo-file-system MULTIPART: signed fields first, file LAST, no JWT to storage).
+ */
+export class EvidenceUploadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "EvidenceUploadError";
+  }
+}
+
+async function uploadPrivateEvidence<T>(presignPath: string, confirmPath: string, file: UploadFile): Promise<T> {
+  const sizeBytes = await fileSizeBytes(file.uri);
+  const contentType = file.type || "application/octet-stream";
+  const { data: p } = await api.post(presignPath, { contentType, sizeBytes });
+  const target = p?.data ?? p;
+  let res: { status: number; body: string };
+  try {
+    res = await new FSFile(file.uri).upload(target.url, {
+      httpMethod: "POST",
+      uploadType: FSUploadType.MULTIPART,
+      fieldName: "file",
+      mimeType: contentType,
+      parameters: target.fields,
+    });
+  } catch {
+    throw new EvidenceUploadError("Không gửi được tệp lên — kiểm tra kết nối rồi thử lại.");
+  }
+  if (res.status < 200 || res.status >= 300) {
+    throw new EvidenceUploadError(res.status === 403 ? "Lượt tải lên đã hết hạn hoặc không hợp lệ. Hãy thử lại." : `Tải tệp lên thất bại (${res.status}). Hãy thử lại.`);
+  }
+  const { data: c } = await api.post(confirmPath, { uploadId: target.uploadId }, { timeout: 45000 });
+  return (c?.data ?? c) as T;
+}
+
+/** Asks for a short-lived link (authorised server-side) and downloads it WITHOUT our JWT. A token saved on local disk before this flow existed (local dev) still goes through the old authenticated route. */
+async function fetchPrivateEvidenceFile(basePath: string, token: string, namePrefix: string): Promise<string> {
+  let url: string;
+  try {
+    const { data } = await api.get(`${basePath}/${token}/url`);
+    url = (data?.data ?? data).url;
+  } catch (e: any) {
+    if (e?.response?.status === 404) return downloadAuthenticatedFile(`${basePath}/${token}`, `${namePrefix}-${token}`);
+    throw e;
+  }
+  return downloadPresignedFile(url, `${namePrefix}-${token}`);
+}
+
+/**
  * WB-17 — "Duyệt hồ sơ đối tác" (admin). Thay hẳn WB-03: đường admin tự tạo tài khoản chủ gym đã bị
  * gỡ (`POST /admin/partners` trả 410), nên đây giờ là **đường duy nhất** để một chủ gym tồn tại.
  *
@@ -5733,11 +5766,18 @@ export const adminPartnerApplications = {
 // AD-02 — admin side of PT applications (user-service /pt-applications/admin). The server does NOT
 // check the current status before a review action; the screen gates actions by status itself
 // (features/admin/adminModeration.ts#ptActions).
+// FIX5-ADMIN-PERF: one page; the total is in the X-Total-Count header (10k applications on the official data).
+async function fetchPtApplicationsPage(params: Record<string, string | number> = {}): Promise<{ rows: any[]; total: number }> {
+  const res = await api.get("/pt-applications/admin", { params: { page: 1, limit: 20, ...params } });
+  const rows = Array.isArray(res.data) ? res.data : [];
+  const total = Number((res.headers as any)?.["x-total-count"]);
+  return { rows, total: Number.isFinite(total) && total >= 0 ? total : rows.length };
+}
+
 export const adminPtApplications = {
-  list: async (status?: string) => {
-    const { data } = await api.get("/pt-applications/admin", { params: status ? { status } : undefined });
-    return data;
-  },
+  list: fetchPtApplicationsPage,
+  /** How many applications have this status (one row read, the count comes from the header). */
+  count: async (status: string): Promise<number> => (await fetchPtApplicationsPage({ status, page: 1, limit: 1 })).total,
   get: async (id: string) => {
     const { data } = await api.get(`/pt-applications/admin/${id}`);
     return data;
@@ -6183,6 +6223,37 @@ export const gymService = {
     const { data } = await api.get('/gyms');
     return data?.data ?? data;
   },
+  /** Region / distance / filter cursor search (D2). Coordinates only in the POST body, never in the URL. */
+  searchGyms: async (body: Record<string, any>) => {
+    const { data } = await api.post('/gyms/search', body);
+    return (data?.data ?? data) as {
+      gyms: any[];
+      nextCursor: string | null;
+      hasMore: boolean;
+      appliedScope: 'near' | 'province' | 'national';
+    };
+  },
+  /** Brand / standalone options for the PT's "Đề nghị hợp tác" picker (D2), cursor paged. */
+  getBrandOptions: async (params?: { q?: string; cursor?: string | null; limit?: number }) => {
+    const { data } = await api.get('/gyms/brand-options', {
+      params: {
+        ...(params?.q ? { q: params.q } : {}),
+        ...(params?.cursor ? { cursor: params.cursor } : {}),
+        ...(params?.limit ? { limit: params.limit } : {}),
+      },
+    });
+    return (data?.data ?? data) as {
+      options: Array<{
+        scope: 'BRAND' | 'BRANCH';
+        brandId: string;
+        brandName: string;
+        branches: { id: string; name: string; city: string | null; closed: boolean }[];
+        proposeBranchId: string;
+      }>;
+      nextCursor: string | null;
+      hasMore: boolean;
+    };
+  },
   getGym: async (gymId: string) => {
     const { data } = await api.get(`/gyms/${gymId}`);
     return data?.data ?? data;
@@ -6326,16 +6397,25 @@ export const gymService = {
     docType: import('../types').BranchDocumentType,
     file: UploadFile,
   ): Promise<import('../types').GymBranchDocument> => {
-    const formData = new FormData();
-    appendUpload(formData, 'file', file);
-    const { data } = await api.post(`/owner/gyms/${gymId}/branch-documents/${docType}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return data?.data ?? data;
+    // Máy chủ chỉ nhận PDF/JPEG/PNG cho giấy tờ (bộ chọn ảnh Android đôi khi trả WebP) — báo rõ ngay thay vì chờ 415.
+    if (file.type && !["application/pdf", "image/jpeg", "image/png"].includes(file.type)) {
+      throw new EvidenceUploadError("Giấy tờ chỉ nhận PDF, JPEG hoặc PNG. Hãy chọn tệp khác.");
+    }
+    const base = `/owner/gyms/${gymId}/branch-documents/${docType}`;
+    return uploadPrivateEvidence<import('../types').GymBranchDocument>(`${base}/presign`, `${base}/confirm`, file);
   },
   /** Returns a local `file://` URI, not a Blob — see the note above exportService. */
-  fetchBranchDocumentFile: async (token: string): Promise<string> => {
-    return downloadAuthenticatedFile(`/owner/branch-documents/${token}`, `branch-document-${token}`);
+  fetchBranchDocumentFile: (token: string): Promise<string> => fetchPrivateEvidenceFile('/owner/branch-documents', token, 'branch-document'),
+  /** AWS-MOB-UI-05 — the short-lived presigned URL of a submitted document, to open in a viewer. Null when the server has no such URL (legacy local file). */
+  getBranchDocumentUrl: async (token: string): Promise<string | null> => {
+    try {
+      const { data } = await api.get(`/owner/branch-documents/${token}/url`);
+      const url = (data?.data ?? data)?.url;
+      return typeof url === 'string' && url ? url : null;
+    } catch (e: any) {
+      if (e?.response?.status === 404) return null;
+      throw e;
+    }
   },
   // GYM_BRANCH_FORM_SPEC.md, Phase 4 — the wizard's "fix loop" banner: what admin flagged
   // last time this branch was sent back from PENDING_REVIEW to DRAFT.
@@ -6479,6 +6559,46 @@ export const gymService = {
     const { data } = await api.get(`/owner/gyms/${gymId}/pt-checkins`);
     return data?.data ?? data;
   },
+  // N15M-08 — receptionist front desk (D15b/D15c). Mirrors web's gymService; every route is permission-gated server-side.
+  // Trainers who checked in TODAY at the branch (name + time only) — the receptionist's list; pt-checkins above is owner/manager.
+  listPtCheckinsToday: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/pt-checkins/today`);
+    return data?.data ?? data;
+  },
+  // Guests with a booking or a check-in at the branch today (display name only).
+  getFrontDeskToday: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/today`);
+    return data?.data ?? data;
+  },
+  getAssistedConfig: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/assisted-checkin/config`);
+    return data?.data ?? data;
+  },
+  searchFrontDeskMembers: async (gymId: string, params: { code?: string; name?: string; last4?: string }) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/members`, { params });
+    return data?.data ?? data;
+  },
+  requestAssistedOtp: async (gymId: string, membershipId: string) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/front-desk/assisted-checkin/otp`, { membershipId });
+    return data?.data ?? data;
+  },
+  assistedCheckIn: async (gymId: string, payload: Record<string, unknown>) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/front-desk/assisted-checkin`, payload);
+    return data?.data ?? data;
+  },
+  requestCheckinException: async (gymId: string, payload: { membershipId: string; reason: string }) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/front-desk/exceptions`, payload);
+    return data?.data ?? data;
+  },
+  listCheckinExceptions: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/exceptions`);
+    return data?.data ?? data;
+  },
+  // N15M-10 — accountant/owner: TOTAL PT commission per period (never per PT, never rates).
+  getPtCommissionSummary: async (brandId: string, params: { from?: string; to?: string; gymId?: string } = {}) => {
+    const { data } = await api.get(`/owner/brands/${brandId}/pt-commission`, { params });
+    return data?.data ?? data;
+  },
   listMyCheckins: async () => {
     const { data } = await api.get(`/me/gym-checkins`);
     return data?.data ?? data;
@@ -6500,14 +6620,8 @@ export const gymService = {
 
   // ── GYM_MANAGEMENT master spec, Phase 5 — "Báo cáo vấn đề" (riêng tư, khác review công
   // khai ở trên — hai nút riêng, nhãn khác nhau, theo đúng yêu cầu đã chốt). ──
-  uploadComplaintPhoto: async (file: UploadFile): Promise<{ token: string }> => {
-    const formData = new FormData();
-    appendUpload(formData, "photo", file);
-    const { data } = await api.post("/complaint-photos", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return data?.data ?? data;
-  },
+  uploadComplaintPhoto: (file: UploadFile): Promise<{ token: string }> =>
+    uploadPrivateEvidence<{ token: string }>("/complaint-photos/presign", "/complaint-photos/confirm", file),
   submitGymComplaint: async (
     gymId: string,
     payload: { issueType: string; description: string; photoTokens?: string[] },
@@ -6523,9 +6637,7 @@ export const gymService = {
    * phải tải kèm header xác thực xuống file cục bộ rồi trỏ vào `file://` URI đó. Dùng chung cho
    * cả người báo cáo xem lại ảnh của chính mình (route `/complaint-photos/:token`, không phải
    * `/admin/...` — xem adminService.fetchComplaintPhotoFile cho phía admin). */
-  fetchComplaintPhotoFile: async (token: string): Promise<string> => {
-    return downloadAuthenticatedFile(`/complaint-photos/${token}`, `complaint-photo-${token}`);
-  },
+  fetchComplaintPhotoFile: (token: string): Promise<string> => fetchPrivateEvidenceFile("/complaint-photos", token, "complaint-photo"),
 
   // ── Quản lý đối tác — Phase 3: trình thiết lập lần đầu + tự quản lý người quản lý ──
   getOnboardingStatus: async () => {

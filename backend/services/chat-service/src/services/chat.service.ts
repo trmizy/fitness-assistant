@@ -7,6 +7,7 @@ import { pushNewMessage } from "./push-relay";
 
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET ||
+  process.env.INTERNAL_API_SECRET ||
   "dev_internal_service_secret_change_in_production";
 
 async function fetchUserInfo(
@@ -26,17 +27,57 @@ async function fetchUserInfo(
   } catch (err) {
     logger.warn({ userId }, "Failed to fetch user info for chat");
   }
-  return { id: userId, firstName: "User", lastName: "", role: "CUSTOMER" };
+  return { id: userId, firstName: "Người dùng", lastName: "", role: "CUSTOMER" };
 }
 
+/**
+ * Is this account known to be deactivated? Only a definite `isActive === false` from auth-service counts:
+ * when the lookup itself fails the message is NOT refused (a lookup outage must not silence every chat;
+ * the sender's own token was already verified by auth-service for this very request).
+ */
+async function isAccountDeactivated(userId: string): Promise<boolean> {
+  try {
+    const data = await getInternalUser(userId, INTERNAL_SERVICE_SECRET);
+    return data?.user?.isActive === false;
+  } catch (err) {
+    logger.warn({ userId }, "Could not check account status before sending a chat message");
+    return false;
+  }
+}
+
+export const NOT_PARTICIPANT_MESSAGE = "Bạn không thuộc cuộc trò chuyện này";
+export const PEER_DEACTIVATED_MESSAGE =
+  "Không thể gửi tin nhắn: tài khoản của người nhận hiện không hoạt động";
+
 export const chatService = {
+  /**
+   * Refuses (403, Vietnamese message) when any OTHER participant of the conversation is a locked /
+   * deactivated account. Returns the conversation so callers do not read it twice.
+   */
+  async assertPeersActive(conversationId: string, senderId: string) {
+    const conversation =
+      await chatRepository.findConversationById(conversationId);
+    const others = (conversation?.participants ?? []).filter(
+      (p) => p.userId !== senderId,
+    );
+    const lockedFlags = await Promise.all(
+      others.map((p) => isAccountDeactivated(p.userId)),
+    );
+    if (lockedFlags.some(Boolean)) {
+      throw Object.assign(new Error(PEER_DEACTIVATED_MESSAGE), {
+        statusCode: 403,
+      });
+    }
+    return conversation;
+  },
+
   async createOrGetDirectConversation(
     requestingUserId: string,
     targetUserId: string,
     authToken: string,
   ) {
     if (requestingUserId === targetUserId) {
-      throw Object.assign(new Error("Cannot chat with yourself"), {
+      throw Object.assign(new Error("Bạn không thể nhắn tin cho chính mình"), {
         statusCode: 400,
       });
     }
@@ -48,7 +89,7 @@ export const chatService = {
     );
     if (!allowed) {
       throw Object.assign(
-        new Error("Chat is only available between a PT and a client"),
+        new Error("Chỉ có thể nhắn tin giữa huấn luyện viên và học viên có liên hệ với nhau"),
         { statusCode: 403 },
       );
     }
@@ -79,7 +120,7 @@ export const chatService = {
         );
         const otherUser = otherParticipant
           ? await fetchUserInfo(otherParticipant.userId)
-          : { id: "", firstName: "Unknown", lastName: "", role: "CUSTOMER" };
+          : { id: "", firstName: "Người dùng", lastName: "", role: "CUSTOMER" };
 
         const lastMsg = conv.messages?.[0];
         return {
@@ -87,7 +128,7 @@ export const chatService = {
           type: conv.type,
           otherUser,
           lastMessage: lastMsg
-            ? { content: lastMsg.content, createdAt: lastMsg.createdAt }
+            ? { id: lastMsg.id, content: lastMsg.content, createdAt: lastMsg.createdAt }
             : null,
           lastMessageAt: conv.lastMessageAt,
           createdAt: conv.createdAt,
@@ -103,13 +144,14 @@ export const chatService = {
     userId: string,
     page: number,
     limit: number,
+    beforeId?: string,
   ) {
     const isParticipant = await chatRepository.isUserParticipant(
       conversationId,
       userId,
     );
     if (!isParticipant) {
-      throw Object.assign(new Error("Not a participant of this conversation"), {
+      throw Object.assign(new Error(NOT_PARTICIPANT_MESSAGE), {
         statusCode: 403,
       });
     }
@@ -120,6 +162,7 @@ export const chatService = {
       {
         skip,
         take: limit,
+        beforeId,
       },
     );
     // Map senderId → authorId for frontend compatibility
@@ -138,10 +181,16 @@ export const chatService = {
       senderId,
     );
     if (!isParticipant) {
-      throw Object.assign(new Error("Not a participant of this conversation"), {
+      throw Object.assign(new Error(NOT_PARTICIPANT_MESSAGE), {
         statusCode: 403,
       });
     }
+
+    // A locked/deactivated account on the other end: nothing is stored and nobody is notified.
+    const conversation = await chatService.assertPeersActive(
+      conversationId,
+      senderId,
+    );
 
     const message = await chatRepository.createMessage(
       conversationId,
@@ -157,7 +206,6 @@ export const chatService = {
     // reloading (which re-fetches via GET and finds the row already there). Mirror the
     // socket handler's broadcast here so BOTH send paths notify participants identically.
     const io = getIo();
-    const conversation = await chatRepository.findConversationById(conversationId);
     if (io) {
       io.to(conversationId).emit("chat:new_message", message);
       if (conversation) {
@@ -184,6 +232,7 @@ export const chatService = {
       authorId: message.senderId,
       content: message.content,
       createdAt: message.createdAt,
+      conversationId: message.conversationId,
     };
   },
 };

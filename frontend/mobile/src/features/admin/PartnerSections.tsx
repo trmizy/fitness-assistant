@@ -56,6 +56,7 @@ import {
   type PartnerForm,
 } from "./adminPartners";
 import { emailInputProps } from "../../lib/email";
+import { fullAddress } from "../services/gymDirectory";
 
 /**
  * 14B.8 (PG-D1) — the tabs of web AdminPartnersPage's partner detail, one component per tab, plus the
@@ -464,7 +465,7 @@ export function AccountsSection({
           <Text className="font-body-semibold text-xs uppercase text-muted-foreground">Đã thu hồi</Text>
           {revoked.map((a) => (
             <Text key={a.id} className="rounded-lg bg-panel px-3 py-2 font-body text-xs text-muted-foreground">
-              {`${identities.find((i) => i.accountId === a.id)?.email ?? a.userId} · thu hồi ${relativeOrAbsolute(a.revokedAt)}`}
+              {`${identities.find((i) => i.accountId === a.id)?.email ?? "Tài khoản đã thu hồi"} · thu hồi ${relativeOrAbsolute(a.revokedAt)}`}
             </Text>
           ))}
         </View>
@@ -504,7 +505,7 @@ export function GymsSection({ gyms }: { gyms: any[] }) {
                   {g.approvedName ?? g.name}
                 </Text>
                 <Text className="font-body text-xs text-muted-foreground" numberOfLines={2}>
-                  {[g.approvedAddress ?? g.address, g.city].filter(Boolean).join(", ")}
+                  {fullAddress({ address: g.approvedAddress ?? g.address, city: g.city ?? null }, {})}
                 </Text>
               </View>
               <Badge tone={st.tone}>{st.label}</Badge>

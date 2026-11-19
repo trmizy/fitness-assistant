@@ -59,7 +59,7 @@ const dev = (over: Record<string, string | undefined> = {}): NodeJS.ProcessEnv =
 test('payment gate dev-shared: opens only with every condition, closes on every single wrong item', () => {
   assert.equal(verdictSignature(paymentGateVerdict(dev())), 'dev-shared:open');
   assert.notEqual(DEV_MARKER_VALUE, MARKER_VALUE);
-  for (const db of ['gymcoach_user', 'gymcoach_payment', 'gymcoach_gym']) assert.equal(paymentGateVerdict(dev({ DATABASE_URL: `postgresql://u:pw@h/${db}` })).open, true, db);
+  for (const db of ['gymcoach_user', 'gymcoach_payment', 'gymcoach_gym', 'gymcoach_user_official', 'gymcoach_payment_official', 'gymcoach_gym_official']) assert.equal(paymentGateVerdict(dev({ DATABASE_URL: `postgresql://u:pw@h/${db}` })).open, true, db);
   for (const [label, env, why] of [
     ['wrong mode', dev({ DISPUTE_RUNTIME_MODE: 'Dev-shared' }), 'NOT_TEST_ENV'],
     ['no mode', dev({ DISPUTE_RUNTIME_MODE: undefined }), 'NOT_TEST_ENV'],
@@ -70,6 +70,13 @@ test('payment gate dev-shared: opens only with every condition, closes on every 
     ['db gymcoach_payment_prod', dev({ DATABASE_URL: 'postgresql://u:pw@h/gymcoach_payment_prod' }), 'DEV_DB_NOT_ALLOWLISTED'],
     ['db gymcoach_payment_e2e', dev({ DATABASE_URL: 'postgresql://u:pw@h/gymcoach_payment_e2e' }), 'DEV_DB_NOT_ALLOWLISTED'],
     ['db gymini_payment_e2e', dev({ DATABASE_URL: 'postgresql://u:pw@h/gymini_payment_e2e' }), 'DEV_DB_NOT_ALLOWLISTED'],
+    ['db gymcoach_payment_official2 (near miss)', dev({ DATABASE_URL: 'postgresql://u:pw@h/gymcoach_payment_official2' }), 'DEV_DB_NOT_ALLOWLISTED'],
+    ['db gymcoach_payment_official_old (near miss)', dev({ DATABASE_URL: 'postgresql://u:pw@h/gymcoach_payment_official_old' }), 'DEV_DB_NOT_ALLOWLISTED'],
+    ['db xgymcoach_payment_official (prefix)', dev({ DATABASE_URL: 'postgresql://u:pw@h/xgymcoach_payment_official' }), 'DEV_DB_NOT_ALLOWLISTED'],
+    ['db GYMCOACH_PAYMENT_OFFICIAL (case)', dev({ DATABASE_URL: 'postgresql://u:pw@h/GYMCOACH_PAYMENT_OFFICIAL' }), 'DEV_DB_NOT_ALLOWLISTED'],
+    ['db gymcoach_auth_official (not a dispute service)', dev({ DATABASE_URL: 'postgresql://u:pw@h/gymcoach_auth_official' }), 'DEV_DB_NOT_ALLOWLISTED'],
+    ['official DB but production', dev({ DATABASE_URL: 'postgresql://u:pw@h/gymcoach_payment_official', NODE_ENV: 'production' }), 'DEV_NODE_ENV_NOT_ALLOWED'],
+    ['official DB but no marker', dev({ DATABASE_URL: 'postgresql://u:pw@h/gymcoach_payment_official', DISPUTE_DEV_COMPOSE_MARKER: undefined }), 'DEV_MARKER_MISSING'],
     ['db unset', dev({ DATABASE_URL: undefined }), 'DEV_DB_NOT_ALLOWLISTED'],
     ['env-provided allowlist ignored (dev var)', dev({ DATABASE_URL: 'postgresql://u:pw@h/other_db', DISPUTE_DEV_DB_ALLOWLIST: 'other_db' }), 'DEV_DB_NOT_ALLOWLISTED'],
     ['env-provided allowlist ignored (e2e var)', dev({ DATABASE_URL: 'postgresql://u:pw@h/other_db', DISPUTE_E2E_DB_ALLOWLIST: 'other_db' }), 'DEV_DB_NOT_ALLOWLISTED'],
@@ -82,6 +89,23 @@ test('payment gate dev-shared: opens only with every condition, closes on every 
   // NODE_ENV=test is test mode only (and needs a *_test database): dev-shared variables do not open anything there
   assert.equal(paymentGateVerdict(dev({ NODE_ENV: 'test' })).mode, 'test');
   assert.equal(paymentGateVerdict(dev({ NODE_ENV: 'test' })).open, false);
+});
+
+test('payment gate dev-shared on the OFFICIAL database: opens with the same signature as dev; late-open OPEN-L stays off', () => {
+  const official = dev({ DATABASE_URL: 'postgresql://u:pw@h/gymcoach_payment_official' });
+  assert.equal(verdictSignature(paymentGateVerdict(official)), 'dev-shared:open');
+  assert.equal(paymentGateVerdict(official).database, 'gymcoach_payment_official');
+  // the peer comparison ignores the database name: official and dev signatures are identical (user-service compares exactly this)
+  assert.equal(verdictSignature(paymentGateVerdict(official)), verdictSignature(paymentGateVerdict(dev())));
+  const warn = console.warn;
+  console.warn = () => undefined;
+  try {
+    const v = lateOpenSettlementVerdict({ ...official, [LATE_OPEN_SETTLEMENT_FLAG]: 'true' } as NodeJS.ProcessEnv);
+    assert.equal(v.effective, false);
+    assert.equal(v.refusedBecause, 'DEV_FLAG_NOT_PERMITTED');
+  } finally {
+    console.warn = warn;
+  }
 });
 
 test('late-open OPEN-L settlement is NEVER effective in dev-shared, even when the variable asks for on', () => {

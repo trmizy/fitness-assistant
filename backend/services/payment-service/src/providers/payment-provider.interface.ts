@@ -24,7 +24,7 @@ export interface NormalizedWebhookEvent {
   raw?: Record<string, unknown>;
   /**
    * What the gateway SAYS it collected, converted to whole VND as a decimal-digit string
-   * (VNPay: vnp_Amount / 100, exact integer arithmetic; ZaloPay/PayOS/MoMo report plain VND, so the digits are taken
+   * (VNPay: vnp_Amount / 100, exact integer arithmetic; ZaloPay reports plain VND, so the digits are taken
    * as they are - see parseGatewayAmountVnd). null = the callback carried no usable amount (absent, non-numeric,
    * fractional, negative) - a PAID event with a null amount must never settle. EVERY provider fills this; the
    * settlement path (handleEvent) compares it with the transaction's own price (see gateway-amount.ts).
@@ -35,35 +35,13 @@ export interface NormalizedWebhookEvent {
 export interface WebhookVerifyResult {
   valid: boolean;
   /**
-   * valid === true, but the callback is a progress notice with nothing to book or to fail yet (MoMo resultCode 9000:
-   * authorised, not captured). The route acknowledges it and does nothing else.
-   */
-  pending?: boolean;
-  /**
    * Why a callback was refused when valid is false, for providers that distinguish. Lets the
    * route answer with the gateway's own response code (VNPay IPN: 97 bad signature, 01 unknown
    * order/merchant, 04 invalid amount; ZaloPay: -1 with a message) instead of calling every refusal a signature
    * problem. MERCHANT_MISMATCH = correctly signed (or, for VNPay, signed) but addressed to another merchant/app id.
    */
   reason?: 'BAD_SIGNATURE' | 'MISSING_REFERENCE' | 'MERCHANT_MISMATCH' | 'CURRENCY_MISMATCH';
-  payload?: MoMoIpnPayload;
   normalized?: NormalizedWebhookEvent;
-}
-
-export interface MoMoIpnPayload {
-  partnerCode: string;
-  requestId: string;
-  orderId: string;
-  amount: number;
-  orderInfo: string;
-  orderType: string;
-  transId: number;
-  resultCode: number;
-  message: string;
-  payType: string;
-  responseTime: number;
-  extraData: string;
-  signature: string;
 }
 
 export interface RefundResult {
@@ -92,7 +70,7 @@ export interface PaymentProvider {
     amount: number;
     orderInfo: string;
     extraData?: string;
-    /** 'mobile' → the app's own `fitnessassistant://` deep link (only ZaloPay/PayOS read
+    /** 'mobile' → the app's own `fitnessassistant://` deep link (only ZaloPay reads
      *  this directly — they embed their own return URL into the gateway request itself,
      *  unlike VNPay, which goes back through this service's own /vnpay/return first and
      *  picks its final redirect from the transaction's stored metadata instead). */
@@ -111,8 +89,8 @@ export interface PaymentProvider {
   }): Promise<RefundResult>;
 
   /**
-   * Optional active status query against the provider (VNPay querydr, ZaloPay /v2/query,
-   * PayOS payment-requests/:orderCode). Lets a local/dev deployment confirm payments by
+   * Optional active status query against the provider (VNPay querydr, ZaloPay /v2/query).
+   * Lets a local/dev deployment confirm payments by
    * polling instead of relying on a publicly reachable IPN endpoint.
    */
   queryTransactionStatus?(txn: {

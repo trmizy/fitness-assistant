@@ -14,7 +14,6 @@ import { useFonts as useInterFonts, Inter_300Light, Inter_400Regular, Inter_500M
 import { darkColors } from "../src/theme/colors";
 import { queryClient } from "../src/lib/queryClient";
 import { AppProvider } from "../src/context/AppContext";
-import { RequirePasswordChange } from "../src/components/guards/RequirePasswordChange";
 import { SocketProvider } from "../src/context/SocketContext";
 import { ToastProvider } from "../src/components/ui";
 import { PushManager } from "../src/features/push/PushManager";
@@ -93,9 +92,7 @@ export default function RootLayout() {
                         a ScrollView is then scrolled into view by Android itself. Sheets are Modals
                         (their own window) and handle the keyboard themselves. */}
                     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "android" ? "padding" : undefined}>
-                      <RequirePasswordChange>
-                        <Slot />
-                      </RequirePasswordChange>
+                      <Slot />
                     </KeyboardAvoidingView>
                     <CallOverlay />
                   </CallProvider>

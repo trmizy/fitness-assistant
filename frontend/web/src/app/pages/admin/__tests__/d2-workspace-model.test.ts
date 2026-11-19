@@ -215,7 +215,7 @@ describe("D2 workspace - events", () => {
   });
   it("actor: you / role + short ref", () => {
     assert.equal(W.eventActor({ actorUserId: "me", actorRole: "ADMIN" }, "me"), "Bạn");
-    assert.equal(W.eventActor({ actorUserId: "abcdef1234", actorRole: "ADMIN" }, "me"), "Quản trị viên (mã abcdef12)");
+    assert.equal(W.eventActor({ actorUserId: "abcdef1234", actorRole: "ADMIN" }, "me"), "Quản trị viên khác"); // N15B-01: a name or a neutral phrase, never "mã …"
   });
   it("notes: people's words are shown, internal codes are mapped or dropped", () => {
     assert.equal(W.eventNote({ note: "Cần thêm ảnh" }), "Cần thêm ảnh");

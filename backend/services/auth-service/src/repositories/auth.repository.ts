@@ -1,5 +1,6 @@
 import { PrismaClient, Prisma, Role } from "../generated/prisma";
-import { logger } from "@gym-coach/shared";
+import { logger, TEST_ACCOUNT_DOMAIN_PATTERNS } from "@gym-coach/shared";
+import type { DashboardSummary } from "../services/admin-dashboard-summary-query";
 
 export const prisma = new PrismaClient();
 
@@ -10,6 +11,36 @@ export const prisma = new PrismaClient();
 // password update and its refresh-token revocation commit or roll back together — see
 // docs/deployment/AWS_DEV_AUTH_SECURITY_REMEDIATION_2026-09-29.md.
 type DbClient = PrismaClient | Prisma.TransactionClient;
+
+export type AdminListedUser = {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  role: Role;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+/** Combining diacritical marks U+0300..U+036F (what NFD splits "ễ" into), as a Postgres regex. */
+const COMBINING_MARKS = "[\\u0300-\\u036f]";
+
+/** SQL twin of the gateway's `foldAdminSearch`: NFD, drop marks, đ -> d, lower-case. */
+function foldSql(expr: Prisma.Sql): Prisma.Sql {
+  return Prisma.sql`lower(translate(regexp_replace(normalize(${expr}, NFD), ${COMBINING_MARKS}, '', 'g'), 'đĐ', 'dd'))`;
+}
+
+/**
+ * SQL form of `isTestAccountEmail`: the email's domain is built exactly like the function builds it (after the LAST "@", trimmed, lower-cased,
+ * one trailing dot removed) and compared with the shared patterns. An email without "@" has no domain: NULL -> COALESCE(false), like the
+ * function's `false`. Shared by listTestAccountIds and the dashboard summary so both apply one rule.
+ */
+function testDomainPredicate(): Prisma.Sql {
+  const [reservedTld, reservedDomain] = TEST_ACCOUNT_DOMAIN_PATTERNS;
+  const domain = Prisma.sql`regexp_replace(regexp_replace(lower(substring("email" from '@([^@]*)$')), '^\\s+|\\s+$', '', 'g'), '\\.$', '')`;
+  return Prisma.sql`COALESCE(${domain} ~ ${reservedTld} OR ${domain} ~ ${reservedDomain}, false)`;
+}
 
 export const authRepository = {
   // `role` narrows to one role (e.g. the admin "Quản lý gym & owner" page listing only
@@ -32,6 +63,115 @@ export const authRepository = {
         updatedAt: true,
       },
     }),
+
+  /**
+   * FIX5-ADMIN-PERF — one page of the admin user list, filtered and sorted in the database.
+   * Same rows, order (`createdAt` desc, `id` as the tie-break so paging is stable) and role rule as
+   * `listUsers` (no `role` = everyone but ADMIN). `search` is matched against the display name
+   * (first + last) and the email, lower-case and diacritics-free on BOTH sides, exactly like the
+   * gateway's old in-memory `foldAdminSearch` ("nguyen" finds "Nguyễn"). `total` is the number of
+   * rows matching the filters, not the page size. `limit` omitted = every matching row (no paging).
+   */
+  async listUsersPage(q: {
+    role?: Role;
+    isActive?: boolean;
+    /** Already folded (lower-case, no diacritics) by the caller. */
+    searchKey?: string | null;
+    id?: string;
+    ids?: string[];
+    page?: number;
+    limit?: number;
+  }): Promise<{ users: AdminListedUser[]; total: number }> {
+    const conds: Prisma.Sql[] = [q.role ? Prisma.sql`"role" = ${q.role}::"Role"` : Prisma.sql`"role" <> 'ADMIN'::"Role"`];
+    if (q.isActive !== undefined) conds.push(Prisma.sql`"isActive" = ${q.isActive}`);
+    if (q.id) conds.push(Prisma.sql`"id" = ${q.id}`);
+    if (q.ids && q.ids.length > 0) conds.push(Prisma.sql`"id" IN (${Prisma.join(q.ids)})`);
+    if (q.searchKey) {
+      conds.push(
+        Prisma.sql`(position(${q.searchKey} in ${foldSql(Prisma.sql`btrim(concat_ws(' ', "firstName", "lastName"))`)}) > 0
+          OR position(${q.searchKey} in ${foldSql(Prisma.sql`"email"`)}) > 0)`,
+      );
+    }
+    const where = Prisma.join(conds, " AND ");
+    const paged = q.limit !== undefined;
+    const limitSql = paged ? Prisma.sql`LIMIT ${q.limit} OFFSET ${((q.page ?? 1) - 1) * (q.limit as number)}` : Prisma.empty;
+    const rows = await prisma.$queryRaw<Array<AdminListedUser & { total: bigint }>>(Prisma.sql`
+      SELECT "id", "email", "firstName", "lastName", "role", "isActive", "createdAt", "updatedAt",
+             count(*) OVER() AS total
+      FROM "users"
+      WHERE ${where}
+      ORDER BY "createdAt" DESC, "id" ASC
+      ${limitSql}`);
+    if (rows.length > 0) {
+      return { users: rows.map(({ total: _t, ...u }) => u), total: Number(rows[0].total) };
+    }
+    // Empty page: either nothing matches or the page is past the end — only then is a count needed.
+    if (!paged) return { users: [], total: 0 };
+    const [{ n }] = await prisma.$queryRaw<Array<{ n: bigint }>>(Prisma.sql`SELECT count(*) AS n FROM "users" WHERE ${where}`);
+    return { users: [], total: Number(n) };
+  },
+
+  /**
+   * Ids of the accounts on reserved test email domains, decided IN THE DATABASE (only ids are read). The domain is built exactly like
+   * `isTestAccountEmail` builds it (after the LAST "@", trimmed, lower-cased, one trailing dot removed) and compared with the shared patterns.
+   * An email without "@" has no domain: NULL -> COALESCE(false), like the function's `false`.
+   */
+  async listTestAccountIds(): Promise<string[]> {
+    const rows = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT "id" FROM "users" WHERE ${testDomainPredicate()}`);
+    return rows.map((r) => r.id);
+  },
+
+  /**
+   * Admin dashboard numbers for ALL accounts except admins and `excludeIds`, computed in the database in three small queries
+   * (totals + roles + trainers, accounts per month, newest accounts). Replaces reading every account into memory: at 37k accounts that
+   * answer (~8 MB) exceeds a Lambda's ~6 MB synchronous response. The two id lists travel as ONE JSON parameter each (not one bind
+   * parameter per id: Postgres allows 32767), unpacked with jsonb_array_elements_text.
+   */
+  async dashboardSummary(q: { excludeIds: string[]; excludeTestDomains?: boolean; ptUserIds: string[]; since: Date; recentLimit: number }): Promise<DashboardSummary> {
+    const exclude = JSON.stringify(q.excludeIds);
+    const pt = JSON.stringify(q.ptUserIds);
+    // `excludeTestDomains`: the reserved-test-domain accounts are left out HERE (this service owns that rule) instead of the caller shipping
+    // ~37k of their ids in the request body (1.5 MB > the 1 MB body limit -> 413). `excludeIds` then only carries what auth cannot know.
+    const testFilter = q.excludeTestDomains ? Prisma.sql` AND NOT ${testDomainPredicate()}` : Prisma.empty;
+    const base = Prisma.sql`"role" <> 'ADMIN'::"Role" AND "id" NOT IN (SELECT jsonb_array_elements_text(${exclude}::jsonb))${testFilter}`;
+
+    const [totals] = await prisma.$queryRaw<
+      Array<{ total: bigint; customers: bigint; pts: bigint; owners: bigint; trainers: bigint; pending: bigint }>
+    >(Prisma.sql`
+      SELECT count(*) AS total,
+             count(*) FILTER (WHERE "role" = 'CUSTOMER'::"Role") AS customers,
+             count(*) FILTER (WHERE "role" = 'PT'::"Role") AS pts,
+             count(*) FILTER (WHERE "role" = 'GYM_OWNER'::"Role") AS owners,
+             count(*) FILTER (WHERE "role" = 'PT'::"Role" OR "id" IN (SELECT jsonb_array_elements_text(${pt}::jsonb))) AS trainers,
+             count(*) FILTER (WHERE "role" <> 'PT'::"Role" AND "id" IN (SELECT jsonb_array_elements_text(${pt}::jsonb))) AS pending
+      FROM "users"
+      WHERE ${base}`);
+
+    const months = await prisma.$queryRaw<Array<{ ym: string; n: bigint }>>(Prisma.sql`
+      -- "createdAt" is timestamp WITHOUT time zone holding UTC: first say "this is UTC", then convert to Vietnam time (the month a signup counts in).
+      SELECT to_char(("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM') AS ym, count(*) AS n
+      FROM "users"
+      WHERE ${base} AND "createdAt" >= ${q.since}
+      GROUP BY 1`);
+
+    const recent = await prisma.$queryRaw<AdminListedUser[]>(Prisma.sql`
+      SELECT "id", "email", "firstName", "lastName", "role", "isActive", "createdAt", "updatedAt"
+      FROM "users"
+      WHERE ${base}
+      ORDER BY "createdAt" DESC, "id" ASC
+      LIMIT ${q.recentLimit}`);
+
+    return {
+      totalUsers: Number(totals?.total ?? 0),
+      roleCounts: { CUSTOMER: Number(totals?.customers ?? 0), PT: Number(totals?.pts ?? 0), GYM_OWNER: Number(totals?.owners ?? 0) },
+      trainers: Number(totals?.trainers ?? 0),
+      pendingPT: Number(totals?.pending ?? 0),
+      monthCounts: Object.fromEntries(months.map((m) => [m.ym, Number(m.n)])),
+      recent: recent.map((u) => ({
+        id: u.id, email: u.email, firstName: u.firstName, lastName: u.lastName, role: u.role, isActive: u.isActive, createdAt: u.createdAt.toISOString(),
+      })),
+    };
+  },
 
   /**
    * C4-01 / C1-01 — find an account by email regardless of letter case.

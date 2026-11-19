@@ -11,7 +11,7 @@ import { randomUUID } from "node:crypto";
 import { guardedTest as test } from "./test-db-guard";
 import { prisma } from "../repositories/profile.repository";
 import { startApp, tokenFor, type App } from "./pt-contract-scope.test-helpers";
-import { cleanupListingPts, makePublicPt } from "./pt-listing.test-helpers";
+import { cleanupListingPts, makePackage, makePublicPt } from "./pt-listing.test-helpers";
 
 let app: App;
 const created: string[] = [];
@@ -26,6 +26,7 @@ test.before(async () => {
   const mk = async (key: string, firstName: string, lastName: string, extra: string) => {
     const pt = await makePublicPt({ marker: `${extra}${tag}` });
     created.push(pt.userId);
+    await makePackage(pt.userId);
     await prisma.userProfile.update({
       where: { userId: pt.userId },
       data: {

@@ -26,6 +26,8 @@ router.post("/verify", authController.verify);
 router.patch("/me", authController.updateMe);
 router.patch("/me/password", authController.changePassword);
 router.get("/users", authController.listUsers);
+// Admin dashboard numbers computed in the database (the dashboard no longer reads every account).
+router.post("/users/dashboard-summary", authController.dashboardSummary);
 router.patch("/users/:userId/role", authController.updateUserRole);
 // BUG-002 / BUG-025 / BUG-026: admin can disable / re-enable a user account.
 router.patch("/users/:userId/disable", authController.setUserActive);
@@ -46,9 +48,9 @@ router.post("/internal/partner-auth/email-status", internalEmailStatusController
 // Kênh nội bộ cho gym-service: password-reset | revoke-sessions | create-invited-account.
 router.post("/internal/partner-auth/:op", authController.partnerAuthInternal);
 router.post("/internal/users/batch", authController.batchGetUsersInternal);
+router.get("/internal/admins", authController.listActiveAdminsInternal);
 // Ids of test/seed/eval accounts (reserved test email domains) — other services leave them out of admin statistics.
 router.get("/internal/test-account-ids", authController.testAccountIdsInternal);
-router.get("/internal/admins", authController.listActiveAdminsInternal);
 router.get("/internal/users/:userId", authController.getUserInternal);
 router.post("/internal/send-email", authController.sendEmailInternal);
 router.patch(

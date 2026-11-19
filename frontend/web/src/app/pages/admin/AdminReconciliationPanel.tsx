@@ -1,14 +1,12 @@
-import { InfoIcon } from "@phosphor-icons/react";
 import { useSearchParams } from "react-router";
 import { AdminReconciliationBlocks } from "./AdminReconciliationBlocks";
 import { BalanceView } from "./reconciliation/BalanceView";
+import { GatewayReconciliationView } from "./reconciliation/gateway/GatewayReconciliationView";
 import { MoneyExceptionView } from "./reconciliation/moneyExceptions/MoneyExceptionView";
 import { FOCUS } from "./reconciliation/ExceptionParts";
 import { useExceptionReports } from "./reconciliation/useReconciliationData";
 import { exceptionAttention } from "./reconciliation/reconciliationView";
 import {
-  GATEWAY_CHIP_LABEL,
-  GATEWAY_CHIP_REASON,
   RECON_VIEWS,
   RECON_VIEW_LABEL,
   RECON_VIEW_LEVEL,
@@ -18,15 +16,13 @@ import {
 } from "./reconciliation/reconciliationView";
 
 /**
- * "Tài chính › Đối soát" (B4, D7). Chips kept in the URL (`?view=balance|exceptions|held-no-show|late-open`, default balance):
+ * "Tài chính › Đối soát" (B4, D7). Chips kept in the URL (`?view=balance|exceptions|gateway|held-no-show|late-open`, default balance):
  *   - Cân đối sổ (L1)  — the wallet invariant ESCROW = Σ claims (P3; HTTP 409 = drift with body, not a load error)
  *   - Ngoại lệ (L1)    — the 22 existing exception groups (P13 + U2, counted, never summed) + the L2 gateway-callback group (P2)
  *   - Khoản giữ buổi PT vắng / Bồi thường đến muộn (D7, L1) — the two money-exception views of Dispute V2.1 (four-eyes; writes only behind the server flags)
- * A last chip "Đối chiếu cổng ↔ Gymini" is shown DISABLED with its reason: L3 (independent PSP/bank report) has no source.
+ *   - Đối chiếu cổng ↔ Gymini (L2, B8) — Gymini's transactions vs the gateway events Gymini stored (day range in `?from&to`); NOT an independent L3 report (no source yet)
  * The page title / subtitle / "Làm mới" live in the Tài chính header (AdminFinancePage).
  */
-
-const GATEWAY_NOTE_ID = "recon-gateway-chip-note";
 
 export function AdminReconciliationPanel() {
   const [search, setSearch] = useSearchParams();
@@ -69,29 +65,17 @@ export function AdminReconciliationPanel() {
             </button>
           );
         })}
-        <button
-          type="button"
-          aria-disabled="true"
-          aria-describedby={GATEWAY_NOTE_ID}
-          title={`${GATEWAY_CHIP_LABEL}: ${GATEWAY_CHIP_REASON}`}
-          data-testid="recon-chip-gateway-disabled"
-          onClick={(e) => e.preventDefault()}
-          className={`inline-flex min-h-11 cursor-not-allowed items-center gap-2 rounded-full border border-dashed border-adm-border bg-transparent px-4 text-sm text-adm-text-2 xl:min-h-10 ${FOCUS}`}
-        >
-          {GATEWAY_CHIP_LABEL}
-          <span className="hidden text-[11px] sm:inline">{GATEWAY_CHIP_REASON}</span>
-          <span className="text-[11px] sm:hidden">L3 — BLOCKED</span>
-        </button>
       </div>
-      <p id={GATEWAY_NOTE_ID} data-testid="recon-gateway-note" className="flex items-start gap-2 text-xs text-adm-text-2">
-        <InfoIcon className="mt-px size-3.5 shrink-0" aria-hidden />
-        <span>
-          “{GATEWAY_CHIP_LABEL}” chưa dùng được: chưa có báo cáo quyết toán độc lập từ cổng thanh toán hay ngân hàng (L3, BLOCKED) nên chưa thể đối chiếu hai phía.
-          Gymini không hiện số liệu giả ở đây.
-        </span>
-      </p>
 
-      {view === "balance" ? <BalanceView /> : view === "exceptions" ? <AdminReconciliationBlocks /> : <MoneyExceptionView view={view} />}
+      {view === "balance" ? (
+        <BalanceView />
+      ) : view === "exceptions" ? (
+        <AdminReconciliationBlocks />
+      ) : view === "gateway" ? (
+        <GatewayReconciliationView />
+      ) : (
+        <MoneyExceptionView view={view} />
+      )}
     </div>
   );
 }

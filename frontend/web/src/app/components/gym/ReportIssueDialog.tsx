@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { XIcon, ImageIcon, CircleNotchIcon, ClockIcon, CheckCircleIcon, WarningCircleIcon } from "@phosphor-icons/react";
-import { gymService } from "../../services/api";
+import { gymService, uploadErrorMessage } from "../../services/api";
 import type { ComplaintIssueType, ComplaintStatus, GymComplaint } from "../../types";
 import { AuthenticatedImage } from "../ui/AuthenticatedImage";
+import { Modal, ModalTitle, ModalClose } from "../ui/Modal";
 
 const ISSUE_TYPE_LABEL: Record<ComplaintIssueType, string> = {
   CLEANLINESS: "Vệ sinh",
@@ -37,6 +38,8 @@ export function ReportIssueDialog({ gymId, gymName, onClose }: { gymId: string; 
   const [description, setDescription] = useState("");
   const [photoTokens, setPhotoTokens] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  // The toast vanishes in a moment; a photo that did not upload must stay visibly reported until the next attempt.
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const historyQuery = useQuery<GymComplaint[]>({
@@ -61,42 +64,48 @@ export function ReportIssueDialog({ gymId, gymName, onClose }: { gymId: string; 
   async function handleAddPhoto(file: File) {
     if (photoTokens.length >= MAX_PHOTOS) return;
     setUploading(true);
+    setUploadError(null);
     try {
       const { token } = await gymService.uploadComplaintPhoto(file);
       setPhotoTokens((prev) => [...prev, token]);
     } catch (e: any) {
-      toast.error(e?.response?.data?.error?.message || "Tải ảnh thất bại");
+      const message = uploadErrorMessage(e, "Tải ảnh thất bại");
+      setUploadError(message);
+      toast.error(message);
     } finally {
       setUploading(false);
     }
   }
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/60 flex items-end sm:items-center justify-center" onClick={onClose}>
+    <Modal open onClose={onClose} placement="sheet" closeOnBackdrop={false} className="z-[60]" backdropClassName="z-[60]" data-testid="report-issue-modal">
       <div
         className="w-full sm:max-w-lg bg-zinc-950 sm:rounded-2xl rounded-t-2xl border border-zinc-800 max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 sticky top-0 bg-zinc-950">
           <div>
-            <h3 className="text-sm font-bold text-zinc-100">Báo cáo vấn đề</h3>
-            <p className="text-xs text-zinc-500">{gymName ?? `Chi nhánh #${gymId.slice(0, 8)}`}</p>
+            <ModalTitle className="text-sm font-bold text-zinc-100">Báo cáo vấn đề</ModalTitle>
+            <p className="text-xs text-zinc-500">{gymName || "Phòng gym của bạn"}</p>
           </div>
-          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300">
-            <XIcon className="size-4" />
-          </button>
+          <ModalClose className="-mr-2 text-zinc-500 hover:text-zinc-300" />
         </div>
 
-        <div className="flex gap-1 px-4 pt-3">
+        <div className="flex gap-1 px-4 pt-3" role="tablist" aria-label="Báo cáo vấn đề">
           <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "compose"}
             onClick={() => setTab("compose")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${tab === "compose" ? "bg-green-500 text-black" : "text-zinc-400 hover:bg-zinc-800/60"}`}
+            className={`px-3 py-1.5 min-h-10 rounded-lg text-xs font-semibold ${tab === "compose" ? "bg-green-500 text-black" : "text-zinc-400 hover:bg-zinc-800/60"}`}
           >
             Gửi mới
           </button>
           <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "history"}
             onClick={() => setTab("history")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${tab === "history" ? "bg-green-500 text-black" : "text-zinc-400 hover:bg-zinc-800/60"}`}
+            className={`px-3 py-1.5 min-h-10 rounded-lg text-xs font-semibold ${tab === "history" ? "bg-green-500 text-black" : "text-zinc-400 hover:bg-zinc-800/60"}`}
           >
             Báo cáo của tôi
           </button>
@@ -110,7 +119,7 @@ export function ReportIssueDialog({ gymId, gymName, onClose }: { gymId: string; 
                 aria-label="Loại vấn đề"
                 value={issueType}
                 onChange={(e) => setIssueType(e.target.value as ComplaintIssueType)}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
+                className="w-full min-h-10 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
               >
                 {(Object.keys(ISSUE_TYPE_LABEL) as ComplaintIssueType[]).map((t) => (
                   <option key={t} value={t}>
@@ -122,6 +131,7 @@ export function ReportIssueDialog({ gymId, gymName, onClose }: { gymId: string; 
             <div>
               <label className="text-xs text-zinc-500 mb-1 block">Mô tả</label>
               <textarea
+                aria-label="Mô tả vấn đề"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={4}
@@ -140,10 +150,14 @@ export function ReportIssueDialog({ gymId, gymName, onClose }: { gymId: string; 
                       className="size-16"
                     />
                     <button
+                      type="button"
+                      aria-label="Bỏ ảnh này"
                       onClick={() => setPhotoTokens((prev) => prev.filter((t) => t !== token))}
-                      className="absolute -top-1.5 -right-1.5 size-5 bg-red-500 rounded-full flex items-center justify-center text-white"
+                      className="absolute -top-2.5 -right-2.5 size-10 flex items-center justify-center"
                     >
-                      <XIcon className="size-3" />
+                      <span className="size-5 bg-red-500 rounded-full flex items-center justify-center text-white">
+                        <XIcon className="size-3" aria-hidden="true" />
+                      </span>
                     </button>
                   </div>
                 ))}
@@ -164,11 +178,17 @@ export function ReportIssueDialog({ gymId, gymName, onClose }: { gymId: string; 
                   </label>
                 )}
               </div>
+              {uploadError && (
+                <p role="alert" className="mt-2 text-xs text-red-400" data-testid="report-issue-upload-error">
+                  {uploadError} Ảnh này CHƯA được đính kèm vào báo cáo.
+                </p>
+              )}
             </div>
             <button
+              type="button"
               onClick={() => submitMutation.mutate()}
               disabled={!description.trim() || submitMutation.isPending}
-              className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black py-2.5 rounded-lg text-sm font-bold transition-all"
+              className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black py-2.5 min-h-10 rounded-lg text-sm font-bold transition-all"
             >
               {submitMutation.isPending && <CircleNotchIcon className="size-4 animate-spin" />}
               Gửi báo cáo
@@ -215,6 +235,6 @@ export function ReportIssueDialog({ gymId, gymName, onClose }: { gymId: string; 
           </div>
         )}
       </div>
-    </div>
+    </Modal>
   );
 }

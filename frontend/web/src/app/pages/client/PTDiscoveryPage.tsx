@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import { useNavigate, useSearchParams } from "react-router";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import {
   MagnifyingGlassIcon as Search,
   MedalIcon as Award,
@@ -16,10 +15,28 @@ import {
   LinkedinLogoIcon as Linkedin,
   InstagramLogoIcon as Instagram,
   StarIcon as StarSolid,
+  NavigationArrowIcon as Navigation,
+  InfoIcon as Info,
 } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
-import { PT_PAGE_SIZE, mergePtPages, nextPtPage } from "../../utils/ptPaging";
+import { mergeUniquePages, nextCursorParam } from "../../utils/ptPaging";
 import { isSafeHttpUrl } from "../../utils/safeUrl";
+import { useApp } from "../../context/AppContext";
+import { SearchRegionBar, type GpsStatus, type RegionItem } from "../../components/location/SearchRegionBar";
+import {
+  DEFAULT_RADIUS_KM,
+  buildPtSearchBody,
+  formatPtDistanceBadge,
+  isCursorResetError,
+  isSearchRegionReady,
+  nextRadiusStep,
+  normalizeVnCoords,
+  ptDiscoveryKeys,
+  resolveEffectiveScope,
+  type Coords,
+  type PtServiceMode,
+  type PtSortBy,
+} from "../../utils/discoverySearch";
 import {
   profileService,
   chatService,
@@ -32,6 +49,7 @@ import { formatVND } from "../../utils/currency";
 import { ListingImage } from "../../components/listing/ListingImage";
 import { PACKAGE_CHANGED_MESSAGE, PACKAGE_CHANGED_TITLE, isPtGone, readPackageChanged } from "../../utils/listingErrors";
 import { QUICK_FILTERS } from "../../constants/specialties";
+import { optionLabel, TARGET_GROUP_OPTIONS, TRAINING_GOAL_OPTIONS } from "../../utils/ptListing";
 import { Stars } from "../../components/gym/Stars";
 import { GymDetailModal } from "../../components/gym/GymDetailModal";
 import {
@@ -40,21 +58,35 @@ import {
   readEligibilityRefusal,
   type EligibilityReason,
 } from "../../utils/contractGymOptions";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { Modal, ModalTitle, ModalClose } from "../../components/ui/Modal";
+import { IndependentVenueDialog } from "../../components/booking/IndependentVenueDialog";
+import {
+  INDEPENDENT_VENUE_NOTE,
+  isIndependentVenue,
+  readIndependentVenueRequired,
+  venueAckField,
+  venueGate,
+} from "../../utils/independentVenue";
 import { PtBookableSchedule } from "../../components/booking/PtBookableSchedule";
 import { PtWeeklySchedule } from "../../components/booking/PtWeeklySchedule";
 
 const isValidPrice = (p: unknown): p is number =>
   typeof p === "number" && p > 0;
 
-const emptyFilters = {
+const emptyPriceFilters = {
   q: "",
   minPrice: "",
   maxPrice: "",
-  sessionMode: "",
-  provinceCode: "",
-  wardCode: "",
 };
+
+const PT_SORT_OPTIONS: { value: PtSortBy; label: string }[] = [
+  { value: "default", label: "Đề xuất cho bạn" },
+  { value: "distance", label: "Gần nhất" },
+  { value: "ratingDesc", label: "Đánh giá cao nhất" },
+  { value: "priceAsc", label: "Giá thấp nhất" },
+  { value: "priceDesc", label: "Giá cao nhất" },
+  { value: "nameAsc", label: "Tên A–Z" },
+];
 
 function serviceModeLabel(mode?: string) {
   if (mode === "ONLINE") return "Online qua video call";
@@ -97,9 +129,31 @@ export function PTDiscoveryPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const { user, isAuthenticated } = useApp();
+  const userId = isAuthenticated ? (user?.id ?? null) : null;
+  const ptKeys = ptDiscoveryKeys(userId);
+
   const [activeFilter, setActiveFilter] = useState("All");
+  const [mode, setMode] = useState<PtServiceMode>("ANY");
+  const [sortBy, setSortBy] = useState<PtSortBy>("default");
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get("ptId"));
   const [messagingPT, setMessagingPT] = useState(false);
+
+  // Region & explicit GPS state (isolated per userId, GPS never stored on profile or URL)
+  const [provinceCode, setProvinceCode] = useState<number | null>(null);
+  const [wardCode, setWardCode] = useState<number | null>(null);
+  const [national, setNational] = useState(true);
+  const [radiusKm, setRadiusKm] = useState<number>(DEFAULT_RADIUS_KM);
+  const [gpsCoords, setGpsCoords] = useState<Coords | null>(null);
+  const [gpsStatus, setGpsStatus] = useState<GpsStatus>("idle");
+  const [wards, setWards] = useState<RegionItem[]>([]);
+  const [cursorResetSeq, setCursorResetSeq] = useState(0);
+  const [listUpdatedNotice, setListUpdatedNotice] = useState(false);
+  const hydratedUserRef = useRef<string | null>(null);
+  // The user id whose saved region has been applied to the state above. The first search waits for it so a
+  // stale scope:"national" request is never sent before the saved area resolves.
+  const [regionHydratedFor, setRegionHydratedFor] = useState<string | null>(null);
+  const userChangedRegionRef = useRef(false);
   // Mirrors this page's own `lg` (1024px) breakpoint exactly (the list/detail layout
   // switches from flex-col to flex-row there) — deliberately not the shared useIsMobile
   // hook, which is pinned to 768px and would disagree with this page's own CSS between
@@ -127,24 +181,101 @@ export function PTDiscoveryPage() {
   // as the server holds it now, when the body carried one.
   const [packageChanged, setPackageChanged] = useState<{ current: Record<string, any> | null } | null>(null);
 
-  // Filter panel state
+  // Filter panel state (server-side filters via POST /profile/pts/search)
   const [filterOpen, setFilterOpen] = useState(false);
-  const [activeFilters, setActiveFilters] = useState(emptyFilters);
-  const [pendingFilters, setPendingFilters] = useState(emptyFilters);
-  const [provinces, setProvinces] = useState<{ code: number; name: string }[]>(
-    [],
-  );
-  const [wards, setWards] = useState<{ code: number; name: string }[]>([]);
+  const [activeFilters, setActiveFilters] = useState(emptyPriceFilters);
+  const [pendingFilters, setPendingFilters] = useState(emptyPriceFilters);
+
+  useEffect(() => {
+    const q = pendingFilters.q;
+    const t = window.setTimeout(() => {
+      setActiveFilters((prev) => (prev.q === q ? prev : { ...prev, q }));
+    }, 250);
+    return () => window.clearTimeout(t);
+  }, [pendingFilters.q]);
+
+  // Clear local search region & GPS state immediately when logged-in account changes
+  useEffect(() => {
+    hydratedUserRef.current = null;
+    userChangedRegionRef.current = false;
+    setProvinceCode(null);
+    setWardCode(null);
+    setNational(true);
+    setRadiusKm(DEFAULT_RADIUS_KM);
+    setGpsCoords(null);
+    setGpsStatus("idle");
+    setWards([]);
+    setSelectedId(null);
+    setActiveFilter("All");
+    setActiveFilters(emptyPriceFilters);
+    setPendingFilters(emptyPriceFilters);
+    setCursorResetSeq(0);
+    setListUpdatedNotice(false);
+  }, [userId]);
+
+  const { data: provinces = [] } = useQuery<RegionItem[]>({
+    queryKey: ["locations", "provinces"],
+    queryFn: () => locationService.getProvinces(),
+    staleTime: 24 * 60 * 60_000,
+  });
+
+  const {
+    data: profileRegion,
+    isSuccess: profileRegionLoaded,
+    isError: profileRegionFailed,
+  } = useQuery<{ searchProvinceCode?: number | null; searchWardCode?: number | null } | null>({
+    queryKey: ptKeys.profileRegion(),
+    queryFn: async () => (await profileService.getProfile())?.profile ?? null,
+    enabled: !!userId,
+    staleTime: 60_000,
+  });
+
+  useEffect(() => {
+    if (!userId || !profileRegionLoaded || hydratedUserRef.current === userId) return;
+    hydratedUserRef.current = userId;
+    setRegionHydratedFor(userId);
+    if (userChangedRegionRef.current) return;
+    const pCode = typeof profileRegion?.searchProvinceCode === "number" ? profileRegion.searchProvinceCode : null;
+    const wCode = pCode && typeof profileRegion?.searchWardCode === "number" ? profileRegion.searchWardCode : null;
+    setProvinceCode(pCode);
+    setWardCode(wCode);
+    setNational(!pCode);
+    if (pCode) {
+      locationService.getWards(pCode).then(setWards).catch(() => setWards([]));
+    } else {
+      setWards([]);
+    }
+  }, [userId, profileRegion, profileRegionLoaded]);
+
+  const regionReady = isSearchRegionReady({ userId, hydratedForUserId: regionHydratedFor, profileRegionFailed });
+
+  const saveRegionMutation = useMutation({
+    mutationFn: (payload: { searchProvinceCode: number | null; searchWardCode: number | null }) =>
+      profileService.updateProfile(payload),
+    onSuccess: (res: any, payload) => {
+      queryClient.setQueryData(ptKeys.profileRegion(), (prev: any) => ({
+        ...(prev ?? {}),
+        ...(res?.profile ?? {}),
+        searchProvinceCode: payload.searchProvinceCode,
+        searchWardCode: payload.searchWardCode,
+      }));
+    },
+    onError: () => {
+      toast.error("Không thể lưu khu vực tìm kiếm");
+    },
+  });
 
   // Request coaching modal state
   const [showRequestModal, setShowRequestModal] = useState(false);
-  useBackDismissible(!!showRequestModal, () => setShowRequestModal(false));
   const [selectedPackage, setSelectedPackage] = useState<any>(null);
   const [requestMessage, setRequestMessage] = useState("");
   // Which partner gym the sessions run at. "" means independent — the PT keeps the gym's
   // share. This choice sets the contract's revenue split, so it is asked explicitly rather
   // than guessed from the trainer's listed locations.
   const [selectedGymId, setSelectedGymId] = useState("");
+  // N15M-14: the venue is outside Gymini -> the client must press "Tôi đồng ý" before the request can be sent.
+  const [venueDialog, setVenueDialog] = useState(false);
+  const [venueAck, setVenueAck] = useState(false);
   // P3.6: the server's own 422 on the membership rule (wins over what was shown before sending),
   // and the branch whose membership plans are open on top of the request dialog.
   const [eligibilityRefusal, setEligibilityRefusal] = useState<{
@@ -158,25 +289,80 @@ export function PTDiscoveryPage() {
     nearestAvailableSlot: { date: string; startTime: string } | null;
   } | null>(null);
 
-  useEffect(() => {
-    locationService
-      .getProvinces()
-      .then(setProvinces)
-      .catch(() => {});
-  }, []);
-
-  const handleProvinceChange = async (code: string) => {
-    setPendingFilters((prev) => ({
-      ...prev,
-      provinceCode: code,
-      wardCode: "",
-    }));
-    if (code) {
-      const ws = await locationService.getWards(Number(code)).catch(() => []);
-      setWards(ws);
-    } else {
-      setWards([]);
+  const handleSelectNational = () => {
+    userChangedRegionRef.current = true;
+    setNational(true);
+    setProvinceCode(null);
+    setWardCode(null);
+    setWards([]);
+    setGpsCoords(null);
+    setGpsStatus("idle");
+    setListUpdatedNotice(false);
+    if (userId) {
+      saveRegionMutation.mutate({ searchProvinceCode: null, searchWardCode: null });
     }
+  };
+
+  const handleSelectProvince = async (code: number | null) => {
+    if (!code) {
+      handleSelectNational();
+      return;
+    }
+    userChangedRegionRef.current = true;
+    setNational(false);
+    setProvinceCode(code);
+    setWardCode(null);
+    setGpsCoords(null);
+    setGpsStatus("idle");
+    setListUpdatedNotice(false);
+    if (userId) {
+      saveRegionMutation.mutate({ searchProvinceCode: code, searchWardCode: null });
+    }
+    const ws = await locationService.getWards(code).catch(() => []);
+    setWards(ws);
+  };
+
+  const handleSelectWard = (code: number | null) => {
+    userChangedRegionRef.current = true;
+    setNational(false);
+    setWardCode(code);
+    setGpsCoords(null);
+    setGpsStatus("idle");
+    setListUpdatedNotice(false);
+    if (userId && provinceCode) {
+      saveRegionMutation.mutate({ searchProvinceCode: provinceCode, searchWardCode: code });
+    }
+  };
+
+  const handleRequestGps = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGpsStatus("unsupported");
+      return;
+    }
+    userChangedRegionRef.current = true;
+    setGpsStatus("locating");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const rounded = normalizeVnCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        if (!rounded) {
+          toast.error("Tọa độ hiện tại nằm ngoài phạm vi hỗ trợ tại Việt Nam");
+          setGpsStatus("idle");
+          return;
+        }
+        setGpsCoords(rounded);
+        setGpsStatus("granted");
+        setNational(false);
+        setListUpdatedNotice(false);
+      },
+      () => setGpsStatus("denied"),
+      { enableHighAccuracy: true, timeout: 10_000 },
+    );
+  };
+
+  const handleClearGps = () => {
+    setGpsCoords(null);
+    setGpsStatus("idle");
+    if (!provinceCode) setNational(true);
   };
 
   const applyFilters = () => {
@@ -185,9 +371,11 @@ export function PTDiscoveryPage() {
   };
 
   const clearFilters = () => {
-    setPendingFilters(emptyFilters);
-    setActiveFilters(emptyFilters);
-    setWards([]);
+    setPendingFilters(emptyPriceFilters);
+    setActiveFilters(emptyPriceFilters);
+    setActiveFilter("All");
+    setMode("ANY");
+    setSortBy("default");
   };
 
   const handleMessage = async (ptUserId: string) => {
@@ -232,19 +420,32 @@ export function PTDiscoveryPage() {
       setRequestMessage("");
       setSelectedPackage(null);
       setSelectedGymId("");
+      setVenueAck(false);
+      setVenueDialog(false);
       setEligibilityRefusal(null);
       setLowAvailabilityData(null);
       queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
     },
     onError: (err: any) => {
+      if (readIndependentVenueRequired(err)) {
+        // The server asks for the acknowledgement (e.g. the package switched to offline after this page loaded).
+        setVenueAck(false);
+        setVenueDialog(true);
+        return;
+      }
       const changed = readPackageChanged(err);
       if (changed) {
         setPackageChanged(changed);
         setLowAvailabilityData(null);
         setEligibilityRefusal(null);
-        queryClient.invalidateQueries({ queryKey: ["pt-packages", selectedId] });
-        queryClient.invalidateQueries({ queryKey: ["pts-list"] });
-        queryClient.invalidateQueries({ queryKey: ["pt-detail", selectedId] });
+        queryClient.invalidateQueries({ queryKey: ptKeys.packages(selectedId) });
+        queryClient.invalidateQueries({ queryKey: ptKeys.all });
+        queryClient.invalidateQueries({
+          queryKey: ptKeys.detail(selectedId, {
+            areaProvince: national ? null : provinceCode,
+            areaWard: national ? null : wardCode,
+          }),
+        });
         return;
       }
       const refused = readEligibilityRefusal(err);
@@ -276,10 +477,12 @@ export function PTDiscoveryPage() {
     setLowAvailabilityData(null);
     setEligibilityRefusal(null);
     setSelectedGymId("");
+    setVenueAck(false);
+    setVenueDialog(false);
     setShowRequestModal(true);
   };
 
-  const submitRequest = (acknowledgedLowAvailability = false) => {
+  const submitRequest = (acknowledgedLowAvailability = false, venueAcked = venueAck) => {
     if (!selectedPT || !selectedPackage) return;
     
     // Only an offline package can run at a gym; an online one never carries a gym share. A branch
@@ -287,12 +490,20 @@ export function PTDiscoveryPage() {
     const gymId =
       selectedPackage.sessionMode === "OFFLINE" && pickedGym ? pickedGym.gymId : undefined;
 
+    // N15M-14: a venue outside Gymini -> show the warning first; nothing is sent until the client agrees.
+    const venue = { sessionMode: selectedPackage.sessionMode, gymId, acknowledged: venueAcked };
+    if (venueGate(venue) === "dialog") {
+      setVenueDialog(true);
+      return;
+    }
+
     requestMutation.mutate({
       ptUserId: selectedPT.userId,
       packageId: selectedPackage.id,
       clientMessage: requestMessage || undefined,
       gymId,
       acknowledgedLowAvailability,
+      ...venueAckField(venue),
       // The version of the package as this page showed it: a package edited since then answers 409 PACKAGE_CHANGED.
       ...(Number.isInteger(selectedPackage.version) ? { expectedPackageVersion: selectedPackage.version } : {}),
     });
@@ -303,13 +514,19 @@ export function PTDiscoveryPage() {
    * (and the server's per-branch eligibility once it sends one). Facts only: nothing is computed
    * here. Keyed by trainer + package; the whole cache is cleared on account switch (AppContext).
    */
+  const activeRegionParams = national
+    ? undefined
+    : provinceCode
+      ? { areaProvince: provinceCode, ...(wardCode ? { areaWard: wardCode } : {}) }
+      : undefined;
+
   const {
     data: gymOptionsRaw,
     isLoading: gymOptionsLoading,
     isError: gymOptionsError,
     refetch: refetchGymOptions,
   } = useQuery<any>({
-    queryKey: ["contract-gym-options", selectedId, selectedPackage?.id ?? null],
+    queryKey: ptKeys.gymOptions(selectedId, selectedPackage?.id ?? null),
     queryFn: () => contractService.getGymOptions(selectedId!, selectedPackage.id),
     enabled: !!selectedId && showRequestModal && !!selectedPackage,
     staleTime: 0,
@@ -318,7 +535,7 @@ export function PTDiscoveryPage() {
   const pickedGym = pickableGym(gymOptionsView, selectedGymId || null);
 
   const { data: packagesData, isLoading: packagesLoading } = useQuery({
-    queryKey: ["pt-packages", selectedId],
+    queryKey: ptKeys.packages(selectedId),
     queryFn: () => ptServicePackageService.getPackagesForPT(selectedId!),
     enabled: !!selectedId,
   });
@@ -326,75 +543,90 @@ export function PTDiscoveryPage() {
   // Only carries what the list row doesn't already have — recentReviews — but fetched
   // whenever a PT is opened since the list endpoint has no comments at all.
   const { data: ptDetail, isLoading: ptDetailLoading, error: ptDetailError } = useQuery({
-    queryKey: ["pt-detail", selectedId],
-    queryFn: () => profileService.getPTDetail(selectedId!),
+    queryKey: ptKeys.detail(selectedId, activeRegionParams),
+    queryFn: () => profileService.getPTDetail(selectedId!, activeRegionParams),
     enabled: !!selectedId,
   });
 
   // 404 on the detail: the trainer was hidden / suspended / is no longer approved (the id cannot be probed past the list).
   const ptGone = !!selectedId && !!ptDetailError && isPtGone(ptDetailError);
 
+  const effectiveScope = resolveEffectiveScope({
+    national,
+    hasGps: !!gpsCoords,
+    provinceCode,
+    wardCode,
+  });
+
+  const searchBody = useMemo(
+    () =>
+      buildPtSearchBody({
+        gpsCoords,
+        provinceCode,
+        wardCode,
+        national,
+        radiusKm,
+        mode,
+        sortBy,
+        q: activeFilters.q,
+        specialties: activeFilter === "All" ? [] : [activeFilter],
+        minPrice: activeFilters.minPrice ? Number(activeFilters.minPrice) : null,
+        maxPrice: activeFilters.maxPrice ? Number(activeFilters.maxPrice) : null,
+        limit: 20,
+      }),
+    [gpsCoords, provinceCode, wardCode, national, radiusKm, mode, sortBy, activeFilters, activeFilter],
+  );
+
   const {
     data: ptsData,
-    isLoading,
+    isLoading: searchLoading,
+    isError,
+    error,
     hasNextPage,
     fetchNextPage,
     isFetchingNextPage,
+    isFetchNextPageError,
   } = useInfiniteQuery({
-    // Đổi bộ lọc = queryKey mới = quay về trang 1.
-    queryKey: ["pts-list", activeFilters],
-    initialPageParam: 1,
-    getNextPageParam: (lastPage: any, allPages: any[]) => nextPtPage(lastPage, allPages.length),
+    queryKey: ptKeys.search(searchBody, cursorResetSeq),
+    enabled: regionReady,
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage: any) => nextCursorParam(lastPage),
     queryFn: ({ pageParam }) =>
-      profileService.listPTs({
-        page: pageParam,
-        limit: PT_PAGE_SIZE,
-        q: activeFilters.q || undefined,
-        minPrice: activeFilters.minPrice
-          ? Number(activeFilters.minPrice)
-          : undefined,
-        maxPrice: activeFilters.maxPrice
-          ? Number(activeFilters.maxPrice)
-          : undefined,
-        sessionMode: activeFilters.sessionMode || undefined,
-        provinceCode: activeFilters.provinceCode
-          ? Number(activeFilters.provinceCode)
-          : undefined,
-        wardCode: activeFilters.wardCode
-          ? Number(activeFilters.wardCode)
-          : undefined,
+      profileService.searchPTs({
+        ...searchBody,
+        ...(pageParam ? { cursor: pageParam } : {}),
       }),
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
-      </div>
-    );
-  }
+  // While the saved region is still resolving the query is disabled (not "loading"): show the skeleton, never "no results".
+  const isLoading = searchLoading || !regionReady;
 
-  const ptsList = mergePtPages<any>(ptsData?.pages);
+  // 409 CURSOR_EXPIRED / CURSOR_FILTER_MISMATCH: reload from page 1 cleanly + notify user
+  useEffect(() => {
+    const code = isCursorResetError(error);
+    if (!code || (!isError && !isFetchNextPageError)) return;
+    toast.info("Danh sách đã cập nhật");
+    setListUpdatedNotice(true);
+    setCursorResetSeq((s) => s + 1);
+  }, [error, isError, isFetchNextPageError]);
 
-  const filtered = ptsList.filter((pt: any) => {
-    const specialties: string[] = pt.ptApplication?.mainSpecialties || [];
-    const filterValue =
-      filterValues[filters.indexOf(activeFilter)] ?? activeFilter;
-    return (
-      filterValue === "All" ||
-      specialties.some((s: string) =>
-        s.toLowerCase().includes(filterValue.toLowerCase()),
-      )
-    );
-  });
+  const ptsList = useMemo(
+    () => mergeUniquePages(ptsData?.pages, (p: any) => p?.pts, (pt: any) => pt.userId),
+    [ptsData?.pages],
+  );
+
+  const appliedScope = ptsData?.pages?.[ptsData.pages.length - 1]?.appliedScope ?? effectiveScope;
+  const selectedWardName = wards.find((w) => w.code === wardCode)?.name ?? null;
+  const expandToKm = effectiveScope === "near" ? nextRadiusStep(radiusKm) : null;
+  const hasSecondaryFilters = !!(activeFilters.minPrice || activeFilters.maxPrice || mode !== "ANY" || sortBy !== "default" || activeFilter !== "All");
 
   const selectedPT = ptsList.find((pt: any) => pt.userId === selectedId)
     ?? (ptDetail?.userId === selectedId ? ptDetail : undefined);
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5">
+    <div className="p-4 md:p-6 pb-20 md:pb-6 max-w-7xl mx-auto space-y-5">
       <div>
-        <h1 className="text-zinc-100 flex items-center gap-2">
+        <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
           <Search className="w-5 h-5 text-green-400" /> Tìm PT
         </h1>
         <p className="text-zinc-500 text-sm mt-0.5">
@@ -403,75 +635,116 @@ export function PTDiscoveryPage() {
         </p>
       </div>
 
-      {/* Search & filter */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-700/60 rounded-xl px-4 py-2.5 flex-1">
-          <Search className="w-4 h-4 text-zinc-500" />
+      {/* Search, mode, sort & price filter controls */}
+      <div className="flex flex-col sm:flex-row gap-2.5">
+        <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-700/60 rounded-xl px-4 py-2.5 flex-1 min-w-0">
+          <Search className="w-4 h-4 text-zinc-500 shrink-0" />
           <input
+            aria-label="Tìm huấn luyện viên"
             value={pendingFilters.q}
             onChange={(e) =>
               setPendingFilters((prev) => ({ ...prev, q: e.target.value }))
             }
             onKeyDown={(e) => e.key === "Enter" && applyFilters()}
             placeholder="Tìm theo tên hoặc chuyên môn…"
-            className="flex-1 text-sm outline-none text-zinc-300 placeholder-zinc-600 bg-transparent"
+            className="flex-1 min-w-0 text-sm outline-none text-zinc-300 placeholder-zinc-600 bg-transparent"
           />
           {pendingFilters.q && (
             <button
+              type="button"
+              aria-label="Xóa từ khóa tìm PT"
               onClick={() => {
                 setPendingFilters((prev) => ({ ...prev, q: "" }));
                 setActiveFilters((prev) => ({ ...prev, q: "" }));
               }}
-              className="text-zinc-600 hover:text-zinc-400"
+              className="text-zinc-600 hover:text-zinc-400 shrink-0"
             >
-              <X className="w-3 h-3" />
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
-        <button
-          onClick={() => {
-            setPendingFilters(activeFilters);
-            setFilterOpen(true);
-          }}
-          className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl text-sm transition-colors ${Object.values(activeFilters).some((v) => v && v !== activeFilters.q) ? "border-green-500/60 bg-green-500/10 text-green-400" : "border-zinc-700/60 bg-zinc-900 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"}`}
-        >
-          <Filter className="w-4 h-4" /> Lọc
-        </button>
+
+        <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+          <select
+            aria-label="Chế độ tập"
+            value={mode}
+            onChange={(e) => setMode(e.target.value as PtServiceMode)}
+            className="flex-1 sm:flex-initial px-3 py-2.5 bg-zinc-900 border border-zinc-700/60 rounded-xl text-sm text-zinc-200 outline-none"
+          >
+            <option value="ANY">Mọi hình thức</option>
+            <option value="OFFLINE">Tại phòng gym</option>
+            <option value="ONLINE">Online</option>
+            <option value="HYBRID">Cả hai</option>
+          </select>
+
+          <select
+            aria-label="Sắp xếp PT"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as PtSortBy)}
+            className="flex-1 sm:flex-initial px-3 py-2.5 bg-zinc-900 border border-zinc-700/60 rounded-xl text-sm text-zinc-200 outline-none"
+          >
+            {PT_SORT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            onClick={() => {
+              setPendingFilters(activeFilters);
+              setFilterOpen((v) => !v);
+            }}
+            className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl text-sm transition-colors whitespace-nowrap shrink-0 ${
+              activeFilters.minPrice || activeFilters.maxPrice
+                ? "border-green-500/60 bg-green-500/10 text-green-400"
+                : "border-zinc-700/60 bg-zinc-900 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+            }`}
+          >
+            <Filter className="w-4 h-4" /> Lọc giá
+          </button>
+        </div>
       </div>
 
-      {/* Filter panel */}
+      {/* Explicit region & opt-in GPS selector */}
+      <SearchRegionBar
+        scope={effectiveScope}
+        national={national}
+        provinceCode={provinceCode}
+        wardCode={wardCode}
+        radiusKm={radiusKm}
+        provinces={provinces}
+        wards={wards}
+        gpsCoords={gpsCoords}
+        gpsStatus={gpsStatus}
+        savingRegion={saveRegionMutation.isPending}
+        onSelectNational={handleSelectNational}
+        onSelectProvince={handleSelectProvince}
+        onSelectWard={handleSelectWard}
+        onRequestGps={handleRequestGps}
+        onClearGps={handleClearGps}
+        onRadiusChange={(km) => {
+          setRadiusKm(km);
+          setListUpdatedNotice(false);
+        }}
+      />
+
+      {/* Price filter panel */}
       {filterOpen && (
-        <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.37)] rounded-xl p-4 space-y-4 transition-all">
-          <div className="flex items-center justify-between pb-2 border-b border-white/10">
-            <span className="text-sm font-bold text-zinc-100 tracking-tight">Bộ lọc tìm kiếm</span>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
+            <span className="text-sm font-bold text-zinc-100">Khoảng giá mỗi buổi</span>
             <button
+              type="button"
               onClick={() => setFilterOpen(false)}
               className="text-zinc-500 hover:text-zinc-300"
+              aria-label="Đóng lọc giá"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div>
-              <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">
-                Hình thức
-              </label>
-              <select
-                value={pendingFilters.sessionMode}
-                onChange={(e) =>
-                  setPendingFilters((prev) => ({
-                    ...prev,
-                    sessionMode: e.target.value,
-                  }))
-                }
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none"
-              >
-                <option value="">Tất cả</option>
-                <option value="ONLINE">Online</option>
-                <option value="OFFLINE">Offline</option>
-                <option value="HYBRID">Hybrid</option>
-              </select>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">
                 Giá tối thiểu (VND)
@@ -508,58 +781,19 @@ export function PTDiscoveryPage() {
                 className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none"
               />
             </div>
-            <div>
-              <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">
-                Tỉnh/Thành phố
-              </label>
-              <select
-                value={pendingFilters.provinceCode}
-                onChange={(e) => handleProvinceChange(e.target.value)}
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none"
-              >
-                <option value="">Tất cả</option>
-                {provinces.map((p) => (
-                  <option key={p.code} value={p.code}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {wards.length > 0 && (
-              <div>
-                <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">
-                  Phường/Xã
-                </label>
-                <select
-                  value={pendingFilters.wardCode}
-                  onChange={(e) =>
-                    setPendingFilters((prev) => ({
-                      ...prev,
-                      wardCode: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none"
-                >
-                  <option value="">Tất cả</option>
-                  {wards.map((w) => (
-                    <option key={w.code} value={w.code}>
-                      {w.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
           </div>
-          <div className="flex gap-2 pt-3 border-t border-white/10 mt-2">
+          <div className="flex gap-2 pt-3 border-t border-zinc-800">
             <button
+              type="button"
               onClick={clearFilters}
-              className="flex-1 py-2 border border-white/10 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors"
+              className="flex-1 py-2 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
             >
               Xóa bộ lọc
             </button>
             <button
+              type="button"
               onClick={applyFilters}
-              className="flex-1 py-2 bg-green-500 hover:bg-green-400 shadow-[0_0_15px_rgba(34,197,94,0.3)] text-black text-sm font-bold rounded-lg transition-all"
+              className="flex-1 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-colors"
             >
               Áp dụng
             </button>
@@ -567,23 +801,62 @@ export function PTDiscoveryPage() {
         </div>
       )}
 
+      {/* Server-side specialty chips */}
       <div className="flex gap-2 overflow-x-auto pb-1">
         {filters.map((f, i) => (
           <button
             key={f}
+            type="button"
             onClick={() => setActiveFilter(filterValues[i])}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${activeFilter === filterValues[i] ? "bg-green-500 text-black border-green-500 shadow-lg shadow-green-500/20" : "bg-zinc-900 border-zinc-700/60 text-zinc-400 hover:border-green-500/40 hover:text-zinc-200"}`}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
+              activeFilter === filterValues[i]
+                ? "bg-green-500 text-black border-green-500"
+                : "bg-zinc-900 border-zinc-700/60 text-zinc-400 hover:border-green-500/40 hover:text-zinc-200"
+            }`}
           >
             {f}
           </button>
         ))}
       </div>
 
+      {listUpdatedNotice && (
+        <div
+          role="status"
+          data-testid="pt-list-updated-banner"
+          className="flex items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-xs text-amber-300"
+        >
+          <span className="flex items-center gap-2">
+            <Info className="w-4 h-4 text-amber-400 shrink-0" />
+            Danh sách đã cập nhật — đã tải lại từ đầu.
+          </span>
+          <button type="button" onClick={() => setListUpdatedNotice(false)} className="text-amber-300/80 hover:text-amber-200">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       <div>
         {/* PT cards */}
         <div className="space-y-3">
-          {filtered.length > 0 ? (
-            filtered.map((pt: any) => {
+          {isLoading ? (
+            <div className="space-y-3" aria-label="Đang tải danh sách PT">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-28 rounded-xl border border-zinc-800/60 bg-zinc-900 animate-pulse" />
+              ))}
+            </div>
+          ) : isError && ptsList.length === 0 && !isCursorResetError(error) ? (
+            <div className="py-10 text-center bg-zinc-900 rounded-2xl border border-red-500/20 space-y-2">
+              <p className="text-sm text-red-400">Không tải được danh sách PT. Vui lòng thử lại.</p>
+              <button
+                type="button"
+                onClick={() => setCursorResetSeq((s) => s + 1)}
+                className="px-4 py-2 rounded-lg border border-zinc-700 text-xs font-semibold text-zinc-200 hover:bg-zinc-800"
+              >
+                Thử lại
+              </button>
+            </div>
+          ) : ptsList.length > 0 ? (
+            ptsList.map((pt: any) => {
               const lowestPrice = getLowestPerSessionPrice(pt.ptApplication);
               const primaryLoc =
                 pt.trainingLocations?.find((l: any) => l.isPrimary) ??
@@ -603,9 +876,15 @@ export function PTDiscoveryPage() {
                 : pt.ptApplication?.serviceMode === "ONLINE"
                   ? "Coaching online"
                   : undefined;
+              const badge = formatPtDistanceBadge(pt, {
+                selectedWardName,
+                appliedScope,
+                requestedMode: mode,
+              });
               return (
                 <button
                   key={pt.userId}
+                  type="button"
                   onClick={() =>
                     setSelectedId(selectedId === pt.userId ? null : pt.userId)
                   }
@@ -621,17 +900,17 @@ export function PTDiscoveryPage() {
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-zinc-200">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1.5 sm:gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-bold text-zinc-200 truncate">
                               {pt.firstName} {pt.lastName}
                             </span>
-                            <Award className="w-3.5 h-3.5 text-green-400" />
+                            <Award className="w-3.5 h-3.5 text-green-400 shrink-0" />
                           </div>
                           {/* A PT with no reviews shows "Chưa có đánh giá", never 0 stars —
                               an unrated trainer is unknown, not badly rated. */}
-                          <div className="flex items-center gap-1.5 text-xs mt-1">
+                          <div className="flex items-center gap-1.5 text-xs mt-1 flex-wrap">
                             {pt.avgRating != null ? (
                               <>
                                 <Stars value={pt.avgRating} size={13} />
@@ -645,15 +924,37 @@ export function PTDiscoveryPage() {
                             ) : (
                               <span className="text-zinc-600">Chưa có đánh giá</span>
                             )}
+                            {badge.text && (
+                              <span
+                                data-testid={`pt-badge-${badge.kind.toLowerCase()}`}
+                                className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+                                  badge.kind === "ONLINE"
+                                    ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
+                                    : badge.kind === "GPS"
+                                      ? "bg-blue-500/10 border-blue-500/25 text-blue-400"
+                                      : "bg-zinc-800 border-zinc-700/60 text-zinc-300"
+                                }`}
+                              >
+                                {badge.kind === "ONLINE" ? (
+                                  <Globe className="w-3 h-3 shrink-0" />
+                                ) : badge.kind === "GPS" ? (
+                                  <Navigation className="w-3 h-3 shrink-0" />
+                                ) : (
+                                  <MapPin className="w-3 h-3 shrink-0" />
+                                )}
+                                <span className="truncate max-w-[210px] sm:max-w-none">{badge.text}</span>
+                              </span>
+                            )}
                           </div>
-                          <div className="flex items-center gap-1 text-xs text-zinc-600 mt-0.5">
+                          <div className="flex items-center gap-1 text-xs text-zinc-500 mt-1 min-w-0 flex-wrap">
                             {locationText && (
-                              <>
-                                <MapPin className="w-3 h-3" />
-                                {locationText}
-                                {otherLocCount > 0 &&
-                                  ` +${otherLocCount} địa điểm khác`}
-                              </>
+                              <span className="inline-flex items-center gap-1 min-w-0 max-w-full">
+                                <MapPin className="w-3 h-3 shrink-0" />
+                                <span className="truncate">
+                                  {locationText}
+                                  {otherLocCount > 0 && ` +${otherLocCount} địa điểm khác`}
+                                </span>
+                              </span>
                             )}
                             {pt.ptApplication?.yearsOfExperience
                               ? ` · ${pt.ptApplication.yearsOfExperience} kinh nghiệm`
@@ -661,7 +962,7 @@ export function PTDiscoveryPage() {
                           </div>
                         </div>
                         {lowestPrice && (
-                          <span className="text-xs font-bold text-green-400 whitespace-nowrap">
+                          <span className="text-xs font-bold text-green-400 whitespace-nowrap shrink-0">
                             từ {formatVND(lowestPrice)}/buổi
                           </span>
                         )}
@@ -673,7 +974,7 @@ export function PTDiscoveryPage() {
                             .map((s: string) => (
                               <span
                                 key={s}
-                                className="text-[10px] px-2 py-0.5 bg-zinc-800 border border-zinc-700/60 rounded-full text-zinc-400"
+                                className="text-[11px] px-2 py-0.5 bg-zinc-800 border border-zinc-700/60 rounded-full text-zinc-400"
                               >
                                 {s}
                               </span>
@@ -686,22 +987,61 @@ export function PTDiscoveryPage() {
               );
             })
           ) : (
-            <div className="py-20 text-center bg-zinc-900/50 rounded-2xl border border-zinc-800/60">
-              <Users className="w-12 h-12 text-zinc-800 mx-auto mb-3" />
-              <p className="text-zinc-500">
-                Không tìm thấy PT phù hợp với bộ lọc hiện tại.
-              </p>
+            <div className="py-12 px-4 text-center bg-zinc-900/50 rounded-2xl border border-zinc-800/60 space-y-4">
+              <Users className="w-12 h-12 text-zinc-700 mx-auto" />
+              <div className="space-y-1">
+                <p className="text-zinc-200 font-bold text-sm">
+                  {effectiveScope === "near"
+                    ? `Không tìm thấy huấn luyện viên trong bán kính ${radiusKm} km`
+                    : "Không tìm thấy PT phù hợp với bộ lọc hiện tại."}
+                </p>
+                <p className="text-xs text-zinc-500">
+                  Thử mở rộng phạm vi bán kính, chuyển sang Toàn quốc hoặc xóa bớt bộ lọc.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {expandToKm && (
+                  <button
+                    type="button"
+                    data-testid="pt-expand-radius-btn"
+                    onClick={() => setRadiusKm(expandToKm)}
+                    className="px-4 py-2 rounded-xl bg-green-500 hover:bg-green-400 text-black text-xs font-bold transition-colors"
+                  >
+                    Mở rộng bán kính lên {expandToKm} km
+                  </button>
+                )}
+                {!national && (
+                  <button
+                    type="button"
+                    data-testid="pt-empty-national-btn"
+                    onClick={handleSelectNational}
+                    className="px-4 py-2 rounded-xl border border-zinc-700 text-zinc-200 text-xs font-semibold hover:bg-zinc-800 transition-colors"
+                  >
+                    Tìm toàn quốc
+                  </button>
+                )}
+                {hasSecondaryFilters && (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="px-4 py-2 rounded-xl border border-zinc-700 text-zinc-300 text-xs font-semibold hover:bg-zinc-800 transition-colors"
+                  >
+                    Xóa bộ lọc
+                  </button>
+                )}
+              </div>
             </div>
           )}
           {hasNextPage && (
             <button
               type="button"
+              data-testid="pts-load-more"
               onClick={() => fetchNextPage()}
               disabled={isFetchingNextPage}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-zinc-700/60 bg-zinc-900 text-sm font-semibold text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors disabled:opacity-60"
             >
               {isFetchingNextPage && <Loader2 className="w-4 h-4 animate-spin" />}
-              Xem thêm
+              {isFetchingNextPage ? "Đang tải thêm…" : "Xem thêm"}
             </button>
           )}
         </div>
@@ -739,16 +1079,24 @@ export function PTDiscoveryPage() {
                 {/* Header */}
                 <div className="p-5 border-b border-zinc-800/60">
                   <div className="flex items-start gap-4">
-                    <div className="w-16 h-16 bg-emerald-500/15 border border-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 font-bold text-xl flex-shrink-0">
-                      {selectedPT.firstName?.[0]}
-                      {selectedPT.lastName?.[0]}
-                    </div>
+                    {selectedPT.coverPhotoUrl ? (
+                      <ListingImage
+                        url={selectedPT.coverPhotoUrl}
+                        alt={`${selectedPT.firstName ?? ""} ${selectedPT.lastName ?? ""}`.trim() || "Huấn luyện viên"}
+                        className="w-16 h-16 rounded-xl flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-emerald-500/15 border border-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 font-bold text-xl flex-shrink-0">
+                        {selectedPT.firstName?.[0]}
+                        {selectedPT.lastName?.[0]}
+                      </div>
+                    )}
                     <div className="flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h2 className="text-zinc-100">
+                          <ModalTitle className="text-zinc-100">
                             {selectedPT.firstName} {selectedPT.lastName}
-                          </h2>
+                          </ModalTitle>
                           <span className="flex items-center gap-1 text-xs bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20">
                             <Award className="w-3 h-3" /> Đã xác minh
                           </span>
@@ -766,14 +1114,7 @@ export function PTDiscoveryPage() {
                             </span>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedId(null)}
-                          className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0"
-                          aria-label="Đóng"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+                        <ModalClose className="-mt-1 -mr-2 text-zinc-500 hover:text-zinc-200" />
                       </div>
                       <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1 flex-wrap">
                         {(() => {
@@ -812,10 +1153,10 @@ export function PTDiscoveryPage() {
                       </div>
                       {app?.mainSpecialties?.length > 0 && (
                         <div className="flex gap-1.5 mt-2 flex-wrap">
-                          {app.mainSpecialties.map((s: string) => (
+                          {app.mainSpecialties.map((s: string, i: number) => (
                             <span
-                              key={s}
-                              className="text-[10px] px-2 py-0.5 bg-zinc-800 border border-zinc-700/60 rounded-full text-zinc-400"
+                              key={`${s}-${i}`}
+                              className="text-[11px] px-2 py-0.5 bg-zinc-800 border border-zinc-700/60 rounded-full text-zinc-400"
                             >
                               {s}
                             </span>
@@ -827,7 +1168,7 @@ export function PTDiscoveryPage() {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-1 bg-zinc-800/60 border-b border-zinc-700/40 p-1">
+                <div role="tablist" aria-label="Thông tin huấn luyện viên" className="flex gap-1 bg-zinc-800/60 border-b border-zinc-700/40 p-1">
                   {(
                     [
                       { key: "detail", label: "Chi tiết" },
@@ -838,8 +1179,10 @@ export function PTDiscoveryPage() {
                     <button
                       key={t.key}
                       type="button"
+                      role="tab"
+                      aria-selected={detailTab === t.key}
                       onClick={() => setDetailTab(t.key)}
-                      className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
+                      className={`flex-1 min-h-10 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
                         detailTab === t.key
                           ? "bg-green-500 text-black shadow-sm"
                           : "text-zinc-500 hover:text-zinc-300"
@@ -862,9 +1205,9 @@ export function PTDiscoveryPage() {
                     {/* Certifications */}
                     {certs.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {certs.map((c: any) => (
+                        {certs.map((c: any, i: number) => (
                           <span
-                            key={c.certificateName}
+                            key={`${c.certificateName}-${i}`}
                             className="flex items-center gap-1 text-[10px] px-2 py-1 bg-green-500/5 border border-green-500/15 rounded-lg text-green-400"
                           >
                             <Award className="w-3 h-3" /> {c.certificateName}
@@ -886,6 +1229,16 @@ export function PTDiscoveryPage() {
                             <ListingImage key={p.id} url={p.url} alt={`Ảnh ${i + 1} của huấn luyện viên`} className="aspect-square w-full rounded-lg" />
                           ))}
                         </div>
+                        <p className="text-[11px] text-zinc-500 mt-1.5">
+                          Ảnh minh hoạ ·{" "}
+                          <Link
+                            to="/attributions"
+                            onClick={() => setSelectedId(null)}
+                            className="text-green-400 hover:underline"
+                          >
+                            Nguồn ảnh &amp; giấy phép
+                          </Link>
+                        </p>
                       </div>
                     );
                   })()}
@@ -939,24 +1292,24 @@ export function PTDiscoveryPage() {
                       </h4>
                       {app.targetClientGroups?.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mb-1.5">
-                          {app.targetClientGroups.map((g: string) => (
+                          {app.targetClientGroups.map((g: string, i: number) => (
                             <span
-                              key={g}
+                              key={`${g}-${i}`}
                               className="text-[10px] px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400"
                             >
-                              {g}
+                              {optionLabel(TARGET_GROUP_OPTIONS, g)}
                             </span>
                           ))}
                         </div>
                       )}
                       {app.primaryTrainingGoals?.length > 0 && (
                         <div className="flex flex-wrap gap-1.5">
-                          {app.primaryTrainingGoals.map((g: string) => (
+                          {app.primaryTrainingGoals.map((g: string, i: number) => (
                             <span
-                              key={g}
-                              className="text-[10px] px-2 py-0.5 bg-zinc-800 border border-zinc-700/60 rounded-full text-zinc-400"
+                              key={`${g}-${i}`}
+                              className="text-[11px] px-2 py-0.5 bg-zinc-800 border border-zinc-700/60 rounded-full text-zinc-400"
                             >
-                              {g}
+                              {optionLabel(TRAINING_GOAL_OPTIONS, g)}
                             </span>
                           ))}
                         </div>
@@ -1245,15 +1598,17 @@ export function PTDiscoveryPage() {
               </>
             );
 
-            return createPortal(
-              <div
-                className={`fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex justify-center ${
-                  isDesktopView ? "items-center p-4" : "items-end"
-                }`}
-                onClick={() => setSelectedId(null)}
+            // <Modal> portals to <body> itself (see above) and adds role=dialog, Esc, focus trap/return, scroll lock.
+            return (
+              <Modal
+                open
+                onClose={() => setSelectedId(null)}
+                placement={isDesktopView ? "center" : "sheet"}
+                className={isDesktopView ? "z-[60]" : "z-[60] sm:items-end sm:p-0"}
+                backdropClassName="bg-black/70 backdrop-blur-sm z-[60]"
+                data-testid="pt-detail-modal"
               >
                 <div
-                  onClick={(e) => e.stopPropagation()}
                   className={
                     isDesktopView
                       ? "w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-zinc-800/60 bg-zinc-900 shadow-2xl"
@@ -1262,38 +1617,48 @@ export function PTDiscoveryPage() {
                 >
                   {content}
                 </div>
-              </div>,
-              document.body,
+              </Modal>
             );
           })()}
       </div>
 
       {/* Trainer no longer visible (404 on the detail): a calm empty state, not a broken panel. */}
-      {selectedId && ptGone && createPortal(
-        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setSelectedId(null)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl border border-zinc-800/60 bg-zinc-900 p-6 text-center shadow-2xl">
+      <Modal
+        open={!!selectedId && ptGone}
+        onClose={() => setSelectedId(null)}
+        className="z-[60]"
+        backdropClassName="bg-black/70 backdrop-blur-sm z-[60]"
+        data-testid="pt-gone-modal"
+      >
+          <div className="relative w-full max-w-sm rounded-2xl border border-zinc-800/60 bg-zinc-900 p-6 text-center shadow-2xl">
+            <ModalClose className="absolute right-2 top-2 text-zinc-500 hover:text-zinc-200" />
             <Users className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
-            <h3 className="text-zinc-100 font-bold">Huấn luyện viên này hiện không còn hiển thị</h3>
+            <ModalTitle className="text-zinc-100 font-bold">Huấn luyện viên này hiện không còn hiển thị</ModalTitle>
             <p className="text-sm text-zinc-500 mt-1">Hồ sơ có thể đã được ẩn hoặc tạm ngưng. Hãy chọn một huấn luyện viên khác trong danh sách.</p>
             <button
               onClick={() => {
                 setSelectedId(null);
-                queryClient.invalidateQueries({ queryKey: ["pts-list"] });
+                queryClient.invalidateQueries({ queryKey: ptKeys.all });
               }}
-              className="mt-4 w-full py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all"
+              className="mt-4 w-full min-h-10 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all"
             >
               Quay lại danh sách
             </button>
           </div>
-        </div>,
-        document.body,
-      )}
+      </Modal>
 
       {/* 409 PACKAGE_CHANGED — shown above the request modal (z-[70]). "Xem giá mới" closes the request and opens the (re-fetched) price list. */}
-      {packageChanged && createPortal(
-        <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div role="alertdialog" aria-labelledby="pkg-changed-title" className="w-full max-w-sm rounded-2xl border border-zinc-800/60 bg-zinc-900 p-6 shadow-2xl">
-            <h3 id="pkg-changed-title" className="text-zinc-100 font-bold">{PACKAGE_CHANGED_TITLE}</h3>
+      <Modal
+        open={!!packageChanged}
+        onClose={() => setPackageChanged(null)}
+        closeOnBackdrop={false}
+        className="z-[80]"
+        backdropClassName="bg-black/70 backdrop-blur-sm z-[80]"
+        data-testid="pt-package-changed-modal"
+      >
+        {packageChanged && (
+          <div className="w-full max-w-sm rounded-2xl border border-zinc-800/60 bg-zinc-900 p-6 shadow-2xl">
+            <ModalTitle className="text-zinc-100 font-bold">{PACKAGE_CHANGED_TITLE}</ModalTitle>
             <p className="text-sm text-zinc-400 mt-2">{PACKAGE_CHANGED_MESSAGE}</p>
             {packageChanged.current && (
               <div className="mt-3 rounded-xl border border-zinc-700/60 bg-zinc-800/40 p-3 text-sm">
@@ -1314,14 +1679,13 @@ export function PTDiscoveryPage() {
                 setSelectedPackage(null);
                 setDetailTab("pricing");
               }}
-              className="mt-4 w-full py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all"
+              className="mt-4 w-full min-h-10 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all"
             >
               Xem giá mới
             </button>
           </div>
-        </div>,
-        document.body,
-      )}
+        )}
+      </Modal>
 
       {/* Request Coaching Modal — portaled to <body> and above the mobile detail sheet's
           z-[60] (see the PT-detail bottom sheet above). Without the portal, this fixed
@@ -1329,17 +1693,19 @@ export function PTDiscoveryPage() {
           (it applies a `transform`, which per spec creates a new containing block for any
           `position: fixed` descendant) instead of the real viewport — same class of bug as
           the PT-detail panel fix, just left unfixed here originally. */}
-      {showRequestModal && selectedPT && !membershipGymId && createPortal(
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
+      <Modal
+        open={showRequestModal && !!selectedPT && !membershipGymId}
+        onClose={() => setShowRequestModal(false)}
+        closeOnBackdrop={false}
+        className="z-[70]"
+        backdropClassName="z-[70]"
+        data-testid="pt-request-modal"
+      >
+        {selectedPT && (
+          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md max-h-full overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between p-5 border-b border-zinc-800/60">
-              <h3 className="text-zinc-100 font-bold">Yêu cầu huấn luyện</h3>
-              <button
-                onClick={() => setShowRequestModal(false)}
-                className="text-zinc-500 hover:text-zinc-300 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <ModalTitle className="text-zinc-100 font-bold">Yêu cầu huấn luyện</ModalTitle>
+              <ModalClose className="-mr-2 text-zinc-500 hover:text-zinc-300" />
             </div>
             <div className="p-5 space-y-4">
               <div className="flex items-center gap-3 bg-zinc-800/50 rounded-xl p-3">
@@ -1471,6 +1837,7 @@ export function PTDiscoveryPage() {
                         aria-checked={!pickedGym}
                         onClick={() => {
                           setSelectedGymId("");
+                          setVenueAck(false);
                           setEligibilityRefusal(null);
                         }}
                         className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm transition-colors ${
@@ -1499,6 +1866,7 @@ export function PTDiscoveryPage() {
                               disabled={!g.selectable}
                               onClick={() => {
                                 setEligibilityRefusal(null);
+                                setVenueAck(false);
                                 setSelectedGymId(g.gymId);
                               }}
                               className="w-full text-left disabled:cursor-not-allowed"
@@ -1542,6 +1910,16 @@ export function PTDiscoveryPage() {
                 <p className="text-[11px] text-zinc-600 leading-snug">{gymOptionsView.gymsReasonCopy}</p>
               )}
 
+              {isIndependentVenue(selectedPackage?.sessionMode, pickedGym?.gymId) && (
+                <p
+                  className="flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs leading-snug text-amber-500"
+                  data-testid="independent-venue-note"
+                >
+                  <Info className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>{INDEPENDENT_VENUE_NOTE}. Bạn sẽ được hỏi xác nhận trước khi gửi yêu cầu.</span>
+                </p>
+              )}
+
               {eligibilityRefusal && (
                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-amber-500 space-y-2">
                   <p className="text-xs leading-snug">{eligibilityRefusal.message}</p>
@@ -1572,16 +1950,18 @@ export function PTDiscoveryPage() {
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button
+                type="button"
                 onClick={() => setShowRequestModal(false)}
-                className="flex-1 py-3 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+                className="flex-1 min-h-10 py-3 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 Hủy
               </button>
               {!lowAvailabilityData && (
                 <button
+                  type="button"
                   onClick={() => submitRequest()}
                   disabled={requestMutation.isPending || !!gymOptionsView?.requestBlockedCode}
-                  className="flex-1 py-3 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                  className="flex-1 min-h-10 py-3 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
                 >
                   {requestMutation.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -1591,9 +1971,27 @@ export function PTDiscoveryPage() {
               )}
             </div>
           </div>
-        </div>,
-        document.body,
-      )}
+        )}
+      </Modal>
+
+      {/* N15M-14 - venue outside the Gymini system: explicit consent before the request is sent. */}
+      <IndependentVenueDialog
+        open={venueDialog && showRequestModal}
+        pending={requestMutation.isPending}
+        onAgree={() => {
+          setVenueAck(true);
+          setVenueDialog(false);
+          submitRequest(lowAvailabilityData != null, true);
+        }}
+        onDecline={() => {
+          // Back to the price list: pick another package, or another trainer from there.
+          setVenueDialog(false);
+          setVenueAck(false);
+          setShowRequestModal(false);
+          setSelectedPackage(null);
+          setDetailTab("pricing");
+        }}
+      />
 
       {/* P3.6 - buy a gym membership from inside the request flow. The trainer's referral code is
           only PRE-FILLED in the (optional) referral field; the client still presses buy. */}
@@ -1605,7 +2003,7 @@ export function PTDiscoveryPage() {
           onClose={() => {
             setMembershipGymId(null);
             // Back from buying a plan: re-read memberships instead of trusting the earlier answer.
-            queryClient.invalidateQueries({ queryKey: ["contract-gym-options"] });
+            queryClient.invalidateQueries({ queryKey: ptKeys.gymOptions(selectedId, selectedPackage?.id ?? null) });
             queryClient.invalidateQueries({ queryKey: ["my-memberships"] });
           }}
         />

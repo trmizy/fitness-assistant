@@ -34,6 +34,7 @@ import {
   usePendingAiTasks,
 } from "../../stores/pendingAiTasks";
 import { CurrentNutritionProgram as NutritionAiPlansPanel } from "./CurrentNutritionProgram";
+import { formatPlanWarnings } from "./planWarnings";
 
 const QUERY_GOAL_LABELS: Record<string, string> = {
   WEIGHT_LOSS: "Giảm mỡ",
@@ -316,15 +317,8 @@ function extractPlanWarnings(planContent: PlanContent | null): string[] {
     ._metadata;
   if (!isRecord(metadata)) return [];
 
-  const warnings = (metadata as UnknownRecord).aiWarnings;
-  if (!Array.isArray(warnings)) return [];
-
-  return warnings
-    .map((warning) =>
-      typeof warning === "string" ? warning : JSON.stringify(warning),
-    )
-    .map((warning) => warning.trim())
-    .filter(Boolean);
+  // aiWarnings mixes strings and structured objects (see planWarnings.ts): never print raw JSON to the user.
+  return formatPlanWarnings((metadata as UnknownRecord).aiWarnings);
 }
 
 function formatExplanationText(
@@ -1019,11 +1013,13 @@ export function AIPlansPage() {
           setIsExplanationStreaming(false);
           setExplanationStatus(null);
           explanationAbortRef.current = null;
+          // The explanation must come from the AI. On failure show the error and let the user press the button again — no second
+          // hidden request and no empty "AI" box left behind.
+          setExplanationResult(null);
           toast.error(
             message ||
               "Không thể giải thích kế hoạch lúc này. Vui lòng thử lại.",
           );
-          explainMutation.mutate(currentPlan.id);
         },
       },
       { lang: "vi" },

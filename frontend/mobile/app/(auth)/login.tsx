@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { ArrowRight, Building2, Dumbbell, Lock, Mail, ServerCog } from "lucide-react-native";
@@ -14,6 +14,7 @@ import {
   landingPathFor,
   roleOf,
 } from "../../src/config/landing";
+import { anchorOptionsFor, peekReturnPath, pickReturnPath } from "../../src/config/returnPath";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { emailInputProps, normalizeEmail } from "../../src/lib/email";
 
@@ -32,7 +33,17 @@ export default function LoginScreen() {
   const accent = useWorkspaceAccent();
 
   // Where the role guard or a session-expiry redirect grabbed the user from.
-  const { from } = useLocalSearchParams<{ from?: string }>();
+  const { from: fromParam } = useLocalSearchParams<{ from?: string }>();
+
+  // N17M-08 — a cold start through a link while signed out can reach this screen with `from` missing
+  // or just "/" (the guard could not read the route yet); the link remembered by +native-intent
+  // stands in. Held in a ref because the signed-in guard clears the remembered link as soon as the
+  // destination mounts, while the effect below and handleLogin each still need the same answer.
+  // Per mount, so it dies with this screen and never reaches another login.
+  const rememberedRef = useRef<string | null>(null);
+  const remembered = peekReturnPath();
+  if (remembered) rememberedRef.current = remembered;
+  const from = pickReturnPath(fromParam, rememberedRef.current) ?? undefined;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -45,11 +56,12 @@ export default function LoginScreen() {
   // on web.
   useEffect(() => {
     if (!isAuthenticated) return;
-    router.replace(
-      isSafeReturnPath(from) && isReturnPathForRole(from, role)
-        ? asValidatedRoute(from)
-        : ROLE_HOME[role],
-    );
+    if (isSafeReturnPath(from) && isReturnPathForRole(from, role)) {
+      // withAnchor (FIX8-5): a link into a tab's own stack must keep that tab's hub underneath.
+      router.replace(asValidatedRoute(from), anchorOptionsFor(from));
+    } else {
+      router.replace(ROLE_HOME[role]);
+    }
   }, [isAuthenticated, role, from]);
 
   const handleLogin = async () => {
@@ -69,11 +81,11 @@ export default function LoginScreen() {
       const { value: userStr } = await Preferences.get({ key: "user" });
       const storedUser = JSON.parse(userStr || "{}");
 
-      router.replace(
-        isSafeReturnPath(from) && isReturnPathForRole(from, roleOf(storedUser))
-          ? asValidatedRoute(from)
-          : landingPathFor(storedUser),
-      );
+      if (isSafeReturnPath(from) && isReturnPathForRole(from, roleOf(storedUser))) {
+        router.replace(asValidatedRoute(from), anchorOptionsFor(from));
+      } else {
+        router.replace(landingPathFor(storedUser));
+      }
     } catch (err: any) {
       const status = err?.response?.status;
       if (status === 429) {

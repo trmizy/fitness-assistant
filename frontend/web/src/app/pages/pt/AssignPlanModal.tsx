@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { XIcon as X, CircleNotchIcon as Loader2, PlusIcon as Plus, TrashIcon as Trash2, MagnifyingGlassIcon as Search, SparkleIcon as Sparkles, WarningIcon as AlertTriangle } from "@phosphor-icons/react";
+import { CircleNotchIcon as Loader2, PlusIcon as Plus, TrashIcon as Trash2, MagnifyingGlassIcon as Search, SparkleIcon as Sparkles, WarningIcon as AlertTriangle } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ptCoachService, workoutService } from "../../services/api";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { Modal, ModalTitle, ModalClose } from "../../components/ui/Modal";
 
 const WEEKDAY_LABEL = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
@@ -51,7 +51,6 @@ export function AssignPlanModal({
   const [aiInfo, setAiInfo] = useState<{ dataGaps: string[]; warnings: string[]; summaryForPt: string } | null>(null);
 
   // Mounted only while the modal is open.
-  useBackDismissible(true, onClose);
   const draftMutation = useMutation({
     mutationFn: () => ptCoachService.generatePlanDraft(clientUserId, { ptNotes: ptNotes.trim() || undefined, daysPerWeek: days.length, durationWeeks }),
     onSuccess: (result) => {
@@ -153,20 +152,19 @@ export function AssignPlanModal({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <Modal open onClose={onClose} closeOnBackdrop={false} placement="sheet" data-testid="assign-plan-modal">
       <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="flex items-center justify-between p-5 border-b border-zinc-800/60 sticky top-0 bg-zinc-900 z-10">
-          <h3 className="text-zinc-100 font-bold text-sm">Giao kế hoạch tập cho {clientName}</h3>
-          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300">
-            <X className="w-5 h-5" />
-          </button>
+          <ModalTitle className="text-zinc-100 font-bold text-sm">Giao kế hoạch tập cho {clientName}</ModalTitle>
+          <ModalClose className="-mr-2 text-zinc-500 hover:text-zinc-300" />
         </div>
 
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-zinc-500 mb-1 block">Tên kế hoạch</label>
+              <label className="text-xs text-zinc-500 mb-1 block" htmlFor="assign-plan-name">Tên kế hoạch</label>
               <input
+                id="assign-plan-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2 text-sm text-zinc-200"
@@ -218,7 +216,7 @@ export function AssignPlanModal({
               type="button"
               onClick={() => draftMutation.mutate()}
               disabled={draftMutation.isPending}
-              className="flex items-center justify-center gap-1.5 w-full rounded-lg bg-violet-500/15 border border-violet-500/30 text-violet-300 text-xs font-semibold py-2 hover:bg-violet-500/25 disabled:opacity-50"
+              className="flex items-center justify-center gap-1.5 w-full min-h-10 rounded-lg bg-violet-500/15 border border-violet-500/30 text-violet-300 text-xs font-semibold py-2 hover:bg-violet-500/25 disabled:opacity-50"
             >
               {draftMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
               Tạo bản nháp bằng AI cho {days.length} buổi/tuần
@@ -247,7 +245,7 @@ export function AssignPlanModal({
                 type="button"
                 onClick={addDay}
                 disabled={days.length >= 7}
-                className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300 disabled:opacity-40"
+                className="flex min-h-10 items-center gap-1 text-xs text-green-400 hover:text-green-300 disabled:opacity-40"
               >
                 <Plus className="w-3.5 h-3.5" /> Thêm buổi
               </button>
@@ -328,7 +326,7 @@ export function AssignPlanModal({
                 <button
                   type="button"
                   onClick={() => setActiveDayIndex(activeDayIndex === dayIdx ? null : dayIdx)}
-                  className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-200"
+                  className="flex min-h-10 items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-200"
                 >
                   <Search className="w-3 h-3" /> {activeDayIndex === dayIdx ? "Đóng tìm kiếm" : "Thêm bài tập"}
                 </button>
@@ -367,15 +365,17 @@ export function AssignPlanModal({
 
           <div className="flex gap-2 pt-1">
             <button
+              type="button"
               onClick={onClose}
-              className="flex-1 rounded-xl border border-zinc-700 py-2.5 text-xs font-bold text-zinc-400 hover:bg-zinc-800"
+              className="flex-1 min-h-10 rounded-xl border border-zinc-700 py-2.5 text-xs font-bold text-zinc-400 hover:bg-zinc-800"
             >
               Hủy
             </button>
             <button
+              type="button"
               onClick={() => submitMutation.mutate()}
               disabled={submitMutation.isPending}
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-green-500 hover:bg-green-400 disabled:opacity-60 py-2.5 text-xs font-bold text-black"
+              className="flex-1 min-h-10 flex items-center justify-center gap-2 rounded-xl bg-green-500 hover:bg-green-400 disabled:opacity-60 py-2.5 text-xs font-bold text-black"
             >
               {submitMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Tạo & giao kế hoạch
@@ -383,6 +383,6 @@ export function AssignPlanModal({
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

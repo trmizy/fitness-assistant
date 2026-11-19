@@ -5,9 +5,11 @@
  * One plain read; it writes no access log and is never polled.
  */
 import { api } from "../../../../services/api";
+import { rememberAdminNames } from "../workspace/adminNames";
 import { parseAdminOptions, type AdminOption } from "./actionModel";
 
 export async function listAdminOptions(selfId: string | null): Promise<AdminOption[]> {
   const { data } = await api.get("/admin/dispute-cases/admins");
+  rememberAdminNames(data);
   return parseAdminOptions(data, selfId);
 }

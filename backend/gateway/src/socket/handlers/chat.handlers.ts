@@ -31,8 +31,18 @@ function readConversationId(payload: ConversationPayload): string | null {
     : null;
 }
 
-function emitChatError(socket: Socket, message: string) {
-  socket.emit(SERVER_EVENTS.chatError, { message });
+/**
+ * `message` keeps the short code older clients match on ("Failed to send message" is what the mobile app maps
+ * to its own Vietnamese toast); `detail` is the Vietnamese sentence meant for the person, when there is one.
+ */
+function emitChatError(socket: Socket, message: string, detail?: string) {
+  socket.emit(SERVER_EVENTS.chatError, detail ? { message, detail } : { message });
+}
+
+type Ack = ((result: { ok: boolean }) => void) | undefined;
+
+function ackOnce(ack: unknown, ok: boolean) {
+  if (typeof ack === "function") (ack as NonNullable<Ack>)({ ok });
 }
 
 async function verifyConversationAccess(
@@ -52,6 +62,12 @@ async function verifyConversationAccess(
   );
 
   return status >= 200 && status < 300;
+}
+
+/** The Vietnamese sentence chat-service attached to a refusal (locked account, too long, ...), if any. */
+function detailFrom(err: unknown): string | undefined {
+  const detail = (err as { detail?: unknown })?.detail;
+  return typeof detail === "string" && detail ? detail : undefined;
 }
 
 async function forwardMessageToChatService(
@@ -75,6 +91,7 @@ async function forwardMessageToChatService(
   if (data?.error || !data?.id) {
     const error = new Error(data?.error || "Chat service rejected message");
     (error as Error & { status?: number }).status = 400;
+    if (typeof data?.error === "string") (error as Error & { detail?: string }).detail = data.error;
     throw error;
   }
 
@@ -109,17 +126,19 @@ export function broadcastChatMessage(io: Server, message: ChatMessagePayload) {
 export function registerChatHandlers(io: Server, socket: Socket) {
   socket.on(
     CLIENT_EVENTS.chatJoinConversation,
-    async (payload: ConversationPayload) => {
+    async (payload: ConversationPayload, ack?: Ack) => {
       const conversationId = readConversationId(payload);
       if (!conversationId) {
-        emitChatError(socket, "Invalid conversation id");
+        emitChatError(socket, "Invalid conversation id", "Mã cuộc trò chuyện không hợp lệ");
+        ackOnce(ack, false);
         return;
       }
 
       try {
         const allowed = await verifyConversationAccess(socket, conversationId);
         if (!allowed) {
-          emitChatError(socket, "Conversation not available");
+          emitChatError(socket, "Conversation not available", "Không mở được cuộc trò chuyện này");
+          ackOnce(ack, false);
           return;
         }
 
@@ -128,6 +147,9 @@ export function registerChatHandlers(io: Server, socket: Socket) {
           ...Array.from(socket.data.activeChatRooms || []),
           conversationId,
         ]);
+        // The client waits for this after a reconnect before it re-reads the thread, so nothing
+        // sent between that read and the room join can be missed.
+        ackOnce(ack, true);
       } catch (err) {
         logger.warn(
           {
@@ -137,7 +159,8 @@ export function registerChatHandlers(io: Server, socket: Socket) {
           },
           "Socket chat join failed",
         );
-        emitChatError(socket, "Failed to join conversation");
+        emitChatError(socket, "Failed to join conversation", "Không tham gia được cuộc trò chuyện");
+        ackOnce(ack, false);
       }
     },
   );
@@ -160,7 +183,11 @@ export function registerChatHandlers(io: Server, socket: Socket) {
       typeof payload?.content === "string" ? payload.content.trim() : "";
 
     if (!conversationId || !content) {
-      emitChatError(socket, "Message content and conversation id are required");
+      emitChatError(
+        socket,
+        "Message content and conversation id are required",
+        "Tin nhắn không được để trống",
+      );
       return;
     }
 
@@ -180,7 +207,7 @@ export function registerChatHandlers(io: Server, socket: Socket) {
         },
         "Socket chat send failed",
       );
-      emitChatError(socket, "Failed to send message");
+      emitChatError(socket, "Failed to send message", detailFrom(err));
     }
   };
 
@@ -190,6 +217,9 @@ export function registerChatHandlers(io: Server, socket: Socket) {
   socket.on(CLIENT_EVENTS.chatTyping, (payload: TypingPayload) => {
     const conversationId = readConversationId(payload);
     if (!conversationId) return;
+    // Only a socket whose join was accepted (membership verified by chat-service) may relay typing;
+    // otherwise a refused outsider could still ping the real participants.
+    if (!socket.rooms.has(chatRoom(conversationId))) return;
 
     const user = getSocketUser(socket);
     socket.to(chatRoom(conversationId)).emit(SERVER_EVENTS.chatTyping, {

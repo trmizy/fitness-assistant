@@ -69,20 +69,62 @@ async function cleanup(brandId: string, gymId: string, planId: string, membershi
   await prisma.gymBrand.delete({ where: { id: brandId } }).catch(() => {});
 }
 
-integrationTest('a client with an ACTIVE membership cannot check in at a SUSPENDED gym', async () => {
+// Owner decision 15/11 (4a): an admin SUSPENSION is a platform-only measure (hidden from search, no new sales) - the real gym
+// keeps operating, so a member with a running membership still walks in until it ends.
+integrationTest('a client with an ACTIVE membership CAN check in at an admin-SUSPENDED gym that is still OPEN', async () => {
   const { brand, gym, plan } = await makeBrandGymAndPlan('SUSPENDED');
   const clientId = randomUUID();
   const membership = await makeActiveMembership(gym.id, plan.id, clientId);
   const { token } = signGymCheckinToken(gym.id);
 
   try {
-    await assert.rejects(() => checkinService.checkInByGymToken(clientId, token));
+    const result = await checkinService.checkInByGymToken(clientId, token);
+    assert.ok(result);
+    const after = await prisma.gymMembershipContract.findUnique({ where: { id: membership.id } });
+    assert.equal(after?.usedVisits, 1);
+  } finally {
+    await cleanup(brand.id, gym.id, plan.id, membership.id);
+  }
+});
 
-    // The membership's usedVisits must NOT have moved — a rejected check-in is a true no-op.
+integrationTest('a client WITHOUT a membership still cannot check in at a SUSPENDED gym (members only)', async () => {
+  const { brand, gym, plan } = await makeBrandGymAndPlan('SUSPENDED');
+  const { token } = signGymCheckinToken(gym.id);
+  try {
+    await assert.rejects(() => checkinService.checkInByGymToken(randomUUID(), token));
+  } finally {
+    await prisma.gymMembershipPlan.delete({ where: { id: plan.id } }).catch(() => {});
+    await prisma.gym.delete({ where: { id: gym.id } }).catch(() => {});
+    await prisma.gymBrand.delete({ where: { id: brand.id } }).catch(() => {});
+  }
+});
+
+integrationTest('a SUSPENDED gym that is also TEMPORARILY_CLOSED refuses check-in (physically closed)', async () => {
+  const { brand, gym, plan } = await makeBrandGymAndPlan('SUSPENDED', 'TEMPORARILY_CLOSED');
+  const clientId = randomUUID();
+  const membership = await makeActiveMembership(gym.id, plan.id, clientId);
+  const { token } = signGymCheckinToken(gym.id);
+  try {
+    await assert.rejects(() => checkinService.checkInByGymToken(clientId, token));
     const after = await prisma.gymMembershipContract.findUnique({ where: { id: membership.id } });
     assert.equal(after?.usedVisits, 0);
   } finally {
     await cleanup(brand.id, gym.id, plan.id, membership.id);
+  }
+});
+
+integrationTest('a SUSPENDED gym still refuses NEW sales (purchase)', async () => {
+  const { membershipService } = await import('../services/membership.service');
+  const { brand, gym, plan } = await makeBrandGymAndPlan('SUSPENDED');
+  try {
+    await assert.rejects(
+      () => membershipService.purchase(gym.id, plan.id, randomUUID()),
+      (e: any) => e.status === 409,
+    );
+  } finally {
+    await prisma.gymMembershipPlan.delete({ where: { id: plan.id } }).catch(() => {});
+    await prisma.gym.delete({ where: { id: gym.id } }).catch(() => {});
+    await prisma.gymBrand.delete({ where: { id: brand.id } }).catch(() => {});
   }
 });
 
@@ -115,6 +157,35 @@ integrationTest('a client with an ACTIVE membership CAN check in at an APPROVED 
 
     const after = await prisma.gymMembershipContract.findUnique({ where: { id: membership.id } });
     assert.equal(after?.usedVisits, 1);
+  } finally {
+    await cleanup(brand.id, gym.id, plan.id, membership.id);
+  }
+});
+
+// N15C-11: a refused scan / QR request at a temporarily closed branch carries the owner's expected reopen date.
+integrationTest('N15C-11: TEMPORARILY_CLOSED + expected reopen date -> scan refusal and owner QR 409 carry expectedReopenAt; no date -> none', async () => {
+  const { brand, gym, plan } = await makeBrandGymAndPlan('APPROVED', 'TEMPORARILY_CLOSED');
+  const clientId = randomUUID();
+  const membership = await makeActiveMembership(gym.id, plan.id, clientId);
+  const { token } = signGymCheckinToken(gym.id);
+  const reopen = new Date('2026-11-20T00:00:00.000Z');
+  try {
+    // no date yet
+    await assert.rejects(
+      () => checkinService.checkInByGymToken(clientId, token),
+      (e: any) => e.message === 'GYM_NOT_ACTIVE' && e.expectedReopenAt === undefined,
+    );
+    await prisma.gym.update({ where: { id: gym.id }, data: { expectedReopenAt: reopen } });
+    await assert.rejects(
+      () => checkinService.checkInByGymToken(clientId, token),
+      (e: any) => e.message === 'GYM_NOT_ACTIVE' && e.expectedReopenAt === reopen.toISOString(),
+    );
+    await assert.rejects(
+      () => checkinService.getGymQr(gym.id, brand.ownerId),
+      (e: any) => e.status === 409 && e.code === 'GYM_NOT_OPEN' && e.expectedReopenAt === reopen.toISOString(),
+    );
+    const after = await prisma.gymMembershipContract.findUnique({ where: { id: membership.id } });
+    assert.equal(after?.usedVisits, 0);
   } finally {
     await cleanup(brand.id, gym.id, plan.id, membership.id);
   }

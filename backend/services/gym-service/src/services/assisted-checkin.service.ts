@@ -7,6 +7,7 @@ import { gymService } from './gym.service';
 import { authClient } from '../clients/auth.client';
 import { profileClient } from '../clients/profile.client';
 import { resolveDisplayNames } from './display-name.service';
+import { isGymAcceptingCheckin } from './checkin-gym-guard';
 import { applyMemberCheckIn, lockMembershipForCheckIn, COOLDOWN_MS } from './checkin-core';
 import { hasPassedEndDate, hasVisitsLeft } from './membership-eligibility.service';
 import { hasPermission } from './partner-permissions';
@@ -174,7 +175,7 @@ function displayStatusOf(m: Pick<MemberRow, 'status' | 'endDate' | 'totalVisits'
 
 /** Cùng điều kiện với luồng QR (đọc, không khoá) - để lễ tân biết trước, không phải để thay thế khoá thật. */
 function blockedReasonOf(m: MemberRow, gym: GymLite, recentCheckin: boolean, now = new Date()): string | null {
-  if (gym.status !== 'APPROVED' || gym.operationalStatus !== 'OPEN') return 'GYM_NOT_ACTIVE';
+  if (!isGymAcceptingCheckin(gym.status, gym.operationalStatus)) return 'GYM_NOT_ACTIVE';
   if (m.status !== 'ACTIVE' || hasPassedEndDate(m.endDate, now)) return 'NOT_ACTIVE';
   if (!hasVisitsLeft(m.totalVisits, m.usedVisits)) return 'VISIT_LIMIT_REACHED';
   if (recentCheckin) return 'TOO_SOON';

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { invokeHttpLambda, throwForLambdaHttpError } from './lambda-http.client';
+import { syntheticNotTransactableError } from '../services/synthetic-guard';
 
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3004';
 const INTERNAL_SERVICE_SECRET =
@@ -21,6 +22,9 @@ export const profileClient = {
         });
         if (result.statusCode === 404) return null;
         throwForLambdaHttpError(result);
+        if (result.body?.dataOrigin === 'SYNTHETIC') {
+          throw syntheticNotTransactableError();
+        }
         return result.body.userId as string;
       }
 
@@ -28,6 +32,9 @@ export const profileClient = {
         headers,
         timeout: 5_000,
       });
+      if (data?.dataOrigin === 'SYNTHETIC') {
+        throw syntheticNotTransactableError();
+      }
       return data.userId as string;
     } catch (e: any) {
       if (e?.response?.status === 404) return null;

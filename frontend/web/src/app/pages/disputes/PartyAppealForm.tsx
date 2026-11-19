@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { toast } from "sonner";
 import { disputeCaseApi } from "../admin/disputes/disputeCaseApi";
 import { parseDisputeError } from "../admin/disputes/disputeCaseErrors";
 import type { AppealRequestResult } from "../admin/disputes/disputeCaseTypes";
@@ -63,6 +64,8 @@ export function PartyAppealForm({
     if (res.status === "busy") return;
     if (res.status === "ok") {
       setSuccess(APPEAL_SUCCESS_TEXT);
+      // The form unmounts as soon as the reload shows the appeal exists (the status panel takes over), so say it once more as a toast.
+      toast.success(APPEAL_SUCCESS_TEXT);
       setReason("");
       onSaved();
     } else {

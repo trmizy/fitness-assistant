@@ -1,10 +1,50 @@
 import { z } from "zod";
 
+// N13A-04: plausibility limits (owner-approved ranges, 14/11/2026). They reject typos and junk before
+// they reach BMR/TDEE and the AI context; they are not a medical judgement.
+const WEIGHT_RANGE_MSG = "Cân nặng phải từ 20 đến 400 kg";
+const HEIGHT_RANGE_MSG = "Chiều cao phải từ 100 đến 250 cm";
+const MIN_AGE = 13;
+const MAX_AGE = 100;
+
+/** Whole years between a date of birth and `now` (UTC calendar, same rule everywhere). */
+export function ageFromDateOfBirth(dob: Date, now: Date = new Date()): number {
+  let age = now.getUTCFullYear() - dob.getUTCFullYear();
+  const m = now.getUTCMonth() - dob.getUTCMonth();
+  if (m < 0 || (m === 0 && now.getUTCDate() < dob.getUTCDate())) age--;
+  return age;
+}
+
+const dateOfBirthSchema = z
+  .string({ invalid_type_error: "Ngày sinh không hợp lệ" })
+  .max(40, "Ngày sinh không hợp lệ")
+  .superRefine((value, ctx) => {
+    const dob = new Date(value);
+    if (Number.isNaN(dob.getTime())) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Ngày sinh không hợp lệ" });
+      return;
+    }
+    const age = ageFromDateOfBirth(dob);
+    if (age < MIN_AGE || age > MAX_AGE) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Tuổi phải từ ${MIN_AGE} đến ${MAX_AGE} (tính theo ngày sinh)`,
+      });
+    }
+  });
+
+const shortText = (label: string, max: number) =>
+  z.string().max(max, `${label} tối đa ${max} ký tự`);
+const textList = (label: string, maxItems: number, maxLen: number) =>
+  z
+    .array(shortText(label, maxLen), { invalid_type_error: `${label} không hợp lệ` })
+    .max(maxItems, `${label} tối đa ${maxItems} mục`);
+
 export const profileSchema = z.object({
-  dateOfBirth: z.string().optional(), // ISO date string e.g. "2000-01-15"
-  age: z.number().int().min(13).max(120).optional(),
+  dateOfBirth: dateOfBirthSchema.optional(), // ISO date string e.g. "2000-01-15"; age must be 13-100
+  age: z.number().int().min(MIN_AGE).max(MAX_AGE).optional(),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
-  heightCm: z.number().positive().optional(),
+  heightCm: z.number().min(100, HEIGHT_RANGE_MSG).max(250, HEIGHT_RANGE_MSG).optional(),
   goal: z
     .enum(["WEIGHT_LOSS", "MUSCLE_GAIN", "MAINTENANCE", "ATHLETIC_PERFORMANCE"])
     .optional(),
@@ -37,8 +77,8 @@ export const profileSchema = z.object({
   // re-deriving it, since the set of flag keys that count as "a Yes" is a UI/copy concern,
   // not a business rule this service should own.
   safetyScreeningStatus: z.enum(["UNKNOWN", "CLEARED", "FOLLOW_UP_SUGGESTED"]).optional(),
-  safetyScreeningFlags: z.array(z.string()).optional(),
-  preferredTrainingDays: z.array(z.number().int().min(0).max(6)).optional(),
+  safetyScreeningFlags: textList("Cờ sàng lọc an toàn", 30, 100).optional(),
+  preferredTrainingDays: z.array(z.number().int().min(0).max(6)).max(7, "Tối đa 7 ngày tập").optional(),
   // 2026-10-23 real bug: OnboardingWizardPage's "Thời lượng mỗi buổi (phút)"
   // input has always sent this field, but it was never in this schema —
   // Zod silently drops unknown keys, so no user's chosen session length was
@@ -49,12 +89,12 @@ export const profileSchema = z.object({
   // cap so a value already saved under the old (wider) chat-parsed range
   // is never rejected on a later unrelated profile update.
   sessionDurationMinutes: z.number().int().min(10).max(240).optional(),
-  availableEquipment: z.array(z.string()).optional(),
-  injuries: z.array(z.string()).optional(),
-  currentWeight: z.number().positive().optional(),
-  targetWeight: z.number().positive().optional(),
-  dietaryPreference: z.string().optional(),
-  photoUrl: z.string().optional(),
+  availableEquipment: textList("Thiết bị", 50, 100).optional(),
+  injuries: textList("Chấn thương", 30, 200).optional(),
+  currentWeight: z.number().min(20, WEIGHT_RANGE_MSG).max(400, WEIGHT_RANGE_MSG).optional(),
+  targetWeight: z.number().min(20, WEIGHT_RANGE_MSG).max(400, WEIGHT_RANGE_MSG).optional(),
+  dietaryPreference: shortText("Chế độ ăn", 200).optional(),
+  photoUrl: shortText("Ảnh đại diện", 1000).optional(),
   // AI Nutrition Cycle Engine (Gymini) — food-suggestion/meal-generation
   // budget hint (spec §13). See UserProfile.nutritionBudgetLevel's schema
   // comment for why this is a plain string, not an enum.
@@ -84,6 +124,21 @@ export const profileSchema = z.object({
   // canonical field on this model stays metric regardless of this value.
   unitSystem: z.enum(["metric", "imperial"]).optional(),
   energyUnit: z.enum(["kcal", "kj"]).optional(),
+  // D1.1: Optional discovery region preferences ("Toàn quốc" when null; no FK in DB).
+  searchProvinceCode: z
+    .number()
+    .int()
+    .min(1)
+    .max(2_147_483_647)
+    .nullable()
+    .optional(),
+  searchWardCode: z
+    .number()
+    .int()
+    .min(1)
+    .max(2_147_483_647)
+    .nullable()
+    .optional(),
 });
 
 export const adminPTStatusSchema = z.object({

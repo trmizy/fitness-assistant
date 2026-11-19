@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import QRCode from "qrcode";
-import { QrCodeIcon as QrCode, CircleNotchIcon as Loader2, ArrowsOutIcon as Maximize2, XIcon as X, ArrowsClockwiseIcon as RefreshCw } from "@phosphor-icons/react";
+import { QrCodeIcon as QrCode, CircleNotchIcon as Loader2, ArrowsOutIcon as Maximize2, ArrowsClockwiseIcon as RefreshCw } from "@phosphor-icons/react";
 import { gymService } from "../../services/api";
 import type { GymCheckIn } from "../../types";
-import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { Modal, ModalTitle, ModalClose } from "../ui/Modal";
 import { useApp } from "../../context/AppContext";
 import {
   normalizeOwnerPtCheckins,
@@ -12,6 +12,7 @@ import {
   ownerPtScanLabel,
 } from "../../utils/ptGymCheckin";
 import { clockLabel, normalizeTodayPts } from "../../utils/frontDeskToday";
+import { checkinClosedMessage, isBranchAcceptingCheckin, type BranchCheckinInput } from "../../utils/branchCheckinState";
 
 const shortId = (id: string) => `${id.slice(0, 8)}…`;
 const timeAgo = (iso: string) =>
@@ -27,20 +28,35 @@ const timeAgo = (iso: string) =>
  * needs no scanner hardware and no camera permission — and the member's identity comes
  * from their logged-in session rather than from anything encoded in this image.
  */
-export function GymCheckinPanel({ gymId, ptCheckinsMode = "all" }: { gymId: string; ptCheckinsMode?: "all" | "today" | "none" }) {
+export function GymCheckinPanel({
+  gymId,
+  ptCheckinsMode = "all",
+  branch,
+}: {
+  gymId: string;
+  ptCheckinsMode?: "all" | "today" | "none";
+  /** N15C-05: the branch's status, so a closed branch never asks for a QR the server refuses (409). */
+  branch?: BranchCheckinInput | null;
+}) {
   const showPtCheckins = ptCheckinsMode === "all";
   const { user } = useApp();
   const [dataUrl, setDataUrl] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
-  useBackDismissible(!!fullscreen, () => setFullscreen(false));
 
-  const { data: qr, isLoading, refetch, isRefetching } = useQuery<{
+  const branchOpen = isBranchAcceptingCheckin(branch);
+  const { data: qr, isLoading, refetch, isRefetching, error: qrError } = useQuery<{
     token: string;
     gymName: string;
   }>({
     queryKey: ["gym-checkin-qr", gymId],
     queryFn: () => gymService.getGymCheckinQr(gymId),
+    enabled: branchOpen,
+    // 409 GYM_NOT_OPEN is a state, not a glitch: never retried.
+    retry: (count, err: any) => err?.response?.status !== 409 && count < 2,
   });
+  const qrRefusal = (qrError as any)?.response?.status === 409 ? (qrError as any).response.data?.error : null;
+  const qrClosed = !branchOpen || !!qrRefusal;
+  const closedText = qrClosed ? checkinClosedMessage(branch, qrRefusal?.expectedReopenAt) : "";
 
   const { data: checkins = [] } = useQuery<GymCheckIn[]>({
     queryKey: ["gym-checkins", gymId],
@@ -84,8 +100,8 @@ export function GymCheckinPanel({ gymId, ptCheckinsMode = "all" }: { gymId: stri
         <button
           type="button"
           onClick={() => refetch()}
-          disabled={isRefetching}
-          className="flex items-center gap-1 text-[11px] text-zinc-600 hover:text-zinc-400 transition-colors"
+          disabled={isRefetching || qrClosed}
+          className="flex min-h-10 items-center gap-1.5 rounded-lg px-2.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
         >
           <RefreshCw className={`w-3 h-3 ${isRefetching ? "animate-spin" : ""}`} /> Tạo lại
         </button>
@@ -98,7 +114,15 @@ export function GymCheckinPanel({ gymId, ptCheckinsMode = "all" }: { gymId: stri
 
       <div className="flex flex-col sm:flex-row gap-4 items-start">
         <div className="relative">
-          {isLoading || !dataUrl ? (
+          {qrClosed ? (
+            <div
+              role="status"
+              data-testid="checkin-qr-closed"
+              className="w-full sm:w-[200px] rounded-xl border border-dashed border-zinc-700 bg-zinc-800/40 p-4 text-xs leading-relaxed text-zinc-400"
+            >
+              {closedText}
+            </div>
+          ) : isLoading || !dataUrl ? (
             <div className="w-[200px] h-[200px] rounded-xl bg-zinc-800/60 flex items-center justify-center">
               <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
             </div>
@@ -114,7 +138,7 @@ export function GymCheckinPanel({ gymId, ptCheckinsMode = "all" }: { gymId: stri
               <button
                 type="button"
                 onClick={() => setFullscreen(true)}
-                className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-zinc-900/90 text-zinc-300 hover:text-green-400 border border-zinc-700/60"
+                className="absolute bottom-2 right-2 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-900/90 text-zinc-300 hover:text-green-400 border border-zinc-700/60"
                 aria-label="Phóng to mã QR"
               >
                 <Maximize2 className="w-3.5 h-3.5" />
@@ -200,28 +224,24 @@ export function GymCheckinPanel({ gymId, ptCheckinsMode = "all" }: { gymId: stri
       )}
 
       {/* Blown up so a phone can read it from across the desk. */}
-      {fullscreen && dataUrl && (
-        <div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-6"
-          onClick={() => setFullscreen(false)}
-        >
-          <button
-            type="button"
-            onClick={() => setFullscreen(false)}
-            className="absolute top-5 right-5 text-zinc-400 hover:text-zinc-100"
-            aria-label="Đóng"
-          >
-            <X className="w-6 h-6" />
-          </button>
-          <div className="text-zinc-100 font-bold mb-4">{qr?.gymName}</div>
+      <Modal
+        open={fullscreen && !!dataUrl}
+        onClose={() => setFullscreen(false)}
+        backdropClassName="bg-black/90"
+        className="flex-col p-6 on-media"
+        data-testid="checkin-qr-zoom"
+      >
+        <ModalClose className="absolute top-3 right-3 rounded-full bg-black/60 text-white hover:bg-black/80" />
+        <ModalTitle className="text-zinc-100 font-bold mb-4">{qr?.gymName || "Mã QR check-in"}</ModalTitle>
+        {dataUrl && (
           <img
             src={dataUrl}
             alt="Mã QR check-in"
             className="rounded-2xl bg-white p-6 max-w-[80vw] max-h-[70vh]"
           />
-          <p className="text-zinc-400 text-sm mt-4">Quét mã để check-in</p>
-        </div>
-      )}
+        )}
+        <p className="text-zinc-400 text-sm mt-4">Quét mã để check-in</p>
+      </Modal>
     </div>
   );
 }
