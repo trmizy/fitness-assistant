@@ -1,5 +1,6 @@
 import { Prisma } from '../generated/prisma';
 import { prisma } from './prisma';
+import { stackedPeriod } from '../services/membership-stacking';
 
 export const membershipRepository = {
   async create(data: Prisma.GymMembershipContractCreateInput) {
@@ -101,6 +102,20 @@ export const membershipRepository = {
     });
   },
 
+  /** An unpaid order of this client at this gym - the only thing that still blocks a new purchase (stacking allows paid ones to queue). */
+  async findPendingByClientAndGym(clientId: string, gymId: string) {
+    return prisma.gymMembershipContract.findFirst({ where: { clientId, gymId, status: 'PENDING_PAYMENT' } });
+  },
+
+  /** End of the client's latest still-running paid membership of a brand (current or queued) - where a renewal would start. Null = none. */
+  async latestActiveEndForBrand(clientId: string, brandId: string, now: Date = new Date()): Promise<Date | null> {
+    const r = await prisma.gymMembershipContract.aggregate({
+      where: { clientId, status: 'ACTIVE', plan: { brandId }, endDate: { gt: now } },
+      _max: { endDate: true },
+    });
+    return r._max.endDate ?? null;
+  },
+
   /**
    * How many currently-ACTIVE REAL members each gym has — same groupBy shape as
    * `reviewRepository.aggregateForGyms`, used for the owner's "Phòng gym của tôi" dashboard.
@@ -112,7 +127,8 @@ export const membershipRepository = {
     if (gymIds.length === 0) return map;
     const rows = await prisma.gymMembershipContract.groupBy({
       by: ['gymId'],
-      where: { gymId: { in: gymIds }, status: 'ACTIVE', dataOrigin: 'REAL', endDate: { gt: new Date() } },
+      // A stacked renewal that has not begun (startDate in the future) is not a current member yet.
+      where: { gymId: { in: gymIds }, status: 'ACTIVE', dataOrigin: 'REAL', endDate: { gt: new Date() }, OR: [{ startDate: null }, { startDate: { lte: new Date() } }] },
       _count: true,
     });
     for (const r of rows) map.set(r.gymId, r._count);
@@ -135,15 +151,30 @@ export const membershipRepository = {
    * "not activatable" (payment-service then refunds), never as success.
    */
   async activateIfPending(id: string, paymentTxnId: string) {
-    const contract = await prisma.gymMembershipContract.findUnique({ where: { id } });
+    const contract = await prisma.gymMembershipContract.findUnique({ where: { id }, include: { plan: { select: { brandId: true } } } });
     if (!contract) return { affected: 0, contract: null };
     if (contract.status !== 'PENDING_PAYMENT') return { affected: 0, contract }; // already done / not payable — no-op
 
-    const endDate = new Date(Date.now() + contract.durationDaysSnapshot * 24 * 60 * 60 * 1000);
-    const flipped = await prisma.gymMembershipContract.updateMany({
-      where: { id, status: 'PENDING_PAYMENT' },
-      data: { status: 'ACTIVE', startDate: new Date(), endDate, paymentTxnId },
-    });
+    // Stacked renewal ("Gia hạn"): the period starts when the client's latest paid membership of the SAME BRAND ends
+    // (a membership is valid brand-wide), else now. Computed here, at the moment the payment lands, and under a
+    // per-(client, brand) advisory lock, so two activations can never both read the same "latest end" and overlap.
+    // Money is untouched: the price is already in escrow / pending; the payout sweep keys on THIS row's own endDate.
+    const flipped = await prisma.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`gym-membership-stack:${contract.clientId}:${contract.plan.brandId}`}))`;
+        const now = new Date();
+        const latest = await tx.gymMembershipContract.aggregate({
+          where: { clientId: contract.clientId, id: { not: id }, status: 'ACTIVE', plan: { brandId: contract.plan.brandId }, endDate: { gt: now } },
+          _max: { endDate: true },
+        });
+        const { startDate, endDate } = stackedPeriod(now, latest._max.endDate, contract.durationDaysSnapshot);
+        return tx.gymMembershipContract.updateMany({
+          where: { id, status: 'PENDING_PAYMENT' },
+          data: { status: 'ACTIVE', startDate, endDate, paymentTxnId },
+        });
+      },
+      { timeout: 15_000, maxWait: 10_000 },
+    );
     return { affected: flipped.count, contract: await prisma.gymMembershipContract.findUnique({ where: { id } }) };
   },
 

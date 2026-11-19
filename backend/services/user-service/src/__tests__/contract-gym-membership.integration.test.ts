@@ -17,7 +17,6 @@ import {
   evaluateMembershipForContract,
   projectedContractEnd,
   MEMBERSHIP_REQUIRED,
-  MEMBERSHIP_DOES_NOT_COVER_CONTRACT,
   GYM_CONTRACT_REQUIRES_FIXED_DURATION,
   hasFixedDuration,
 } from "../services/contract-gym-membership.service";
@@ -187,25 +186,62 @@ dbTest("cancelled / pending-payment membership counts as none: 422 MEMBERSHIP_RE
   }
 });
 
-dbTest("active but shorter than the contract (10 days left, 60-day contract): 422 MEMBERSHIP_DOES_NOT_COVER_CONTRACT with both dates, no row", async () => {
+dbTest("active but shorter than the contract (10 days left, 60-day contract): ALLOWED (owner rule 19/11/2026) - the row is created with the membership snapshotted; the picker carries the coverage warning", async () => {
   const end = iso(Date.now() + 10 * DAY);
-  await inWorld({ memberships: [mem({ endDate: end })], validityDays: 60 }, async (w) => {
-    const before = Date.now();
-    await assert.rejects(
-      () => request(w, "gym-a1"),
-      (e: any) => {
-        assert.equal(e.status, 422);
-        assert.equal(e.code, MEMBERSHIP_DOES_NOT_COVER_CONTRACT);
-        assert.equal(e.details.gymId, "gym-a1");
-        assert.equal(e.details.brandId, "brand-a");
-        assert.equal(e.details.membershipEndDate, end);
-        // contract end = now + 60 days, the same arithmetic as activation
-        const ce = Date.parse(e.details.contractEndDate);
-        assert.ok(ce >= before + 60 * DAY && ce <= Date.now() + 60 * DAY);
-        return true;
-      },
-    );
-    assert.equal(await rowsFor(w), 0);
+  const m = mem({ endDate: end });
+  await inWorld({ memberships: [m], validityDays: 60 }, async (w) => {
+    const options = await contractGymOptionsService.getGymOptions(w.clientUserId, { ptUserId: w.ptUserId, packageId: w.packageId });
+    const opt = options.gyms.find((g) => g.gymId === "gym-a1")!;
+    assert.equal(opt.eligibility.canRequest, true);
+    assert.equal(opt.eligibility.reason, null);
+    assert.equal(opt.eligibility.coverage!.coversContract, false);
+    assert.equal(opt.eligibility.coverage!.membershipEndsAt, end);
+    assert.ok(Date.parse(opt.eligibility.coverage!.contractEndsAt!) > Date.parse(end));
+    const c = await request(w, "gym-a1");
+    const row = await prisma.contract.findUniqueOrThrow({ where: { id: c.id } });
+    assert.equal(row.status, "PENDING_REVIEW");
+    assert.equal(row.gymMembershipId, m.id);
+    assert.equal(await rowsFor(w), 1);
+  });
+});
+
+dbTest("a membership queued behind the active one (stacked renewal, no gap) extends the coverage; a gap does not; a queued-only membership is still MEMBERSHIP_REQUIRED", async () => {
+  const curEnd = Date.now() + 10 * DAY;
+  const queued = (startMs: number, endMs: number) => ({ membershipId: "m-up", planName: "Gia han", purchaseGymId: "gym-a1", startDate: iso(startMs), endDate: iso(endMs) });
+  const withUpcoming = (upcoming: any[]) => () => {
+    const restore = patch(gymClient, "getClientMembershipAtGym", async () => ({
+      hasActiveMembership: true, brandId: "brand-a", membership: mem({ endDate: iso(curEnd) }), memberships: [mem({ endDate: iso(curEnd) })], upcoming,
+    } as any));
+    return restore;
+  };
+  // 10 days left + a 60-day renewal that starts exactly when it ends = 70 days of continuous cover -> covers a 60-day contract
+  await inWorld({ validityDays: 60 }, async (w) => {
+    const restore = withUpcoming([queued(curEnd, curEnd + 60 * DAY)])();
+    try {
+      const o = await contractGymOptionsService.getGymOptions(w.clientUserId, { ptUserId: w.ptUserId, packageId: w.packageId });
+      const cov = o.gyms.find((g) => g.gymId === "gym-a1")!.eligibility.coverage!;
+      assert.equal(cov.coversContract, true);
+      assert.equal(cov.membershipEndsAt, iso(curEnd + 60 * DAY));
+    } finally { restore(); }
+  });
+  // a renewal that starts a week AFTER the current one ended leaves a gap: coverage stops at the first period
+  await inWorld({ validityDays: 60 }, async (w) => {
+    const restore = withUpcoming([queued(curEnd + 7 * DAY, curEnd + 67 * DAY)])();
+    try {
+      const o = await contractGymOptionsService.getGymOptions(w.clientUserId, { ptUserId: w.ptUserId, packageId: w.packageId });
+      const cov = o.gyms.find((g) => g.gymId === "gym-a1")!.eligibility.coverage!;
+      assert.equal(cov.coversContract, false);
+      assert.equal(cov.membershipEndsAt, iso(curEnd));
+    } finally { restore(); }
+  });
+  // only a queued membership (nothing active today): not a member yet
+  await inWorld({ validityDays: 60 }, async (w) => {
+    const restore = patch(gymClient, "getClientMembershipAtGym", async () => ({
+      hasActiveMembership: false, brandId: "brand-a", membership: null, memberships: [], upcoming: [queued(Date.now() + 3 * DAY, Date.now() + 63 * DAY)],
+    } as any));
+    try {
+      await assert.rejects(() => request(w, "gym-a1"), (e: any) => e.status === 422 && e.code === MEMBERSHIP_REQUIRED);
+    } finally { restore(); }
   });
 });
 
@@ -219,10 +255,11 @@ dbTest("exactly as long as the contract (60 vs 60 days): allowed, membership sna
   });
 });
 
-dbTest("one day short (59 vs 60 days): blocked; membership that outlasts the contract (90 vs 60): allowed + gymMembershipId on the row", async () => {
+dbTest("one day short (59 vs 60 days): allowed with the warning (owner rule 19/11/2026); membership that outlasts the contract (90 vs 60): allowed + gymMembershipId on the row", async () => {
   await inWorld({ memberships: [mem({ endDate: iso(Date.now() + 59 * DAY) })] }, async (w) => {
-    await assert.rejects(() => request(w, "gym-a1"), (e: any) => e.status === 422 && e.code === MEMBERSHIP_DOES_NOT_COVER_CONTRACT);
-    assert.equal(await rowsFor(w), 0);
+    const c = await request(w, "gym-a1");
+    assert.ok(c.id);
+    assert.equal(await rowsFor(w), 1);
   });
   const longer = mem({ endDate: iso(Date.now() + 90 * DAY) });
   await inWorld({ memberships: [longer] }, async (w) => {
@@ -429,15 +466,12 @@ dbTest("controller body: 422 carries code + details (gymId, brandId / membership
     assert.equal(body.brandId, "brand-a");
     assert.equal(typeof body.error, "string");
   });
+  // owner rule 19/11/2026: a membership that is too short is no longer refused (the old 422 MEMBERSHIP_DOES_NOT_COVER_CONTRACT body is gone)
   const end = iso(Date.now() + 5 * DAY);
   await inWorld({ memberships: [mem({ endDate: end })] }, async (w) => {
     const { status, body } = await call(w, "gym-a2");
-    assert.equal(status, 422);
-    assert.equal(body.code, "MEMBERSHIP_DOES_NOT_COVER_CONTRACT");
-    assert.equal(body.details.membershipEndDate, end);
-    assert.equal(typeof body.details.contractEndDate, "string");
-    assert.equal(body.membershipEndDate, end);
-    assert.equal(body.contractEndDate, body.details.contractEndDate);
+    assert.notEqual(status, 422);
+    assert.notEqual(body?.code, "MEMBERSHIP_DOES_NOT_COVER_CONTRACT");
   });
   await inWorld({}, async (w) => {
     const restore = patch(gymClient, "getClientMembershipAtGym", async () => {
@@ -460,17 +494,19 @@ interface MatrixCase {
   memberships: () => FakeMembership[];
   validityDays?: number | null;
   gymId: string;
-  expect: "ok" | typeof MEMBERSHIP_REQUIRED | typeof MEMBERSHIP_DOES_NOT_COVER_CONTRACT | typeof GYM_CONTRACT_REQUIRES_FIXED_DURATION;
+  expect: "ok" | typeof MEMBERSHIP_REQUIRED | typeof GYM_CONTRACT_REQUIRES_FIXED_DURATION;
+  /** For "ok" cases: does the membership cover the whole contract (false = allowed with the coverage warning)? */
+  covers?: boolean;
 }
 const MATRIX: MatrixCase[] = [
   { name: "no membership", memberships: () => [], gymId: "gym-a1", expect: MEMBERSHIP_REQUIRED },
   { name: "expired", memberships: () => [mem({ endDate: iso(Date.now() - DAY) })], gymId: "gym-a1", expect: MEMBERSHIP_REQUIRED },
   { name: "cancelled", memberships: () => [mem({ status: "CANCELLED" })], gymId: "gym-a1", expect: MEMBERSHIP_REQUIRED },
   { name: "other brand only", memberships: () => [mem({ brandId: "brand-b", purchaseGymId: "gym-b1" })], gymId: "gym-a1", expect: MEMBERSHIP_REQUIRED },
-  { name: "too short", memberships: () => [mem({ endDate: iso(Date.now() + 10 * DAY) })], gymId: "gym-a1", expect: MEMBERSHIP_DOES_NOT_COVER_CONTRACT },
-  { name: "one day short", memberships: () => [mem({ endDate: iso(Date.now() + 59 * DAY) })], gymId: "gym-a1", expect: MEMBERSHIP_DOES_NOT_COVER_CONTRACT },
-  { name: "exactly equal", memberships: () => [mem({ endDate: iso(Date.now() + 60 * DAY) })], gymId: "gym-a1", expect: "ok" },
-  { name: "longer", memberships: () => [mem({ endDate: iso(Date.now() + 90 * DAY) })], gymId: "gym-a1", expect: "ok" },
+  { name: "too short (allowed, warning)", memberships: () => [mem({ endDate: iso(Date.now() + 10 * DAY) })], gymId: "gym-a1", expect: "ok", covers: false },
+  { name: "one day short (allowed, warning)", memberships: () => [mem({ endDate: iso(Date.now() + 59 * DAY) })], gymId: "gym-a1", expect: "ok", covers: false },
+  { name: "exactly equal", memberships: () => [mem({ endDate: iso(Date.now() + 60 * DAY) })], gymId: "gym-a1", expect: "ok", covers: true },
+  { name: "longer", memberships: () => [mem({ endDate: iso(Date.now() + 90 * DAY) })], gymId: "gym-a1", expect: "ok", covers: true },
   { name: "sibling branch", memberships: () => [mem({ purchaseGymId: "gym-a1" })], gymId: "gym-a2", expect: "ok" },
   { name: "no end date", memberships: () => [mem({ endDate: null })], gymId: "gym-a1", expect: "ok" },
   { name: "no fixed duration, expiring membership", memberships: () => [mem({ endDate: iso(Date.now() + 2 * DAY) })], validityDays: null, gymId: "gym-a1", expect: GYM_CONTRACT_REQUIRES_FIXED_DURATION },
@@ -501,8 +537,10 @@ dbTest("gym-options eligibility equals the requestContract outcome for every cas
       }
       assert.equal(outcome, c.expect, `${c.name}: requestContract`);
       // The picker reports exactly the code the request answers with (a client that does not know a reason still blocks the branch).
-      const expectedEligibility = c.expect === "ok" ? { canRequest: true, reason: null } : { canRequest: false, reason: c.expect };
-      assert.deepEqual(opt.eligibility, expectedEligibility, `${c.name}: eligibility`);
+      assert.equal(opt.eligibility.canRequest, c.expect === "ok", `${c.name}: canRequest`);
+      assert.equal(opt.eligibility.reason, c.expect === "ok" ? null : c.expect, `${c.name}: reason`);
+      if (c.expect === "ok") assert.equal(opt.eligibility.coverage?.coversContract, c.covers ?? true, `${c.name}: coverage`);
+      else assert.equal(opt.eligibility.coverage, undefined, `${c.name}: no coverage on a refusal`);
       assert.equal(opt.eligibility.canRequest, outcome === "ok", `${c.name}: canRequest == request succeeded`);
     });
   }
@@ -519,15 +557,22 @@ nodeTest("evaluateMembershipForContract: injected clock - the day boundary and t
   const at = (days: number, extraMs = 0) => iso(now.getTime() + days * DAY + extraMs);
   const verdict = (endDate: string | null, validityDays: number | null) =>
     evaluateMembershipForContract({ lookup: look(endDate), gymId: "g", validityDays, now });
+  // owner rule 19/11/2026: an active membership is ALWAYS allowed; what the day arithmetic decides is `coversContract` (the warning).
+  const covered = (endDate: string | null, validityDays: number | null) => {
+    const v = verdict(endDate, validityDays);
+    return v.ok && v.coversContract;
+  };
 
-  assert.equal(verdict(at(60), 60).ok, true, "60 vs 60 -> allowed");
-  assert.equal(verdict(at(60, -60_000), 60).ok, true, "60 days minus a minute (membership bought minutes ago) -> still allowed");
-  assert.equal(verdict(at(59, 1), 60).ok, true, "59 days and a millisecond rounds up to 60 left");
-  assert.equal(verdict(at(59), 60).ok, false, "exactly 59 days left -> blocked");
-  assert.equal(verdict(at(10), 60).ok, false, "10 vs 60 -> blocked");
-  assert.equal(verdict(at(61), 60).ok, true, "longer -> allowed");
-  assert.equal(verdict(null, 60).ok, true, "no end date -> allowed");
-  assert.equal(verdict("not-a-date", 60).ok, false, "unreadable end date -> cannot prove coverage -> blocked");
+  assert.equal(covered(at(60), 60), true, "60 vs 60 -> covers");
+  assert.equal(covered(at(60, -60_000), 60), true, "60 days minus a minute (membership bought minutes ago) -> still covers");
+  assert.equal(covered(at(59, 1), 60), true, "59 days and a millisecond rounds up to 60 left");
+  assert.equal(covered(at(59), 60), false, "exactly 59 days left -> does not cover");
+  assert.equal(verdict(at(59), 60).ok, true, "...but it is still allowed");
+  assert.equal(covered(at(10), 60), false, "10 vs 60 -> does not cover");
+  assert.equal(verdict(at(10), 60).ok, true, "...but it is still allowed");
+  assert.equal(covered(at(61), 60), true, "longer -> covers");
+  assert.equal(covered(null, 60), true, "no end date -> covers");
+  assert.equal(covered("not-a-date", 60), false, "unreadable end date -> cannot prove coverage -> does not cover (fail closed)");
   // Codex #6: no fixed duration is refused first, for EVERY membership (validityDays null never means "covers forever")
   for (const endDate of [at(1), at(3650), null, "not-a-date"]) {
     for (const validityDays of [null, 0, -3]) {
@@ -538,8 +583,9 @@ nodeTest("evaluateMembershipForContract: injected clock - the day boundary and t
   const noMembershipNoDuration = evaluateMembershipForContract({ lookup: null, gymId: "g", validityDays: null, now });
   assert.ok(!noMembershipNoDuration.ok && noMembershipNoDuration.code === GYM_CONTRACT_REQUIRES_FIXED_DURATION, "the package is judged before the member");
   const short = verdict(at(10), 60);
-  assert.ok(!short.ok && short.code === MEMBERSHIP_DOES_NOT_COVER_CONTRACT);
-  assert.equal(!short.ok && short.details.contractEndDate, iso(now.getTime() + 60 * DAY));
+  assert.ok(short.ok && !short.coversContract);
+  assert.equal(short.ok && short.contractEndDate, iso(now.getTime() + 60 * DAY));
+  assert.equal(short.ok && short.membershipEndDate, at(10));
   // lookup null (gym-service does not know the branch) and an inactive lookup both read as "required"
   const none = evaluateMembershipForContract({ lookup: null, gymId: "g", brandId: "brand-x", validityDays: 60, now });
   assert.ok(!none.ok && none.code === MEMBERSHIP_REQUIRED && none.details.brandId === "brand-x");
@@ -554,8 +600,10 @@ nodeTest("[Codex #6] boundary, exactly: days are Asia/Ho_Chi_Minh days = 24 h (U
   });
   const validityDays = 30;
   const contractEnd = now.getTime() + validityDays * DAY; // 2026-11-16 00:00 +07:00, the same arithmetic as activation
-  const covers = (endMs: number | null) =>
-    evaluateMembershipForContract({ lookup: look(endMs === null ? null : iso(endMs)), gymId: "g", validityDays, now }).ok;
+  const covers = (endMs: number | null) => {
+    const v = evaluateMembershipForContract({ lookup: look(endMs === null ? null : iso(endMs)), gymId: "g", validityDays, now });
+    return v.ok && v.coversContract;
+  };
 
   assert.equal(projectedContractEnd(now, validityDays)!.getTime(), contractEnd);
   assert.equal(covers(contractEnd), true, "membership ends exactly when the contract ends -> covers");
@@ -570,11 +618,11 @@ nodeTest("[Codex #6] boundary, exactly: days are Asia/Ho_Chi_Minh days = 24 h (U
   // a membership already over at the request instant is not covering anything
   assert.equal(covers(now.getTime()), false);
   assert.equal(covers(now.getTime() - 1), false);
-  // the refusal says which two instants it compared
+  // the (non-blocking) warning says which two instants it compared
   const v = evaluateMembershipForContract({ lookup: look(iso(contractEnd - DAY)), gymId: "g", validityDays, now });
-  assert.ok(!v.ok && v.code === MEMBERSHIP_DOES_NOT_COVER_CONTRACT);
-  assert.equal(!v.ok && v.details.contractEndDate, iso(contractEnd));
-  assert.equal(!v.ok && v.details.membershipEndDate, iso(contractEnd - DAY));
+  assert.ok(v.ok && !v.coversContract);
+  assert.equal(v.ok && v.contractEndDate, iso(contractEnd));
+  assert.equal(v.ok && v.membershipEndDate, iso(contractEnd - DAY));
 });
 
 dbTest("contract end projection uses the SAME arithmetic as activation (activateIfPendingGuarded: startDate + validityDays*24h)", async () => {

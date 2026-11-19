@@ -84,6 +84,7 @@ test("login() with the correct password succeeds and issues both tokens", async 
     isActive: true,
   }));
   const restoreToken = patch(authRepository, "createRefreshToken", async () => ({}));
+  const restoreRevoke = patch(authRepository, "revokeSessionsOnPlatform", async () => 0);
 
   try {
     const result = await authService.login("user@example.com", "correct-password");
@@ -93,6 +94,7 @@ test("login() with the correct password succeeds and issues both tokens", async 
   } finally {
     restoreUser();
     restoreToken();
+    restoreRevoke();
   }
 });
 
@@ -109,6 +111,7 @@ test("login() response no longer exposes mustChangePassword (forced-password scr
     mustChangePassword: true, // legacy DB column kept; must not leak into the response
   }));
   const restoreToken = patch(authRepository, "createRefreshToken", async () => ({}));
+  const restoreRevoke = patch(authRepository, "revokeSessionsOnPlatform", async () => 0);
 
   try {
     const result = await authService.login("user@example.com", "correct-password");
@@ -116,6 +119,7 @@ test("login() response no longer exposes mustChangePassword (forced-password scr
   } finally {
     restoreUser();
     restoreToken();
+    restoreRevoke();
   }
 });
 

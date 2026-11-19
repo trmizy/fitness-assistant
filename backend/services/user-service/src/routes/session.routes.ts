@@ -6,6 +6,8 @@ const router = Router();
 
 // ── Booking ──────────────────────────────────────────────────────────
 router.post("/", authMiddleware, bookingController.bookSession as any);
+// Several slots (possibly on different days) in one all-or-nothing request — same rules as the single booking.
+router.post("/batch", authMiddleware, bookingController.bookSessionsBatch as any);
 router.get("/upcoming", authMiddleware, bookingController.getMyUpcoming as any);
 router.get(
   "/pending-confirmation",

@@ -23,6 +23,11 @@ import type {
   UpdateUserRoleDto,
 } from "../models/auth.models";
 import { sendOtpEmail, sendPlainEmail } from "./email.service";
+import {
+  SESSION_REPLACED_CODE,
+  SESSION_REPLACED_MESSAGE,
+  type SessionPlatform,
+} from "./session-platform";
 
 // Self-service password reset (GAP-4). Shorter than the 24h an admin-issued partner link gets: a
 // link the user asked for themselves is used within minutes, and a compromised inbox should not
@@ -67,10 +72,14 @@ function generateAccessToken(
   userId: string,
   role: string,
   email: string,
+  sessionId?: string,
 ): string {
-  return jwt.sign({ userId, role, email }, ACCESS_TOKEN_SECRET, {
-    expiresIn: ACCESS_TOKEN_EXPIRY,
-  });
+  // `sid` lets verifyToken refuse an access token whose session a newer same-platform login superseded.
+  return jwt.sign(
+    { userId, role, email, ...(sessionId ? { sid: sessionId } : {}) },
+    ACCESS_TOKEN_SECRET,
+    { expiresIn: ACCESS_TOKEN_EXPIRY },
+  );
 }
 
 function generateRefreshToken(userId: string): string {
@@ -212,7 +221,7 @@ export const authService = {
     return response;
   },
 
-  async verifyRegistration(data: RegisterVerifyDto) {
+  async verifyRegistration(data: RegisterVerifyDto, platform: SessionPlatform = "web") {
     const record = await authRepository.findEmailVerificationByEmail(
       data.email,
     );
@@ -249,12 +258,15 @@ export const authService = {
 
     await authRepository.deleteEmailVerification(data.email);
 
-    const accessToken = generateAccessToken(user.id, user.role, user.email);
+    const sessionId = crypto.randomUUID();
+    const accessToken = generateAccessToken(user.id, user.role, user.email, sessionId);
     const refreshToken = generateRefreshToken(user.id);
     await authRepository.createRefreshToken({
       token: refreshToken,
       userId: user.id,
       expiresAt: makeRefreshExpiry(),
+      platform,
+      sessionId,
     });
 
     return {
@@ -428,7 +440,12 @@ export const authService = {
     return result;
   },
 
-  async login(email: string, password: string) {
+  /**
+   * Concurrent-login rule: signing in supersedes this account's previous session ON THE SAME PLATFORM
+   * (web or mobile) — its refresh token is revoked and its access token refused at once (`sid`). The other
+   * platform's session is untouched, so an account holds at most one web + one mobile session.
+   */
+  async login(email: string, password: string, platform: SessionPlatform = "web") {
     const user = await authRepository.findUserByEmail(email);
     if (!user) throw { status: 401, message: "Invalid credentials" };
 
@@ -442,12 +459,18 @@ export const authService = {
       throw { status: 403, message: "Tài khoản đã bị vô hiệu hóa" };
     }
 
-    const accessToken = generateAccessToken(user.id, user.role, user.email);
+    // Revoke first, create second: a crash between the two leaves the user signed out rather than with a stray
+    // extra session. The new row is created after the revoke, so it is never swept by it.
+    await authRepository.revokeSessionsOnPlatform(user.id, platform);
+    const sessionId = crypto.randomUUID();
+    const accessToken = generateAccessToken(user.id, user.role, user.email, sessionId);
     const refreshToken = generateRefreshToken(user.id);
     await authRepository.createRefreshToken({
       token: refreshToken,
       userId: user.id,
       expiresAt: makeRefreshExpiry(),
+      platform,
+      sessionId,
     });
 
     return {
@@ -537,6 +560,12 @@ export const authService = {
     const storedToken = await authRepository.findRefreshToken(refreshToken);
     if (!storedToken) throw { status: 401, message: "Refresh token not found" };
 
+    // A newer login on this platform superseded the session. The row stays so the signed-out device
+    // gets the reason; it is swept once it expires (revokeSessionsOnPlatform).
+    if ((storedToken as any).revokedAt) {
+      throw { status: 401, message: SESSION_REPLACED_MESSAGE, code: SESSION_REPLACED_CODE };
+    }
+
     if (storedToken.expiresAt < new Date()) {
       await authRepository.deleteRefreshToken(storedToken.id);
       throw { status: 401, message: "Refresh token expired" };
@@ -547,18 +576,31 @@ export const authService = {
       throw { status: 403, message: "Tài khoản đã bị vô hiệu hóa" };
     }
 
+    // Rotation keeps the session: same id and platform (rows from before the columns existed are web sessions
+    // and get an id now).
+    const sessionId = (storedToken as any).sessionId ?? crypto.randomUUID();
+    const platform = (storedToken as any).platform ?? "web";
     const accessToken = generateAccessToken(
       storedToken.user.id,
       storedToken.user.role,
       storedToken.user.email,
+      sessionId,
     );
     const newRefreshToken = generateRefreshToken(storedToken.user.id);
-    await authRepository.deleteRefreshToken(storedToken.id);
+    // New row first, then a delete that only succeeds while the old row is still live: a login that
+    // superseded this session in between makes the delete a no-op, and the new row is withdrawn.
     await authRepository.createRefreshToken({
       token: newRefreshToken,
       userId: storedToken.user.id,
       expiresAt: makeRefreshExpiry(),
+      platform,
+      sessionId,
     });
+    const deleted = await authRepository.deleteRefreshToken(storedToken.id);
+    if (deleted && deleted.count === 0) {
+      await authRepository.deleteRefreshTokenByValue(newRefreshToken);
+      throw { status: 401, message: SESSION_REPLACED_MESSAGE, code: SESSION_REPLACED_CODE };
+    }
 
     return {
       accessToken,
@@ -593,6 +635,10 @@ export const authService = {
     if (!user) throw { status: 401, message: "User not found" };
     if ((user as any).isActive === false) {
       throw { status: 403, message: "Tài khoản đã bị vô hiệu hóa" };
+    }
+    // Access tokens issued before sessions carried an id have no `sid` and are never checked.
+    if (typeof decoded.sid === "string" && (await authRepository.isSessionRevoked(decoded.sid))) {
+      throw { status: 401, message: SESSION_REPLACED_MESSAGE, code: SESSION_REPLACED_CODE };
     }
     return user;
   },

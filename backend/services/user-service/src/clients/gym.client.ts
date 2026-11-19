@@ -53,6 +53,11 @@ export interface ClientMembershipLookup {
    * Optional: an older gym-service answers only `membership`.
    */
   memberships?: ClientMembershipSummary[];
+  /**
+   * Stacked renewals (owner rule 19/11/2026): paid memberships of the brand whose period has not started yet, soonest start first.
+   * Never "active" - they only extend how far the coverage reaches. Optional: an older gym-service does not send it.
+   */
+  upcoming?: ClientMembershipSummary[];
 }
 
 /** Only values gym-service is known to use; anything else is dropped rather than stored as an unreadable string. */

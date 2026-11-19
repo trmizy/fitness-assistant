@@ -14,9 +14,14 @@ import type { ClientMembershipLookup } from "../clients/gym.client";
  *      brand-level; a sibling branch's membership counts, another brand's does not). "Active" is
  *      gym-service's own definition (P3.1: status ACTIVE, end date not passed, visits left) -
  *      expired / cancelled / pending-payment memberships arrive here as "none".
- *   2. MEMBERSHIP_DOES_NOT_COVER_CONTRACT - an active membership exists but ends before the
- *      contract would end (10 days left vs a 60-day contract -> blocked; 60 vs 60 -> allowed;
- *      longer -> allowed). Nothing is bought, renewed or paid automatically.
+ *   2. COVERAGE IS A WARNING, NOT A GATE (owner rule 19/11/2026 - replaces the old MEMBERSHIP_DOES_NOT_COVER_CONTRACT refusal): a client
+ *      with an ACTIVE membership at the brand may hire the PT even when that membership ends before the contract would
+ *      (10 days left vs a 60-day contract -> allowed, coverage.coversContract = false; 60 vs 60 -> covers; longer -> covers). The picker
+ *      shows "goi het han <ngay>, can gia han" and the client renews later (stacked renewal, gym-service). A membership that has not
+ *      started yet (queued renewal) is NOT an active membership, but it EXTENDS the coverage end when it follows on without a gap.
+ *      Nothing is bought, renewed or paid automatically. The code MEMBERSHIP_DOES_NOT_COVER_CONTRACT is kept exported only so older
+ *      clients / tests that name it still compile; the backend no longer answers with it. Real enforcement of "a session needs a
+ *      membership on its date" is the booking guard (session-membership-guard.ts), not this gate.
  *
  *   0. GYM_CONTRACT_REQUIRES_FIXED_DURATION (owner rule, Codex #6, decided final) - a PT contract linked to a gym MUST have a fixed
  *      duration at signing. A package with no validityDays (null, 0 or negative) can never be a gym contract: refused (409) before
@@ -52,6 +57,19 @@ export interface GymContractEligibility {
   canRequest: boolean;
   /** The same code the request itself answers with. A client that does not know a reason still blocks the branch (generic copy). */
   reason: MembershipIneligibleReason | null;
+  /**
+   * Present when canRequest: does the membership (plus queued renewals that follow on) last through the projected contract end?
+   * coversContract false is a WARNING the UI shows with membershipEndsAt ("het han dd/MM, can gia han"), never a refusal.
+   */
+  coverage?: MembershipCoverage;
+}
+
+export interface MembershipCoverage {
+  coversContract: boolean;
+  /** ISO end of the continuous membership coverage (null = open-ended membership). */
+  membershipEndsAt: string | null;
+  /** ISO projected end of the contract if it started now (null when the package has no duration). */
+  contractEndsAt: string | null;
 }
 
 /** A gym contract needs a real, positive, whole number of days. null / undefined / 0 / negative / fractional never qualify. */
@@ -78,8 +96,11 @@ export interface MembershipEligibilityOk {
   ok: true;
   /** The membership chosen to back the contract (snapshotted as `gymMembershipId`). */
   membershipId: string;
+  /** End of the continuous coverage: the chosen membership's end, extended by queued renewals that start right when it ends. */
   membershipEndDate: string | null;
   contractEndDate: string | null;
+  /** Whether the membership covers the whole contract (false = allowed with a warning, owner rule 19/11/2026). */
+  coversContract: boolean;
 }
 
 export interface MembershipEligibilityRefused {
@@ -112,6 +133,30 @@ function daysLeft(endDate: string | null, now: Date): number {
   const end = endMs(endDate);
   if (end === Number.POSITIVE_INFINITY) return Number.POSITIVE_INFINITY;
   return Math.ceil((end - now.getTime()) / DAY_MS);
+}
+
+/** A queued renewal counts as "following on" when it starts no later than this long after the previous period's end. */
+const CHAIN_TOLERANCE_MS = 60 * 1000;
+
+/**
+ * End of the continuous coverage: start from the active membership that lasts longest, then walk the queued (not yet started)
+ * renewals by start date; one that begins at or before the current end (within a minute) extends it. A gap stops the chain -
+ * days after a gap are not covered. null = open-ended.
+ */
+function chainedEndDate(bestEnd: string | null, upcoming: ReadonlyArray<{ startDate: string | null; endDate: string | null }>): string | null {
+  let end = endMs(bestEnd);
+  if (end === Number.POSITIVE_INFINITY) return null;
+  if (end === Number.NEGATIVE_INFINITY) return bestEnd; // unreadable date from gym-service: leave it, it can never cover (fail closed)
+  const queued = [...upcoming]
+    .filter((u) => u.startDate != null && !Number.isNaN(Date.parse(u.startDate)))
+    .sort((a, b) => Date.parse(a.startDate as string) - Date.parse(b.startDate as string));
+  for (const u of queued) {
+    if (Date.parse(u.startDate as string) > end + CHAIN_TOLERANCE_MS) break;
+    const e = endMs(u.endDate);
+    if (e === Number.POSITIVE_INFINITY) return null;
+    if (e > end) end = e;
+  }
+  return new Date(end).toISOString();
 }
 
 /**
@@ -155,29 +200,26 @@ export function evaluateMembershipForContract(input: {
   for (const c of candidates) if (endMs(c.endDate) > endMs(best.endDate)) best = c;
 
   const contractEnd = projectedContractEnd(now, validityDays);
-  const covers = daysLeft(best.endDate, now) >= validityDays;
-  if (!covers) {
-    return {
-      ok: false,
-      code: MEMBERSHIP_DOES_NOT_COVER_CONTRACT,
-      details: {
-        gymId,
-        brandId,
-        membershipEndDate: best.endDate ?? null,
-        contractEndDate: contractEnd ? contractEnd.toISOString() : null,
-      },
-    };
-  }
+  // Owner rule 19/11/2026: not covering is NOT a refusal any more - it is reported (coversContract=false + the end date).
+  const coverageEnd = chainedEndDate(best.endDate ?? null, lookup?.upcoming ?? []);
+  const covers = daysLeft(coverageEnd, now) >= validityDays;
   return {
     ok: true,
     membershipId: best.membershipId,
-    membershipEndDate: best.endDate ?? null,
+    membershipEndDate: coverageEnd,
     contractEndDate: contractEnd ? contractEnd.toISOString() : null,
+    coversContract: covers,
   };
 }
 
 export function toGymContractEligibility(result: MembershipEligibility): GymContractEligibility {
-  if (result.ok) return { canRequest: true, reason: null };
+  if (result.ok) {
+    return {
+      canRequest: true,
+      reason: null,
+      coverage: { coversContract: result.coversContract, membershipEndsAt: result.membershipEndDate, contractEndsAt: result.contractEndDate },
+    };
+  }
   return { canRequest: false, reason: result.code };
 }
 
@@ -209,6 +251,7 @@ function throwRefusal(result: MembershipEligibilityRefused, audience: Membership
       result.details,
     );
   }
+  // MEMBERSHIP_DOES_NOT_COVER_CONTRACT is no longer produced (owner rule 19/11/2026); kept as a defensive branch for a stale caller.
   throw codedErr(
     audience === "PT"
       ? "Gói hội viên của học viên hết hạn trước khi hợp đồng PT kết thúc nên chưa thể chấp nhận hợp đồng."
