@@ -37,6 +37,10 @@ $account = aws sts get-caller-identity --query Account --output text
 if ($account -ne $ExpectedAccount) { Write-Host "HARD STOP: wrong AWS account '$account'." -ForegroundColor Red; exit 1 }
 
 function Get-ProxyStackStatus {
+    # "Stack does not exist" is the NORMAL answer when no proxy is up. Windows PowerShell 5.1 turns a native command's stderr into a
+    # terminating NativeCommandError under $ErrorActionPreference = "Stop" (even with 2>$null), which aborted dev-stop.ps1 when no
+    # proxy stack existed (2026-11-20). Relax it for this one probe; the exit code below is the real signal.
+    $ErrorActionPreference = "Continue"
     $s = aws cloudformation describe-stacks --stack-name $StackName --region $Region --query "Stacks[0].StackStatus" --output text 2>$null
     if ($LASTEXITCODE -ne 0) { return $null }
     return $s
