@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gymini — Lộ trình tập luyện, huấn luyện viên và phòng gym</title>
+    <meta name="theme-color" content="#f8fafc" />
+    <meta name="description" content="Gymini lập lộ trình tập và ăn theo chu kỳ 4 tuần, đánh giá lại bằng số liệu thật, kết nối bạn với huấn luyện viên độc lập và phòng gym đã được thẩm định." />
+    <link rel="preload" href="/fonts/barlow-600-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/barlow-600-vietnamese.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/inter-var-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/inter-var-vietnamese.woff2" as="font" type="font/woff2" crossorigin />
+    <script>
+      /* Giữ hiệu ứng vào trang tới khi font sẵn sàng (tối đa 1.2s) để không nhảy chữ. */
+      var d = document.documentElement; d.classList.add("fl");
+      var done = function () { d.classList.remove("fl"); };
+      if (document.fonts && document.fonts.load) { Promise.all([document.fonts.load("600 1em Barlow", "Tập"), document.fonts.load("400 1em Inter", "Tập")]).then(done, done); } else { done(); }
+      setTimeout(done, 1200);
+      try { var t = localStorage.getItem("gymini-site-theme"); if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
