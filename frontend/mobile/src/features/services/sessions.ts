@@ -49,6 +49,9 @@ export type SessionRow = {
   sessionMode: string | null;
   startAt: string | null;
   endAt: string | null;
+  /** The server's own online-room window (ROOM_OPEN_BEFORE_MINUTES before the start .. the scheduled end). */
+  joinOpensAt?: string | null;
+  joinClosesAt?: string | null;
   location: string | null;
   notes: string | null;
   cancellationReason: string | null;
@@ -93,6 +96,8 @@ export function normalizeSession(raw: any): SessionRow {
     sessionMode: raw?.sessionMode ?? null,
     startAt: raw?.scheduledStartAt ?? null,
     endAt: raw?.scheduledEndAt ?? null,
+    joinOpensAt: raw?.joinOpensAt ?? null,
+    joinClosesAt: raw?.joinClosesAt ?? null,
     location: raw?.location ?? null,
     notes: raw?.notes ?? null,
     cancellationReason: raw?.cancellationReason ?? null,

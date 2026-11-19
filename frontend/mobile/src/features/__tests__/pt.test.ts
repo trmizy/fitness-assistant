@@ -65,6 +65,9 @@ describe("naming a client", () => {
     assert.equal(clientName({ clientProfile: null, clientName: "Trần Văn A" }), "Trần Văn A");
     assert.equal(clientName({ clientProfile: { firstName: "", lastName: "" }, clientName: "Bù" }), "Bù");
     assert.equal(clientName(null), "Học viên");
+    // A single-word name is stored with "." as lastName; the e-mail is never a fallback.
+    assert.equal(clientName({ clientProfile: { firstName: "duy", lastName: "." } }), "duy");
+    assert.equal(clientName({ clientProfile: { firstName: null, lastName: null, email: "x@y.vn" } }), "Học viên");
   });
 
   it("initials come from the profile, then the name, then '?'", () => {

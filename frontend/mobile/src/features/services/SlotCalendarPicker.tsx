@@ -20,6 +20,7 @@ import {
   dayState,
   daysWithFreeSlots,
   freeSlotsOfDay,
+  inRange,
   isTappable,
   monthGrid,
   monthOf,
@@ -29,6 +30,7 @@ import {
   type MonthRef,
 } from "./bookingCalendar";
 import { normalizeSlots } from "./sessions";
+import { DAY_FULL_HINT } from "./batchBooking";
 
 /**
  * Month calendar + the chosen day's free time slots, shared by the booking and reschedule sheets.
@@ -50,6 +52,7 @@ export function SlotCalendarPicker({
   time,
   onChange,
   emptyDayText,
+  fullDays,
 }: {
   ptUserId: string | null | undefined;
   leadHours: number;
@@ -59,6 +62,8 @@ export function SlotCalendarPicker({
   time: string | null;
   onChange: (date: string | null, time: string | null) => void;
   emptyDayText: string;
+  /** Days on which the client already holds the daily maximum of sessions: greyed out, not tappable (client-side hint; server decides). */
+  fullDays?: ReadonlySet<string>;
 }) {
   const accent = useWorkspaceAccent();
 
@@ -181,25 +186,26 @@ export function SlotCalendarPicker({
               {row.map((cell, colIndex) => {
                 if (!cell) return <View key={colIndex} className="flex-1" />;
                 const state = dayState(cell.key, { range, free, pending, selected: date });
-                const tappable = isTappable(state);
+                const dayFull = !!fullDays?.has(cell.key) && state !== "out";
+                const tappable = isTappable(state) && !dayFull;
                 const isToday = cell.key === todayKey;
-                const selected = state === "selected";
+                const selected = state === "selected" && !dayFull;
                 return (
                   <View key={colIndex} className="flex-1 items-center">
                     <Tappable
                       className={`h-10 w-10 items-center justify-center rounded-xl border ${
-                        state === "free" ? "border-primary bg-primary/10" : "border-transparent"
+                        state === "free" && !dayFull ? "border-primary bg-primary/10" : "border-transparent"
                       }`}
                       style={[
                         { maxWidth: "94%" },
                         selected ? { backgroundColor: accent.primary, borderColor: accent.primary } : null,
-                        state === "none" || state === "out" ? { opacity: 0.3 } : null,
+                        state === "none" || state === "out" || dayFull ? { opacity: 0.3 } : null,
                         state === "pending" ? { opacity: 0.6 } : null,
                       ]}
                       disabled={!tappable}
                       haptic={tappable}
                       accessibilityLabel={`Ngày ${dayLabel(cell.key)}${
-                        state === "free" || selected ? ", còn khung giờ trống" : ""
+                        dayFull ? `, ${DAY_FULL_HINT.toLowerCase()}` : state === "free" || selected ? ", còn khung giờ trống" : ""
                       }${isToday ? ", hôm nay" : ""}`}
                       onPress={() => onChange(cell.key, null)}
                     >
@@ -207,7 +213,9 @@ export function SlotCalendarPicker({
                         className={`text-sm ${
                           selected
                             ? "font-body-medium text-background"
-                            : state === "free"
+                            : dayFull
+                              ? "font-body text-muted-foreground line-through"
+                              : state === "free"
                               ? "font-body-medium text-foreground"
                               : "font-body text-muted-foreground"
                         }`}
@@ -228,6 +236,11 @@ export function SlotCalendarPicker({
           ))}
         </View>
 
+        {fullDays && grid.some((row) => row.some((cell) => cell && fullDays.has(cell.key) && inRange(cell.key, range))) ? (
+          <Text className="font-body text-xs text-muted-foreground" testID="calendar-full-days-hint">
+            {`Ngày bị gạch mờ: ${DAY_FULL_HINT.toLowerCase()}, không dời thêm buổi vào được.`}
+          </Text>
+        ) : null}
         <Text className="font-body text-xs text-muted-foreground">
           {monthEmpty
             ? "Tháng này chưa có ngày nào còn khung giờ trống — thử xem tháng khác."

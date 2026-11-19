@@ -110,23 +110,42 @@ export interface JoinState {
   reason?: string;
 }
 
-/** Web's JOIN_BEFORE/AFTER: both clocks are imprecise, and the server still refuses anything invalid. */
-const JOIN_BEFORE_MS = 30 * 60 * 1000;
-const JOIN_AFTER_MS = 30 * 60 * 1000;
+/**
+ * The room is open exactly when the server says (joinOpensAt .. joinClosesAt on the session: ROOM_OPEN_BEFORE_MINUTES before
+ * the start, the scheduled end with no grace tail). Responses without them fall back to the same default rule, so the button
+ * is never enabled for a window the server then refuses.
+ */
+const DEFAULT_OPEN_BEFORE_MS = 15 * 60 * 1000;
+
+/** "Mở phòng lúc 09:45", with the day ("20/11") when it is not today. */
+export function roomOpensLabel(opensAtMs: number, nowMs: number = Date.now()): string {
+  const d = new Date(opensAtMs);
+  const hhmm = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  const n = new Date(nowMs);
+  const sameDay = d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+  return sameDay ? `Mở phòng lúc ${hhmm}` : `Mở phòng lúc ${hhmm} ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 /**
  * Web: utils/sessionUtils.ts getJoinSessionState. Only a CONFIRMED, ONLINE session shows the button;
- * it is usable from 30 min before the start to 30 min after the end. Membership of the session is
+ * it is usable while the server's room is open (see above). Membership of the session is
  * implied here (these lists are the caller's own) and enforced by the server when it mints the token.
  */
 export function joinSessionState(
-  s: { sessionMode: string | null | undefined; status: string; startAt: string | null | undefined; endAt: string | null | undefined },
+  s: {
+    sessionMode: string | null | undefined;
+    status: string;
+    startAt: string | null | undefined;
+    endAt: string | null | undefined;
+    joinOpensAt?: string | null;
+    joinClosesAt?: string | null;
+  },
   now = Date.now(),
 ): JoinState {
   if (s.sessionMode !== "ONLINE" || s.status !== "CONFIRMED" || !s.startAt) return { visible: false, enabled: false };
-  const opens = new Date(s.startAt).getTime() - JOIN_BEFORE_MS;
-  const closes = new Date(s.endAt ?? s.startAt).getTime() + JOIN_AFTER_MS;
-  if (now < opens) return { visible: true, enabled: false, reason: "Chưa đến giờ học" };
-  if (now > closes) return { visible: true, enabled: false, reason: "Buổi học đã kết thúc" };
+  const opens = s.joinOpensAt ? new Date(s.joinOpensAt).getTime() : new Date(s.startAt).getTime() - DEFAULT_OPEN_BEFORE_MS;
+  const closes = s.joinClosesAt ? new Date(s.joinClosesAt).getTime() : new Date(s.endAt ?? s.startAt).getTime();
+  if (now < opens) return { visible: true, enabled: false, reason: roomOpensLabel(opens, now) };
+  if (now >= closes) return { visible: true, enabled: false, reason: "Buổi học đã kết thúc" };
   return { visible: true, enabled: true };
 }

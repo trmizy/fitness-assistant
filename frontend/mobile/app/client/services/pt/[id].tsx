@@ -510,6 +510,23 @@ export default function TrainerDetailScreen() {
                           />
                         ))}
                       </View>
+                    ) : gymOptions?.requestBlockedCode ? (
+                      // The server refused the request before any branch matters (e.g. ACTIVE_CONTRACT_EXISTS): say THAT, not "no gym".
+                      <View className="mt-1 gap-2" testID="gym-options-blocked">
+                        <Text className="font-body text-xs leading-5 text-foreground">
+                          {gymOptions.requestBlockedCopy}
+                        </Text>
+                        {gymOptions.requestBlockedCode === "ACTIVE_CONTRACT_EXISTS" ? (
+                          <Button
+                            variant="secondary"
+                            size="md"
+                            className="self-start"
+                            onPress={() => router.push({ pathname: "/client/services", params: { tab: "contracts" } })}
+                          >
+                            Xem hợp đồng
+                          </Button>
+                        ) : null}
+                      </View>
                     ) : (
                       <Text className="mt-1 font-body text-xs text-muted-foreground">
                         {gymOptions?.gymsReasonCopy ?? "Huấn luyện viên hiện chưa có phòng gym nào để bạn chọn."}

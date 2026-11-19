@@ -10,7 +10,7 @@
  * Runs with: ./node_modules/.bin/tsx --test src/features/__tests__/batchBooking.test.ts
  */
 
-import { dayLabel } from "./bookingCalendar";
+import { dayLabel, toDateKey } from "./bookingCalendar";
 
 export const MAX_BATCH_SESSIONS = 10;
 export const MAX_SESSIONS_PER_DAY = 2;
@@ -45,6 +45,35 @@ export function addSlot(list: PickedSlot[], slot: PickedSlot, opts: { sessionsLe
     return { list, error: `Mỗi ngày chỉ đặt tối đa ${MAX_SESSIONS_PER_DAY} buổi — hãy chọn ngày khác.` };
   }
   return { list: sortSlots([...list, slot]), error: null };
+}
+
+/** Shown on a calendar day the client can not add another session to. */
+export const DAY_FULL_HINT = `Đã đủ ${MAX_SESSIONS_PER_DAY} buổi trong ngày`;
+
+/**
+ * Days (local "YYYY-MM-DD") on which the client already holds MAX_SESSIONS_PER_DAY live sessions (REQUESTED or CONFIRMED, any PT),
+ * not counting `movingSessionId` — the session being rescheduled leaves its own day. Built only from sessions the app already
+ * loaded, so it can only say "no" early; the server stays the authority (409 CLIENT_DAILY_SESSION_LIMIT).
+ */
+export function fullSessionDays(
+  sessions: ReadonlyArray<{ id: string; status: string; startAt: string | null }>,
+  movingSessionId?: string | null,
+): Set<string> {
+  const seen = new Set<string>();
+  const perDay = new Map<string, number>();
+  for (const s of sessions) {
+    if (!s.id || seen.has(s.id)) continue;
+    seen.add(s.id);
+    if (s.id === movingSessionId) continue;
+    if (s.status !== "REQUESTED" && s.status !== "CONFIRMED") continue;
+    const t = s.startAt ? new Date(s.startAt) : null;
+    if (!t || Number.isNaN(t.getTime())) continue;
+    const key = toDateKey(t);
+    perDay.set(key, (perDay.get(key) ?? 0) + 1);
+  }
+  const full = new Set<string>();
+  for (const [key, n] of perDay) if (n >= MAX_SESSIONS_PER_DAY) full.add(key);
+  return full;
 }
 
 export function removeSlot(list: PickedSlot[], slot: PickedSlot): PickedSlot[] {

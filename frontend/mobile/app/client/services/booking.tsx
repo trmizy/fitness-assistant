@@ -40,6 +40,7 @@ import {
   addSlot,
   batchBlockedReason,
   buildBatchPayload,
+  fullSessionDays,
   readBatchRejection,
   removeSlot,
   slotKey,
@@ -420,6 +421,7 @@ export default function BookingScreen() {
         session={detail}
         contractEnd={contracts.find((c) => c.id === detail?.contractId)?.endDate}
         contractStart={contracts.find((c) => c.id === detail?.contractId)?.startDate}
+        sessions={sessions}
         onClose={() => setAction(null)}
         onDone={() => {
           setAction(null);
@@ -690,6 +692,7 @@ function RescheduleSheet({
   session,
   contractEnd,
   contractStart,
+  sessions = [],
   onClose,
   onDone,
 }: {
@@ -698,6 +701,8 @@ function RescheduleSheet({
   /** The session's contract window — a move may not leave it (the server re-checks). */
   contractEnd?: string | null;
   contractStart?: string | null;
+  /** The client's own sessions already loaded on this screen, to grey out days that already hold the daily maximum. */
+  sessions?: SessionRow[];
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -710,6 +715,8 @@ function RescheduleSheet({
   const [membershipRefusal, setMembershipRefusal] = useState<MembershipNotCovered | null>(null);
 
   const payload = session && date && time ? buildReschedulePayload(session, date, time) : null;
+  // Days with 2 live sessions (excluding the one being moved): a client-side hint only, the server re-checks.
+  const fullDays = useMemo(() => fullSessionDays(sessions, session?.id), [sessions, session?.id]);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -745,6 +752,7 @@ function RescheduleSheet({
             leadHours={RESCHEDULE_LEAD_HOURS}
             contractEnd={contractEnd}
             contractStart={contractStart}
+            fullDays={fullDays}
             date={date}
             time={time}
             onChange={(nextDate, nextTime) => {
@@ -913,11 +921,18 @@ function BookingSheet({
         time,
       })
     : "Bạn chưa có hợp đồng đang hiệu lực.";
+  // The chosen-but-not-yet-added slot: would the list take it? When it would not (e.g. 2 sessions already on that day) it does NOT count
+  // towards the CTA and its reason stays on screen, so "Xem lại và đặt N buổi" keeps working for the slots that are fine.
+  const currentIsNew = !!current && !picked.some((s) => slotKey(s) === slotKey(current));
+  const currentRefusal = current && currentIsNew ? addSlot(picked, current, { sessionsLeft: left }).error : null;
+  const currentAddable = currentIsNew && !currentRefusal;
+  const shownPickError = pickError ?? currentRefusal;
+  const batchCount = picked.length + (currentAddable ? 1 : 0);
   const batchBlocked = contract
     ? batchBlockedReason({
         contractStatus: contract.status,
         sessionsLeft: left,
-        count: picked.length + (current && !picked.some((s) => slotKey(s) === slotKey(current)) ? 1 : 0),
+        count: batchCount,
       })
     : "Bạn chưa có hợp đồng đang hiệu lực.";
 
@@ -1102,7 +1117,7 @@ function BookingSheet({
                 <BatchSlotList slots={picked} onRemove={removePicked} />
               </View>
             ) : null}
-            {pickError ? <Text className="font-body text-xs text-destructive">{pickError}</Text> : null}
+            {shownPickError ? <Text className="font-body text-xs text-destructive" testID="batch-pick-error">{shownPickError}</Text> : null}
             {membershipRefusal ? (
               <MembershipNotCoveredNotice refusal={membershipRefusal} coverUntil={contract?.endDate} onBeforeNavigate={onClose} />
             ) : null}
@@ -1151,11 +1166,20 @@ function BookingSheet({
                   full
                   disabled={!!batchBlocked}
                   onPress={() => {
-                    if (addCurrent()) setStep("review");
+                    if (currentRefusal) {
+                      // The refused slot is dropped (its reason stays above); the slots already on the list go on to the summary.
+                      setTime(null);
+                      setStep("review");
+                    } else if (addCurrent()) setStep("review");
                   }}
                 >
-                  {`Xem lại và đặt ${picked.length + (current && !picked.some((s) => slotKey(s) === slotKey(current)) ? 1 : 0)} buổi`}
+                  {`Xem lại và đặt ${batchCount} buổi`}
                 </Button>
+                {currentRefusal ? (
+                  <Text className="text-center font-body text-xs text-destructive">
+                    {`Khung giờ vừa chọn không được thêm: ${currentRefusal}`}
+                  </Text>
+                ) : null}
                 {batchBlocked ? (
                   <Text className="text-center font-body text-xs text-muted-foreground">{batchBlocked}</Text>
                 ) : null}

@@ -134,7 +134,9 @@ const REQUEST_BLOCKED_COPY: Record<string, string> = {
   PT_ACCOUNT_LOCKED: "Huấn luyện viên này hiện không nhận khách mới.",
   PT_NOT_ACCEPTING_CLIENTS: "Huấn luyện viên hiện không nhận khách mới.",
   ACTIVE_CONTRACT_EXISTS:
-    "Bạn đang có hợp đồng với huấn luyện viên này. Hãy kết thúc hợp đồng cũ trước khi gửi yêu cầu mới.",
+    "Bạn đang có hợp đồng với PT này. Hãy kết thúc hợp đồng cũ trước khi gửi yêu cầu mới.",
+  CONTRACT_PAUSED_BY_ADMIN:
+    "Hợp đồng với huấn luyện viên này đang tạm dừng nên chưa thể gửi yêu cầu mới.",
   CLIENT_PT_LIMIT_REACHED:
     "Bạn đang tập cùng lúc với 2 huấn luyện viên (tính cả yêu cầu đang chờ). Hãy kết thúc hoặc hủy một hợp đồng trước khi đăng ký thêm.",
 };
