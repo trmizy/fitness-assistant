@@ -1909,6 +1909,16 @@ export function PTDiscoveryPage() {
                         );
                       })}
                     </div>
+                  ) : gymOptionsView?.requestBlockedCode ? (
+                    // The reason is already shown in the amber box above; never claim "no gym" for a blocked request.
+                    gymOptionsView.requestBlockedCode === "ACTIVE_CONTRACT_EXISTS" ? (
+                      <Link
+                        to="/client/contracts"
+                        className="inline-flex min-h-10 items-center rounded-lg border border-green-500/40 px-3 py-1.5 text-xs font-semibold text-green-400 transition-colors hover:bg-green-500/10"
+                      >
+                        Xem hợp đồng
+                      </Link>
+                    ) : null
                   ) : (
                     <p className="text-[11px] text-zinc-600 leading-snug">
                       {gymOptionsView?.gymsReasonCopy ??

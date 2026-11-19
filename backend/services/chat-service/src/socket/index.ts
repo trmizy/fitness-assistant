@@ -5,6 +5,7 @@ import { registerChatHandlers } from "./chat.handler";
 import { registerCallHandlers, graceTimers } from "./call.handler";
 import { callService } from "../services/call.service";
 import { verifyToken } from "../clients/auth-service.client";
+import { SocketAuth, registerAuthRefreshHandler } from "./socket-auth";
 
 // Track online users: userId → Set of socket IDs (user may have multiple tabs)
 export const onlineUsers = new Map<string, Set<string>>();
@@ -46,6 +47,7 @@ export function initSocket(httpServer: http.Server) {
       if (!data?.user?.id) return next(new Error("Invalid token"));
 
       (socket as any).user = data.user;
+      (socket as any).handshakeToken = token;
       next();
     } catch {
       next(new Error("Invalid token"));
@@ -77,9 +79,14 @@ export function initSocket(httpServer: http.Server) {
 
     socket.broadcast.emit("user:online", { userId: user.id });
 
+    // CALL-01: the access token is refreshed over the socket's life (auth:refresh push / auth:request_token pull),
+    // re-verified by auth-service each time; a refused or replaced token disconnects the socket.
+    const socketAuth = new SocketAuth(socket, user.id, (socket as any).handshakeToken as string);
+    registerAuthRefreshHandler(socket, socketAuth);
+
     // Register event handlers, passing io so handlers can emit to rooms
     registerChatHandlers(io, socket, user);
-    registerCallHandlers(io, socket, user);
+    registerCallHandlers(io, socket, user, socketAuth);
 
     // If user reconnects during a grace period, cancel the grace timer
     const existingGrace = graceTimers.get(user.id);
@@ -99,6 +106,7 @@ export function initSocket(httpServer: http.Server) {
     }
 
     socket.on("disconnect", () => {
+      socketAuth.close();
       websocketConnectionsActive.dec();
 
       const sockets = onlineUsers.get(user.id);

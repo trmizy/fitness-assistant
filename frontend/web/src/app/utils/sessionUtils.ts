@@ -5,12 +5,19 @@ export interface JoinSessionState {
   reason?: string;
 }
 
-// Both sides have to be in the room at the same time, and neither clock is exact: a client
-// opening the app early or a trainer running over should not find the button dead. A wide
-// grace band on each side costs nothing — the server still refuses to mint a join token for
-// anything that isn't a CONFIRMED, ONLINE session the caller belongs to.
-const JOIN_BEFORE_MS = 30 * 60 * 1000; // button becomes usable 30 min before start
-const JOIN_AFTER_MS = 30 * 60 * 1000; // stays usable until 30 min after the end
+// The room is open exactly when the server says: from joinOpensAt (ROOM_OPEN_BEFORE_MINUTES before the start, 15 by
+// default) until joinClosesAt (the scheduled end, no grace tail) — the sessions endpoints return both. Older responses
+// without them fall back to the same default rule, so the button is never enabled for a window the server refuses.
+const DEFAULT_OPEN_BEFORE_MS = 15 * 60 * 1000;
+
+/** "Mở phòng lúc 09:45", with the day ("20/11") when it is not today. */
+export function roomOpensLabel(opensAtMs: number, nowMs: number = Date.now()): string {
+  const d = new Date(opensAtMs);
+  const hhmm = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  const n = new Date(nowMs);
+  const sameDay = d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+  return sameDay ? `Mở phòng lúc ${hhmm}` : `Mở phòng lúc ${hhmm} ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 export function getJoinSessionState(
   session:
@@ -21,10 +28,13 @@ export function getJoinSessionState(
         scheduledEndAt: string;
         clientUserId: string;
         ptUserId: string;
+        joinOpensAt?: string | null;
+        joinClosesAt?: string | null;
       }
     | null
     | undefined,
   userId: string | null | undefined,
+  now: number = Date.now(),
 ): JoinSessionState {
   const HIDDEN: JoinSessionState = {
     visible: false,
@@ -38,20 +48,22 @@ export function getJoinSessionState(
     return HIDDEN;
   if (session.status !== "CONFIRMED") return HIDDEN;
 
-  const now = Date.now();
-  const windowStart =
-    new Date(session.scheduledStartAt).getTime() - JOIN_BEFORE_MS;
-  const windowEnd = new Date(session.scheduledEndAt).getTime() + JOIN_AFTER_MS;
+  const windowStart = session.joinOpensAt
+    ? new Date(session.joinOpensAt).getTime()
+    : new Date(session.scheduledStartAt).getTime() - DEFAULT_OPEN_BEFORE_MS;
+  const windowEnd = session.joinClosesAt
+    ? new Date(session.joinClosesAt).getTime()
+    : new Date(session.scheduledEndAt).getTime();
 
   if (now < windowStart) {
     return {
       visible: true,
       enabled: false,
       label: "Tham gia buổi học",
-      reason: "Chưa đến giờ học",
+      reason: roomOpensLabel(windowStart, now),
     };
   }
-  if (now > windowEnd) {
+  if (now >= windowEnd) {
     return {
       visible: true,
       enabled: false,

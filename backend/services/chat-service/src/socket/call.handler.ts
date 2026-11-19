@@ -188,8 +188,12 @@ export function registerCallHandlers(
   io: Server,
   socket: Socket,
   user: { id: string; email: string },
+  tokenSource?: { ensureFresh(): Promise<string | null> },
 ) {
-  const authToken = socket.handshake.auth?.token as string;
+  // CALL-01: never the handshake token captured at connect time (it expires ~15 min later and user-service re-verifies it
+  // on every call). The live socket passes its SocketAuth, which keeps a refreshed, re-verified token.
+  const getAuthToken = async (): Promise<string | null> =>
+    tokenSource ? tokenSource.ensureFresh() : ((socket.handshake.auth?.token as string | undefined) ?? null);
 
   // ── Initiate a call ──────────────────────────────────────────
   socket.on(
@@ -281,6 +285,11 @@ export function registerCallHandlers(
         // narrower and far less harmful than legitimately joined users being locked out of
         // their own already-open room.
         if (origin !== "SESSION") {
+          const authToken = await getAuthToken();
+          if (!authToken) {
+            socket.emit("call:error", { message: callErrorText("Session expired") });
+            return;
+          }
           const perm = await canInitiateCallFromChat(
             user.id,
             calleeId,

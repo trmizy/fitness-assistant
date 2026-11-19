@@ -15,6 +15,7 @@ import { Modal, ModalTitle } from "../../components/ui/Modal";
 import { useNavigate } from "react-router";
 import { sessionsToClose, sessionWhenLabel } from "./sessionsToClose";
 import { formatDateTimeVi } from "../../utils/contractGymOptions"; // "19:00 25/11/2026" - the PT-11 fix: date shown, no seconds
+import { fullName } from "../../utils/fullName";
 
 // Mirrors booking.service.ts's own NO_SHOW_GRACE_MINUTES default (env-overridable server-side,
 // so this can drift by a few minutes from whatever the server actually enforces — harmless:
@@ -175,7 +176,7 @@ export function PTSchedulePage() {
   const clientNameById = new Map<string, string>();
   for (const c of ptContracts as any[]) {
     const p = c?.clientProfile;
-    const n = `${p?.firstName ?? ""} ${p?.lastName ?? ""}`.trim() || p?.email;
+    const n = fullName(p);
     if (c?.clientUserId && n) clientNameById.set(c.clientUserId, n);
   }
   const clientLabel = (id: string) => clientNameById.get(id) ?? "Khách hàng";

@@ -306,6 +306,20 @@ describe("trainer detail — gợi ý mua gói hội viên (regression UI-03 ẩ
     });
   });
 
+  it("đang có hợp đồng với PT này (ACTIVE_CONTRACT_EXISTS): nói đúng lý do + nút 'Xem hợp đồng', không còn 'chưa có phòng gym nào'", async () => {
+    mocked.detail.mockResolvedValue(detail());
+    mocked.packages.mockResolvedValue([pkg({ sessionMode: "OFFLINE" })]);
+    mocked.gymOptions.mockResolvedValue({ requestBlockedReason: "ACTIVE_CONTRACT_EXISTS", gymsReason: "REQUEST_BLOCKED", gyms: [] });
+    const view = await renderScreen();
+    await openOffline(view);
+
+    expect(await view.findByTestId("gym-options-blocked")).toBeTruthy();
+    expect(view.getAllByText(/Bạn đang có hợp đồng với PT này/).length).toBeGreaterThan(0);
+    expect(view.queryByText(/chưa có phòng gym nào/)).toBeNull();
+    await press(view.getByText("Xem hợp đồng"));
+    expect(router.push).toHaveBeenCalledWith({ pathname: "/client/services", params: { tab: "contracts" } });
+  });
+
   it("lý do chặn khác (gói hội viên không đủ hạn) ở chi nhánh không phải nơi tập vẫn được ẩn — không có nút mua", async () => {
     mocked.detail.mockResolvedValue(detail());
     mocked.packages.mockResolvedValue([pkg({ sessionMode: "OFFLINE" })]);

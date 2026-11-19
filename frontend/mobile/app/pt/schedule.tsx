@@ -400,7 +400,7 @@ export default function PtScheduleScreen() {
                     </View>
                     {st.note ? <Text className="font-body text-xs text-muted-foreground">{st.note}</Text> : null}
                     <JoinSessionButton
-                      session={{ id: s.id, sessionMode: s.sessionMode, status: s.status, startAt: s.scheduledStartAt, endAt: s.scheduledEndAt }}
+                      session={{ id: s.id, sessionMode: s.sessionMode, status: s.status, startAt: s.scheduledStartAt, endAt: s.scheduledEndAt, joinOpensAt: (s as any).joinOpensAt, joinClosesAt: (s as any).joinClosesAt }}
                     />
 
                     {ptIncomingReschedule(s) ? (

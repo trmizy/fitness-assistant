@@ -10,6 +10,8 @@ import type { CallType } from "../../types";
 import { callErrorMessage, callReducer, initialCallState, isFinishedCallStatus, type CallState } from "./callState";
 import { AppState } from "react-native";
 import { useRNWebRTC } from "./useRNWebRTC";
+import { requestCallPermissions } from "./callPermissions";
+import { acquireWithPermissionRetry } from "./mediaPermission";
 import { dismissCallPush, dismissStaleCallPushes } from "../push/pushDevice";
 import { mergeMessage, normalizeMessage, type ChatMessage } from "../chat/chat";
 import { conversationsKey, messagesKey } from "../chat/useRealtimeChat";
@@ -383,7 +385,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     if (acquiringRef.current) return false;
     acquiringRef.current = true;
     try {
-      const stream = await webrtcRef.current.acquireMedia(callType);
+      await requestCallPermissions(callType);
+      const stream = await acquireWithPermissionRetry(() => webrtcRef.current.acquireMedia(callType));
       if (callType === "VIDEO" && stream.getVideoTracks().length === 0) {
         toastRef.current.show("Không mở được camera — đã vào cuộc gọi chỉ với âm thanh.");
       }

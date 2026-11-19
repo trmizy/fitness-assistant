@@ -369,6 +369,8 @@ export interface CallSessionInfo {
   callerId: string;
   calleeId: string;
   callerName?: string;
+  /** Outgoing CHAT calls: who is being called (the caller side has no callerName to show). */
+  calleeName?: string;
   callType: CallType;
   origin: CallOrigin;
   conversationId: string;

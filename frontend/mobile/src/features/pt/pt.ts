@@ -15,6 +15,7 @@ import { CONTRACT_STATUS, type StatusTone } from "../services/contracts";
 import { canRespondAs, collabStatusFor } from "../collaboration/collaboration";
 import { noShowRefundLabel, SESSION_STATUS, type RefundFields, type SessionTone } from "../services/sessions";
 import { GOAL_OPTIONS } from "../profile/profile";
+import { fullName } from "../../lib/personName";
 
 // ── Naming a client ────────────────────────────────────────────────────────────────────────
 
@@ -25,22 +26,16 @@ export type ClientRef = {
 };
 
 export function clientName(ref: ClientRef | null | undefined, fallback = "Học viên"): string {
-  const p = ref?.clientProfile;
-  if (p) {
-    const name = `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim();
-    if (name) return name;
-  }
+  // firstName + lastName, a lone "." placeholder dropped; never the e-mail.
+  const name = fullName(ref?.clientProfile);
+  if (name) return name;
   return ref?.clientName?.trim() || fallback;
 }
 
 /** Initials for the avatar. Never renders an id — "?" is better than a uuid fragment. */
 export function clientInitials(ref: ClientRef | null | undefined): string {
-  const p = ref?.clientProfile;
-  if (p) {
-    const i = `${p.firstName?.[0] ?? ""}${p.lastName?.[0] ?? ""}`.trim();
-    if (i) return i.toUpperCase();
-  }
-  const name = ref?.clientName?.trim();
+  const profileName = fullName(ref?.clientProfile);
+  const name = profileName || ref?.clientName?.trim();
   if (!name) return "?";
   const parts = name.split(/\s+/);
   return (parts.length >= 2 ? `${parts[0][0]}${parts[parts.length - 1][0]}` : parts[0].slice(0, 2)).toUpperCase();

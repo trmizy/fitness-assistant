@@ -550,7 +550,14 @@ export const authService = {
     };
   },
 
-  async refresh(refreshToken: string) {
+  /**
+   * `clientPlatform` is the platform the CURRENT request declares (X-Gymini-Client). It only matters for a legacy
+   * session row (created before the platform/sessionId columns: platform defaulted to "web", sessionId NULL), whose
+   * stored platform is a guess: a phone that logged in before the deploy is recorded as web, and any web login
+   * then signs it out. Such a row is re-classified here from the request, and — because it now claims a slot on
+   * that platform — it yields to a live session already on that platform (a newer login wins).
+   */
+  async refresh(refreshToken: string, clientPlatform?: SessionPlatform) {
     try {
       jwt.verify(refreshToken, REFRESH_TOKEN_SECRET);
     } catch {
@@ -578,8 +585,16 @@ export const authService = {
 
     // Rotation keeps the session: same id and platform (rows from before the columns existed are web sessions
     // and get an id now).
+    const legacy = (storedToken as any).sessionId == null;
+    const platform: SessionPlatform =
+      legacy && clientPlatform ? clientPlatform : (((storedToken as any).platform ?? "web") as SessionPlatform);
+    if (legacy && platform !== ((storedToken as any).platform ?? "web")) {
+      if ((await authRepository.countLiveSessionsOnPlatform(storedToken.userId, platform, storedToken.id)) > 0) {
+        await authRepository.revokeRefreshTokenById(storedToken.id);
+        throw { status: 401, message: SESSION_REPLACED_MESSAGE, code: SESSION_REPLACED_CODE };
+      }
+    }
     const sessionId = (storedToken as any).sessionId ?? crypto.randomUUID();
-    const platform = (storedToken as any).platform ?? "web";
     const accessToken = generateAccessToken(
       storedToken.user.id,
       storedToken.user.role,

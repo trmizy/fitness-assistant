@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { ShareNetworkIcon as Share2, DownloadSimpleIcon as Download, ArrowLeftIcon as ArrowLeft, CircleNotchIcon as Loader2, UsersIcon as Users } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
 import { templateService, workoutService, contractService, type WorkoutProgramTemplate } from "../../services/api";
+import { fullName } from "../../utils/fullName";
 
 /**
  * Roadmap P2.6 "Workout template sharing/import"
@@ -47,7 +48,7 @@ export function TemplatesPage() {
   const shareableContacts = useMemo(() => {
     const fromClients = (ptContractsQuery.data ?? []).map((c: any) => ({
       userId: c.clientUserId,
-      name: `${c.clientProfile?.firstName ?? ""} ${c.clientProfile?.lastName ?? ""}`.trim() || c.clientUserId,
+      name: fullName(c.clientProfile, "Học viên"),
     }));
     const fromPts = (clientContractsQuery.data ?? []).map((c: any) => ({
       userId: c.ptUserId,

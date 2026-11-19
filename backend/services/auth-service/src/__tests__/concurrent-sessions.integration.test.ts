@@ -77,4 +77,68 @@ if (!setupError) {
     await authService.verifyToken(web.accessToken);
     await authService.refresh(web.refreshToken);
   });
+
+  /** A refresh row as it looked BEFORE migration 20261119010000: platform defaulted to web, no session id. */
+  async function legacyRow(userId: string, token: string) {
+    const { prisma } = await import("../repositories/auth.repository");
+    const jsonwebtoken = (await import("jsonwebtoken")).default;
+    void jsonwebtoken;
+    await prisma.refreshToken.create({ data: { userId, token, expiresAt: new Date(Date.now() + 86_400_000), platform: "web", sessionId: null } });
+  }
+  async function signedLegacyToken(userId: string) {
+    const jsonwebtoken = (await import("jsonwebtoken")).default;
+    return jsonwebtoken.sign({ userId, nonce: Math.random().toString(36) }, process.env.JWT_REFRESH_SECRET || "refresh-secret-key-change-in-production", { expiresIn: "7d" });
+  }
+
+  test("real DB: R2-01 a LEGACY row (platform web, no sessionId) refreshed by the phone becomes a mobile session; a later web login no longer kicks it", async () => {
+    const { prisma } = await import("../repositories/auth.repository");
+    const { authService } = await import("../services/auth.service");
+    const bcrypt = (await import("bcryptjs")).default;
+    const user = await prisma.user.create({
+      data: { email: "legacy1@example.test", password: await bcrypt.hash("Correct-pass-1", 10), role: "CUSTOMER" as any },
+    });
+    const legacyToken = await signedLegacyToken(user.id);
+    await legacyRow(user.id, legacyToken);
+
+    const rotated = await authService.refresh(legacyToken, "mobile");
+    const rows = await prisma.refreshToken.findMany({ where: { userId: user.id, revokedAt: null } });
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].platform, "mobile");
+    assert.ok(rows[0].sessionId, "legacy row got a session id");
+
+    await authService.login("legacy1@example.test", "Correct-pass-1", "web");
+    await authService.verifyToken(rotated.accessToken); // the phone survives the web login
+    await authService.refresh(rotated.refreshToken, "mobile");
+  });
+
+  test("real DB: R2-01 a legacy row refreshed as web stays web (a later web login still supersedes it); a legacy row without a header is web", async () => {
+    const { prisma } = await import("../repositories/auth.repository");
+    const { authService } = await import("../services/auth.service");
+    const bcrypt = (await import("bcryptjs")).default;
+    const user = await prisma.user.create({
+      data: { email: "legacy2@example.test", password: await bcrypt.hash("Correct-pass-1", 10), role: "CUSTOMER" as any },
+    });
+    const legacyToken = await signedLegacyToken(user.id);
+    await legacyRow(user.id, legacyToken);
+    const rotated = await authService.refresh(legacyToken, "web");
+    assert.equal((await prisma.refreshToken.findFirst({ where: { userId: user.id, revokedAt: null } }))!.platform, "web");
+    await authService.login("legacy2@example.test", "Correct-pass-1", "web");
+    await assert.rejects(() => authService.verifyToken(rotated.accessToken), (e: any) => e.code === "SESSION_REPLACED");
+  });
+
+  test("real DB: R2-01 a legacy row re-classified to mobile yields to a mobile session that is already live (newer login wins) and is told SESSION_REPLACED", async () => {
+    const { prisma } = await import("../repositories/auth.repository");
+    const { authService } = await import("../services/auth.service");
+    const bcrypt = (await import("bcryptjs")).default;
+    const user = await prisma.user.create({
+      data: { email: "legacy3@example.test", password: await bcrypt.hash("Correct-pass-1", 10), role: "CUSTOMER" as any },
+    });
+    const legacyToken = await signedLegacyToken(user.id);
+    await legacyRow(user.id, legacyToken);
+    const mobileNow = await authService.login("legacy3@example.test", "Correct-pass-1", "mobile");
+    await assert.rejects(() => authService.refresh(legacyToken, "mobile"), (e: any) => e.status === 401 && e.code === "SESSION_REPLACED");
+    // The live mobile session is untouched, and the legacy row cannot be used again.
+    await authService.verifyToken(mobileNow.accessToken);
+    await assert.rejects(() => authService.refresh(legacyToken, "mobile"), (e: any) => e.code === "SESSION_REPLACED");
+  });
 }

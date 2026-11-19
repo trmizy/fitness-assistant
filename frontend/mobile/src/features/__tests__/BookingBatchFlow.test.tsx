@@ -153,6 +153,31 @@ describe("booking several slots at once", () => {
     expect(mockToast).toHaveBeenCalledWith("Chưa đặt được: 1/2 khung giờ không hợp lệ.", "danger");
   });
 
+  it("R2-02: a 3rd slot on a day that already has 2 is refused visibly, not counted, and the CTA still goes on with the 2 added", async () => {
+    m.slots.mockResolvedValue(["07:00", "09:00", "11:00"]);
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+    const view = await render(
+      <QueryClientProvider client={qc}>
+        <BookingScreen />
+      </QueryClientProvider>,
+    );
+    await press(await view.findByText("Đặt buổi tập mới"));
+    const days = await view.findAllByLabelText(/còn khung giờ trống/);
+    await press(days[0]);
+    await press(await view.findByText("07:00"));
+    await press(view.getByText(/^Thêm vào danh sách/));
+    await press((await view.findAllByLabelText(/còn khung giờ trống/))[0]);
+    await press(await view.findByText("09:00"));
+    await press(view.getByText(/^Thêm vào danh sách/));
+    await press((await view.findAllByLabelText(/còn khung giờ trống/))[0]);
+    await press(await view.findByText("11:00"));
+    // The refused 11:00 is not counted, and its reason is on screen next to the button.
+    expect(await view.findByText(/Khung giờ vừa chọn không được thêm: Mỗi ngày chỉ đặt tối đa 2 buổi/)).toBeTruthy();
+    expect(view.getByTestId("batch-pick-error")).toBeTruthy();
+    await press(view.getByText(/^Xem lại và đặt 2 buổi/));
+    expect(await view.findByText("Bạn sắp gửi 2 yêu cầu đặt buổi:")).toBeTruthy();
+  });
+
   it("one slot still uses the single booking request", async () => {
     m.book.mockResolvedValue({ id: "s1" });
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });

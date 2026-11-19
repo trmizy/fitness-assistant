@@ -12,7 +12,9 @@ import {
   MAX_SESSIONS_PER_DAY,
   addSlot,
   batchBlockedReason,
+  DAY_FULL_HINT,
   buildBatchPayload,
+  fullSessionDays,
   readBatchRejection,
   removeSlot,
   slotKey,
@@ -123,5 +125,36 @@ describe("batchBlockedReason / slotLabel", () => {
   });
   it("labels a slot in Vietnamese", () => {
     assert.equal(slotLabel(s("2030-05-10", "07:00")), "Th 6, 10/05 · 07:00");
+  });
+});
+
+describe("fullSessionDays (reschedule calendar hint)", () => {
+  const at = (y: number, m: number, d: number, h: number) => new Date(y, m - 1, d, h, 0, 0).toISOString();
+  const sess = (id: string, status: string, startAt: string) => ({ id, status, startAt });
+
+  it("marks a day with 2 live sessions, counting REQUESTED like CONFIRMED", () => {
+    const full = fullSessionDays([
+      sess("a", "CONFIRMED", at(2026, 11, 22, 6)),
+      sess("b", "REQUESTED", at(2026, 11, 22, 8)),
+      sess("c", "CONFIRMED", at(2026, 11, 23, 7)),
+    ]);
+    assert.deepEqual([...full], ["2026-11-22"]);
+  });
+
+  it("ignores cancelled/completed sessions and counts a duplicated row once", () => {
+    const full = fullSessionDays([
+      sess("a", "CONFIRMED", at(2026, 11, 24, 6)),
+      sess("a", "CONFIRMED", at(2026, 11, 24, 6)),
+      sess("c", "CANCELLED", at(2026, 11, 24, 8)),
+      sess("d", "COMPLETED", at(2026, 11, 24, 9)),
+    ]);
+    assert.equal(full.size, 0);
+  });
+
+  it("does not count the session being moved on its own day", () => {
+    const list = [sess("a", "CONFIRMED", at(2026, 11, 22, 6)), sess("b", "CONFIRMED", at(2026, 11, 22, 8))];
+    assert.equal(fullSessionDays(list).has("2026-11-22"), true);
+    assert.equal(fullSessionDays(list, "a").has("2026-11-22"), false);
+    assert.equal(DAY_FULL_HINT, "Đã đủ 2 buổi trong ngày");
   });
 });

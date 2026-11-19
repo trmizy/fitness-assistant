@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { connectSocket, getSocket } from "../services/socket";
 import { isChatWsEnabled } from "../config/serverUrl";
 import { useWebRTC } from "../hooks/useWebRTC";
+import { acquireWithPermissionRetry } from "../services/mediaPermission";
 import { useApp } from "./AppContext";
 import type { CallUIState, CallSessionInfo, CallType } from "../types";
 
@@ -148,6 +149,8 @@ interface CallContextValue {
     calleeId: string,
     callType: CallType,
     conversationId: string,
+    /** Shown on the caller's own screens (who is being called). */
+    peerName?: string,
   ) => void;
   /** Open-room sessions: acquire media and show the mic/cam preview screen — does NOT
    * signal anything yet. See confirmJoinFromPreview. */
@@ -569,7 +572,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   // ── Actions (acquire media in click context, THEN signal) ──
 
   const initiateCall = useCallback(
-    async (calleeId: string, callType: CallType, conversationId: string) => {
+    async (calleeId: string, callType: CallType, conversationId: string, peerName?: string) => {
       if (stateRef.current.uiState !== "idle") return;
       if (!chatWsEnabled) {
         showRealtimeDisabled();
@@ -589,7 +592,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         return;
       }
       try {
-        const stream = await webrtcRef.current.acquireMedia(callType);
+        const stream = await acquireWithPermissionRetry(() => webrtcRef.current.acquireMedia(callType));
         warnIfVideoUnavailable(stream, callType);
       } catch (err: any) {
         console.error("getUserMedia failed:", err?.name, err?.message, err);
@@ -610,6 +613,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           callType,
           origin: "CHAT",
           conversationId,
+          calleeName: peerName,
         },
       });
 
@@ -654,7 +658,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         return;
       }
       try {
-        const stream = await webrtcRef.current.acquireMedia("VIDEO");
+        const stream = await acquireWithPermissionRetry(() => webrtcRef.current.acquireMedia("VIDEO"));
         warnIfVideoUnavailable(stream, "VIDEO");
       } catch (err: any) {
         toast.error(
@@ -727,7 +731,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
     try {
       const callType = s.callInfo.callType || "VOICE";
-      const stream = await webrtcRef.current.acquireMedia(callType);
+      const stream = await acquireWithPermissionRetry(() => webrtcRef.current.acquireMedia(callType));
       warnIfVideoUnavailable(stream, callType);
     } catch (err: any) {
       console.error("getUserMedia failed:", err?.name, err?.message, err);
