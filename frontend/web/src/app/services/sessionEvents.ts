@@ -49,3 +49,26 @@ export function emitSessionExpired(): void {
     }
   }
 }
+
+/**
+ * Why the session ended, when the user needs to be told. Today only one case: a newer login on the
+ * same kind of device (web / mobile) signed this one out — the server answers the refresh with code
+ * `SESSION_REPLACED`. api.ts records it here BEFORE it emits, and AppContext takes it once and shows
+ * it. Module-level on purpose: api.ts sits outside the React tree.
+ */
+export const SESSION_REPLACED_CODE = "SESSION_REPLACED";
+export const SESSION_REPLACED_NOTICE =
+  "Tài khoản đã đăng nhập trên thiết bị khác. Bạn đã được đăng xuất khỏi thiết bị này.";
+
+let pendingSessionNotice: string | null = null;
+
+export function setSessionNotice(message: string): void {
+  pendingSessionNotice = message;
+}
+
+/** Returns the pending notice once, then forgets it. */
+export function takeSessionNotice(): string | null {
+  const message = pendingSessionNotice;
+  pendingSessionNotice = null;
+  return message;
+}

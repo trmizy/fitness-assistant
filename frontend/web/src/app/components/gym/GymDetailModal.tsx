@@ -35,6 +35,15 @@ import { useApp } from "../../context/AppContext";
 import { gymDiscoveryKeys } from "../../utils/discoverySearch";
 import { GymOpeningHours } from "./GymOpeningHours";
 import { publicGymUrl, shareOrCopyLink } from "../../utils/shareLink";
+import {
+  PLAN_COVERS_CONTRACT_LABEL,
+  latestMembershipEnd,
+  planCoversContract,
+  projectRenewal,
+  renewalCaption,
+  renewalDate,
+  sortPlansCoveringFirst,
+} from "../../utils/membershipRenewal";
 
 /**
  * Trang tìm PT đã dùng modal 3 tab (Chi tiết/Giá gói/Đánh giá) từ lâu — tìm phòng gym vẫn
@@ -50,6 +59,7 @@ export function GymDetailModal({
   onClose,
   initialReferralCode,
   initialTab,
+  coverUntil,
 }: {
   gymId: string;
   onClose: () => void;
@@ -57,6 +67,11 @@ export function GymDetailModal({
   initialReferralCode?: string;
   /** Mở thẳng tab này (vd. "pricing" để mua gói hội viên). */
   initialTab?: "detail" | "pricing" | "reviews";
+  /**
+   * Mở từ luồng đăng ký PT: ngày cuối của hợp đồng PT (ISO). Chỉ là GỢI Ý — gói nào giúp gói hội viên còn hiệu lực đến ngày đó
+   * được xếp trước và gắn nhãn "Đủ cho hợp đồng PT"; không bắt buộc mua gói đó.
+   */
+  coverUntil?: string | null;
 }) {
   const navigate = useNavigate();
   const { user } = useApp();
@@ -91,6 +106,12 @@ export function GymDetailModal({
     queryFn: () => gymService.listPlans(gymId),
     retry: (count, e) => !isPublicGymGone(e) && count < 2,
   });
+  // Gia hạn: khách đang có gói (đang chạy hoặc đã xếp hàng) ở thương hiệu này thì gói mới nối tiếp ngay khi gói cũ hết — máy chủ quyết
+  // ngày thật lúc thanh toán; ở đây chỉ hiển thị dự kiến để khách thấy ngày hết hạn mới TRƯỚC khi trả tiền.
+  const { data: myMemberships = [] } = useQuery<any[]>({
+    queryKey: ["client-gym-memberships"],
+    queryFn: () => gymService.listMyMemberships(),
+  });
   const amenityGroups = groupedPublicAmenities(gym);
   const galleryPhotos = galleryPhotosOf(gym, API_URL);
   const { data: multiGymWarnings = [] } = useQuery({
@@ -108,6 +129,9 @@ export function GymDetailModal({
       ? [{ id: gym.id, name: gym.name, address: gym.address, latitude: gym.latitude ?? null, longitude: gym.longitude ?? null }]
       : [];
   const otherBranches = branches.filter((b) => b.id !== gymId);
+  const latestEnd = latestMembershipEnd(myMemberships, branches.map((b) => b.id).concat(gymId));
+  const coverUntilDate = coverUntil && !Number.isNaN(new Date(coverUntil).getTime()) ? new Date(coverUntil) : null;
+  const orderedPlans = sortPlansCoveringFirst(plans, latestEnd, coverUntilDate);
   // Giới thiệu chi nhánh, chưa có thì dùng giới thiệu thương hiệu. Tối đa ABOUT_MAX ký tự — dữ liệu cũ
   // dài hơn (trước khi có giới hạn) được cắt gọn khi hiển thị, không sửa dữ liệu.
   const aboutRaw = (gym?.description || gym?.brand?.description || "").trim();
@@ -157,10 +181,6 @@ export function GymDetailModal({
         toast.error("Bạn đang có gói chưa thanh toán ở phòng gym này — hoàn tất trước đã.");
         onClose();
         navigate("/client/gym-memberships");
-        return;
-      }
-      if (code === "ALREADY_HAS_OPEN_MEMBERSHIP") {
-        toast.error("Bạn đã có gói đang hoạt động ở phòng gym này.");
         return;
       }
       const referralMessages: Record<string, string> = {
@@ -395,7 +415,15 @@ export function GymDetailModal({
               </div>
             ) : (
               <div className="space-y-3">
-                {plans.map((p) => (
+                {latestEnd && (
+                  <p className="text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2" data-testid="renewal-banner">
+                    Gia hạn gói hội viên: gói hiện tại hết hạn {renewalDate(latestEnd)}. Gói mới sẽ được cộng dồn, bắt đầu ngay sau ngày đó.
+                  </p>
+                )}
+                {orderedPlans.map((p) => {
+                  const projection = projectRenewal(latestEnd, p.durationDays);
+                  const enough = planCoversContract(projection, coverUntilDate);
+                  return (
                   <div key={p.id} className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 flex items-center justify-between gap-4">
                     <div className="min-w-0">
                       <div className="text-sm font-bold text-zinc-200">{p.name}</div>
@@ -403,6 +431,12 @@ export function GymDetailModal({
                       <div className="text-xs text-zinc-600 mt-1">
                         {p.durationDays} ngày{p.visitLimit ? ` · ${p.visitLimit} lượt` : " · không giới hạn lượt"}
                       </div>
+                      {projection.isRenewal && <div className="text-xs text-zinc-400 mt-1">{renewalCaption(projection)}</div>}
+                      {enough && (
+                        <span className="inline-block mt-1.5 rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[11px] font-semibold text-green-400" data-testid="plan-covers-contract">
+                          {PLAN_COVERS_CONTRACT_LABEL}
+                        </span>
+                      )}
                     </div>
                     <div className="text-right flex-shrink-0">
                       <div className="text-sm font-bold text-green-400 mb-2">{formatVND(Number(p.price))}</div>
@@ -413,11 +447,12 @@ export function GymDetailModal({
                         className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-60 disabled:cursor-not-allowed text-black px-3 py-2 rounded-lg text-xs font-bold transition-all"
                       >
                         {buyMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                        Mua
+                        {projection.isRenewal ? "Gia hạn" : "Mua"}
                       </button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </>
@@ -491,7 +526,11 @@ export function GymDetailModal({
       {buyTarget && (
         <PaymentMethodDialog
           amount={Number(buyTarget.price)}
-          title="Chọn phương thức thanh toán gói tập"
+          title={
+            projectRenewal(latestEnd, buyTarget.durationDays).isRenewal
+              ? `Gia hạn gói tập — hết hạn mới ${renewalDate(projectRenewal(latestEnd, buyTarget.durationDays).endsAt)}`
+              : "Chọn phương thức thanh toán gói tập"
+          }
           isSubmitting={buyMutation.isPending}
           onClose={() => setBuyTarget(null)}
           onConfirm={(provider) => buyMutation.mutate({ planId: buyTarget.id, provider })}

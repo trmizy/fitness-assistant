@@ -265,8 +265,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const webrtcRef = useRef(webrtc);
   webrtcRef.current = webrtc;
 
+  const acceptInFlightForRef = useRef<string | null>(null);
+
   const doCleanup = useCallback(() => {
     clearInitiateWatchdog();
+    acceptInFlightForRef.current = null;
     webrtcRef.current.cleanup();
     if (durationRef.current) {
       clearInterval(durationRef.current);
@@ -707,6 +710,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const acceptCall = useCallback(async () => {
     const s = stateRef.current;
     if (!s.callInfo?.callSessionId) return;
+    // A second tap while the first is still acquiring media (or already sent call:accept) must not run the setup
+    // again: a second call:accept loses the server's first-accept-wins race against ourselves.
+    if (acceptInFlightForRef.current === s.callInfo.callSessionId) return;
+    acceptInFlightForRef.current = s.callInfo.callSessionId;
     if (!chatWsEnabled) {
       doCleanup();
       return;

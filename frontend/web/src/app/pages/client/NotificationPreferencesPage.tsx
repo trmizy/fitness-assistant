@@ -47,6 +47,9 @@ export function NotificationPreferencesPage() {
   const query = useQuery({
     queryKey: ["notification-preferences"],
     queryFn: () => notificationService.getPreferences(),
+    // Account setting shared with the mobile app: always re-read on open so a change made on the phone shows here.
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const [local, setLocal] = useState<NotificationPreferences | null>(null);

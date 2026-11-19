@@ -9,7 +9,7 @@ import { Preferences } from "@capacitor/preferences";
 import { makeRefreshOnce } from "./refresh-once";
 import { aiStreamUrl, apiBaseUrl } from "../config/serverUrl";
 import { hasUsableToken } from "./token";
-import { emitSessionExpired } from "./sessionEvents";
+import { emitSessionExpired, SESSION_REPLACED_CODE, SESSION_REPLACED_NOTICE, setSessionNotice } from "./sessionEvents";
 import { readRefreshToken, writeRefreshToken, clearRefreshToken } from "./secureStorage";
 import { tokenStore } from "./tokenStore";
 import { sessionGuard, SessionChangedError } from "./sessionGuard";
@@ -184,7 +184,13 @@ export async function refreshAccessToken(): Promise<string | null> {
     const status = (err as { response?: { status?: number } })?.response?.status;
     // Only authentication refusals revoke a session; 408/429 and malformed
     // responses must not erase valid credentials.
-    if (status === 401 || status === 403) return null;
+    if (status === 401 || status === 403) {
+      // A newer login on another computer signed this one out: remember why so the user is told.
+      if ((err as { response?: { data?: { code?: string } } })?.response?.data?.code === SESSION_REPLACED_CODE) {
+        setSessionNotice(SESSION_REPLACED_NOTICE);
+      }
+      return null;
+    }
     // No response, or the server failed on its own account: we simply don't know.
     throw new RefreshUnavailableError(err);
   }
@@ -5341,6 +5347,19 @@ export const sessionService = {
       ...sessionData,
     });
     return data;
+  },
+  /** Several slots of one contract in one all-or-nothing request. Rejection: err.response.data.slotErrors = [{ index, error, code? }]. */
+  bookSessionsBatch: async (
+    contractId: string,
+    batch: {
+      slots: Array<{ scheduledDate: string; scheduledTime: string }>;
+      sessionMode?: string;
+      location?: string;
+      notes?: string;
+    },
+  ) => {
+    const { data } = await api.post("/sessions/batch", { contractId, ...batch });
+    return data as { sessions: unknown[] };
   },
   getContractSessions: async (contractId: string) => {
     const { data } = await api.get(`/sessions/contract/${contractId}`);

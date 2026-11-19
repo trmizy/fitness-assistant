@@ -15,6 +15,7 @@ import { PaymentMethodDialog } from "../../components/payment/PaymentMethodDialo
 import { Modal, ModalTitle } from "../../components/ui/Modal";
 import { normalizeCheckoutContext } from "../../utils/contractGymOptions";
 import { INDEPENDENT_VENUE_NOTE, isIndependentVenue } from "../../utils/independentVenue";
+import { ContractMembershipRenewal } from "../../components/gym/ContractMembershipRenewal";
 
 const statusConfig: Record<
   ContractStatus,
@@ -727,6 +728,15 @@ export function ContractPage() {
               </div>
 
               {selected.status === "PENDING_PAYMENT" && <CheckoutSummary contractId={selected.id} />}
+
+              {/* Hợp đồng gắn chi nhánh gym: ngày hết hạn gói hội viên + "Gia hạn gói hội viên" (chỉ hợp đồng còn sống). */}
+              {(selected as any).gymId && ["ACTIVE", "PENDING_PAYMENT", "PENDING_REVIEW"].includes(selected.status) && (
+                <ContractMembershipRenewal
+                  gymId={(selected as any).gymId}
+                  contractEndIso={selected.endDate ?? null}
+                  validityDays={(selected as any).validityDays ?? null}
+                />
+              )}
 
               {/* Actions */}
               <div className="flex flex-wrap gap-2">
