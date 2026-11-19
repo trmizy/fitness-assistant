@@ -86,51 +86,6 @@ node scripts/seed-marketplace/index.mjs --target dev --tier all --gateway http:/
 node scripts/seed-marketplace/verify-integrity.mjs --target dev
 ```
 
-### Môi trường scale (`gymini-scale`)
-
-Môi trường cách ly cho benchmark và seed quy mô lớn (10.000 PT / 2.500 gym), dùng project Compose riêng `gymini-scale`, Postgres riêng, Redis riêng, MinIO riêng và không nối chung mạng/volume với `dev` hay `gymini-e2e-dispute`.
-
-* **Luôn truyền đủ `-p gymini-scale -f infra/compose/docker-compose.scale.yml`** trong mọi lệnh Docker:
-
-```powershell
-# Kiểm tra cấu hình compose
-docker compose -p gymini-scale -f infra/compose/docker-compose.scale.yml config
-
-# Build và khởi động stack scale (nền)
-docker compose -p gymini-scale -f infra/compose/docker-compose.scale.yml up -d --build
-
-# Xem trạng thái / log
-docker compose -p gymini-scale -f infra/compose/docker-compose.scale.yml ps
-docker compose -p gymini-scale -f infra/compose/docker-compose.scale.yml logs --tail 100
-
-# Tắt stack (GIỮ NGUYÊN dữ liệu Postgres, Redis và ảnh MinIO)
-docker compose -p gymini-scale -f infra/compose/docker-compose.scale.yml down
-```
-
-> **Cảnh báo:** KHÔNG dùng `docker compose ... down -v` trừ khi bạn chủ ý muốn xóa toàn bộ volume dữ liệu DB (`gymini-scale_pgdata`), Redis (`gymini-scale_redis_data`) và ảnh MinIO (`gymini-scale_minio_data`) của môi trường scale.
-
-* **Bảng cổng (chỉ bind `127.0.0.1`):**
-
-| Thành phần | Container | Cổng host | Ghi chú |
-|---|---|---|---|
-| `api-gateway` | `gymcoach-gateway-scale` | `127.0.0.1:59100` | Proxy API + `/gymini-partner-private` + `/gymini-user-media` |
-| `auth-service` | `gymcoach-auth-scale` | `127.0.0.1:59101` | `PARTNER_APPLICATION_DEV_ECHO=false`, `SMTP_*` rỗng |
-| `user-service` | `gymcoach-user-scale` | `127.0.0.1:59104` | Tự nạp `vietnam_provinces`/`vietnam_wards` lần đầu; không FCM/e-sign |
-| `chat-service` | `gymcoach-chat-scale` | `127.0.0.1:59105` | |
-| `gym-service` | `gymcoach-gym-scale` | `127.0.0.1:59106` | `PARTNER_APPLICATION_DEV_ECHO=false` |
-| `payment-service` | `gymcoach-payment-scale` | `127.0.0.1:59107` | `VNPAY_SIMULATE=false`, các cổng ngoài trỏ cổng chết `127.0.0.1:9` |
-| `postgres-scale` | `gymcoach-postgres-scale` | `127.0.0.1:55440` | 7 DB: `gymcoach_{auth,user,fitness,ai,chat,payment,gym}_scale` |
-| `redis-scale` | `gymcoach-redis-scale` | `127.0.0.1:59379` | Rate limit gateway |
-| `minio-scale` | `gymcoach-minio-scale` | `127.0.0.1:59000` (API) / `59001` (UI) | Bucket riêng tư `gymini-partner-private`, `gymini-user-media` |
-
-* **Guard `--target scale` (`lib/guard.mjs`):**
-  * Chỉ cho phép `localhost:55440` (hoặc `gymcoach-postgres-scale:5432` trong mạng compose), bắt buộc đủ 7 DB `gymcoach_<svc>_scale` và `SEED_MARKETPLACE_CONFIRM=scale`.
-
-```powershell
-$env:SEED_MARKETPLACE_CONFIRM = "scale"
-node scripts/seed-marketplace/index.mjs --target scale --counts
-```
-
 ### Guards (`lib/guard.mjs`, unit-tested in `guard.test.mjs`)
 
 * Always refused: `NODE_ENV=production`; a database name containing `prod` / `staging` / `live`; any name outside `gymcoach_<svc>[_...]_test` / `gymcoach_<svc>`; a service/name mismatch; a non-local host.
@@ -238,24 +193,3 @@ The last three commands must print `false`: `VNPAY_SIMULATE=true` is set only by
 For a partial or complete rerun, re-enable the seed override first, then use the same command with `--reseed`. No database reset is needed. `fresh` performs an empty-business-data check on first use and requires its matching local `.runtime` receipt for `--reseed`; `partner` requires the explicit environment confirmation and retains collision/production/local-host guards. Never copy a fresh receipt to authorize a different database set. Token and audit rows produced by real authentication are reported separately from business writes.
 
 Seed accounts end in `@seed.gymini.test`; `data_origin` stays REAL. Admin: `marketplace-admin@seed.gymini.test`, password from **Accounts and the three groups** above. Useful logins: `pham-thu-uyen` (client), `tran-minh-khoa` (approved PT), `le-hoang-nam` (pending listing), `dang-quoc-bao` (contract restriction), `hoang-thu-trang` (not accepting clients), `nguyen-truong-thanh` (active owner), `doan-minh-tam` (onboarding owner), `huynh-kim-ngan` (under review), `to-quang-vinh` (changes requested), `cao-van-loc` (suspended owner; login intentionally blocked). Append the seed domain to each slug.
-
-## Scale seed (`--tier scale`, isolated `gymini-scale`)
-
-Used ONLY against the isolated scale stack (`localhost:55440`, `SEED_MARKETPLACE_CONFIRM=scale`) or isolated test container (`--target test --scale-factor 0.01|0.1`). Generates ~25,000 clients, 10,400 PTs (10,000 public + 400 non-public), 900 gym owners / 2,500 branches (700 standalone + 180 medium + 20 large) across 34 C3 provinces, and financially inert (`SYNTHETIC`, `COMPLETED`/`EXPIRED` only) training/membership/review history. Demo credentials are written only to gitignored `scripts/seed-marketplace/.runtime/scale-demo-accounts.txt`.
-
-```powershell
-# Smoke/scale-test on isolated test container (55433)
-node scripts/seed-marketplace/index.mjs --target test --tier scale --scale-factor 0.01
-
-# Full isolated S1-run (only after Phase X passes & stack up)
-$env:SEED_MARKETPLACE_CONFIRM='scale'
-node scripts/seed-marketplace/index.mjs --target scale --tier scale --batch 1000
-# After S1-run finishes, restart user-service scale so its startup background job builds PT discovery stats epoch #1 automatically:
-docker compose -p gymini-scale -f infra/compose/docker-compose.scale.yml restart user-service
-```
-
-## Photo coverage (decision Ngài 12/11, thesis project: faces OK, PT photo gender must match the PT)
-
-* **Scale generator**: every PT with a published listing gets >= 1 PUBLISHED photo (1: 30%, 2: 30%, 3: 24%, 4: 10%, 5: 6%, avg 2.32), gender/discipline-matched, reuse cap 40. At `scaleFactor=1`: 10,153 PTs with listing, 23,472 placements, 0 PTs without photo; per-gender need 11,668 male / 11,804 female vs cap capacity 13,480 / 12,640 (93.4% of the female capacity: ~7% headroom, a different namespace/seed that skews gender >=7% would need more masters). `lib/scale/integrity.mjs` check 8: every public PT has >= 1 PUBLISHED photo + avatar, every APPROVED/SUSPENDED gym has a PUBLISHED cover.
-* **Dev backfill** `backfill-dev-photos.mjs` (one-off, idempotent): `node scripts/seed-marketplace/backfill-dev-photos.mjs --target dev --confirm dev [--dry-run] [--plan-out f.json]`. Only fills gaps for public PTs/gyms (seed-domain accounts with a MALE/FEMALE gender), never touches existing PUBLISHED photos, STAGED/RETIRED rows, `huytronh4@gmail.com`, or non-seed accounts. Refuses any DB except dev `localhost:5433` `gymcoach_user`/`gymcoach_gym` (+ `--confirm dev`) or `--target test` (`*_seed_test` on 55433, in-memory object store). Dev avatars are written to the user-service uploads volume (`docker cp`) as `/uploads/profile-photos/<userId>.webp`, because dev has no `USER_UPLOAD_BUCKET`. Test: `__tests__/backfill-dev-photos.test.mjs`.
-* **REAL avatars on the official target** (`lib/real-avatars.mjs`, 16/11): every `@seed.gymini.test` profile with `photo_url IS NULL` (PTs, clients, and gym owners if they already have a profile row) gets the same deterministic DiceBear avatar as the scale tier (`generateAvatarBuffer(userId, {size:256})`, file `<userId>.webp`, `photo_url = /uploads/profile-photos/<userId>.webp`). It runs at the end of `index.mjs --target official --tier a|b|all`, and as `SEED_MARKETPLACE_CONFIRM=official node scripts/seed-marketplace/backfill-dev-photos.mjs --target official [--dry-run] [--avatars-dir <dir>] [--docker-cp]` for already-built DBs (avatars only; official guard rules; the UPDATE re-checks `photo_url IS NULL` + seed domain, so a user's own photo is never overwritten; 2nd run adds nothing). `lib/scale/integrity.mjs` check 8 (avatar part) and check 7 (avatar files) now cover the REAL seed PTs too. Test: `__tests__/real-avatars.test.mjs`.

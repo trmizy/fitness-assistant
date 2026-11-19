@@ -135,7 +135,7 @@ RAG, workout-plan, nutrition, and InBody chat checks.
 
 ## Legacy RunPod Experiment
 
-[`RUNPOD_RUNBOOK.md`](../docs/ai-training/RUNPOD_RUNBOOK.md) documents the older
+[`RUNPOD_RUNBOOK.md`](RUNPOD_RUNBOOK.md) documents the older
 Qwen3-30B-A3B/A40 experiment. Its cost figures are time-sensitive and its
 commands intentionally use `qlora_coach_qwen3_30b_a3b.yaml`. Do not confuse that
 reference workflow with the current local Qwen2.5 runtime.
