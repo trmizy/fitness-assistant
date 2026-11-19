@@ -45,7 +45,7 @@ import { QUICK_FILTERS } from "../../../src/constants/specialties";
 import {
   canReportMembership,
   daysRemaining,
-  membershipStatusLabel,
+  membershipDisplayLabel,
   normalizeGym,
   normalizeMemberships,
   type MembershipRow,
@@ -72,6 +72,8 @@ import {
   type TerminationChoice,
 } from "../../../src/features/services/contracts";
 import { normalizeCheckoutContext } from "../../../src/features/services/contractGymOptions";
+import { ContractMembershipRenewal } from "../../../src/features/services/ContractMembershipRenewal";
+import { renewalDate } from "../../../src/features/services/membershipRenewal";
 import {
   EMPTY_PT_FILTERS,
   INDEPENDENT_VENUE_NOTE,
@@ -972,7 +974,7 @@ function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
       ) : (
         <Stagger className="gap-3 px-5">
           {memberships.map((membership) => {
-            const status = membershipStatusLabel(membership.status);
+            const status = membershipDisplayLabel(membership);
             const left = daysRemaining(membership);
             return (
               <StaggerItem key={membership.id}>
@@ -996,11 +998,16 @@ function MembershipsTab({ onBrowseGyms }: { onBrowseGyms: () => void }) {
                     </Text>
                   </Text>
 
-                  {membership.status === "ACTIVE" && left != null ? (
+                  {membership.status === "ACTIVE" && membership.isUpcoming ? (
+                    // Gói gia hạn đã thanh toán nhưng chưa bắt đầu: chưa dùng/quét QR được cho tới ngày bắt đầu.
+                    <Text className="font-body text-xs text-muted-foreground">
+                      {`Bắt đầu ${renewalDate(new Date(membership.startDate ?? ""))} · hết hạn ${renewalDate(new Date(membership.endDate ?? ""))}`}
+                    </Text>
+                  ) : membership.status === "ACTIVE" && left != null ? (
                     <Text className="font-body text-xs text-muted-foreground">{`Còn ${left} ngày`}</Text>
                   ) : null}
                   {/* Phase 14.3 — check in at the desk by scanning the gym's QR (web: GymMembershipsPage). */}
-                  {membership.status === "ACTIVE" ? (
+                  {membership.status === "ACTIVE" && !membership.isUpcoming ? (
                     <Button size="sm" icon={QrCode} onPress={() => router.push("/client/services/checkin" as never)}>
                       Quét mã check-in
                     </Button>
@@ -1415,6 +1422,11 @@ function ContractCard({
       {isPausedByAdmin(contract) ? <Notice tone="warning" text={PAUSED_BY_ADMIN_NOTICE} /> : null}
 
       {contract.status === "PENDING_PAYMENT" ? <CheckoutSummary contractId={contract.id} /> : null}
+
+      {/* Hợp đồng gắn chi nhánh gym: ngày hết hạn gói hội viên + "Gia hạn gói hội viên" (chỉ hợp đồng còn sống). */}
+      {contract.gymId && ["ACTIVE", "PENDING_PAYMENT", "PENDING_REVIEW"].includes(contract.status) ? (
+        <ContractMembershipRenewal gymId={contract.gymId} contractEndIso={contract.endDate} />
+      ) : null}
 
       {contract.status === "PENDING_PAYMENT" ? (
         <Text className="font-body text-xs text-muted-foreground">

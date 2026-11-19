@@ -20,8 +20,10 @@ const TOGGLES: { key: keyof NotificationPreferences; label: string; description:
 
 /**
  * SH-08 — "Thông báo" preferences (the design's NotificationPrefs; web's
- * NotificationPreferencesPage). Each switch saves immediately (`PATCH`), optimistically, and flips
- * back if the server refuses. These govern in-app notifications; push delivery is Phase 14.
+ * NotificationPreferencesPage). Each switch saves immediately (`PUT`), optimistically, and flips
+ * back if the server refuses. The preferences live on the account (user-service) and are honoured when a
+ * notification is created, so one switch governs web, in-app and phone push alike. Always refetched on open
+ * (staleTime 0) so a change made on web shows here at once.
  */
 export default function NotificationPrefsScreen() {
   const insets = useSafeAreaInsets();
@@ -31,7 +33,7 @@ export default function NotificationPrefsScreen() {
   const { user } = useApp();
   const key = ["notification-preferences", user?.id ?? "guest"];
 
-  const query = useQuery({ queryKey: key, queryFn: () => notificationService.getPreferences() });
+  const query = useQuery({ queryKey: key, queryFn: () => notificationService.getPreferences(), staleTime: 0, refetchOnMount: "always" });
   // Optimistic value while a save is in flight; otherwise the server's.
   const [pending, setPending] = useState<NotificationPreferences | null>(null);
   const local = pending ?? query.data ?? null;

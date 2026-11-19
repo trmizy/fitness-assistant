@@ -12,6 +12,7 @@ import {
   daysRemaining,
   groupByBrand,
   gymBlockedReason,
+  membershipDisplayLabel,
   membershipStatusLabel,
   multiGymWarningText,
   normalizeGym,
@@ -231,11 +232,18 @@ describe("purchaseBlockedReason", () => {
     assert.equal(purchaseBlockedReason(gym, plan, []), null);
   });
 
-  it("stops what the server's unique index would stop, per status", () => {
+  it("stops what the server's unique index would stop (an unpaid order); a running or queued membership is a RENEWAL, not a block", () => {
     const active = normalizeMemberships({
       data: [{ id: "m", gymId: gym.id, status: "ACTIVE", priceAtPurchase: "1" }],
     });
-    assert.match(purchaseBlockedReason(gym, plan, active)!, /còn hiệu lực/);
+    assert.equal(purchaseBlockedReason(gym, plan, active), null);
+    const queued = normalizeMemberships({
+      data: [{ id: "m", gymId: gym.id, status: "ACTIVE", isUpcoming: true, priceAtPurchase: "1" }],
+    });
+    assert.equal(purchaseBlockedReason(gym, plan, queued), null);
+    assert.equal(queued[0].isUpcoming, true);
+    assert.equal(membershipDisplayLabel(queued[0]).label, "Sắp bắt đầu");
+    assert.equal(membershipDisplayLabel(active[0]).label, "Đang hiệu lực");
 
     const pending = normalizeMemberships({
       data: [{ id: "m", gymId: gym.id, status: "PENDING_PAYMENT", priceAtPurchase: "1" }],

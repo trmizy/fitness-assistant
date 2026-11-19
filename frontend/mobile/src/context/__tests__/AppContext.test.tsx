@@ -18,7 +18,7 @@ jest.mock("../../services/session", () => ({
   bootstrapSession: jest.fn().mockResolvedValue({ status: "unauthenticated" }),
   ensureFreshAccessToken: jest.fn().mockResolvedValue(true),
 }));
-jest.mock("../../services/sessionEvents", () => ({ onSessionExpired: () => () => undefined }));
+jest.mock("../../services/sessionEvents", () => ({ onSessionExpired: () => () => undefined, takeSessionNotice: () => null }));
 jest.mock("../../features/push/pushDevice", () => ({ unregisterPushToken: jest.fn() }));
 
 function Probe() {
