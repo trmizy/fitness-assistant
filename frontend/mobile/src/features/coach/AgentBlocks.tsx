@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { ChevronDown, ChevronUp } from "lucide-react-native";
 
 import { Button, Tappable } from "../../components/ui";
+import { anchorOptionsFor } from "../../config/returnPath";
 import { fitnessAgentService, type AgentChatBlock, type AgentReply } from "../../services/api";
 import { darkColors } from "../../theme/colors";
 import { useWorkspaceAccent } from "../../theme/workspace";
@@ -31,6 +32,16 @@ import { CoachText } from "./CoachText";
  * Every action calls the same `/ai/agent/*` endpoint web calls; nothing is decided here. The
  * Vietnamese labels are web's, which mirror ai-service's own label tables.
  */
+/**
+ * Opens a screen that lives inside another tab's own stack (PT page, plan detail ...) from the AI coach.
+ * `withAnchor` (same as notification/login links, see config/returnPath.ts) makes expo-router mount that
+ * tab's stack with its hub (`index`) underneath; without it the stack held ONLY the PT page, so the
+ * "Dịch vụ" tab stayed stuck on it and Back skipped to Home (real device, 20/11).
+ */
+function openRoute(route: string) {
+  router.push(route as never, anchorOptionsFor(route));
+}
+
 const RISK_LABEL: Record<string, string> = { LOW: "Rủi ro thấp", MEDIUM: "Rủi ro trung bình", HIGH: "Rủi ro cao" };
 const TRAINING_DECISION_LABEL: Record<string, string> = {
   KEEP: "Giữ nguyên",
@@ -188,6 +199,11 @@ export function AgentBlock({
               {Array.isArray(c.specialties) ? <Small tone="fg">{c.specialties.join(" · ")}</Small> : null}
               {c.yearsExperience ? <Small tone="fg">Kinh nghiệm: {c.yearsExperience}</Small> : null}
               {Array.isArray(c.availableDays) ? <Small tone="fg">Lịch: {c.availableDays.map(dayLabel).join(" · ")}</Small> : null}
+              {c.location?.label ? (
+                <Small tone="fg">
+                  {"📍 "}{c.location.label}{typeof c.location.distanceKm === "number" ? ` · ~${c.location.distanceKm} km` : ""}
+                </Small>
+              ) : null}
               {c.daysPerWeek ? (
                 <Small tone="fg">
                   {c.daysPerWeek} buổi/tuần · {c.durationWeeks} tuần · khoảng {c.estimatedMinutes} phút/buổi
@@ -245,7 +261,7 @@ export function AgentBlock({
                     {c.packages.map((p: any) => (
                       <Chip
                         key={p.id}
-                        label={`${p.name} · ${p.sessions} buổi · ${formatVND(p.price)}`}
+                        label={`${p.name} · ${p.sessions} buổi · ${formatVND(p.price)}${p.mode ? ` · ${p.mode === "ONLINE" ? "Online" : p.mode === "OFFLINE" ? "Trực tiếp" : "Kết hợp"}` : ""}`}
                         active={chosenPkg === p.id}
                         onPress={() => setPackages((m) => ({ ...m, [c.id]: p.id }))}
                       />
@@ -259,7 +275,7 @@ export function AgentBlock({
                   <View className="gap-1.5">
                     <Small>Đặt gói, chọn phòng gym và thanh toán trên trang PT.</Small>
                     <View className="flex-row flex-wrap gap-2">
-                      <Button size="sm" onPress={() => router.push(`/client/services/pt/${encodeURIComponent(c.id)}`)}>
+                      <Button size="sm" onPress={() => openRoute(`/client/services/pt/${encodeURIComponent(c.id)}`)}>
                         Xem hồ sơ & đặt lịch
                       </Button>
                     </View>
@@ -514,7 +530,7 @@ export function AgentBlock({
               ))
             : null}
           {nextRoute ? (
-            <Tappable onPress={() => router.push(nextRoute as never)} className="self-start py-1">
+            <Tappable onPress={() => openRoute(nextRoute)} className="self-start py-1">
               <Text className="font-body-semibold text-xs text-primary underline">Mở chi tiết</Text>
             </Tappable>
           ) : null}
