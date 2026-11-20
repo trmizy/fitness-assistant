@@ -641,7 +641,7 @@ export const NO_SHOW_GRACE_MINUTES = 15;
  * compensates the client one session in cash, charged to the PT's earnings, at ANY notice. A REQUESTED one (never confirmed) is free.
  */
 export const PT_CANCEL_CONFIRMED_NOTICE =
-  "Huỷ buổi đã xác nhận (kể cả chặn ngày nghỉ) sẽ bồi thường cho học viên 1 buổi bằng tiền, trừ vào thu nhập của bạn. Nên dùng Đổi lịch nếu học viên đồng ý.";
+  "Huỷ buổi đã xác nhận (kể cả chặn ngày nghỉ) sẽ bồi thường cho học viên 1 buổi bằng tiền, trừ vào thu nhập của bạn. Nên đề xuất dời lịch nếu học viên đồng ý.";
 
 /** What the PT is told before cancelling this session (a session they have not confirmed yet costs nothing). */
 export function ptCancelNotice(status: string, name: string): string {

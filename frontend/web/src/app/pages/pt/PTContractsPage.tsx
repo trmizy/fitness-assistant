@@ -796,7 +796,7 @@ export function PTContractsPage() {
                                             setSessionCancel({ id: s.id, status: s.status, reason: "PT hủy buổi tập", name: partyName(c) })
                                           }
                                           disabled={cancelSessionMut.isPending}
-                                          title="Huỷ buổi đã xác nhận (kể cả chặn ngày nghỉ) sẽ bồi thường cho học viên 1 buổi bằng tiền, trừ vào thu nhập của bạn. Nên dùng Đổi lịch nếu học viên đồng ý."
+                                          title="Huỷ buổi đã xác nhận (kể cả chặn ngày nghỉ) sẽ bồi thường cho học viên 1 buổi bằng tiền, trừ vào thu nhập của bạn. Nên đề xuất dời lịch nếu học viên đồng ý."
                                           className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
                                         >
                                           <X className="w-3 h-3" /> Hủy buổi

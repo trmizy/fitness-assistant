@@ -719,7 +719,7 @@ export function ContractPage() {
                     • Buổi tập phải được đặt trước ít nhất 24 giờ
                   </li>
                   <li>
-                    • Hủy buổi đã xác nhận sẽ mất 1 buổi trong hợp đồng (PT vẫn được tính buổi). Nếu cần đổi giờ, hãy dùng Đổi lịch — miễn phí khi PT đồng ý.
+                    • Hủy buổi đã xác nhận sẽ mất 1 buổi trong hợp đồng (PT vẫn được tính buổi). Nếu cần đổi giờ, hãy dùng Dời lịch — miễn phí khi PT đồng ý.
                   </li>
                   <li>
                     • Hợp đồng tự hết hạn vào ngày kết thúc. Các buổi chưa dùng sẽ không được bảo lưu.

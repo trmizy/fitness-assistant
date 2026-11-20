@@ -4,7 +4,7 @@
  * Same wording as the mobile app (frontend/mobile/src/features/pt/pt.ts).
  */
 export const PT_CANCEL_CONFIRMED_NOTICE =
-  "Huỷ buổi đã xác nhận (kể cả chặn ngày nghỉ) sẽ bồi thường cho học viên 1 buổi bằng tiền, trừ vào thu nhập của bạn. Nên dùng Đổi lịch nếu học viên đồng ý.";
+  "Huỷ buổi đã xác nhận (kể cả chặn ngày nghỉ) sẽ bồi thường cho học viên 1 buổi bằng tiền, trừ vào thu nhập của bạn. Nên đề xuất dời lịch nếu học viên đồng ý.";
 
 /** Body of the confirm shown before a PT cancels (or rejects) a session. */
 export function ptCancelNotice(status: string, name: string): string {
