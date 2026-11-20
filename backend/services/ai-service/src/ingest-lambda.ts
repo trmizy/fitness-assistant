@@ -15,7 +15,11 @@ import { ingestFromArgv } from "./ingest";
 import { runCanary, type CanaryStore } from "./datasets/seed/rag-canary";
 import { parseCorpusText } from "./datasets/seed/rag-ingest-runner";
 
-interface Event { args?: unknown; mode?: unknown; queries?: unknown; indexes?: unknown; k?: unknown; corpusJsonl?: unknown; canaryKey?: unknown; indexSuffix?: unknown }
+interface Event {
+  args?: unknown; mode?: unknown; queries?: unknown; indexes?: unknown; k?: unknown; corpusJsonl?: unknown; canaryKey?: unknown; indexSuffix?: unknown;
+  // warm mode (narrowed where used: typeof string / finite number, clamped)
+  query?: unknown; attemptTimeoutMs?: unknown; pollIntervalMs?: unknown; maxWaitMs?: unknown; requiredConsecutivePasses?: unknown;
+}
 const DEFAULT_CANARY_KEY = "Hanging Knee Tucks";
 const DEFAULT_WARM_QUERY = "Lịch tập tại nhà cho người mới bắt đầu và lượng protein mỗi ngày";
 
