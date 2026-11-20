@@ -21,7 +21,8 @@ function handleServiceError(res: Response, error: any, fallbackMessage: string):
     return;
   }
   if (error.status) {
-    res.status(error.status).json({ error: error.message });
+    // A conflict the client can act on carries a machine-readable code + details (nothing was written).
+    res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}), ...(error.details ? { details: error.details } : {}) });
     return;
   }
   logger.error({ err: error }, fallbackMessage);

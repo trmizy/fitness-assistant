@@ -1339,6 +1339,20 @@ export const fitnessRoadmapService = {
   async advanceRoadmap(userId: string, roadmapId: string) {
     await prisma.$transaction(async (tx) => {
       await lockRoadmapUser(tx, userId);
+      // advance decides "is a cycle still running?" PER PHASE, but trainingCycleService.startCycle (and the DB's partial unique index) allow ONE ACTIVE cycle
+      // PER USER. An ACTIVE cycle outside this phase (legacy/manual, or left over) therefore passed the phase check and then failed deep inside startCycle with a
+      // generic English 409 (reproduced: training-cycle-active-409.integration.test.ts, 409-B). It is detected HERE, right before a new cycle is needed, and
+      // reported as an actionable, structured conflict. The system never closes a user's cycle on its own.
+      const assertNoStrayActiveCycle = async () => {
+        const stray = await tx.trainingCycle.findFirst({ where: { userId, status: "ACTIVE", archivedAt: null }, select: { id: true, name: true, startDate: true, endDate: true } });
+        if (!stray) return;
+        throw {
+          status: 409,
+          code: "ACTIVE_CYCLE_OUTSIDE_PHASE",
+          message: `Bạn đang có chu kỳ tập "${stray.name ?? "chưa đặt tên"}" chưa kết thúc và không thuộc lộ trình này. Hãy kết thúc hoặc lưu trữ chu kỳ đó rồi kiểm tra tiến độ lại — hệ thống không tự đóng chu kỳ của bạn.`,
+          details: { cycleId: stray.id, name: stray.name ?? null, startDate: stray.startDate, endDate: stray.endDate },
+        };
+      };
       const roadmap = await tx.fitnessRoadmap.findFirst({ where: { id: roadmapId, userId, status: "ACTIVE", archivedAt: null } });
       if (!roadmap) throw { status: 404, message: "Active fitness roadmap not found" };
       const phase = await tx.roadmapPhase.findFirst({ where: { roadmapId, status: "ACTIVE" }, orderBy: { phaseIndex: "asc" } });
@@ -1451,10 +1465,12 @@ export const fitnessRoadmapService = {
           });
           return;
         }
+        await assertNoStrayActiveCycle();
         await activatePhaseInTransaction(tx, userId, roadmapId, nextPhase.id, {});
         return;
       }
 
+      await assertNoStrayActiveCycle();
       const sequenceInPhase = await getNextSequenceInPhase(tx, phase.id);
       const startDate = new Date(cycle.endDate);
       const created = await trainingCycleService.startCycle(

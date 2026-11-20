@@ -32,6 +32,8 @@ export interface WorkoutAdjustmentConstraints {
   exercisesDelta?: number;
   /** "giữ nguyên bài cũ" — existing exercises must be kept; only additions/removals the user named are allowed. */
   keepExisting?: boolean;
+  /** "bổ sung bài mới" / "thêm bài mới" with NO count: the user wants MORE exercises but did not say how many — must be asked, never guessed as "no change". */
+  addWithoutCount?: boolean;
   /** "đổi bài thứ 2 của buổi ngực": replace the Nth exercise of the day described by `dayHint` (resolved against the plan later). */
   replaceOrdinal?: { ordinal: number; dayHint: string };
   /** Set when the request cannot be applied without guessing; the caller must ask the user instead of changing anything. */
@@ -164,6 +166,7 @@ export function parseWorkoutAdjustment(raw: string): WorkoutAdjustmentConstraint
     c.exercisesPerDay = undefined;
   }
   c.keepExisting = /\bgiu (?:nguyen|lai)\s+(?:cac |nhung |het )?(?:bai|bai tap)\s+(?:cu|hien tai|dang co|dang tap)\b|\bgiu (?:nguyen|lai) (?:ke hoach|bai cu)\b/.test(s);
+  c.addWithoutCount = /\b(?:bo sung|them)\s+(?:them\s+)?(?:cac |nhung |it |vai )?(?:bai tap|bai)\b(?!\s+(?:tap\s+)?(?:cho\s+)?(?:nhom\s+|vung\s+)?(?:bung|nguc|lung|vai|chan|mong|tay|dui|bap|co|cardio|core|cang|nhom|vung)\b)/.test(s);
   // "đổi bài thứ 2 của buổi ngực" — an ordinal replacement. Resolved against the plan later (it needs the plan's days).
   const ord = /\b(?:doi|thay)\s+bai\s+(?:thu\s+)?(\d)\s+(?:cua|trong|o)\s+buoi\s+(\S+(?:\s+\S+)?)/.exec(s);
   if (ord) c.replaceOrdinal = { ordinal: Number(ord[1]), dayHint: ord[2].replace(/\s+(thanh|bang|sang|cho)\b.*$/, "").trim() };
@@ -193,6 +196,7 @@ export function resolveExercisesPerDay(input: { explicit?: number; parsed: Worko
   if (input.explicit !== undefined) return out(input.explicit, "explicit");
   if (input.parsed.exercisesPerDay !== undefined) return out(input.parsed.exercisesPerDay, "text-absolute");
   if (input.parsed.exercisesDelta !== undefined) return out(input.current + input.parsed.exercisesDelta, "text-relative");
+  if (input.parsed.addWithoutCount) return { ok: false, code: "AMBIGUOUS", message: "Bạn muốn bổ sung bao nhiêu bài mỗi buổi? (ví dụ: “thêm 2 bài mỗi buổi” hoặc “mỗi buổi 7 bài”)" };
   return out(input.current, "current");
 }
 

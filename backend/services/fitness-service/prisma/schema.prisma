@@ -139,6 +139,7 @@ model Exercise {
   workoutExercises          WorkoutExercise[]
   workoutProgramExercises   WorkoutProgramExercise[]
   equipmentLinks            ExerciseEquipment[]
+  guidance                  ExerciseGuidance[]
   // Gate 4 (exercise/anatomy data-expansion roadmap) — additive-only
   // provenance/localization/muscle-mapping, none of which changes this
   // row's own id or any existing column. See ExerciseSource/ExerciseAlias/
@@ -1828,4 +1829,27 @@ model PlanReviewEvent {
   @@index([requestId, createdAt])
   @@index([notifyUserId, notifiedAt])
   @@map("plan_review_events")
+}
+
+// 🇻🇳 Vietnamese guidance for an Exercise from a REVIEWABLE SOURCE (never invented by a model). Additive: Exercise.id / exerciseName / instructions are untouched.
+// `verification`: CURATED = project-authored catalog (data/catalog/plans/gym_exercises.csv), REVIEWED = a human checked it, MACHINE_TRANSLATED = never
+// shown as verified (the read API hides it). Display names fall back to the English name when there is no row.
+model ExerciseGuidance {
+  id               String   @id @default(uuid())
+  exerciseId       String   @map("exercise_id")
+  language         String   @default("vi")
+  nameVi           String?  @map("name_vi")
+  instructionsVi   String?  @map("instructions_vi")
+  commonMistakesVi String[] @default([]) @map("common_mistakes_vi")
+  safetyNotesVi    String[] @default([]) @map("safety_notes_vi")
+  source           String // e.g. "curated_vi_exercise_catalog:EX00001"
+  verification     String   @default("CURATED")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([exerciseId, language])
+  @@index([verification])
+  @@map("exercise_guidance")
 }

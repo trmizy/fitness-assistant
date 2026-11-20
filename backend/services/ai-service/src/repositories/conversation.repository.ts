@@ -30,8 +30,10 @@ async function atomically<T>(db: any, fn: (tx: any) => Promise<T>): Promise<T> {
   return typeof db.$transaction === "function" ? db.$transaction(fn) : fn(db);
 }
 
-const planSnapshot = (p: { name: string; description: string | null; goal: string; duration: number; daysPerWeek: number; plan: unknown }) => ({
+// The PT's legacy review (status, note, time) is part of what a revision replaces: it is kept in the history row so it is never lost.
+const planSnapshot = (p: { name: string; description: string | null; goal: string; duration: number; daysPerWeek: number; plan: unknown; ptUserId?: string | null; ptReviewStatus?: unknown; ptNote?: string | null; ptReviewedAt?: Date | null }) => ({
   name: p.name, description: p.description, goal: p.goal, duration: p.duration, daysPerWeek: p.daysPerWeek, plan: p.plan,
+  ptUserId: p.ptUserId ?? null, ptReviewStatus: (p.ptReviewStatus as string | null | undefined) ?? null, ptNote: p.ptNote ?? null, ptReviewedAt: p.ptReviewedAt ?? null,
 });
 
 // ── Conversation ──────────────────────────────────────────────────────────────
@@ -706,7 +708,7 @@ export const conversationRepository = {
           plan: content as Prisma.InputJsonValue,
           daysPerWeek: input.daysPerWeek,
           version: { increment: 1 },
-          ...(plan.ptUserId ? { ptReviewStatus: "PENDING_PT_REVIEW", ptNote: null, ptReviewedAt: null } : {}),
+          ...(plan.ptUserId ? { ptReviewStatus: null, ptNote: null, ptReviewedAt: null } : {}),
         },
       });
       if (updated.count !== 1) return { kind: "version_conflict", currentVersion: null };
@@ -745,11 +747,19 @@ export const conversationRepository = {
 
   /** Revision history of a plan the caller owns, newest first (content snapshots are not returned here). */
   async listPlanRevisions(planId: string, userId: string, take = 50) {
-    return prisma.workoutPlanRevision.findMany({
+    const rows = await prisma.workoutPlanRevision.findMany({
       where: { planId, userId },
       orderBy: { resultVersion: "desc" },
       take,
-      select: { id: true, kind: true, baseVersion: true, resultVersion: true, adjustments: true, operationId: true, createdAt: true },
+      select: { id: true, kind: true, baseVersion: true, resultVersion: true, adjustments: true, operationId: true, createdAt: true, previous: true },
+    });
+    // The PT review that applied to the REPLACED version (baseVersion) — history only, never an approval of the newer content.
+    return rows.map(({ previous, ...r }) => {
+      const prev = (previous ?? {}) as { ptUserId?: string | null; ptReviewStatus?: string | null; ptNote?: string | null; ptReviewedAt?: string | null };
+      const ptReview = prev.ptReviewStatus || prev.ptNote
+        ? { version: r.baseVersion, ptUserId: prev.ptUserId ?? null, status: prev.ptReviewStatus ?? null, note: prev.ptNote ?? null, reviewedAt: prev.ptReviewedAt ?? null }
+        : null;
+      return { ...r, ptReview };
     });
   },
 
@@ -780,7 +790,7 @@ export const conversationRepository = {
         data: {
           name: prev.name, description: prev.description ?? null, goal: prev.goal, duration: prev.duration, daysPerWeek: prev.daysPerWeek,
           plan: prev.plan as Prisma.InputJsonValue, version: { increment: 1 },
-          ...(plan.ptUserId ? { ptReviewStatus: "PENDING_PT_REVIEW", ptNote: null, ptReviewedAt: null } : {}),
+          ...(plan.ptUserId ? { ptReviewStatus: null, ptNote: null, ptReviewedAt: null } : {}),
         },
       });
       if (updated.count !== 1) return { kind: "version_conflict", currentVersion: plan.version } as const;

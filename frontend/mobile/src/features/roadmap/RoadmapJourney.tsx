@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -83,11 +83,17 @@ export function RoadmapJourney({ onOpenCycle }: { onOpenCycle?: () => void }) {
 
   const advance = useMutation({
     mutationFn: (id: string) => fitnessRoadmapService.advance(id),
-    onSuccess: () => {
-      toast.show("Đã kiểm tra tiến độ lộ trình", "success");
+    onSuccess: (projection) => {
+      // advance can answer 200 WITHOUT moving on (insufficient data / review pending): say what actually happened.
+      const moved = Boolean((projection as any)?.activeCycle) || (projection as any)?.status === "COMPLETED";
+      toast.show(moved ? "Đã bắt đầu chu kỳ tiếp theo" : "Lộ trình chưa chuyển tiếp — xem đánh giá chu kỳ bên dưới", moved ? "success" : "danger");
       refresh();
     },
-    onError: (e) => toast.show(roadmapErrorMessage(e, "Không thể cập nhật lộ trình"), "danger"),
+    onError: (e) => {
+      toast.show(roadmapErrorMessage(e, "Không thể bắt đầu chu kỳ tiếp theo"), "danger");
+      // a timeout may still have been processed by the server: re-read the real state instead of showing a stale screen
+      void queryClient.invalidateQueries({ queryKey: ROADMAP_KEY });
+    },
   });
   const restartPhase = useMutation({
     mutationFn: (v: { roadmapId: string; phaseId: string }) => fitnessRoadmapService.activatePhase(v.roadmapId, v.phaseId),
@@ -160,7 +166,14 @@ export function RoadmapJourney({ onOpenCycle }: { onOpenCycle?: () => void }) {
           data={data}
           phase={activePhase}
           readiness={readiness}
-          onAdvance={() => advance.mutate(roadmap.id)}
+          // Starting the next cycle/phase needs its own button AND a confirmation — never a side effect of "checking progress".
+          onAdvance={() =>
+            Alert.alert("Bắt đầu chu kỳ tiếp theo?", "Hệ thống sẽ tạo và kích hoạt chu kỳ mới (hoặc chuyển sang giai đoạn kế tiếp) dựa trên kết quả đánh giá ở trên.", [
+              { text: "Huỷ", style: "cancel" },
+              // double tap: a second confirmation while the first request runs is ignored (the server is idempotent too)
+              { text: "Bắt đầu", onPress: () => { if (!advance.isPending) advance.mutate(roadmap.id); } },
+            ])
+          }
           advancing={advance.isPending}
           onRestart={() => restartPhase.mutate({ roadmapId: roadmap.id, phaseId: activePhase.id })}
           restarting={restartPhase.isPending}
@@ -478,7 +491,7 @@ function ActivePhase({
             {`Chu kỳ trước đã được đánh giá (${ASSESSMENT_DECISION_LABEL[readiness.lastDecision] ?? readiness.lastDecision}) — sẵn sàng chuyển tiếp.`}
           </Text>
           <Button size="sm" icon={ArrowRight} disabled={advancing} onPress={onAdvance}>
-            {advancing ? "Đang kiểm tra…" : "Kiểm tra tiến độ"}
+            {advancing ? "Đang bắt đầu…" : "Bắt đầu chu kỳ tiếp theo"}
           </Button>
         </View>
       ) : (

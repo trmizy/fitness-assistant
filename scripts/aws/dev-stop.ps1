@@ -378,7 +378,10 @@ if ($Backend) {
     # Aurora (that would cost more); the helper keeps the proxy in that case so nothing loses its database.
     Write-Host ""
     Write-Host "2b-iii) RDS Proxy (if present): restoring service DB hosts, then deleting the proxy stack..."
-    & (Join-Path $PSScriptRoot "dev-rds-proxy.ps1") -Action Down -Execute
+    # try/catch: under $ErrorActionPreference = "Stop" (auto-stop) an `aws` call that fails because no proxy stack exists threw HERE and aborted the
+    # whole dev-stop BEFORE Aurora was stopped (auto-stop 2026-11-20 18:00 failed 4x and left DEV running). The proxy step must never block the stop.
+    $global:LASTEXITCODE = 0
+    try { & (Join-Path $PSScriptRoot "dev-rds-proxy.ps1") -Action Down -Execute } catch { Write-Host "   RDS Proxy step threw: $($_.Exception.Message)" -ForegroundColor Yellow; $global:LASTEXITCODE = 1 }
     if ($LASTEXITCODE -ne 0) {
         Write-Host "WARNING: RDS Proxy teardown did not finish - the proxy is KEPT and keeps billing. Continuing with Aurora stop. Re-run: ./scripts/aws/dev-rds-proxy.ps1 -Action Down -Execute" -ForegroundColor Yellow
     }

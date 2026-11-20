@@ -1,9 +1,10 @@
 import { withGenerationOperation } from "../services/generation-operations";
 import { leaseStorage } from "../services/generation-lease-context";
 import {
-  fullRegenerationCheck, planRevisionWork, runDeltaRevision, tokenBudgetConfig,
+  planFullRegenerationChunks, planRevisionWork, runDeltaRevision, tokenBudgetConfig,
   type CandidateExercise, type PlanDay,
 } from "../services/revision/workout-revision-planner";
+import { guardPlanVietnameseText, promptSafeDayLabel } from "../services/revision/vietnamese-text-guard";
 import { Job } from "bullmq";
 import { z } from "zod";
 import { logger } from "@gym-coach/shared";
@@ -501,7 +502,7 @@ export function repairDayCandidateExercises(
       day.exercises[exerciseIndex] = buildExercisePrescription(
         replacement,
         order,
-        "Auto-repaired: exercise did not match this day's muscle-group candidates",
+        "Đã tự động thay bằng bài phù hợp nhóm cơ của buổi này.",
       );
       usedIds.add(replacement.id);
       repaired.push({ dayIndex, exerciseIndex, from: fromId, to: replacement.id });
@@ -591,7 +592,7 @@ function repairScheduleLengthAndEmptyDays(
         return buildExercisePrescription(
           next,
           exerciseIndex + 1,
-          "Auto-repaired from allowed exercise catalog after short LLM schedule output",
+          "Đã tự động chọn từ danh mục bài tập hợp lệ.",
         );
       }),
     });
@@ -627,7 +628,7 @@ function repairScheduleLengthAndEmptyDays(
         sets: 3,
         reps: "8-12",
         restSeconds: 90,
-        note: "Auto-repaired from allowed exercise catalog after empty-day output",
+        note: "Đã tự động chọn từ danh mục bài tập hợp lệ.",
       },
     ];
     warnings.push({
@@ -689,7 +690,7 @@ function repairScheduleLengthAndEmptyDays(
       day.exercises[exerciseIndex] = buildExercisePrescription(
         selected,
         exerciseIndex + 1,
-        "Auto-repaired from allowed exercise catalog after incomplete LLM output",
+        "Đã tự động chọn từ danh mục bài tập hợp lệ.",
       );
       warnings.push({
         type: "deterministic_repair",
@@ -791,7 +792,7 @@ function repairExerciseCountAndDayGoals(
         buildExercisePrescription(
           selected,
           day.exercises.length + 1,
-          "Auto-repaired from allowed exercise catalog to match requested exercises per day",
+          "Đã tự động bổ sung từ danh mục để đủ số bài mỗi buổi.",
         ),
       );
       warnings.push({
@@ -1101,7 +1102,7 @@ function buildDeterministicPlanFromCatalogs(args: {
           buildExercisePrescription(
             exercise,
             exerciseIndex + 1,
-            "Auto-repaired from per-day exercise catalog after incomplete LLM output",
+            "Đã tự động chọn từ danh mục bài tập hợp lệ.",
           ),
         ),
         cardio: "Khoi dong nhe 5-10 phut truoc buoi tap.",
@@ -1570,7 +1571,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       );
     }
 
-    const prompt = buildFastPlanPrompt({
+    const promptArgs: Parameters<typeof buildFastPlanPrompt>[0] = {
       goal,
       durationWeeks,
       daysPerWeek,
@@ -1591,7 +1592,8 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
           ]
         : undefined,
       previousPlan: adjust ? previousPlan : undefined,
-    });
+    };
+    const prompt = buildFastPlanPrompt(promptArgs);
     const generationRepairReasons: string[] = [];
     const appendTrackedPlanWarnings = (
       content: any,
@@ -1634,6 +1636,15 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
         content.weeklySchedule.forEach((day: any, index: number) => {
           if (day && typeof day === "object") day.day = `Day ${index + 1}`;
         });
+        // Descriptive Vietnamese is not trusted from the model (real Nova Pro returned "Tế cố ngữể, vai, tay sau" for "Tập cơ ngực, vai, tay sau", and the
+        // stored labels were fed back into the next prompt): closed-vocabulary day labels, previous notes kept, neutral note for new exercises.
+        const textGuard = guardPlanVietnameseText({
+          content,
+          previous: isRevision && baseRow ? baseRow.plan : null,
+          cardioRequested: Boolean(adjust?.cardioEachDay),
+          fallbackDayLabels: Array.from({ length: content.weeklySchedule.length }, (_, i) => perDayCatalogs.find((c) => c.dayIndex === i)?.dayGoal ?? "Toàn thân"),
+        });
+        if (textGuard.daysRelabelled || textGuard.notesReplaced || textGuard.boilerplateFixed || textGuard.invalidReplaced) logger.info({ jobId: job.id, planId, ...textGuard }, "Vietnamese text guard adjusted model text");
       }
       let semanticResult = validateWorkoutPlanInvariants({
         content,
@@ -1788,7 +1799,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
           day.exercises[idx] = buildExercisePrescription(
             replacement,
             idx + 1,
-            "Auto-repaired: final equipment-invariant check found this exercise unavailable",
+            "Đã tự động thay bài vì thiết bị của bạn không phù hợp.",
           );
           generationRepairReasons.push("replaced_equipment_incompatible_exercise");
         }
@@ -1834,7 +1845,8 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
     // unless every chunk and the final verification pass, and the target is never lowered to fit a limit.
     if (isRevision && adjust && baseRow) {
       const baseContent: any = baseRow.plan ?? {};
-      const prevDays: PlanDay[] = Array.isArray(baseContent.weeklySchedule) ? baseContent.weeklySchedule : [];
+      // A corrupted stored day label must not reach the model's prompt (it would copy and worsen it): labels are made prompt-safe first.
+      const prevDays: PlanDay[] = (Array.isArray(baseContent.weeklySchedule) ? baseContent.weeklySchedule : []).map((d: PlanDay, i: number) => ({ ...d, goal: promptSafeDayLabel(d.goal, perDayCatalogs.find((c) => c.dayIndex === i)?.dayGoal ?? "") }));
       const countOnly = !swap && adjust.excludeNamePatterns.length === 0 && !adjust.equipmentOnly && adjust.fullBodyDays.length === 0
         && !adjust.lighterVolume && !adjust.strengthFocus && !adjust.cardioEachDay && prevDays.length === daysPerWeek && prevDays.length > 0;
       if (countOnly) {
@@ -1870,20 +1882,60 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
         return;
       }
     }
-    // Revision through the full-regeneration path: refuse up front when the whole plan cannot fit the provider's output limit.
+    // Revision through the full-regeneration path. A plan whose whole output fits one call is generated in ONE call (unchanged); a bigger one is
+    // generated in groups of DAYS that each fit the provider's output limit and merged afterwards — it is never refused for its size and the exercise
+    // count is never lowered. Nothing is persisted until every group parsed and the merged plan passed the SAME validation + the fenced commit below.
+    let fullChunks: number[][] = [Array.from({ length: daysPerWeek }, (_, i) => i)];
     if (isRevision) {
-      const cfg = tokenBudgetConfig();
-      // Same estimate the pre-revision worker used to size this very call (600 + tokensPerExercise per exercise, no extra headroom) — see fullRegenerationCheck.
-      const budget = fullRegenerationCheck(daysPerWeek * exercisesPerDay, cfg);
-      const needed = budget.needed;
-      if (!budget.ok) {
-        await sink.fail(planId, `Điều chỉnh này cần tạo lại cả kế hoạch (${daysPerWeek} buổi × ${exercisesPerDay} bài ≈ ${needed} token), vượt giới hạn đầu ra ${cfg.providerMaxOutputTokens} của mô hình. Mình không tự giảm số bài — hãy tách thành từng bước nhỏ hơn.`);
+      const chunkPlan = planFullRegenerationChunks(Array(daysPerWeek).fill(exercisesPerDay), tokenBudgetConfig());
+      if (chunkPlan.conflict) {
+        await sink.fail(planId, chunkPlan.conflict.message);
         return;
+      }
+      fullChunks = chunkPlan.chunks;
+    }
+    let chunkedRaw: string | null = null;
+    if (isRevision && fullChunks.length > 1) {
+      try {
+        const merged: any[] = new Array(daysPerWeek);
+        let sharedNotes: Record<string, unknown> = {};
+        for (const [chunkIndex, group] of fullChunks.entries()) {
+          const subPrompt = buildFastPlanPrompt({
+            ...promptArgs,
+            daysPerWeek: group.length,
+            exercisesByDay: perDayCatalogs.filter((c) => group.includes(c.dayIndex)),
+            previousPlan: promptArgs.previousPlan ? group.map((i) => promptArgs.previousPlan![i]).filter(Boolean) : undefined,
+          });
+          const numPredict = estimatePlanNumPredict(group.length, exercisesPerDay);
+          let parsedChunk: any = null;
+          for (let attempt = 0; attempt < 2 && !parsedChunk; attempt++) {
+            const started = Date.now();
+            const r = await llmService.callLLM(subPrompt, { responseFormat: "json", timeoutMs: planTimeoutMs, numPredict, temperature: 0.1 });
+            logger.info({ jobId: job.id, planId, chunk: chunkIndex + 1, of: fullChunks.length, days: group.length, attempt: attempt + 1, durationMs: Date.now() - started, promptTokens: r.promptTokens, completionTokens: r.completionTokens, numPredict }, "Plan revision chunk (whole-plan path) finished");
+            const candidate = safeParseJsonCandidate(r.answer) as any;
+            if (candidate && Array.isArray(candidate.weeklySchedule) && candidate.weeklySchedule.length === group.length) parsedChunk = candidate;
+          }
+          if (!parsedChunk) {
+            logger.error({ jobId: job.id, planId, chunk: chunkIndex + 1, of: fullChunks.length }, "Plan revision chunk unusable after a retry; the plan is unchanged");
+            await sink.fail(planId, ADJUSTMENT_FAILED_MESSAGE_VI);
+            return;
+          }
+          group.forEach((dayIndex, k) => { merged[dayIndex] = { ...parsedChunk.weeklySchedule[k], day: `Day ${dayIndex + 1}` }; });
+          if (chunkIndex === 0) sharedNotes = { progressionNotes: parsedChunk.progressionNotes, recoveryNotes: parsedChunk.recoveryNotes, nutritionSummary: parsedChunk.nutritionSummary };
+        }
+        chunkedRaw = JSON.stringify({ goal, durationWeeks, daysPerWeek, exercisesPerDay, weeklySchedule: merged, ...sharedNotes });
+      } catch (err) {
+        logger.error({ err, jobId: job.id, planId }, "Plan revision chunk LLM call failed");
+        await sink.fail(planId, ADJUSTMENT_FAILED_MESSAGE_VI);
+        throw err; // BullMQ retry policy, same as the single-call path
       }
     }
 
     let rawAnswer: string;
     try {
+      if (chunkedRaw !== null) {
+        rawAnswer = chunkedRaw;
+      } else {
       const llmStartedAt = Date.now();
       const llmResponse = await llmService.callLLM(prompt, {
         responseFormat: "json",
@@ -1903,6 +1955,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
         "Plan generation LLM call finished",
       );
       rawAnswer = llmResponse.answer;
+      }
     } catch (err) {
       if (isRecoverablePlanLlmTimeout(err) && !isAdjustmentJob) {
         const fallbackContent = buildDeterministicPlanFromCatalogs({
@@ -2276,7 +2329,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
           day.exercises[exIdx] = buildExercisePrescription(
             replacement,
             exIdx + 1,
-            "Auto-repaired: exercise did not match day muscle group",
+            "Đã tự động thay bằng bài phù hợp nhóm cơ của buổi này.",
           );
         }
       }
@@ -2355,7 +2408,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
             day.exercises[exerciseIndex] = buildExercisePrescription(
               selected,
               exerciseIndex + 1,
-              "Auto-repaired from allowed exercise catalog after invalid exerciseId output",
+              "Đã tự động chọn từ danh mục bài tập hợp lệ.",
             );
             replacementWarnings.push({
               type: "deterministic_repair",
@@ -2493,7 +2546,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
                   sets: 3,
                   reps: "8-12",
                   restSeconds: 60,
-                  note: "Auto-repaired from allowed exercise catalog after empty-day output",
+                  note: "Đã tự động chọn từ danh mục bài tập hợp lệ.",
                 },
               ];
               repairedDays.push({

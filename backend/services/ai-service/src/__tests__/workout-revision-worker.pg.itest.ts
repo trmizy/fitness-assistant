@@ -314,18 +314,47 @@ for (const [days, per] of [[5, 5], [4, 7], [5, 6]] as const) {
   });
 }
 
-test("A1 worker: 4x8 = 32 exercises exceeds a hosted 5000-token output (5080) — refused BEFORE any model call, the plan is untouched and the message says it will not shrink the plan", async () => {
+for (const [days, per, groups] of [[4, 8, [3, 1]], [5, 7, [4, 1]], [7, 10, [3, 3, 1]]] as const) {
+  test(`A1-F1 worker: a ${days}x${per} = ${days * per}-exercise plan (> one call on a hosted 5000-token provider) is NOT refused — generated in ${groups.length} day-groups ${JSON.stringify(groups)}, merged, same plan id, version 2, every day exactly ${per}`, async () => {
+    await withProvider("bedrock", async () => {
+      const u = user(`a1f1-${days}x${per}`); const plan = await newBigPlan(u, Array(days).fill(per));
+      llmImpl = fullModel;
+      const q = await svc.queuePlanAdjustment({ originalPlanId: plan.id, userId: u, adjustments: `Mỗi buổi ${per} bài, bỏ plank`, expectedVersion: 1 });
+      await runWorker();
+      assert.equal(llmCalls.length, groups.length, `one call per day-group (${llmCalls.length})`);
+      assert.ok(llmCalls.every((c) => (c.numPredict ?? 0) <= 5000), JSON.stringify(llmCalls.map((c) => c.numPredict)));
+      groups.forEach((g, i) => assert.match(llmCalls[i].prompt, new RegExp(`DaysPerWeek: ${g}\\b`), `call ${i + 1} covers ${g} days`));
+      const row = await prisma.workoutPlan.findUniqueOrThrow({ where: { id: plan.id } });
+      assert.equal(row.version, 2, (await opOf(q.revisionJobId)).lastError ?? ""); assert.equal(row.status, "COMPLETED");
+      const sched = (row.plan as any).weeklySchedule;
+      assert.equal(sched.length, days);
+      assert.deepEqual(sched.map((d: any) => d.day), Array.from({ length: days }, (_, i) => `Day ${i + 1}`), "days merged in order");
+      // the stub echoes the day label it was given in the prompt (accented: "Ngực + Vai + …") and note "ok": the day-group merge + validation must keep that text BYTE-FOR-BYTE
+      assert.ok(sched.every((d: any) => typeof d.goal === "string" && d.goal.length > 3), `day goals present: ${JSON.stringify(sched.map((d: any) => d.goal))}`);
+      // the model's note is kept verbatim; the only other text is the pipeline's own catalog-repair note
+      assert.ok(sched.every((d: any) => d.exercises.every((e: any) => e.note === "ok" || /^(Bài tập đã được tự động khớp|Đã tự động)/.test(e.note))), `notes (Vietnamese only — no English "Auto-repaired…" reaches the user): ${JSON.stringify([...new Set(sched.flatMap((d: any) => d.exercises.map((e: any) => e.note)))])}`);
+      assert.ok(sched.every((d: any) => d.exercises.length === per && d.exercises.length <= 10), "the count is never lowered and never above 10");
+      const { PlanContentSchema } = await import("../schemas/plan.schemas");
+      assert.equal(PlanContentSchema.safeParse(row.plan).success, true);
+      assert.equal((await opOf(q.revisionJobId)).status, "COMPLETED");
+      assert.equal(await prisma.workoutPlan.count({ where: { userId: u } }), 1, "no second plan");
+    });
+  });
+}
+
+test("A1-F1 worker: if the SECOND day-group comes back truncated twice, NOTHING is written (plan byte-identical, version 1, no history row, job FAILED) — no partial plan from the first group", async () => {
   await withProvider("bedrock", async () => {
-    const u = user("a1-32"); const plan = await newBigPlan(u, [8, 8, 8, 8]);
+    const u = user("a1f1-trunc2"); const plan = await newBigPlan(u, [8, 8, 8, 8]);
     const before = JSON.stringify(plan.plan);
-    llmImpl = fullModel;
+    let n = 0;
+    llmImpl = (prompt) => (++n === 1 ? fullModel(prompt) : '{"goal":"MUSCLE_GAIN","weeklySchedule":[{"day":"Day 4","exercises":[{"exerciseId":"cat-25","na');
     const q = await svc.queuePlanAdjustment({ originalPlanId: plan.id, userId: u, adjustments: "Mỗi buổi 8 bài, bỏ plank", expectedVersion: 1 });
     await runWorker();
-    assert.equal(llmCalls.length, 0);
+    assert.equal(llmCalls.length, 3, "group 1 ok, group 2 twice (one retry)");
     const row = await prisma.workoutPlan.findUniqueOrThrow({ where: { id: plan.id } });
     assert.equal(row.version, 1); assert.equal(JSON.stringify(row.plan), before);
-    const op = await opOf(q.revisionJobId);
-    assert.equal(op.status, "FAILED"); assert.match(op.lastError, /5080 token/); assert.match(op.lastError, /không tự giảm số bài/);
+    assert.equal(await prisma.workoutPlanRevision.count({ where: { planId: plan.id } }), 0);
+    assert.equal((await opOf(q.revisionJobId)).status, "FAILED");
   });
 });
 
@@ -359,5 +388,117 @@ test("A1 worker: a 31-exercise 7-day plan raised to 10/day (the per-day maximum)
     sched.forEach((d: any, i: number) => assert.deepEqual(d.exercises.slice(0, orig[i].exercises.length).map((e: any) => e.exerciseId), orig[i].exercises.map((e: any) => e.exerciseId)));
     const { PlanContentSchema } = await import("../schemas/plan.schemas");
     assert.equal(PlanContentSchema.safeParse(row.plan).success, true);
+  });
+});
+
+test("Vietnamese guard in the pipeline: the model returns the REAL corrupted text on a revision -> the stored plan keeps the clean previous day labels, previous notes, previous plan-level notes; nothing garbled is committed", async () => {
+  await withProvider("bedrock", async () => {
+    const u = user("vi-guard"); const plan = await newBigPlan(u, [4, 4, 4, 4]);
+    llmImpl = (prompt) => {
+      const j = JSON.parse(fullModel(prompt));
+      const garbled = ["Tế cố ngữể, vai, tay sau", "Tập cố lủng, tay trữc̣", "Tập cố chán, mông", "Tập cả vai, tay trữc̣, tay sau"];
+      j.weeklySchedule.forEach((d: any, i: number) => { d.goal = garbled[i]; d.cardio = "Khởi động nhể nếu cần"; d.exercises.forEach((e: any) => { e.note = "Tập ngữể dày."; }); });
+      j.progressionNotes = ["Tập luyện tập dềp dài"]; j.nutritionSummary = "Tâm tật ngân";
+      return JSON.stringify(j);
+    };
+    const q = await svc.queuePlanAdjustment({ originalPlanId: plan.id, userId: u, adjustments: "Mỗi buổi 4 bài, bỏ plank", expectedVersion: 1 });
+    await runWorker();
+    const row = await prisma.workoutPlan.findUniqueOrThrow({ where: { id: plan.id } });
+    assert.equal(row.version, 2, (await opOf(q.revisionJobId)).lastError ?? "");
+    const p: any = row.plan;
+    // day 3's REAL corrupt label ("Tập cố chán, mông") only has known muscle words with wrong marks => RESTORED to "Tập cơ chân, mông"; the others cannot be verified => the stored clean label stays
+    assert.deepEqual(p.weeklySchedule.map((d: any) => d.goal), ["Toàn thân", "Toàn thân", "Tập cơ chân, mông", "Toàn thân"]);
+    const { hasImpossibleToneMarks } = await import("../services/revision/vietnamese-text-guard");
+    const all = JSON.stringify(p);
+    assert.ok(!/ngữể|trữc̣|tập cố|Tế cố|dềp|Tâm tật/i.test(all), "no corrupted model text reached the stored plan");
+    assert.ok(p.weeklySchedule.every((d: any) => d.exercises.every((e: any) => !hasImpossibleToneMarks(e.note) && e.note !== "Tập ngữể dày.")));
+    assert.deepEqual(p.progressionNotes, ["x"], "the plan's own plan-level text is PRESERVED (never replaced by the model's corrupt prose)"); assert.equal(p.nutritionSummary, "z");
+    assert.ok(p.weeklySchedule.every((d: any) => d.cardio === "Khởi động"), "the stored cardio hint is preserved");
+  });
+});
+
+// ── Phase 2 (Vietnamese quality): feedback loop, successive revisions, sizes, 32 exercises — deterministic stub only, NO paid calls ───────────────
+const GARBLED = ["Tế cố ngữể, vai, tay sau", "Tập cố lủng, tay trữc̣", "Tập cố ngữể, mông", "Tập cả vai, tay trữc̣, tay sau", "Tập cố ngắội, bụng", "Tập cố dùi, chán", "Tập cố cảng, tay"];
+const garblingFullModel = (prompt: string) => {
+  const j = JSON.parse(fullModel(prompt));
+  j.weeklySchedule.forEach((d: any, i: number) => { d.goal = GARBLED[i % GARBLED.length]; d.cardio = "Khởi động nhể nếu cần"; d.exercises.forEach((e: any) => { e.note = "Tập ngữể dày."; }); });
+  j.progressionNotes = ["Tập luyện tập dềp dài"]; j.nutritionSummary = "Tâm tật ngân";
+  return JSON.stringify(j);
+};
+const CORRUPT = /ngữể|trữc̣|Tế cố|ngắội|dềp|Tâm tật|Tập ngữể/;
+const withCorruptedStoredLabels = async (userId: string, counts: number[]) => {
+  const plan = await newBigPlan(userId, counts);
+  const content: any = JSON.parse(JSON.stringify(plan.plan));
+  content.weeklySchedule.forEach((d: any, i: number) => { d.goal = GARBLED[i % GARBLED.length]; });
+  return prisma.workoutPlan.update({ where: { id: plan.id }, data: { plan: content } });
+};
+
+test("Phase 2 feedback loop: a CORRUPTED label already stored on the plan is never sent to the model — neither in the delta prompt nor in the whole-plan prompt — and the committed plan is clean", async () => {
+  await withProvider("bedrock", async () => {
+    // delta path (count-only edit)
+    const u1 = user("fb-delta"); const p1 = await withCorruptedStoredLabels(u1, [4, 4, 4, 4]);
+    llmImpl = cooperativeModel;
+    await svc.queuePlanAdjustment({ originalPlanId: p1.id, userId: u1, adjustments: "Mỗi buổi 6 bài", expectedVersion: 1 });
+    await runWorker();
+    assert.ok(llmCalls.length >= 1 && llmCalls.every((c) => !CORRUPT.test(c.prompt)), "no corrupted stored label in the delta prompt");
+    const r1: any = (await prisma.workoutPlan.findUniqueOrThrow({ where: { id: p1.id } })).plan;
+    assert.ok(!CORRUPT.test(JSON.stringify(r1)), "committed plan is clean"); assert.ok(r1.weeklySchedule.every((d: any) => d.exercises.length === 6));
+    // whole-plan path
+    llmCalls = [];
+    const u2 = user("fb-full"); const p2 = await withCorruptedStoredLabels(u2, [4, 4, 4, 4]);
+    llmImpl = fullModel;
+    await svc.queuePlanAdjustment({ originalPlanId: p2.id, userId: u2, adjustments: "Mỗi buổi 4 bài, bỏ plank", expectedVersion: 1 });
+    await runWorker();
+    assert.ok(llmCalls.length >= 1 && llmCalls.every((c) => !CORRUPT.test(c.prompt)), "no corrupted stored label in the whole-plan prompt");
+  });
+});
+
+test("Phase 2 successive revisions: the model returns REAL corrupted Vietnamese on EVERY revision (3 in a row) — same planId, versions 1->4, one plan row, text stays clean and stable, nothing partial", async () => {
+  await withProvider("bedrock", async () => {
+    const u = user("succ"); const plan = await newBigPlan(u, [4, 4, 4, 4]);
+    llmImpl = garblingFullModel;
+    const snapshots: string[] = [];
+    for (const [i, text] of ["Mỗi buổi 5 bài, bỏ plank", "Mỗi buổi 6 bài, bỏ plank", "Mỗi buổi 4 bài, bỏ plank"].entries()) {
+      const q = await svc.queuePlanAdjustment({ originalPlanId: plan.id, userId: u, adjustments: text, expectedVersion: i + 1 });
+      await runWorker();
+      const row = await prisma.workoutPlan.findUniqueOrThrow({ where: { id: plan.id } });
+      assert.equal(row.version, i + 2, (await opOf(q.revisionJobId)).lastError ?? ""); assert.equal(row.id, plan.id);
+      assert.ok(!CORRUPT.test(JSON.stringify(row.plan)), `revision ${i + 1}: no corrupted text stored`);
+      snapshots.push(JSON.stringify((row.plan as any).weeklySchedule.map((d: any) => d.goal)));
+    }
+    assert.equal(await prisma.workoutPlan.count({ where: { userId: u } }), 1);
+    assert.equal(snapshots[0], snapshots[1]); assert.equal(snapshots[1], snapshots[2], "labels are stable across revisions (no drift/degradation)");
+    assert.equal(await prisma.workoutPlanRevision.count({ where: { planId: plan.id } }), 3);
+  });
+});
+
+for (const per of [7, 8, 10] as const) {
+  test(`Phase 2: 4x4 -> 4x${per} keeps the SAME planId, the stored labels and a valid plan (delta path)`, async () => {
+    const u = user(`size-${per}`); const plan = await newBigPlan(u, [4, 4, 4, 4]);
+    llmImpl = cooperativeModel;
+    const q = await svc.queuePlanAdjustment({ originalPlanId: plan.id, userId: u, adjustments: `Mỗi buổi ${per} bài`, expectedVersion: 1 });
+    await runWorker();
+    const row = await prisma.workoutPlan.findUniqueOrThrow({ where: { id: plan.id } });
+    assert.equal(row.id, plan.id); assert.equal(row.version, 2, (await opOf(q.revisionJobId)).lastError ?? "");
+    const sched = (row.plan as any).weeklySchedule;
+    assert.ok(sched.every((d: any) => d.exercises.length === per && d.goal === "Toàn thân"), "count reached, label untouched");
+    const { PlanContentSchema } = await import("../schemas/plan.schemas");
+    assert.equal(PlanContentSchema.safeParse(row.plan).success, true);
+    assert.equal(await prisma.workoutPlan.count({ where: { userId: u } }), 1);
+  });
+}
+
+test("Phase 2: a 32-exercise (4x8) whole-plan revision in day-groups with REAL corrupted model text — clean labels, same planId, version 2, one plan row", async () => {
+  await withProvider("bedrock", async () => {
+    const u = user("g32"); const plan = await newBigPlan(u, [8, 8, 8, 8]);
+    llmImpl = garblingFullModel;
+    const q = await svc.queuePlanAdjustment({ originalPlanId: plan.id, userId: u, adjustments: "Mỗi buổi 8 bài, bỏ plank", expectedVersion: 1 });
+    await runWorker();
+    assert.equal(llmCalls.length, 2, "two day-groups");
+    const row = await prisma.workoutPlan.findUniqueOrThrow({ where: { id: plan.id } });
+    assert.equal(row.version, 2, (await opOf(q.revisionJobId)).lastError ?? ""); assert.equal(row.id, plan.id);
+    assert.ok(!CORRUPT.test(JSON.stringify(row.plan)), "clean");
+    assert.ok((row.plan as any).weeklySchedule.every((d: any) => d.exercises.length === 8));
+    assert.equal(await prisma.workoutPlan.count({ where: { userId: u } }), 1);
   });
 });

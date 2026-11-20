@@ -592,6 +592,26 @@ export const internalController = {
     }
   },
 
+  // Vietnamese + original names, how-to, common mistakes and safety notes for a small set of canonical Exercise ids. Source = the catalog (never a model);
+  // only CURATED/REVIEWED guidance is returned, missing data is reported as such so callers fall back to the English name.
+  async exerciseLocalized(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = typeof req.user?.id === "string" ? req.user.id.trim() : "";
+      if (!userId) { res.status(401).json({ success: false, error: "Missing user identity in internal headers" }); return; }
+      const ids = (req.body as { exerciseIds?: unknown })?.exerciseIds;
+      if (!Array.isArray(ids) || ids.length === 0 || ids.length > 200 || !ids.every((x) => typeof x === "string" && x.length > 0 && x.length <= 64)) {
+        res.status(400).json({ success: false, error: "exerciseIds must be a non-empty array of at most 200 ids" });
+        return;
+      }
+      const { exerciseLocalizationService } = await import("../services/exercise-localization.service");
+      const exercises = await exerciseLocalizationService.getLocalizations(ids as string[], muscleProfileVisibilityWhere(userId));
+      res.json({ success: true, data: { exercises } });
+    } catch (err) {
+      logger.error({ err }, "internal.exerciseLocalized failed");
+      res.status(500).json({ success: false, error: "Failed to load exercise localizations" });
+    }
+  },
+
   // Hardening pass §7/§8 — ai-service calls this as a FINAL, authoritative
   // equipment-compliance check on a specific generated plan's exact
   // exerciseIds, right before persisting it. Deliberately separate from
