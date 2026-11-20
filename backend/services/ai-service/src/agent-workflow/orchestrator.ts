@@ -271,7 +271,9 @@ async function finalizeWorkflow(
   }
 
   await workflowStateRepository.complete(workflowId);
-  return { answer: RESUME_SENTINEL, blocks: [], resumeIntentKind: def.gatesIntentKind, resumeKnownSlots: known }; // sentinel — caller falls through to existing dispatch
+  // CI-V2 keeps its conversation memory under `known.__ci`; it is not a slot, and AgentPreferencesSchema rejects unknown keys.
+  const { __ci: _ciMemory, ...resumeSlots } = known;
+  return { answer: RESUME_SENTINEL, blocks: [], resumeIntentKind: def.gatesIntentKind, resumeKnownSlots: resumeSlots }; // sentinel — caller falls through to existing dispatch
 }
 
 async function startWorkflow(
@@ -376,6 +378,9 @@ async function applySemanticDecision(
         return { answer: [decision.preface, applied.rejected].filter(Boolean).join(String.fromCharCode(10).repeat(2)), blocks: [] };
       }
       const result = await finalizeWorkflow(workflowId, def, nextKnown, identity, deps);
+      // A completed workflow answers with the bare RESUME_SENTINEL (the caller then runs the real search/generation): a preface glued on
+      // front made it a different string, so the caller returned "...__RESUME__" as the chat answer and never searched.
+      if (result.answer === RESUME_SENTINEL) return result;
       return decision.preface ? { ...result, answer: decision.preface + String.fromCharCode(10).repeat(2) + result.answer } : result;
     }
     default:
@@ -394,7 +399,16 @@ async function handleSemanticTurn(
     expectedSlot: active.expectedSlot, slotKeys: new Set(def.slots.map((sl) => sl.key)),
   });
   if (ciMode() === "shadow") return null; // observe only
-  return applySemanticDecision(active.id, def, known, turn.decision, identity, deps);
+  // The semantic patch only carries what CI-V2 interpreted (goal/budget/...). Optional slots stated in the same reply ("5 trieu, giam mo,
+  // o Go Vap, truc tiep" -> placeText/mode) were dropped here, unlike on the legacy slot-reply path, so a resumed PT search lost them.
+  const decision = turn.decision;
+  if ((decision.action === "APPLY_AND_CONTINUE" || decision.action === "PROPOSE_PROFILE_CHANGE") && def.extractFromMessage) {
+    const base = { ...known, ...(decision.patch ?? {}) };
+    const extra = await extractSafeKnownFromMessage(def, question, base, identity, deps);
+    const optionalOnly = Object.fromEntries(Object.entries(extra).filter(([k]) => def.slots.find((sl) => sl.key === k)?.required === false));
+    if (Object.keys(optionalOnly).length > 0) decision.patch = { ...(decision.patch ?? {}), ...optionalOnly };
+  }
+  return applySemanticDecision(active.id, def, known, decision, identity, deps);
 }
 
 async function handleSlotReply(
