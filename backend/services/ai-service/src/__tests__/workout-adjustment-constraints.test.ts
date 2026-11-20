@@ -61,6 +61,23 @@ test("numbers typed in the text are read only with clear framing", () => {
   assert.equal(P("Thêm 2 bài bụng").exercisesPerDay, undefined, "an addition is not a per-day count");
 });
 
+test("'tăng 1 buổi từ 5 lên 6 buổi' targets 6 days (regression: it was read as 1 day/week and the job failed)", () => {
+  const a = P("tăng 1 buổi tập từ 5 lên 6 buổi");
+  assert.equal(a.daysPerWeek, 6);
+  assert.equal(a.daysDelta, undefined);
+  assert.equal(P("giảm 1 buổi từ 5 xuống 4 buổi").daysPerWeek, 4);
+});
+
+test("'tăng/thêm/giảm N buổi' without a target is relative, never an absolute count", () => {
+  const up = P("tăng 1 buổi tập");
+  assert.equal(up.daysPerWeek, undefined);
+  assert.equal(up.daysDelta, 1);
+  assert.equal(P("thêm 2 buổi mỗi tuần").daysDelta, 2);
+  assert.equal(P("thêm 2 buổi mỗi tuần").daysPerWeek, undefined);
+  assert.equal(P("giảm 1 buổi").daysDelta, -1);
+  assert.equal(P("bớt 2 buổi").daysDelta, -2);
+});
+
 import { exerciseUnsafeForTrainee } from "../services/revision/workout-adjustment-constraints";
 
 test("level safety: beginners and 50+ never get Olympic/explosive/powerlifting-specialty lifts; nobody gets neck pressing", () => {

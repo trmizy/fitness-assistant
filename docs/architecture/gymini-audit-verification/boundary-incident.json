@@ -1,0 +1,24 @@
+{
+  "status": "DISCLOSED",
+  "heldout_named_file_bytes_read_for_hashing": true,
+  "heldout_named_paths": [
+    "data/eval/retrieval/rag-grounding-heldout-results-2026-10-11.json",
+    "data/eval/retrieval/rag-grounding-heldout-v1.json",
+    "data/eval/retrieval/rag-grounding-heldout-v2-results-2026-10-11.json",
+    "data/eval/retrieval/rag-grounding-heldout-v2.json",
+    "data/eval/retrieval/rag-grounding-heldout-v3-results-2026-10-11.json",
+    "data/eval/retrieval/rag-grounding-heldout-v3.json",
+    "data/eval/retrieval/rag-grounding-heldout-v4-results-2026-10-11.json",
+    "data/eval/retrieval/rag-grounding-heldout-v4.json",
+    "data/eval/retrieval/rag-grounding-heldout-v5-results-2026-10-11.json",
+    "data/eval/retrieval/rag-grounding-heldout-v5.json",
+    "training/semantic-qwen3-4b/datasets/processed/v0/heldout.jsonl",
+    "training/semantic-qwen3-4b/datasets/processed/v1/heldout.jsonl",
+    "training/semantic-qwen3-4b/datasets/processed/v2/heldout.jsonl"
+  ],
+  "content_displayed": false,
+  "content_semantically_inspected": false,
+  "training_or_evaluation_run": false,
+  "modified": false,
+  "corrective_action": "Exclude heldout/sealed and all training/data-eval paths from subsequent integrity reads. Do not assert heldout untouched."
+}

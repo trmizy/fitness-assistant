@@ -1,0 +1,313 @@
+{
+  "run": "20261108",
+  "images": 24,
+  "layouts": {
+    "en": 21,
+    "vi": 2,
+    "old": 1
+  },
+  "referenceProtocol": "manual transcription of all 24 printouts, identity-checked",
+  "voteVsManual": {
+    "fields": 216,
+    "agree": 215,
+    "agreementPct": 99.5,
+    "disagreements": [
+      "img-b5310e87:measurement_date=2025-01-12 (manual 2025-12-01)"
+    ]
+  },
+  "models": {
+    "Claude Sonnet 4.6": {
+      "groups": {
+        "Nutrition-critical (W, BFM, FFM, BMR)": {
+          "n": 96,
+          "correct": 96,
+          "accuracy": 100
+        },
+        "Core scalar fields (n=24 sheets)": {
+          "n": 216,
+          "correct": 215,
+          "accuracy": 99.5
+        },
+        "Measurement date": {
+          "n": 24,
+          "correct": 23,
+          "accuracy": 95.8
+        },
+        "Segmental (n=24 sheets)": {
+          "n": 264,
+          "correct": 262,
+          "accuracy": 99.2
+        }
+      },
+      "perField": {
+        "measurement_date": {
+          "n": 24,
+          "ok": 23
+        },
+        "weight": {
+          "n": 24,
+          "ok": 24
+        },
+        "height": {
+          "n": 24,
+          "ok": 24
+        },
+        "skeletal_muscle_mass": {
+          "n": 24,
+          "ok": 24
+        },
+        "body_fat_mass": {
+          "n": 24,
+          "ok": 24
+        },
+        "percent_body_fat": {
+          "n": 24,
+          "ok": 24
+        },
+        "fat_free_mass": {
+          "n": 24,
+          "ok": 24
+        },
+        "basal_metabolic_rate": {
+          "n": 24,
+          "ok": 24
+        },
+        "visceral_fat_level": {
+          "n": 24,
+          "ok": 24
+        }
+      },
+      "lrSwaps": 1,
+      "fabricatedSegmental": 0,
+      "latencyMsMean": 4090,
+      "inTokMean": 3041,
+      "outTokMean": 359,
+      "bmrMaeKcal": 0,
+      "bmrMaxErrKcal": 0
+    },
+    "Claude Haiku 4.5": {
+      "groups": {
+        "Nutrition-critical (W, BFM, FFM, BMR)": {
+          "n": 96,
+          "correct": 95,
+          "accuracy": 99
+        },
+        "Core scalar fields (n=24 sheets)": {
+          "n": 216,
+          "correct": 211,
+          "accuracy": 97.7
+        },
+        "Measurement date": {
+          "n": 24,
+          "correct": 22,
+          "accuracy": 91.7
+        },
+        "Segmental (n=24 sheets)": {
+          "n": 264,
+          "correct": 220,
+          "accuracy": 83.3
+        }
+      },
+      "perField": {
+        "measurement_date": {
+          "n": 24,
+          "ok": 22
+        },
+        "weight": {
+          "n": 24,
+          "ok": 24
+        },
+        "height": {
+          "n": 24,
+          "ok": 22
+        },
+        "skeletal_muscle_mass": {
+          "n": 24,
+          "ok": 24
+        },
+        "body_fat_mass": {
+          "n": 24,
+          "ok": 24
+        },
+        "percent_body_fat": {
+          "n": 24,
+          "ok": 24
+        },
+        "fat_free_mass": {
+          "n": 24,
+          "ok": 24
+        },
+        "basal_metabolic_rate": {
+          "n": 24,
+          "ok": 23
+        },
+        "visceral_fat_level": {
+          "n": 24,
+          "ok": 24
+        }
+      },
+      "lrSwaps": 12,
+      "fabricatedSegmental": 0,
+      "latencyMsMean": 3073,
+      "inTokMean": 3040,
+      "outTokMean": 382,
+      "bmrMaeKcal": 3.4,
+      "bmrMaxErrKcal": 81
+    },
+    "Nova Pro": {
+      "groups": {
+        "Nutrition-critical (W, BFM, FFM, BMR)": {
+          "n": 96,
+          "correct": 83,
+          "accuracy": 86.5
+        },
+        "Core scalar fields (n=24 sheets)": {
+          "n": 216,
+          "correct": 174,
+          "accuracy": 80.6
+        },
+        "Measurement date": {
+          "n": 24,
+          "correct": 10,
+          "accuracy": 41.7
+        },
+        "Segmental (n=24 sheets)": {
+          "n": 264,
+          "correct": 61,
+          "accuracy": 23.1
+        }
+      },
+      "perField": {
+        "measurement_date": {
+          "n": 24,
+          "ok": 10
+        },
+        "weight": {
+          "n": 24,
+          "ok": 21
+        },
+        "height": {
+          "n": 24,
+          "ok": 22
+        },
+        "skeletal_muscle_mass": {
+          "n": 24,
+          "ok": 22
+        },
+        "body_fat_mass": {
+          "n": 24,
+          "ok": 22
+        },
+        "percent_body_fat": {
+          "n": 24,
+          "ok": 20
+        },
+        "fat_free_mass": {
+          "n": 24,
+          "ok": 22
+        },
+        "basal_metabolic_rate": {
+          "n": 24,
+          "ok": 18
+        },
+        "visceral_fat_level": {
+          "n": 24,
+          "ok": 17
+        }
+      },
+      "lrSwaps": 21,
+      "fabricatedSegmental": 2,
+      "latencyMsMean": 4666,
+      "inTokMean": 2874,
+      "outTokMean": 211,
+      "bmrMaeKcal": 20.5,
+      "bmrMaxErrKcal": 418
+    },
+    "Nova Lite": {
+      "groups": {
+        "Nutrition-critical (W, BFM, FFM, BMR)": {
+          "n": 96,
+          "correct": 90,
+          "accuracy": 93.8
+        },
+        "Core scalar fields (n=24 sheets)": {
+          "n": 216,
+          "correct": 179,
+          "accuracy": 82.9
+        },
+        "Measurement date": {
+          "n": 24,
+          "correct": 1,
+          "accuracy": 4.2
+        },
+        "Segmental (n=24 sheets)": {
+          "n": 264,
+          "correct": 57,
+          "accuracy": 21.6
+        }
+      },
+      "perField": {
+        "measurement_date": {
+          "n": 24,
+          "ok": 1
+        },
+        "weight": {
+          "n": 24,
+          "ok": 24
+        },
+        "height": {
+          "n": 24,
+          "ok": 24
+        },
+        "skeletal_muscle_mass": {
+          "n": 24,
+          "ok": 21
+        },
+        "body_fat_mass": {
+          "n": 24,
+          "ok": 23
+        },
+        "percent_body_fat": {
+          "n": 24,
+          "ok": 22
+        },
+        "fat_free_mass": {
+          "n": 24,
+          "ok": 23
+        },
+        "basal_metabolic_rate": {
+          "n": 24,
+          "ok": 20
+        },
+        "visceral_fat_level": {
+          "n": 24,
+          "ok": 21
+        }
+      },
+      "lrSwaps": 6,
+      "fabricatedSegmental": 2,
+      "latencyMsMean": 2508,
+      "inTokMean": 2874,
+      "outTokMean": 232,
+      "bmrMaeKcal": 122.1,
+      "bmrMaxErrKcal": 1196
+    }
+  },
+  "groups": [
+    "Nutrition-critical (W, BFM, FFM, BMR)",
+    "Core scalar fields (n=24 sheets)",
+    "Measurement date",
+    "Segmental (n=24 sheets)"
+  ],
+  "productionSchemaCoverage": {
+    "weight": true,
+    "height": true,
+    "skeletal_muscle_mass": true,
+    "body_fat_mass": true,
+    "percent_body_fat": "derived (BFM/W)",
+    "fat_free_mass": false,
+    "basal_metabolic_rate": false,
+    "visceral_fat_level": false,
+    "measurement_date": true
+  }
+}

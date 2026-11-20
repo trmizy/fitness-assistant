@@ -1,0 +1,13 @@
+{
+  "_meta": { "source": "04-business-workflow-catalog.md" },
+  "workflows": [
+    { "id": "WF-01", "name": "Onboarding to Goal to Workout/Nutrition to Roadmap", "status": "PARTIALLY_IMPLEMENTED", "related_gaps": ["BDG-18", "BDG-19"], "note": "Honest partial-failure reporting confirmed; no auto-retry of failed step; chat-path roadmap duration ignores stated timeline" },
+    { "id": "WF-02", "name": "InBody to Coach Analytics to Recommendation to Plan Revision", "status": "PARTIALLY_IMPLEMENTED", "related_gaps": [], "note": "fetchInBodyHistory swallows errors as empty array; historical destructive migration on this exact table, gap G-04" },
+    { "id": "WF-03", "name": "PT selection to Assignment to Client Management", "status": "IMPLEMENTED_AND_VERIFIED", "related_gaps": [], "note": "Authorization boundary confirmed robust; decline-and-alternative scenario (CAP-07-05) not traced" },
+    { "id": "WF-04", "name": "PT adjusts client workout, client reviews, approval, activation", "status": "PARTIALLY_IMPLEMENTED", "related_gaps": ["BDG-07"], "note": "Equipment gate skipped on manual/PT-assigned path, acknowledged product decision; client's own accept/reject step not traced" },
+    { "id": "WF-05", "name": "AI creates roadmap and nutrition target, workout creation fails", "status": "PARTIALLY_IMPLEMENTED", "related_gaps": ["BDG-19"], "note": "same as Case F: honest reporting confirmed, no rollback/retry by design" },
+    { "id": "WF-06", "name": "User revises an unconfirmed proposal several times", "status": "PARTIALLY_IMPLEMENTED", "related_gaps": ["BDG-17", "G-26"], "note": "Nutrition constraint accumulation correct; workout constraint slot missing entirely; FitnessAgentAction staleness not DB-enforced" },
+    { "id": "WF-07", "name": "User switches devices while a proposal is pending", "status": "UNKNOWN_INSUFFICIENT_EVIDENCE", "related_gaps": [], "note": "Data model structurally supports it (userId+sessionId-keyed Postgres state) but not runtime-confirmed" },
+    { "id": "WF-08", "name": "Gym-partner self-onboarding to approval to operational workspace", "status": "IMPLEMENTED_AND_VERIFIED", "related_gaps": ["BDG-05"], "note": "Most mature workflow in the audit; confirmed robust from 3 independent discovery angles with zero contradictions" }
+  ]
+}

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Sơ đồ tương tác và báo cáo kiểm toán kiến trúc AI Gymini tại v1.0.0-rc2.">
+  <title>Luồng AI Gymini V1</title>
+  <link rel="stylesheet" href="./viewer.css">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <script type="module" src="/viewer.mjs"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Đến nội dung</a>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="/" aria-label="Gymini, về sơ đồ">
+        <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
+          <rect x="1" y="1" width="28" height="28" rx="7" fill="none" stroke="currentColor"/>
+          <path d="M8 15h5v-5h9m-9 5v5h9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="8" cy="15" r="1.5" fill="currentColor"/>
+          <circle cx="22" cy="10" r="1.5" fill="currentColor"/>
+          <circle cx="22" cy="20" r="1.5" fill="currentColor"/>
+        </svg>
+        <span>Gymini</span>
+      </a>
+      <nav class="topnav" aria-label="Tài liệu">
+        <a href="/" aria-current="page">Sơ đồ</a>
+        <a href="/bao-cao">Báo cáo đầy đủ</a>
+      </nav>
+    </div>
+  </header>
+  <main id="main" class="wrap">
+    <div class="intro">
+      <div>
+        <h1>Luồng AI Gymini V1</h1>
+        <p>Chọn một sơ đồ rồi bấm vào từng bước để xem dữ liệu đi qua đâu và hệ thống xử lý thế nào.</p>
+      </div>
+      <aside class="baseline" aria-label="Phiên bản khảo sát">
+        <span>Mốc kiểm toán</span>
+        <strong>v1.0.0-rc2</strong>
+        <code title="4cde78f7d1d26347fe0de1d8787f0217e81b42ab">4cde78f7</code>
+      </aside>
+    </div>
+
+    <nav class="flow-nav" aria-label="Các sơ đồ">
+      <a href="#kien-truc" aria-current="true">Kiến trúc</a>
+      <a href="#harness">Runtime Harness</a>
+      <a href="#coach">AI Coach</a>
+      <a href="#xac-nhan">Xác nhận</a>
+      <a href="#rag">RAG</a>
+      <a href="#sinh-ke-hoach">Sinh kế hoạch</a>
+      <a href="#inbody">InBody</a>
+      <a href="#chu-ky-pt">Chu kỳ &amp; PT</a>
+      <a href="#danh-gia">Đánh giá</a>
+    </nav>
+
+    <div class="workspace">
+      <section class="board" aria-labelledby="flow-title">
+        <div class="board-head">
+          <h2 id="flow-title">Kiến trúc thực thi</h2>
+          <p id="flow-summary">Các điểm vào, nhánh điều phối và nơi AI đọc hoặc ghi dữ liệu.</p>
+        </div>
+        <div id="diagram" class="diagram" aria-label="Sơ đồ kiến trúc thực thi">
+          <noscript>
+            <ol class="fallback">
+              <li>Web hoặc Expo gửi yêu cầu qua Gateway hoặc Streaming Lambda.</li>
+              <li>AI service điều phối Coach, tác vụ nền hoặc nhánh xử lý chuyên biệt.</li>
+              <li>Coach đọc dữ liệu nghiệp vụ và tri thức. Worker sinh kế hoạch từ dữ liệu đã kiểm tra.</li>
+              <li>PostgreSQL lưu phiên và kết quả. Mô hình và vector store được chọn theo cấu hình RC2.</li>
+            </ol>
+          </noscript>
+        </div>
+        <div id="diagram-key" class="diagram-key" aria-label="Chú thích sơ đồ">
+          <span><i></i> Luồng xử lý</span>
+          <span><i class="dashed"></i> Nhánh phụ hoặc theo điều kiện</span>
+        </div>
+        <p id="flow-note" class="flow-note" hidden></p>
+      </section>
+
+      <aside class="inspector" aria-labelledby="node-title" aria-live="polite">
+        <div class="inspector-top">
+          <p>Chi tiết bước</p>
+          <span id="node-kind">Điều phối</span>
+        </div>
+        <h2 id="node-title">AI service</h2>
+        <p id="node-description">Express gắn các route Coach, vision, plan và admin. Middleware nhận định danh đã xác thực trước khi chuyển yêu cầu cho handler.</p>
+        <dl class="node-facts">
+          <div><dt>Đầu vào</dt><dd id="node-input">Yêu cầu đã qua gateway hoặc Lambda.</dd></div>
+          <div><dt>Kết quả</dt><dd id="node-output">Chuyển tới Coach, tác vụ nền hoặc handler chuyên biệt.</dd></div>
+        </dl>
+        <div class="node-reference">
+          <span>Vị trí trong mã RC2</span>
+          <code id="node-source">backend/services/ai-service/src/app.ts</code>
+          <a id="node-link" href="/bao-cao#muc-2">Đọc phần kiểm toán tương ứng</a>
+        </div>
+      </aside>
+    </div>
+
+    <section class="evidence" aria-labelledby="evidence-title">
+      <div>
+        <h2 id="evidence-title">Bằng chứng của báo cáo</h2>
+        <p>Luồng trong sơ đồ được dựng từ mã nguồn tại RC2.</p>
+      </div>
+      <div>
+        <strong>100/100</strong>
+        <p>Ca kiểm thử có phạm vi đã đạt ở mức <code>TEST FIXTURE</code>.</p>
+      </div>
+      <div>
+        <strong>Phạm vi xác minh</strong>
+        <p>Hành vi triển khai và chất lượng mô hình thực tế chưa được đo trong đợt kiểm toán này.</p>
+      </div>
+      <a href="/bao-cao#muc-12">Xem kết quả kiểm thử</a>
+    </section>
+  </main>
+  <footer class="wrap footer">
+    <span>Tài liệu kỹ thuật phục vụ khóa luận</span>
+    <a href="/AI_V1_AUDIT_KHOA_LUAN.md" download>Tải Markdown gốc</a>
+  </footer>
+</body>
+</html>

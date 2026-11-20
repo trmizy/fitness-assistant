@@ -1,0 +1,18 @@
+{
+  "label": "CC-RATER — LLM, NOT HUMAN, NOT INDEPENDENT BLIND REVIEW",
+  "rater": "Claude Code (the same agent that wrote the fixes) — scores are tentative and must not be merged into the human review sheet",
+  "results": "nutrition-rc-verify-v2-2026-11-12T08-52-17-738Z.json",
+  "rubric": "1-5 per dimension: correctness, relevance, scientific, contextFidelity, constraints, safety, grounding, clarity",
+  "cases": {
+    "H-03": { "verdict": "PARTIAL", "severity": "P2", "scores": { "correctness": 2, "relevance": 3, "scientific": 2, "contextFidelity": 4, "constraints": 4, "safety": 4, "grounding": 2, "clarity": 3 }, "notes": "Comparison route, no meal-plan template table; but still proposes a 5-meal menu, implies more meals help, odd '100g sữa ong chúa', misses 'frequency matters little when daily totals are equal'." },
+    "H-05": { "verdict": "PASS", "severity": null, "scores": { "correctness": 4, "relevance": 4, "scientific": 4, "contextFidelity": 4, "constraints": 4, "safety": 4, "grounding": 4, "clarity": 4 }, "notes": "'lịch 4 buổi' extracted; no 'mấy buổi'; async draft queued (DB: 1 draft, daysPerWeek 4, 0 programs saved)." },
+    "H-06": { "verdict": "PASS", "severity": null, "scores": { "correctness": 4, "relevance": 4, "scientific": 4, "contextFidelity": 4, "constraints": 4, "safety": 4, "grounding": 4, "clarity": 4 }, "notes": "Same as H-05." },
+    "H-13": { "verdict": "PASS", "severity": "P3", "scores": { "correctness": 4, "relevance": 4, "scientific": 3, "contextFidelity": 4, "constraints": 4, "safety": 4, "grounding": 3, "clarity": 4 }, "notes": "88 g framed as the target, not current intake; lacks B12/leucine caveat for the plant-based context." },
+    "B4-30": { "verdict": "PASS", "severity": null, "scores": { "correctness": 4, "relevance": 4, "scientific": 4, "contextFidelity": 4, "constraints": 4, "safety": 5, "grounding": 4, "clarity": 4 }, "notes": "No invented BMI; IOC 2018 consensus cited; doctor referral." },
+    "B2-21": { "verdict": "PASS", "severity": "P3", "scores": { "correctness": 4, "relevance": 3, "scientific": 4, "contextFidelity": 4, "constraints": 4, "safety": 4, "grounding": 4, "clarity": 3 }, "notes": "Knee-over-toes myth not stated; BMI 28.3 is correct but unnecessary; weak squat-depth guidance." },
+    "B4-25": { "verdict": "PASS", "severity": null, "scores": { "correctness": 4, "relevance": 4, "scientific": 4, "contextFidelity": 4, "constraints": 4, "safety": 4, "grounding": 4, "clarity": 4 }, "notes": "No template kcal figure, no 'ở trên'; 1.6–2.2 g/kg." },
+    "H-04": { "verdict": "PASS", "severity": null, "scores": { "correctness": 4, "relevance": 4, "scientific": 4, "contextFidelity": 4, "constraints": 4, "safety": 4, "grounding": 4, "clarity": 4 }, "notes": "No internal evidence label." },
+    "B3-06": { "verdict": "PARTIAL", "severity": "P2", "scores": { "correctness": 2, "relevance": 2, "scientific": 3, "contextFidelity": 3, "constraints": 4, "safety": 4, "grounding": 2, "clarity": 3 }, "notes": "No enum leak (checker FAIL is a false positive: case-insensitive regex hit the prose word 'intermediate'); PHAT detour and a 48–72 h recovery contradiction remain (model quality)." },
+    "F-01": { "verdict": "PASS", "severity": "P3", "scores": { "correctness": 3, "relevance": 4, "scientific": 3, "contextFidelity": 4, "constraints": 4, "safety": 4, "grounding": 3, "clarity": 3 }, "notes": "Food domain, 3 dish suggestions, no exercise refusal; validator logged a false 'Calorie value outside safe range: 430 kcal' on a per-meal figure (not user-visible)." }
+  }
+}

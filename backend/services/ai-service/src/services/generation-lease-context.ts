@@ -6,7 +6,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
  * Deliberately dependency-free: the repository imports this file, and generation-operations.ts (which imports the
  * repository) registers the runner, so there is no import cycle.
  */
-export type LeaseContext = { operationId: string; epoch: number; token: string; targetId: string };
+export type LeaseContext = { operationId: string; epoch: number; token: string; targetId: string; /** Set by a revision worker: the user-facing reason the revision was NOT applied (no plan row is ever marked FAILED for it). */ failReason?: string };
 
 export class StaleLeaseError extends Error {
   constructor(operationId: string) {

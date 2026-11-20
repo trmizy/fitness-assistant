@@ -1321,6 +1321,7 @@ export const fitnessAgent = {
     if (effectiveKind === "ROADMAP_ARCHIVE") return this.proposeRoadmapArchive(identity, sessionId);
     if (effectiveKind === "CYCLE_COMPLETE") return this.proposeCycleComplete(identity, sessionId);
     if (effectiveKind === "CYCLE_CANCEL") return this.proposeCycleCancel(identity, sessionId);
+    if (effectiveKind === "SEND_PLAN_TO_PT_REVIEW") return this.proposePlanReviewSubmit(identity, sessionId);
     if (effectiveKind === "WORKOUT_START") return this.proposeWorkoutSession(identity, sessionId, "WORKOUT_START");
     if (effectiveKind === "WORKOUT_SKIP") return this.proposeWorkoutSession(identity, sessionId, "WORKOUT_SKIP");
     if (effectiveKind === "WORKOUT_CANCEL") return this.proposeWorkoutSession(identity, sessionId, "WORKOUT_CANCEL");
@@ -1759,6 +1760,37 @@ export const fitnessAgent = {
         block = { type: "ACTION_RESULT", message: "Đã hủy chu kỳ tập.", nextUrl: "/client/training" };
       } catch (err: any) {
         block = { type: "ACTION_RESULT", message: `Không hủy được chu kỳ tập — ${err?.message ?? "lỗi không xác định"}.`, nextUrl: "/client/training" };
+      }
+    } else if (action.kind === "SEND_PLAN_TO_PT_REVIEW") {
+      // The ordinary Plan Review API does the real work and the real checks (ACTIVE contract re-verified server-side, version
+      // guard, one-open-request-per-plan). The idempotency key is derived from THIS confirmed action, so a retry / double click /
+      // lost response replays the same request instead of creating another. Success is reported only when the API says so.
+      const programName = payload.programName ?? "Kế hoạch tập hiện tại";
+      const ptLabel = payload.ptName ? `PT ${payload.ptName}` : "PT của bạn";
+      try {
+        const res = await fitnessAgentDeps.tools.submitPlanReview(identity, {
+          ptUserId: String(payload.ptUserId), programId: String(payload.programId),
+          ...(typeof payload.programVersion === "number" ? { expectedVersion: payload.programVersion } : {}),
+          idempotencyKey: `agent-action-${action.id}`,
+        });
+        block = {
+          type: "ACTION_RESULT", ok: true,
+          message: res.replayed
+            ? `Kế hoạch “${programName}” đã được gửi cho ${ptLabel} trước đó — mình không gửi trùng.`
+            : `Đã gửi kế hoạch “${programName}” cho ${ptLabel}. Bạn sẽ thấy phản hồi của PT tại trang Nhật ký tập.`,
+          nextUrl: "/client/training",
+        };
+      } catch (err: any) {
+        const status = Number(err?.status ?? 503);
+        // Transient (network / 5xx): hand the action back to PENDING so the user can retry the SAME confirmation.
+        // Definitive refusals (stale plan, contract ended, not your plan): not retryable — a repeat would fail identically.
+        retryable = status >= 500;
+        const message = status === 409
+          ? "Kế hoạch đã thay đổi so với bản bạn đã xác nhận, nên mình chưa gửi gì cả. Hãy yêu cầu gửi lại để xem bản mới nhất."
+          : status === 403 || status === 404
+            ? `Mình chưa gửi được: bạn không còn hợp đồng PT hiệu lực với ${ptLabel} hoặc kế hoạch không còn khả dụng. Chưa có gì được gửi.`
+            : "Mình chưa gửi được kế hoạch cho PT lúc này (lỗi tạm thời). Chưa có gì được gửi — bạn có thể bấm Xác nhận lại.";
+        block = { type: "ACTION_RESULT", ok: false, message, nextUrl: "/client/training" };
       }
     } else if (action.kind === "NUTRITION_LOG_MEAL") {
       try {
@@ -3630,6 +3662,64 @@ export const fitnessAgent = {
         summary: { cycleName: cycle.name ?? null },
         expiresAt: action.expiresAt.toISOString(),
         note: "Chu kỳ sẽ bị hủy, không thể hoàn tác.",
+      }],
+    };
+  },
+  /**
+   * "Gửi plan hiện tại cho PT xem" — PREVIEW ONLY. Resolves which program (id + monotonic version) and which PT (an ACTIVE contract,
+   * verified with user-service) would receive it, and creates a PENDING confirmation action. Nothing is sent until the user confirms;
+   * a PT is never chosen on the user's behalf when there are several; the PT's decision is theirs (this agent cannot approve, and
+   * cannot create or change a contract). Fails closed when the contract list cannot be read.
+   */
+  async proposePlanReviewSubmit(identity: AgentIdentity, sessionId: string): Promise<{ answer: string; blocks: AgentBlock[] }> {
+    let program: Awaited<ReturnType<typeof fitnessAgentDeps.tools.getCurrentProgramForReview>>;
+    try {
+      program = await fitnessAgentDeps.tools.getCurrentProgramForReview(identity);
+    } catch {
+      return { answer: "Mình chưa lấy được kế hoạch tập hiện tại của bạn lúc này. Vui lòng thử lại sau.", blocks: [] };
+    }
+    if (!program) return { answer: "Bạn chưa có kế hoạch tập hiện tại để gửi cho PT. Hãy tạo hoặc áp dụng một kế hoạch trước nhé.", blocks: [] };
+
+    let contracts: Awaited<ReturnType<typeof fitnessAgentDeps.tools.getActivePtContracts>>;
+    try {
+      contracts = await fitnessAgentDeps.tools.getActivePtContracts(identity);
+    } catch {
+      return { answer: "Mình chưa xác minh được hợp đồng PT của bạn lúc này nên chưa gửi gì cả. Vui lòng thử lại sau ít phút.", blocks: [] };
+    }
+    const pts = [...new Map(contracts.map((c) => [c.ptUserId, c])).values()];
+    if (pts.length === 0) {
+      return { answer: "Bạn chưa có hợp đồng PT còn hiệu lực nên chưa thể gửi kế hoạch để PT duyệt. Bạn có thể tìm PT phù hợp trước, rồi gửi kế hoạch sau.", blocks: [] };
+    }
+    if (pts.length > 1) {
+      return { answer: "Bạn đang có hợp đồng với nhiều PT. Để tránh gửi nhầm, hãy mở trang Nhật ký tập và bấm “Gửi PT duyệt” để chọn đúng PT.", blocks: [] };
+    }
+    const pt = pts[0];
+    const programName = program.name ?? "Kế hoạch tập hiện tại";
+    const payload = { programId: program.id, programVersion: program.version ?? null, programName, ptUserId: pt.ptUserId, ptName: pt.name };
+
+    // Re-asking for the same plan/PT while a card is still pending reuses it (no pile of identical confirmations).
+    const pending = await prisma.fitnessAgentAction.findFirst({
+      where: { userId: identity.userId, sessionId, kind: "SEND_PLAN_TO_PT_REVIEW", status: "PENDING", expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: "desc" },
+    });
+    const same = pending && (pending.payload as any)?.programId === payload.programId && (pending.payload as any)?.programVersion === payload.programVersion
+      && (pending.payload as any)?.ptUserId === payload.ptUserId;
+    const action = same ? pending! : await prisma.fitnessAgentAction.create({
+      data: {
+        userId: identity.userId, sessionId, recommendationId: null,
+        kind: "SEND_PLAN_TO_PT_REVIEW", risk: agentActionRisk("SEND_PLAN_TO_PT_REVIEW"),
+        payload, expiresAt: new Date(Date.now() + 15 * 60000),
+      },
+    });
+    const ptLabel = pt.name ? `PT ${pt.name}` : "PT của bạn";
+    return {
+      answer: `Mình sẽ gửi kế hoạch “${programName}” cho ${ptLabel} để xem và duyệt. Hãy kiểm tra thông tin bên dưới và xác nhận — mình chưa gửi gì cho tới khi bạn bấm Xác nhận.`,
+      blocks: [{
+        type: "ACTION_CONFIRMATION", actionId: action.id, kind: "SEND_PLAN_TO_PT_REVIEW", risk: action.risk,
+        title: "Gửi kế hoạch cho PT duyệt",
+        summary: { programName, ptName: pt.name ?? null, programVersion: payload.programVersion },
+        expiresAt: action.expiresAt.toISOString(),
+        note: `Gửi “${programName}” cho ${ptLabel}. Chỉ chia sẻ nội dung kế hoạch (ngày tập, bài tập, số hiệp/lần) — không kèm chỉ số InBody hay hồ sơ sức khoẻ. PT sẽ duyệt hoặc yêu cầu chỉnh sửa; mình không tự duyệt thay PT. Nếu bạn sửa kế hoạch trước khi xác nhận, mình sẽ không gửi bản cũ.`,
       }],
     };
   },

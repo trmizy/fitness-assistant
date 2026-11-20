@@ -81,6 +81,9 @@ const PREFERENCE_FIELD_BY_EVENT_TYPE: Partial<Record<NotificationEventType, keyo
   WORKOUT_UNFINISHED: "workoutUnfinishedEnabled",
   TRAINING_PLAN_UPDATED: "planUpdatedEnabled",
   PT_FEEDBACK_RECEIVED: "ptFeedbackEnabled",
+  // Plan Review: the PT's decision on the client's plan is PT feedback, so it follows the same preference. PLAN_REVIEW_REQUESTED
+  // (what the PT receives) is deliberately NOT gated — like a contract request, the PT must not be able to miss work addressed to them.
+  PLAN_REVIEW_DECIDED: "ptFeedbackEnabled",
 };
 
 type NotificationPreferenceRow = {
@@ -106,6 +109,8 @@ type NotificationInput = {
   entityType: string;
   entityId: string;
   link?: string;
+  /** Idempotency key from an at-least-once producer: a replay with the same key is a no-op (stored once, pushed once). */
+  dedupeKey?: string;
 };
 
 /** Anything that can write a notification row: the shared client or a transaction's. */
@@ -135,11 +140,15 @@ async function storeNotification(db: NotificationDb | null, data: NotificationIn
     entityType: data.entityType as NotificationEntityType,
     entityId: data.entityId,
     link: data.link,
+    ...(data.dedupeKey ? { dedupeKey: data.dedupeKey } : {}),
   };
   // Callers treat a notification as best-effort and swallow its failure — which is how seven
   // event types the enum did not have went unsent for months without a trace. Whatever the
   // caller does with the error, it is logged here first.
   return (db ? db.notification.create({ data: row }) : notificationRepository.create(row)).catch((error: unknown) => {
+    // A replay of an already stored dedupeKey is success, not failure: nothing new is stored and (returning null) nothing is
+    // pushed a second time. Same "treat as sent" contract as an opted-out recipient.
+    if (data.dedupeKey && (error as { code?: string })?.code === "P2002") return null;
     logger.error(
       { eventType: data.eventType, entityType: data.entityType, entityId: data.entityId, message: (error as Error)?.message?.slice(0, 300) },
       "Failed to store notification",

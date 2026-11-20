@@ -5,12 +5,12 @@ import {
   PlanStatus,
 } from "../repositories/conversation.repository";
 import { llmService } from "./llm.service";
-import { randomUUID } from "node:crypto";
-import { submitGeneration } from "./generation-operations";
+import { randomUUID, createHash } from "node:crypto";
+import { submitGeneration, findActiveRevisionOperation, findRevisionOperationByKey } from "./generation-operations";
 import type { GenerateWorkoutRequest } from "../schemas/ai.schemas";
 import type { GeneratePlanRequest as PlanGenerateRequest } from "../schemas/plan.schemas";
 import { ApiError, LlmGenerationError } from "../errors/api-error";
-import { parseWorkoutAdjustment } from "./revision/workout-adjustment-constraints";
+import { parseWorkoutAdjustment, resolveExercisesPerDay } from "./revision/workout-adjustment-constraints";
 
 // Quick-workout exercise schema, simpler than the full multi-week plan.
 const QuickExerciseSchema = z.object({
@@ -53,6 +53,18 @@ function parseExercisesFromLlm(rawAnswer: string): QuickExercise[] {
     logger.warn({ err }, "generateWorkout: failed to parse exercises JSON");
     throw new LlmGenerationError("LLM returned malformed workout JSON");
   }
+}
+
+/**
+ * Business identity of ONE adjust request (what an Idempotency-Key is bound to): the authenticated user, the plan, the version the caller saw,
+ * the explicit structured parameters, and the CANONICAL meaning of the text (whitespace/case-insensitive text + what the parser extracts from it).
+ * It is computed from the REQUEST only — never from the plan content at retry time — so a retry made after the plan moved on still matches.
+ */
+export function adjustmentActionFingerprint(p: { userId: string; planId: string; adjustments: string; expectedVersion?: number; daysPerWeek?: number; exercisesPerDay?: number }): string {
+  const text = String(p.adjustments ?? "").normalize("NFC").toLowerCase().replace(/\s+/g, " ").trim();
+  const c = parseWorkoutAdjustment(text);
+  const intent = { perDay: c.exercisesPerDay ?? null, perDayDelta: c.exercisesDelta ?? null, days: c.daysPerWeek ?? null, daysDelta: c.daysDelta ?? null, keep: c.keepExisting ?? false, ordinal: c.replaceOrdinal ?? null, exclude: c.excludeLabels, focus: c.addFocus };
+  return createHash("sha256").update(JSON.stringify({ u: p.userId, p: p.planId, v: p.expectedVersion ?? null, d: p.daysPerWeek ?? null, e: p.exercisesPerDay ?? null, t: text, i: intent })).digest("hex");
 }
 
 export const conversationService = {
@@ -165,6 +177,42 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     return { planId: op.planId, jobId: op.jobId ?? op.operationId, status: PlanStatus.QUEUED };
   },
 
+  /**
+   * Idempotent replay of an adjust request. A key is bound to ONE business action (see adjustmentActionFingerprint):
+   *  - same key + same action  -> the ORIGINAL operation is returned with its REAL status — a FAILED one stays FAILED (it is never silently
+   *    restarted; a new attempt needs a new key), a finished one stays finished even though the plan has since moved to a newer version;
+   *  - same key + different action (user, plan, expectedVersion, parameters or meaning of the text) -> 409 IDEMPOTENCY_KEY_CONFLICT;
+   *  - an operation still IN FLIGHT on an unchanged plan is not answered here: the normal path re-publishes it if its message was lost.
+   * Returns null when there is nothing to replay. Runs BEFORE any plan-content judgement, swap resolution or LLM health probe: those look at the
+   * CURRENT plan, which a successful first request has already changed.
+   */
+  async findAdjustmentReplay(params: {
+    userId: string; planId: string; currentVersion: number; idempotencyKey?: string;
+    adjustments: string; expectedVersion?: number; daysPerWeek?: number; exercisesPerDay?: number;
+  }) {
+    if (!params.idempotencyKey) return null;
+    const prior = await findRevisionOperationByKey(params.userId, params.idempotencyKey);
+    if (!prior) return null;
+    const conflict = () => new ApiError("IDEMPOTENCY_KEY_CONFLICT", "This idempotency key was already used with different input.", 409);
+    // Still RESERVING (a double tap whose first request has not been admitted yet): no target and no payload to compare — the generic path answers it
+    // (the operation fingerprint rejects a different payload; the same one is "already being processed").
+    if (!prior.targetId) return null;
+    if (prior.targetId !== params.planId) throw conflict();
+    const pc = (prior.payload as any)?.planCreate ?? {};
+    const mine = adjustmentActionFingerprint({ userId: params.userId, planId: params.planId, adjustments: params.adjustments, expectedVersion: params.expectedVersion, daysPerWeek: params.daysPerWeek, exercisesPerDay: params.exercisesPerDay });
+    // Operations created before the fingerprint existed only carry the text.
+    const same = pc.actionFingerprint ? pc.actionFingerprint === mine : String(pc.adjustments ?? "") === String(params.adjustments ?? "");
+    if (!same) throw conflict();
+    const base = Number(pc.baseVersion);
+    const terminal = prior.status === "COMPLETED" || prior.status === "FAILED";
+    if (!terminal && base === params.currentVersion) return null;
+    let status: PlanStatus;
+    if (prior.status === "COMPLETED") status = (await conversationRepository.findRevisionByOperation(prior.id)) ? PlanStatus.COMPLETED : PlanStatus.FAILED; // COMPLETED without a committed revision = an old worker
+    else if (prior.status === "FAILED") status = PlanStatus.FAILED;
+    else status = prior.status === "RUNNING" ? PlanStatus.PROCESSING : PlanStatus.QUEUED;
+    return { planId: params.planId, jobId: prior.id, revisionJobId: prior.id, version: base + 1, expectedVersion: base, status, revision: true as const, replayed: true as const };
+  },
+
   async queuePlanAdjustment(params: {
     originalPlanId: string;
     userId: string;
@@ -174,6 +222,8 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     idempotencyKey?: string;
     /** Resolved "đổi X thành Y" (plan.controller resolveExerciseSwap). */
     swap?: { fromNames: string[]; toExerciseId?: string; toName?: string };
+    /** Optimistic concurrency token: the version the caller saw. */
+    expectedVersion?: number;
   }) {
     const original = await conversationRepository.findPlanById(
       params.originalPlanId,
@@ -200,18 +250,51 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
       );
     }
 
+    if ((original as any).archivedAt) {
+      throw new ApiError("VALIDATION_ERROR", "Kế hoạch này đã được ẩn và không thể điều chỉnh", 409);
+    }
+    // RETRY of a request that already reached the server (client timed out / gateway cut the response): answered from the operation it created.
+    const replay = await this.findAdjustmentReplay({
+      userId: params.userId, planId: original.id, currentVersion: original.version, idempotencyKey: params.idempotencyKey,
+      adjustments: params.adjustments, expectedVersion: params.expectedVersion, daysPerWeek: params.daysPerWeek, exercisesPerDay: params.exercisesPerDay,
+    });
+    if (replay) return replay;
+    // A plan that is listed on the marketplace is a moderated product whose buyers read this very row: it is never edited in place.
+    const listed = await conversationRepository.countActiveListings(original.id);
+    if (listed > 0) {
+      throw new ApiError("VALIDATION_ERROR", "Kế hoạch này đang được đăng trên chợ nên không thể điều chỉnh tại chỗ. Hãy gỡ bản đăng hoặc tạo bản sao rồi điều chỉnh.", 409);
+    }
+    // Optimistic concurrency: the caller adjusted the version it SAW. A newer one means someone/something already revised the plan.
+    if (params.expectedVersion !== undefined && params.expectedVersion !== original.version) {
+      throw new ApiError("VERSION_CONFLICT", `Kế hoạch đã được cập nhật (phiên bản ${original.version}, bạn đang xem ${params.expectedVersion}). Hãy tải lại rồi điều chỉnh bản mới nhất.`, 409);
+    }
+    const idempotencyKey = params.idempotencyKey ?? `auto:${randomUUID()}`;
+    // One revision at a time per plan: a second request while one is still running would only race the first to the same base version
+    // (the commit would reject it anyway, after a paid model call). The SAME request retried (same key) is not "another" revision.
+    const inFlight = await findActiveRevisionOperation(original.id);
+    if (inFlight && inFlight.idempotencyKey !== idempotencyKey) {
+      throw new ApiError("REVISION_IN_PROGRESS", "Kế hoạch này đang được AI điều chỉnh. Hãy đợi bản điều chỉnh hiện tại hoàn tất rồi thử lại.", 409);
+    }
+
     const newVersion = original.version + 1;
     const originalPlanContent = original.plan as {
       exercisesPerDay?: number;
       weeklySchedule?: Array<{ day?: string; goal?: string; cardio?: string; exercises?: Array<{ exerciseId?: string; name?: string; sets?: number; reps?: string }> }>;
     } | null;
-    // Numbers typed only in the text box ("còn 2 buổi", "mỗi buổi 4 bài") count when the numeric inputs were left empty.
+    const schedule = originalPlanContent?.weeklySchedule ?? [];
+    // Structured constraints. The user's NEW numbers always win over the stored ones ("lên 7 bài" must never keep the old 4).
     const parsedText = parseWorkoutAdjustment(params.adjustments ?? "");
-    const daysPerWeek = params.daysPerWeek ?? parsedText.daysPerWeek ?? original.daysPerWeek;
-    const exercisesPerDay =
-      params.exercisesPerDay ?? parsedText.exercisesPerDay ?? originalPlanContent?.exercisesPerDay ?? 4;
+    const relativeDays =
+      parsedText.daysDelta !== undefined
+        ? Math.min(7, Math.max(1, original.daysPerWeek + parsedText.daysDelta))
+        : undefined;
+    const daysPerWeek = params.daysPerWeek ?? parsedText.daysPerWeek ?? relativeDays ?? original.daysPerWeek;
+    const currentPerDay = schedule.length ? Math.max(...schedule.map((d) => d.exercises?.length ?? 0)) : (originalPlanContent?.exercisesPerDay ?? 4);
+    const resolved = resolveExercisesPerDay({ explicit: params.exercisesPerDay, parsed: parsedText, current: currentPerDay || 4 });
+    if (!resolved.ok) throw new ApiError(resolved.code === "AMBIGUOUS" ? "NEEDS_CLARIFICATION" : "VALIDATION_ERROR", resolved.message, 422);
+    const exercisesPerDay = resolved.target;
     // The plan being adjusted, so the model EDITS it instead of generating an unrelated new one (adjust eval 2026-11-11).
-    const previousPlan = (originalPlanContent?.weeklySchedule ?? []).slice(0, 7).map((d) => ({
+    const previousPlan = schedule.slice(0, 7).map((d) => ({
       goal: String(d.goal ?? "").slice(0, 80),
       cardio: d.cardio ? String(d.cardio).slice(0, 120) : undefined,
       exercises: (d.exercises ?? []).slice(0, 10).map((e) => ({
@@ -219,18 +302,19 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
       })),
     }));
 
+    // The operation row IS the revision job; its target is the EXISTING plan (stable id) — no WorkoutPlan row is created, the plan stays
+    // COMPLETED and usable while the revision runs, and a failure leaves it exactly as it was.
     const op = await submitGeneration({
       actorUserId: params.userId,
       kind: "PLAN_ADJUSTMENT",
-      idempotencyKey: params.idempotencyKey ?? `auto:${randomUUID()}`,
+      idempotencyKey,
       planCreate: {
         userId: params.userId,
         originalPlanId: params.originalPlanId,
-        goal: original.goal,
-        duration: original.duration,
-        daysPerWeek,
+        baseVersion: original.version,
         adjustments: params.adjustments,
-        version: newVersion,
+        // The business identity of this request (bound to the Idempotency-Key). baseVersion above is the RECORD of what it was applied to.
+        actionFingerprint: adjustmentActionFingerprint({ userId: params.userId, planId: original.id, adjustments: params.adjustments, expectedVersion: params.expectedVersion, daysPerWeek: params.daysPerWeek, exercisesPerDay: params.exercisesPerDay }),
       },
       job: {
         userId: params.userId,
@@ -240,19 +324,25 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
         exercisesPerDay,
         adjustmentContext: params.adjustments,
         previousPlan,
+        baseVersion: original.version,
+        exercisesPerDaySource: resolved.source,
         ...(params.swap ? { swap: params.swap } : {}),
       },
     });
 
     logger.info(
-      { newPlanId: op.planId, originalPlanId: params.originalPlanId, version: newVersion, operationId: op.operationId, reused: op.reused },
-      "Plan adjustment queued",
+      { planId: op.planId, baseVersion: original.version, targetVersion: newVersion, exercisesPerDay, source: resolved.source, operationId: op.operationId, reused: op.reused },
+      "Plan revision queued (in place)",
     );
+    // Backward compatible: jobId/planId/version/status are what existing pollers read; planId is now the SAME id as the request's.
     return {
       planId: op.planId,
       jobId: op.jobId ?? op.operationId,
+      revisionJobId: op.operationId,
       version: newVersion,
+      expectedVersion: original.version,
       status: PlanStatus.QUEUED,
+      revision: true,
     };
   },
 

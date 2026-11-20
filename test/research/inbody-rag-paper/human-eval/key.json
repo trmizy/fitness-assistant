@@ -1,0 +1,242 @@
+{
+  "H01": {
+    "key": "1|E02|Q4_BODYCOMP|A",
+    "persona": "E02",
+    "config": "A"
+  },
+  "H02": {
+    "key": "1|S05|Q4_BODYCOMP|A",
+    "persona": "S05",
+    "config": "A"
+  },
+  "H03": {
+    "key": "1|E05|Q4_BODYCOMP|C",
+    "persona": "E05",
+    "config": "C"
+  },
+  "H04": {
+    "key": "1|S18|Q4_BODYCOMP|C",
+    "persona": "S18",
+    "config": "C"
+  },
+  "H05": {
+    "key": "1|S05|Q4_BODYCOMP|C",
+    "persona": "S05",
+    "config": "C"
+  },
+  "H06": {
+    "key": "1|E03|Q4_BODYCOMP|A",
+    "persona": "E03",
+    "config": "A"
+  },
+  "H07": {
+    "key": "1|S09|Q4_BODYCOMP|C",
+    "persona": "S09",
+    "config": "C"
+  },
+  "H08": {
+    "key": "1|S14|Q4_BODYCOMP|A",
+    "persona": "S14",
+    "config": "A"
+  },
+  "H09": {
+    "key": "1|S09|Q4_BODYCOMP|A",
+    "persona": "S09",
+    "config": "A"
+  },
+  "H10": {
+    "key": "1|E05|Q4_BODYCOMP|B",
+    "persona": "E05",
+    "config": "B"
+  },
+  "H11": {
+    "key": "1|S18|Q4_BODYCOMP|D",
+    "persona": "S18",
+    "config": "D"
+  },
+  "H12": {
+    "key": "1|E05|Q4_BODYCOMP|D",
+    "persona": "E05",
+    "config": "D"
+  },
+  "H13": {
+    "key": "1|S05|Q4_BODYCOMP|D",
+    "persona": "S05",
+    "config": "D"
+  },
+  "H14": {
+    "key": "1|S01|Q4_BODYCOMP|B",
+    "persona": "S01",
+    "config": "B"
+  },
+  "H15": {
+    "key": "1|E03|Q4_BODYCOMP|D",
+    "persona": "E03",
+    "config": "D"
+  },
+  "H16": {
+    "key": "1|E03|Q4_BODYCOMP|B",
+    "persona": "E03",
+    "config": "B"
+  },
+  "H17": {
+    "key": "1|S05|Q4_BODYCOMP|B",
+    "persona": "S05",
+    "config": "B"
+  },
+  "H18": {
+    "key": "1|S01|Q4_BODYCOMP|D",
+    "persona": "S01",
+    "config": "D"
+  },
+  "H19": {
+    "key": "1|S18|Q4_BODYCOMP|A",
+    "persona": "S18",
+    "config": "A"
+  },
+  "H20": {
+    "key": "1|S01|Q4_BODYCOMP|A",
+    "persona": "S01",
+    "config": "A"
+  },
+  "H21": {
+    "key": "1|S10|Q4_BODYCOMP|B",
+    "persona": "S10",
+    "config": "B"
+  },
+  "H22": {
+    "key": "1|E03|Q4_BODYCOMP|C",
+    "persona": "E03",
+    "config": "C"
+  },
+  "H23": {
+    "key": "1|E01|Q4_BODYCOMP|C",
+    "persona": "E01",
+    "config": "C"
+  },
+  "H24": {
+    "key": "1|S09|Q4_BODYCOMP|B",
+    "persona": "S09",
+    "config": "B"
+  },
+  "H25": {
+    "key": "1|S14|Q4_BODYCOMP|C",
+    "persona": "S14",
+    "config": "C"
+  },
+  "H26": {
+    "key": "1|E04|Q4_BODYCOMP|A",
+    "persona": "E04",
+    "config": "A"
+  },
+  "H27": {
+    "key": "1|E01|Q4_BODYCOMP|A",
+    "persona": "E01",
+    "config": "A"
+  },
+  "H28": {
+    "key": "1|S10|Q4_BODYCOMP|D",
+    "persona": "S10",
+    "config": "D"
+  },
+  "H29": {
+    "key": "1|S10|Q4_BODYCOMP|C",
+    "persona": "S10",
+    "config": "C"
+  },
+  "H30": {
+    "key": "1|S14|Q4_BODYCOMP|D",
+    "persona": "S14",
+    "config": "D"
+  },
+  "H31": {
+    "key": "1|S14|Q4_BODYCOMP|B",
+    "persona": "S14",
+    "config": "B"
+  },
+  "H32": {
+    "key": "1|E02|Q4_BODYCOMP|D",
+    "persona": "E02",
+    "config": "D"
+  },
+  "H33": {
+    "key": "1|S18|Q4_BODYCOMP|B",
+    "persona": "S18",
+    "config": "B"
+  },
+  "H34": {
+    "key": "1|S01|Q4_BODYCOMP|C",
+    "persona": "S01",
+    "config": "C"
+  },
+  "H35": {
+    "key": "1|E06|Q4_BODYCOMP|D",
+    "persona": "E06",
+    "config": "D"
+  },
+  "H36": {
+    "key": "1|E04|Q4_BODYCOMP|C",
+    "persona": "E04",
+    "config": "C"
+  },
+  "H37": {
+    "key": "1|E06|Q4_BODYCOMP|B",
+    "persona": "E06",
+    "config": "B"
+  },
+  "H38": {
+    "key": "1|E02|Q4_BODYCOMP|B",
+    "persona": "E02",
+    "config": "B"
+  },
+  "H39": {
+    "key": "1|E05|Q4_BODYCOMP|A",
+    "persona": "E05",
+    "config": "A"
+  },
+  "H40": {
+    "key": "1|S10|Q4_BODYCOMP|A",
+    "persona": "S10",
+    "config": "A"
+  },
+  "H41": {
+    "key": "1|E01|Q4_BODYCOMP|B",
+    "persona": "E01",
+    "config": "B"
+  },
+  "H42": {
+    "key": "1|E02|Q4_BODYCOMP|C",
+    "persona": "E02",
+    "config": "C"
+  },
+  "H43": {
+    "key": "1|E01|Q4_BODYCOMP|D",
+    "persona": "E01",
+    "config": "D"
+  },
+  "H44": {
+    "key": "1|E04|Q4_BODYCOMP|D",
+    "persona": "E04",
+    "config": "D"
+  },
+  "H45": {
+    "key": "1|E04|Q4_BODYCOMP|B",
+    "persona": "E04",
+    "config": "B"
+  },
+  "H46": {
+    "key": "1|S09|Q4_BODYCOMP|D",
+    "persona": "S09",
+    "config": "D"
+  },
+  "H47": {
+    "key": "1|E06|Q4_BODYCOMP|A",
+    "persona": "E06",
+    "config": "A"
+  },
+  "H48": {
+    "key": "1|E06|Q4_BODYCOMP|C",
+    "persona": "E06",
+    "config": "C"
+  }
+}

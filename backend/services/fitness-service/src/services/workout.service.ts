@@ -244,6 +244,18 @@ const PROGRAM_EXERCISE_INCLUDE = {
   setPrescriptions: { orderBy: { setNumber: "asc" as const } },
 };
 
+/**
+ * Workout Plan Review: WorkoutProgram.version is the MONOTONIC revision of a program's reviewable prescription (name/goal, day
+ * titles, exercises + order, sets/reps/rest/weight, set prescriptions, supersets). Every mutation of that content MUST call this
+ * inside the SAME transaction as the content write, so the bump and the edit commit (or roll back) together. The UPDATE takes the
+ * program row lock, which is exactly what the PT-approval guard (SELECT … FOR SHARE on this row) serialises against: an edit either
+ * commits before an approval (approval refused, stale) or waits until the approval commits (approval then reads as outdated).
+ * Never decrement or reset it, and never call it for non-content changes (status/archival/schedules/logs).
+ */
+async function bumpProgramVersion(tx: Pick<typeof prisma, "workoutProgram">, programId: string) {
+  await tx.workoutProgram.update({ where: { id: programId }, data: { version: { increment: 1 } } });
+}
+
 type WorkoutProgressSummary = {
   sessionId: string | null;
   workoutId: string | null;
@@ -699,6 +711,181 @@ function buildLocalDeterministicExplanation(
   const label = PROGRESSION_STATUS_LABEL_VI[result.status] ?? result.status;
   const reasons = result.reasonCodes.length > 0 ? result.reasonCodes.join(", ") : "dữ liệu buổi tập gần đây";
   return `Hệ thống đề xuất "${label}" cho ${exerciseName}, dựa trên: ${reasons}.`;
+}
+
+/**
+ * Maps an AI plan's days onto the exercise master (canonical Exercise.id) and validates equipment. Shared by the new-program import and by the
+ * in-place sync of an already-imported program, so both apply EXACTLY the same identity/equipment rules. Throws 400 (nothing written) on any
+ * exercise that cannot be mapped.
+ */
+async function mapAiPlanDays(userId: string, weeklySchedule: ImportAiPlanDto["weeklySchedule"]): Promise<MappedAiDay[]> {
+    const unmatchedExercises = new Set<string>();
+    const mappedDays: MappedAiDay[] = [];
+    for (const [dayIndex, day] of weeklySchedule.entries()) {
+      const rawTitle =
+        day.goal || day.focus || String(day.day ?? "AI Workout Day");
+      const title = sanitizeImportedDayTitle(rawTitle, dayIndex);
+      const exercises: MappedAiExercise[] = [];
+
+      for (const exercise of day.exercises) {
+        const resolved = await exerciseReferenceResolver.resolve(
+          {
+            exerciseId:
+              typeof exercise.exerciseId === "string" && exercise.exerciseId.trim()
+                ? exercise.exerciseId
+                : undefined,
+            name: exercise.name,
+          },
+          { kind: "user", userId },
+        );
+        if (!resolved.ok) {
+          unmatchedExercises.add(
+            `${exercise.exerciseId || exercise.name || "unknown exercise"} (${resolved.code})`,
+          );
+          continue;
+        }
+
+        const parsedReps = Number.parseInt(
+          String(exercise.reps).match(/\d+/)?.[0] ?? "",
+          10,
+        );
+
+        exercises.push({
+          exerciseId: resolved.exercise.id,
+          order: exercise.order ?? exercises.length + 1,
+          sets: exercise.sets,
+          reps: Number.isFinite(parsedReps) ? parsedReps : null,
+          restSeconds: exercise.restSeconds,
+          notes: sanitizeImportedExerciseNote(exercise.note),
+        });
+      }
+
+      if (exercises.length === 0) {
+        unmatchedExercises.add(title);
+      }
+
+      const mappedDay = {
+        title,
+        description: sanitizeImportedText(
+          day.cardio || day.notes,
+          "Tap trung vao ky thuat dung, kiem soat nhip tap va tang tien tu tu.",
+        ),
+        exercises,
+      };
+      mappedDays.push(mappedDay);
+    }
+
+    if (unmatchedExercises.size > 0) {
+      throw {
+        status: 400,
+        message: `Unable to map AI exercises to exercise master: ${Array.from(unmatchedExercises).join(", ")}`,
+      };
+    }
+
+    await validateAiPlanExerciseEquipment(userId, mappedDays);
+    return mappedDays;
+}
+
+/**
+ * Brings an ALREADY-IMPORTED WorkoutProgram in line with a REVISED AI plan, in place (same program id, same day rows, same schedules).
+ * Per day (matched by dayNumber): the title follows the plan; exercises are reconciled by canonical exerciseId so rows that survive keep their
+ * id; new ones are created, removed ones deleted. Completed workout history is never touched (WorkoutExercise.programExerciseId is a plain
+ * reference, not a cascade). Returns whether the reviewable content actually changed — the caller bumps WorkoutProgram.version in the SAME
+ * transaction only then, so an identical re-save never invalidates a PT approval.
+ */
+/** Test seam only (never set in production code): runs inside the sync transaction after the content was written and before the version moves. */
+export const programSyncTestHooks: { afterContentSync?: () => void | Promise<void> } = {};
+
+async function syncProgramContentFromAiPlan(
+  tx: any,
+  program: any,
+  mappedDays: MappedAiDay[],
+  opts: { replaceExisting: boolean; today: Date },
+): Promise<{ changed: boolean; daysFrom: number; daysTo: number }> {
+  const days: any[] = [...(program.days ?? [])].sort((x, y) => x.dayNumber - y.dayNumber);
+  const daysFrom = days.length;
+  const daysTo = mappedDays.length;
+  let changed = false;
+
+  // Fewer days: the dropped days (the LAST ones — day i of the plan is dayNumber i of the program, the same rule scheduling uses) may still carry
+  // UNSTARTED FUTURE sessions. Deleting those is only allowed when the client explicitly chose "replace the old schedule"; otherwise nothing is
+  // written and a structured conflict tells the client exactly what would be lost. Completed sessions (workoutId set) and workout logs are never
+  // deleted: a removed day only detaches them (WorkoutSchedule.programDayId is ON DELETE SET NULL).
+  const removedDays = days.slice(daysTo);
+  if (removedDays.length > 0) {
+    if (!opts.replaceExisting) {
+      const future = await tx.workoutSchedule.findMany({
+        where: { programDayId: { in: removedDays.map((d) => d.id) }, workoutId: null, date: { gte: opts.today } },
+        select: { programDayId: true },
+      });
+      if (future.length > 0) {
+        throw {
+          status: 409,
+          code: "PROGRAM_SYNC_SCHEDULE_CONFLICT",
+          message: `Kế hoạch mới có ${daysTo} buổi/tuần (chương trình đang tập có ${daysFrom}). ${future.length} buổi tập chưa diễn ra thuộc các ngày bị bỏ nên chưa thể áp dụng mà không xoá chúng.`,
+          details: {
+            daysFrom,
+            daysTo,
+            futureScheduleCount: future.length,
+            removedDays: removedDays.map((d) => ({ dayNumber: d.dayNumber, title: d.title, futureScheduleCount: future.filter((s: any) => s.programDayId === d.id).length })),
+            resolution: "REPLACE_EXISTING_SCHEDULE",
+          },
+        };
+      }
+    }
+    await tx.workoutProgramDay.deleteMany({ where: { id: { in: removedDays.map((d) => d.id) } } }); // cascades exercises + set prescriptions
+    changed = true;
+  }
+
+  for (const [i, wanted] of mappedDays.entries()) {
+    const day = days[i];
+    if (!day) {
+      // More days: new program days appended in plan order (dayNumber is the plan's position, so the unique (programId, dayNumber) holds).
+      await tx.workoutProgramDay.create({
+        data: {
+          programId: program.id,
+          dayNumber: i + 1,
+          title: wanted.title,
+          description: wanted.description,
+          exercises: { create: wanted.exercises.map((w, idx) => ({ exerciseId: w.exerciseId, order: w.order ?? idx + 1, sets: w.sets, reps: w.reps ?? null, restSeconds: w.restSeconds ?? null, notes: w.notes ?? null })) },
+        },
+      });
+      changed = true;
+      continue;
+    }
+    if (day.title !== wanted.title) {
+      await tx.workoutProgramDay.update({ where: { id: day.id }, data: { title: wanted.title } });
+      changed = true;
+    }
+    const existing: any[] = [...(day.exercises ?? [])].sort((x, y) => (x.order ?? 0) - (y.order ?? 0));
+    const used = new Set<string>();
+    for (const [idx, w] of wanted.exercises.entries()) {
+      const order = w.order ?? idx + 1;
+      const match = existing.find((e) => e.exerciseId === w.exerciseId && !used.has(e.id));
+      if (match) {
+        used.add(match.id);
+        const patch: Record<string, unknown> = {};
+        if (match.order !== order) patch.order = order;
+        if (match.sets !== w.sets) {
+          patch.sets = w.sets;
+          // Per-set prescriptions are keyed by set number: fewer sets => the prescriptions beyond the new count would describe sets that no longer exist.
+          if (w.sets < match.sets && (match.setPrescriptions ?? []).some((p: any) => p.setNumber > w.sets)) {
+            await tx.workoutProgramExerciseSetPrescription.deleteMany({ where: { programExerciseId: match.id, setNumber: { gt: w.sets } } });
+          }
+        }
+        if ((match.reps ?? null) !== (w.reps ?? null)) patch.reps = w.reps ?? null;
+        if ((match.restSeconds ?? null) !== (w.restSeconds ?? null)) patch.restSeconds = w.restSeconds ?? null;
+        if ((match.notes ?? null) !== (w.notes ?? null)) patch.notes = w.notes ?? null;
+        if (Object.keys(patch).length) { await tx.workoutProgramExercise.update({ where: { id: match.id }, data: patch }); changed = true; }
+      } else {
+        await tx.workoutProgramExercise.create({ data: { programDayId: day.id, exerciseId: w.exerciseId, order, sets: w.sets, reps: w.reps ?? null, restSeconds: w.restSeconds ?? null, notes: w.notes ?? null } });
+        changed = true;
+      }
+    }
+    const removed = existing.filter((e) => !used.has(e.id)).map((e) => e.id);
+    if (removed.length) { await tx.workoutProgramExercise.deleteMany({ where: { id: { in: removed } } }); changed = true; }
+  }
+  return { changed, daysFrom, daysTo };
 }
 
 export const workoutService = {
@@ -1908,9 +2095,12 @@ export const workoutService = {
       patch.status = data.status;
       patch.archivedAt = data.status === "ARCHIVED" ? new Date() : null;
     }
+    // name/goal are part of the reviewed prescription: a real change bumps the version in the same single (atomic) UPDATE.
+    const reviewableChanged =
+      (patch.name !== undefined && patch.name !== existing.name) || (patch.goal !== undefined && patch.goal !== existing.goal);
     return prisma.workoutProgram.update({
       where: { id },
-      data: patch,
+      data: reviewableChanged ? { ...patch, version: { increment: 1 } } : patch,
     });
   },
 
@@ -1936,6 +2126,13 @@ export const workoutService = {
       patch.description = data.description;
     if (typeof data.duration === "number" || data.duration === null)
       patch.duration = data.duration;
+    // The day title is reviewed content; description/duration are not.
+    if (patch.title !== undefined && patch.title !== existing.title) {
+      return prisma.$transaction(async (tx) => {
+        await bumpProgramVersion(tx, existing.programId);
+        return tx.workoutProgramDay.update({ where: { id }, data: patch });
+      });
+    }
     return prisma.workoutProgramDay.update({
       where: { id },
       data: patch,
@@ -1953,38 +2150,42 @@ export const workoutService = {
     }
     await validateExerciseIds([data.exerciseId], userId);
 
-    return prisma.workoutProgramExercise.create({
-      data: {
-        programDayId,
-        exerciseId: data.exerciseId,
-        order:
-          typeof data.order === "number"
-            ? data.order
-            : day._count.exercises + 1,
-        sets: typeof data.sets === "number" ? data.sets : 3,
-        reps: typeof data.reps === "number" ? data.reps : 10,
-        restSeconds:
-          typeof data.restSeconds === "number" ? data.restSeconds : 90,
-        notes: typeof data.notes === "string" ? data.notes : undefined,
-        setPrescriptions: {
-          create: buildSetPrescriptionsForExercise({
-            sets: typeof data.sets === "number" ? data.sets : 3,
-            reps: typeof data.reps === "number" ? data.reps : 10,
-            restSeconds:
-              typeof data.restSeconds === "number" ? data.restSeconds : 90,
-            setPrescriptions: Array.isArray(data.setPrescriptions)
-              ? data.setPrescriptions
-              : undefined,
-          }),
+    return prisma.$transaction(async (tx) => {
+      await bumpProgramVersion(tx, day.programId);
+      return tx.workoutProgramExercise.create({
+        data: {
+          programDayId,
+          exerciseId: data.exerciseId,
+          order:
+            typeof data.order === "number"
+              ? data.order
+              : day._count.exercises + 1,
+          sets: typeof data.sets === "number" ? data.sets : 3,
+          reps: typeof data.reps === "number" ? data.reps : 10,
+          restSeconds:
+            typeof data.restSeconds === "number" ? data.restSeconds : 90,
+          notes: typeof data.notes === "string" ? data.notes : undefined,
+          setPrescriptions: {
+            create: buildSetPrescriptionsForExercise({
+              sets: typeof data.sets === "number" ? data.sets : 3,
+              reps: typeof data.reps === "number" ? data.reps : 10,
+              restSeconds:
+                typeof data.restSeconds === "number" ? data.restSeconds : 90,
+              setPrescriptions: Array.isArray(data.setPrescriptions)
+                ? data.setPrescriptions
+                : undefined,
+            }),
+          },
         },
-      },
-      include: PROGRAM_EXERCISE_INCLUDE,
+        include: PROGRAM_EXERCISE_INCLUDE,
+      });
     });
   },
 
   async updateProgramExercise(id: string, userId: string, data: any) {
     const existing = await prisma.workoutProgramExercise.findFirst({
       where: { id, programDay: { program: { userId } } },
+      include: { programDay: { select: { programId: true } } },
     });
     if (!existing) throw { status: 404, message: "Program exercise not found" };
 
@@ -2006,7 +2207,13 @@ export const workoutService = {
     if (typeof data.notes === "string" || data.notes === null)
       patch.notes = data.notes;
 
+    // Any real prescription change (or an explicit set-prescription rewrite) is a new reviewable version.
+    const prescriptionChanged =
+      Array.isArray(data.setPrescriptions) ||
+      Object.keys(patch).some((k) => (patch as any)[k] !== (existing as any)[k]);
+
     return prisma.$transaction(async (tx) => {
+      if (prescriptionChanged) await bumpProgramVersion(tx, existing.programDay.programId);
       const updated = await tx.workoutProgramExercise.update({
         where: { id },
         data: patch,
@@ -2051,8 +2258,9 @@ export const workoutService = {
         message: "Cannot delete the last exercise in a program day",
       };
     }
-    return prisma.workoutProgramExercise.delete({
-      where: { id },
+    return prisma.$transaction(async (tx) => {
+      await bumpProgramVersion(tx, existing.programDay.programId);
+      return tx.workoutProgramExercise.delete({ where: { id } });
     });
   },
 
@@ -2125,6 +2333,7 @@ export const workoutService = {
     }
 
     return prisma.$transaction(async (tx) => {
+      await bumpProgramVersion(tx, day.programId); // reorders exercises + adds superset structure => reviewable change
       await Promise.all(
         finalSequence.map((ex, idx) =>
           tx.workoutProgramExercise.update({ where: { id: ex.id }, data: { order: idx } }),
@@ -2160,6 +2369,7 @@ export const workoutService = {
   ) {
     const existing = await prisma.workoutProgramExerciseGroup.findFirst({
       where: { id, programDay: { program: { userId } } },
+      include: { programDay: { select: { programId: true } } },
     });
     if (!existing) throw { status: 404, message: "Exercise group not found" };
     const VALID_TYPES = ["SUPERSET", "TRISET", "CIRCUIT"];
@@ -2172,10 +2382,13 @@ export const workoutService = {
       patch.restBetweenExercisesSeconds = data.restBetweenExercisesSeconds;
     if (data.restAfterRoundSeconds !== undefined)
       patch.restAfterRoundSeconds = data.restAfterRoundSeconds;
-    return prisma.workoutProgramExerciseGroup.update({
-      where: { id },
-      data: patch,
-      include: { members: true },
+    return prisma.$transaction(async (tx) => {
+      await bumpProgramVersion(tx, existing.programDay.programId); // superset type/rest timing is part of the prescription
+      return tx.workoutProgramExerciseGroup.update({
+        where: { id },
+        data: patch,
+        include: { members: true },
+      });
     });
   },
 
@@ -2185,9 +2398,13 @@ export const workoutService = {
   async ungroupExercises(id: string, userId: string) {
     const existing = await prisma.workoutProgramExerciseGroup.findFirst({
       where: { id, programDay: { program: { userId } } },
+      include: { programDay: { select: { programId: true } } },
     });
     if (!existing) throw { status: 404, message: "Exercise group not found" };
-    await prisma.workoutProgramExerciseGroup.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      await bumpProgramVersion(tx, existing.programDay.programId);
+      await tx.workoutProgramExerciseGroup.delete({ where: { id } });
+    });
     return { success: true };
   },
 
@@ -2371,6 +2588,13 @@ export const workoutService = {
     });
 
     if (existingProgram) {
+      // The AI plan was REVISED in place (same plan id, higher version) after this program was imported: the program must follow it, otherwise
+      // re-saving a revised plan would silently keep the old content. Mapping/validation (canonical exercise ids, equipment) happens first and
+      // throws before anything is written.
+      const previousAiPlanVersion: number | null = existingProgram.aiPlanVersion ?? null;
+      const planIsNewer = input.sourcePlanVersion !== undefined && input.sourcePlanVersion > (previousAiPlanVersion ?? 0);
+      const syncDays = planIsNewer ? await mapAiPlanDays(userId, input.weeklySchedule) : null;
+      let contentSynced = false;
       const repeatWeeks = input.repeatWeeks ?? input.durationWeeks;
       const startDate = parseDateOnly(input.startDate);
       const selectedWeekdays = input.selectedWeekdays;
@@ -2403,8 +2627,26 @@ export const workoutService = {
         })),
       );
 
+      const syncInfo = { daysChange: null as { from: number; to: number } | null };
+      let appliedPreviousAiPlanVersion: number | null = previousAiPlanVersion;
       const result = await prisma.$transaction(async (tx) => {
         let cancelledScheduleCount = 0;
+        // Serialise on the program row, then judge from a FRESH snapshot: a concurrent sync/edit that committed after the pre-transaction read
+        // above is seen here, so a retry or a racing request never re-applies the same revision or builds on a stale day list.
+        const locked = await tx.$queryRaw<Array<{ version: number; aiPlanVersion: number | null }>>`
+          SELECT "version", "ai_plan_version" AS "aiPlanVersion" FROM "workout_programs" WHERE "id" = ${existingProgram.id} AND "user_id" = ${userId} FOR UPDATE`;
+        if (!locked[0]) throw { status: 404, message: "Chương trình tập không còn tồn tại" };
+        const freshProgram = await (tx.workoutProgram as any).findUniqueOrThrow({
+          where: { id: existingProgram.id },
+          include: { days: { include: { exercises: { include: PROGRAM_EXERCISE_INCLUDE, orderBy: { order: "asc" } } }, orderBy: { dayNumber: "asc" } } },
+        });
+        appliedPreviousAiPlanVersion = freshProgram.aiPlanVersion ?? null;
+        const applyRevision = syncDays !== null && input.sourcePlanVersion !== undefined && input.sourcePlanVersion > (freshProgram.aiPlanVersion ?? 0);
+        if (applyRevision) {
+          // A session that is IN PROGRESS (started today or yesterday; older unfinished ones count as abandoned) references this program's exercise rows: rewriting or deleting them under the user's feet would lose exercises mid-workout.
+          const live = await (tx.workoutSchedule as any).count({ where: { userId, status: "IN_PROGRESS", date: { gte: new Date(todayAsScheduleDate().getTime() - 86_400_000) }, programDay: { programId: existingProgram.id } } });
+          if (live > 0) throw { status: 409, code: "PROGRAM_SYNC_SESSION_IN_PROGRESS", message: "Bạn đang có một buổi tập diễn ra dở dang. Hãy kết thúc buổi tập đó rồi áp dụng bản kế hoạch mới.", details: { sessionsInProgress: live } };
+        }
         const linkedCycleId = await resolveScheduleTrainingCycleId(tx, userId, {
           allowCreate: false,
           startDate: formatDateOnly(startDate),
@@ -2457,13 +2699,28 @@ export const workoutService = {
           data: { status: "ARCHIVED", archivedAt: new Date() },
         });
 
-        const program = await (tx.workoutProgram as any).update({
-          where: { id: existingProgram.id },
+        // In-place content sync + the atomic version bump (same transaction, same row lock the PT-approval guard serialises on).
+        const outcome = applyRevision
+          ? await syncProgramContentFromAiPlan(tx, freshProgram, syncDays!, { replaceExisting: shouldReplace, today: todayAsScheduleDate() })
+          : { changed: false, daysFrom: freshProgram.days.length, daysTo: freshProgram.days.length };
+        const contentChanged = outcome.changed;
+        contentSynced = contentChanged;
+        if (outcome.daysFrom !== outcome.daysTo) syncInfo.daysChange = { from: outcome.daysFrom, to: outcome.daysTo };
+        if (programSyncTestHooks.afterContentSync) await programSyncTestHooks.afterContentSync();
+        // Conditional update: the row lock above makes this the only writer, and the predicate turns any surprise into a rollback instead of a lost update.
+        const moved = await (tx.workoutProgram as any).updateMany({
+          where: { id: existingProgram.id, version: freshProgram.version },
           data: {
             status: "ACTIVE",
             archivedAt: null,
-            aiPlanVersion: input.sourcePlanVersion ?? existingProgram.aiPlanVersion ?? null,
+            // Only ever moves FORWARD: a stale client re-sending an older plan version must not lower the marker (it would re-apply a newer revision later and overwrite manual edits).
+            aiPlanVersion: input.sourcePlanVersion === undefined ? (freshProgram.aiPlanVersion ?? null) : Math.max(input.sourcePlanVersion, freshProgram.aiPlanVersion ?? 0),
+            ...(contentChanged ? { version: { increment: 1 }, daysPerWeek: outcome.daysTo } : {}),
           },
+        });
+        if (moved.count !== 1) throw { status: 409, code: "PROGRAM_CHANGED_CONCURRENTLY", message: "Chương trình tập vừa được cập nhật ở nơi khác. Hãy tải lại rồi áp dụng lại." };
+        const program = await (tx.workoutProgram as any).findUniqueOrThrow({
+          where: { id: existingProgram.id },
           include: {
             days: {
               include: {
@@ -2575,6 +2832,12 @@ export const workoutService = {
         cancelledScheduleCount: result.cancelledScheduleCount,
         skippedDuplicateCount: result.skippedDuplicateCount,
         alreadyExists: true,
+        // Transparency for the client: did saving this plan change the program that is being trained?
+        contentSynced,
+        previousAiPlanVersion: appliedPreviousAiPlanVersion,
+        programVersion: (result.program as any).version,
+        // Present only when the revision changed the number of training days (client shows "5 -> 3 buổi/tuần").
+        ...(syncInfo.daysChange ? { daysChange: syncInfo.daysChange } : {}),
         selectedWeekdays: input.selectedWeekdays,
         schedulePreview: result.schedulePreview,
         totalScheduleCount,
@@ -2582,70 +2845,7 @@ export const workoutService = {
       };
     }
 
-    const unmatchedExercises = new Set<string>();
-    const mappedDays: MappedAiDay[] = [];
-    for (const [dayIndex, day] of input.weeklySchedule.entries()) {
-      const rawTitle =
-        day.goal || day.focus || String(day.day ?? "AI Workout Day");
-      const title = sanitizeImportedDayTitle(rawTitle, dayIndex);
-      const exercises: MappedAiExercise[] = [];
-
-      for (const exercise of day.exercises) {
-        const resolved = await exerciseReferenceResolver.resolve(
-          {
-            exerciseId:
-              typeof exercise.exerciseId === "string" && exercise.exerciseId.trim()
-                ? exercise.exerciseId
-                : undefined,
-            name: exercise.name,
-          },
-          { kind: "user", userId },
-        );
-        if (!resolved.ok) {
-          unmatchedExercises.add(
-            `${exercise.exerciseId || exercise.name || "unknown exercise"} (${resolved.code})`,
-          );
-          continue;
-        }
-
-        const parsedReps = Number.parseInt(
-          String(exercise.reps).match(/\d+/)?.[0] ?? "",
-          10,
-        );
-
-        exercises.push({
-          exerciseId: resolved.exercise.id,
-          order: exercise.order ?? exercises.length + 1,
-          sets: exercise.sets,
-          reps: Number.isFinite(parsedReps) ? parsedReps : null,
-          restSeconds: exercise.restSeconds,
-          notes: sanitizeImportedExerciseNote(exercise.note),
-        });
-      }
-
-      if (exercises.length === 0) {
-        unmatchedExercises.add(title);
-      }
-
-      const mappedDay = {
-        title,
-        description: sanitizeImportedText(
-          day.cardio || day.notes,
-          "Tap trung vao ky thuat dung, kiem soat nhip tap va tang tien tu tu.",
-        ),
-        exercises,
-      };
-      mappedDays.push(mappedDay);
-    }
-
-    if (unmatchedExercises.size > 0) {
-      throw {
-        status: 400,
-        message: `Unable to map AI exercises to exercise master: ${Array.from(unmatchedExercises).join(", ")}`,
-      };
-    }
-
-    await validateAiPlanExerciseEquipment(userId, mappedDays);
+    const mappedDays = await mapAiPlanDays(userId, input.weeklySchedule);
 
     const repeatWeeks = input.repeatWeeks ?? input.durationWeeks;
     const startDate = parseDateOnly(input.startDate);

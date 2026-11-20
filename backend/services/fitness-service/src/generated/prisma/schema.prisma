@@ -1752,3 +1752,80 @@ model WorkoutMutationEvent {
   @@index([userId])
   @@map("workout_mutation_events")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Workout Plan Review & Approval (client → PT). Additive only.
+//
+// Subject identity: `subjectId` is the LOGICAL plan id = WorkoutProgram.id (the
+// training prescription is owned by fitness-service; the AI WorkoutPlan in
+// ai-service is only its provenance, kept in sourcePlanId/aiPlanVersion).
+// A decision binds to (subjectId, contentHash) — the hash of the immutable
+// `snapshot` — so a later edit of the program never inherits an old approval
+// (effective approval is computed at READ time, see plan-review.engine.ts).
+// ─────────────────────────────────────────────────────────────────────────────
+enum PlanReviewStatus {
+  PENDING_REVIEW
+  IN_REVIEW
+  APPROVED
+  CHANGES_REQUESTED
+  REJECTED
+  CANCELLED
+  SUPERSEDED
+  ACCESS_REVOKED
+}
+
+model PlanReviewRequest {
+  id             String           @id @default(uuid())
+  clientUserId   String           @map("client_user_id")
+  ptUserId       String           @map("pt_user_id")
+  subjectType    String           @default("WORKOUT_PROGRAM") @map("subject_type")
+  subjectId      String           @map("subject_id")
+  subjectVersion Int              @map("subject_version")
+  contentHash    String           @map("content_hash")
+  sourcePlanId   String?          @map("source_plan_id")
+  aiPlanVersion  Int?             @map("ai_plan_version")
+  /// Immutable prescription snapshot (days/exercises/sets/reps only — never InBody, profile or health data).
+  snapshot       Json
+  status         PlanReviewStatus @default(PENDING_REVIEW)
+  /// Optimistic-concurrency counter; every state change increments it inside a conditional UPDATE.
+  revision       Int              @default(1)
+  idempotencyKey String?          @map("idempotency_key")
+  clientNote     String?          @map("client_note")
+  decisionNote   String?          @map("decision_note")
+  decidedAt      DateTime?        @map("decided_at")
+  submittedAt    DateTime         @default(now()) @map("submitted_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  events PlanReviewEvent[]
+
+  @@unique([clientUserId, idempotencyKey])
+  @@index([ptUserId, status])
+  @@index([clientUserId, status])
+  @@index([subjectType, subjectId])
+  @@map("plan_review_requests")
+}
+
+// Append-only audit trail. Doubles as the notification outbox: a row with
+// notifyUserId set and notifiedAt NULL is a pending, at-least-once delivery.
+model PlanReviewEvent {
+  id           String    @id @default(uuid())
+  requestId    String    @map("request_id")
+  type         String // SUBMITTED | STARTED | APPROVED | CHANGES_REQUESTED | REJECTED | CANCELLED | SUPERSEDED | ACCESS_REVOKED
+  actorUserId  String?   @map("actor_user_id")
+  actorRole    String    @map("actor_role") // CLIENT | PT | SYSTEM
+  fromStatus   String?   @map("from_status")
+  toStatus     String    @map("to_status")
+  contentHash  String    @map("content_hash")
+  note         String?
+  metadata     Json?
+  notifyUserId String?   @map("notify_user_id")
+  notifiedAt   DateTime? @map("notified_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  request PlanReviewRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId, createdAt])
+  @@index([notifyUserId, notifiedAt])
+  @@map("plan_review_events")
+}

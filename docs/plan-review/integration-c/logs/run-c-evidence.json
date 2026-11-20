@@ -1,0 +1,58 @@
+{
+ "groups": [
+  "compat"
+ ],
+ "pass": 12,
+ "fail": 0,
+ "blocked": 0,
+ "evidence": [
+  {
+   "result": "PASS",
+   "case": "K1 POST /plans/adjust without expectedVersion still works; response keeps planId/jobId/version/status (+revisionJobId, expectedVersion, revision)"
+  },
+  {
+   "result": "PASS",
+   "case": "K2 legacy jobId polling: the poll body keeps every field existing clients read"
+  },
+  {
+   "result": "PASS",
+   "case": "K2 polling by the old jobId reaches COMPLETED with the SAME planId"
+  },
+  {
+   "result": "PASS",
+   "case": "K3 existing plan details endpoint works; carries the flag the web Undo button reads (_metadata.revision.previousPlanId)"
+  },
+  {
+   "result": "PASS",
+   "case": "K3 /plans/current lists the plan (no placeholder row)"
+  },
+  {
+   "result": "PASS",
+   "case": "K4 WorkoutProgram.sourcePlanId still points at the (unchanged) AI plan id"
+  },
+  {
+   "result": "PASS",
+   "case": "K5 a PRE-operation job id (Plan.jobId lookup) is still served unchanged"
+  },
+  {
+   "result": "PASS",
+   "case": "K5 job polling ownership still enforced (other user -> 403)"
+  },
+  {
+   "result": "PASS",
+   "case": "K6 legacy (replace-model) plans keep their existing undo endpoint behaviour"
+  },
+  {
+   "result": "PASS",
+   "case": "K7 expectedVersion honoured (stale -> 409)"
+  },
+  {
+   "result": "PASS",
+   "case": "K8 an ambiguous request returns a Vietnamese question (422), nothing queued"
+  },
+  {
+   "result": "PASS",
+   "case": "K9 AUDIT: AIPlansPage.tsx does NOT read `contentSynced` (confirmed) — it still shows 'đã được lưu vào lịch tập trước đó' when alreadyExists; requirement documented in the report, file not modified"
+  }
+ ]
+}

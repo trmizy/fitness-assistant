@@ -3469,6 +3469,12 @@ export const planService = {
     return unwrapApiPayload<unknown>(data);
   },
 
+  /** Undo an adjustment: restores the plan the given (adjusted) plan replaced. */
+  revertPlanAdjustment: async (planId: string): Promise<{ planId: string }> => {
+    const { data } = await api.post(`/plans/${planId}/revert`);
+    return unwrapApiPayload<{ planId: string }>(data);
+  },
+
   savePlanToWorkoutLog: async (
     planId: string,
     input: {

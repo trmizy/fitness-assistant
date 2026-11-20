@@ -18,7 +18,7 @@ import {
 } from "lucide-react-native";
 
 import { Badge, Button, Card, Input, ProgressRing, ScreenHeader, useToast } from "../../../src/components/ui";
-import { equipmentService, planService, type PlanStatusBackend } from "../../../src/services/api";
+import { equipmentService, newIdempotencyKey, planService, type PlanStatusBackend } from "../../../src/services/api";
 import { useApp } from "../../../src/context/AppContext";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 import { chartSeries, darkColors } from "../../../src/theme/colors";
@@ -149,11 +149,27 @@ export default function PlanWizardScreen() {
     onError: (e) => toast.show(apiErrorMessage(e, "Không thể tạo kế hoạch AI"), "danger"),
   });
 
+  // One Idempotency-Key per business action. A retry of the SAME action after a timeout/network loss (no answer from the server) reuses the key, so the
+  // server answers from the original operation instead of running it twice; once the server has answered (accepted or refused) the next attempt is a
+  // new action with a new key. A different payload always gets a new key.
+  const adjustKey = useRef<{ sig: string; key: string } | null>(null);
   const adjustMutation = useMutation({
-    mutationFn: (body: { adjustments: string; daysPerWeek?: number; exercisesPerDay?: number }) =>
-      planService.adjustPlan(adjustPlanId!, body.adjustments, body.daysPerWeek, body.exercisesPerDay),
-    onSuccess: onStarted,
-    onError: (e) => toast.show(apiErrorMessage(e, "Không thể điều chỉnh kế hoạch"), "danger"),
+    mutationFn: (body: { adjustments: string; daysPerWeek?: number; exercisesPerDay?: number }) => {
+      const sig = JSON.stringify([adjustPlanId, body.adjustments, body.daysPerWeek ?? null, body.exercisesPerDay ?? null, adjustPlanQuery.data?.version ?? null]);
+      if (adjustKey.current?.sig !== sig) adjustKey.current = { sig, key: newIdempotencyKey() };
+      return planService.adjustPlan(adjustPlanId!, body.adjustments, body.daysPerWeek, body.exercisesPerDay, {
+        idempotencyKey: adjustKey.current.key,
+        expectedVersion: typeof adjustPlanQuery.data?.version === "number" ? adjustPlanQuery.data.version : undefined,
+      });
+    },
+    onSuccess: (r) => { adjustKey.current = null; onStarted(r); },
+    onError: (e) => {
+      // A definitive server answer (4xx / 500) means the next try is a NEW action. No answer (timeout/offline) or a gateway/proxy status that does not
+      // say whether the server got the request (408, 502, 503, 504) keeps the key, so the retry is answered from the original operation.
+      const status = (e as { response?: { status?: number } } | null)?.response?.status;
+      if (typeof status === "number" && ![408, 502, 503, 504].includes(status)) adjustKey.current = null;
+      toast.show(apiErrorMessage(e, "Không thể điều chỉnh kế hoạch"), "danger");
+    },
   });
 
   const ensureLlmReady = async () => {

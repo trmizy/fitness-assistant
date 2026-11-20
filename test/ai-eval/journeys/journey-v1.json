@@ -1,0 +1,59 @@
+{
+  "version": "v1",
+  "author": "engineer",
+  "note": "Kịch bản do kỹ sư soạn (DEV). Mỗi lượt có 'ideal' = điều một câu trả lời hợp lý nên làm, để người đánh giá đối chiếu; không phải đáp án cứng.",
+  "personas": {
+    "newbie": {
+      "label": "Người mới (vừa đăng ký, chưa biết tập)",
+      "profile": { "age": 27, "gender": "FEMALE", "heightCm": 160, "goal": "WEIGHT_LOSS", "activityLevel": "SEDENTARY", "experienceLevel": "BEGINNER", "currentWeight": 62, "targetWeight": 55, "hasCompletedOnboarding": true },
+      "turns": [
+        { "say": "Tôi mới đăng ký app, chưa biết tập gì cả. Tôi nên bắt đầu từ đâu?",
+          "ideal": "Chào đón, nhận ra mục tiêu từ hồ sơ, đề xuất bắt đầu bằng lộ trình + lịch tập + thực đơn phù hợp người mới; nêu được lựa chọn tự tập hoặc có PT hướng dẫn. Không dồn thuật ngữ." },
+        { "say": "Tôi muốn giảm mỡ bụng, tập ở nhà không có dụng cụ được không?",
+          "ideal": "Trả lời được (tập tại nhà với bodyweight), nêu kỳ vọng thực tế (không giảm mỡ cục bộ), đề nghị tạo lịch phù hợp." },
+        { "say": "Hãy lên lộ trình cho tôi",
+          "ideal": "Tạo bản nháp lộ trình (thời hạn hợp lý cho người mới) hoặc hỏi đúng 1–2 thông tin còn thiếu; chưa lưu gì khi chưa xác nhận." },
+        { "say": "Tôi có nên thuê huấn luyện viên không? Gợi ý giúp tôi",
+          "ideal": "Giải thích khi nào nên thuê PT (người mới nên cân nhắc), rồi gợi ý PT hợp mục tiêu/ngân sách dựa trên dữ liệu thật, nêu lý do; không bịa PT." },
+        { "say": "Buổi tập đầu tiên tôi sẽ làm những gì? Hướng dẫn từng bước giúp tôi",
+          "ideal": "Hướng dẫn buổi đầu cụ thể: khởi động, 4–6 bài đơn giản, số hiệp/lần, nghỉ, cách tự kiểm tra kỹ thuật/mức nặng; lưu ý an toàn." },
+        { "say": "Squat đúng kỹ thuật thế nào? Tôi hay thấy đau đầu gối",
+          "ideal": "Hướng dẫn kỹ thuật; nếu đau thì khuyên giảm tải/ngừng và gặp chuyên gia khi kéo dài; không chẩn đoán." },
+        { "say": "Tôi nên ăn gì mỗi ngày để giảm cân mà không bị đói?",
+          "ideal": "Gợi ý nguyên tắc (thâm hụt vừa phải, đạm, rau) và đề nghị tạo thực đơn theo mục tiêu calo từ hồ sơ; không quá khắt khe." }
+      ]
+    },
+    "intermediate": {
+      "label": "Người đã biết tập (1–2 năm)",
+      "profile": { "age": 29, "gender": "MALE", "heightCm": 174, "goal": "MUSCLE_GAIN", "activityLevel": "MODERATELY_ACTIVE", "experienceLevel": "INTERMEDIATE", "currentWeight": 72, "targetWeight": 78, "hasCompletedOnboarding": true },
+      "turns": [
+        { "say": "Tôi tập được 1 năm rưỡi rồi, gần đây ngực không lên thêm. Nên điều chỉnh gì?",
+          "ideal": "Không giảng lại kiến thức cơ bản; nhắc khối lượng, tăng tiến tải, dinh dưỡng, ngủ; đề nghị xem lại lịch hiện tại." },
+        { "say": "Đổi giúp tôi sang lịch upper/lower 4 buổi một tuần, mỗi buổi 60 phút",
+          "ideal": "Tạo bản nháp lịch 4 buổi upper/lower đúng số buổi/thời lượng (không hỏi lại thông tin đã nêu), chưa lưu khi chưa xác nhận." },
+        { "say": "Progressive overload nên áp dụng thế nào cho bài bench press?",
+          "ideal": "Gợi ý cụ thể (double progression, RPE, tăng 2.5kg…), phù hợp trình độ trung cấp." },
+        { "say": "Tôi muốn cắt mỡ 8 tuần mà vẫn giữ cơ, cần ăn bao nhiêu calo và protein?",
+          "ideal": "Đưa khoảng calo/protein dựa trên hồ sơ (nói rõ là ước tính), mức thâm hụt hợp lý; không khuyên cực đoan." },
+        { "say": "Creatine có cần thiết không, uống thế nào?",
+          "ideal": "Thông tin chung dựa trên bằng chứng, liều thông dụng, lưu ý sức khỏe/hỏi bác sĩ khi có bệnh nền; không quảng cáo." }
+      ]
+    },
+    "veteran": {
+      "label": "Người tập lâu năm (8+ năm)",
+      "profile": { "age": 36, "gender": "MALE", "heightCm": 180, "goal": "ATHLETIC_PERFORMANCE", "activityLevel": "VERY_ACTIVE", "experienceLevel": "ADVANCED", "currentWeight": 88, "targetWeight": 88, "hasCompletedOnboarding": true },
+      "turns": [
+        { "say": "Tôi tập 8 năm, đang chuẩn bị thi đấu powerlifting 12 tuần nữa. Nên chia chu kỳ thế nào?",
+          "ideal": "Trả lời mức nâng cao (block/DUP, tích lũy → cường độ → peaking → taper), nêu giả định, không giảng cơ bản; đề nghị lập lộ trình 12 tuần." },
+        { "say": "Dấu hiệu nào cho thấy tôi cần deload? Bao lâu deload một lần?",
+          "ideal": "Dấu hiệu cụ thể (tụt tải, RPE tăng, ngủ/HRV), tần suất tham khảo 4–8 tuần, cách deload." },
+        { "say": "Khuỷu tay tôi đau âm ỉ nhiều tháng mỗi khi kéo xà, vẫn tập được chứ?",
+          "ideal": "Không chẩn đoán; khuyên giảm tải/đổi biến thể và đi khám nếu kéo dài hoặc tê/yếu; nêu dấu hiệu cần đi khám sớm." },
+        { "say": "Cho tôi thực đơn bulking sạch khoảng 3200 kcal, protein 180g",
+          "ideal": "Tạo/đề nghị tạo thực đơn đúng mục tiêu calo/protein đã nêu (không tự đổi); chưa lưu khi chưa xác nhận." },
+        { "say": "Tôi cần một PT chuyên powerlifting, có ai phù hợp không?",
+          "ideal": "Tìm PT theo chuyên môn từ dữ liệu thật; nếu không có PT chuyên mục đó thì nói thẳng và đưa lựa chọn gần nhất; không bịa." }
+      ]
+    }
+  }
+}

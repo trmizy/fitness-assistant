@@ -1,0 +1,742 @@
+[
+ {
+  "scenario": "S1_fresh_published",
+  "userId": "skewm-c2bb94f2",
+  "planId": "bf056444-399c-4aa1-9cfb-370563f0992c",
+  "opId": "b278f526-e9d1-4497-8831-301a9f9e957c",
+  "message": {
+   "data": {
+    "goal": "MUSCLE_GAIN",
+    "userId": "skewm-c2bb94f2",
+    "baseVersion": 1,
+    "daysPerWeek": 4,
+    "previousPlan": [
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 1",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-01"
+       },
+       {
+        "name": "Catalog Exercise 2",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-02"
+       },
+       {
+        "name": "Catalog Exercise 3",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-03"
+       },
+       {
+        "name": "Catalog Exercise 4",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-04"
+       }
+      ]
+     },
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 5",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-05"
+       },
+       {
+        "name": "Catalog Exercise 6",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-06"
+       },
+       {
+        "name": "Catalog Exercise 7",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-07"
+       },
+       {
+        "name": "Catalog Exercise 8",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-08"
+       }
+      ]
+     },
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 9",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-09"
+       },
+       {
+        "name": "Catalog Exercise 10",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-10"
+       },
+       {
+        "name": "Catalog Exercise 11",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-11"
+       },
+       {
+        "name": "Catalog Exercise 12",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-12"
+       }
+      ]
+     },
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 13",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-13"
+       },
+       {
+        "name": "Catalog Exercise 14",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-14"
+       },
+       {
+        "name": "Catalog Exercise 15",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-15"
+       },
+       {
+        "name": "Catalog Exercise 16",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-16"
+       }
+      ]
+     }
+    ],
+    "durationWeeks": 8,
+    "exercisesPerDay": 8,
+    "adjustmentContext": "Mỗi buổi 8 bài",
+    "exercisesPerDaySource": "text-absolute",
+    "operationId": "b278f526-e9d1-4497-8831-301a9f9e957c",
+    "epoch": 1,
+    "planId": "bf056444-399c-4aa1-9cfb-370563f0992c",
+    "kind": "PLAN_ADJUSTMENT",
+    "actorUserId": "skewm-c2bb94f2"
+   },
+   "opts": {
+    "jobId": "b278f526-e9d1-4497-8831-301a9f9e957c-e1"
+   }
+  }
+ },
+ {
+  "scenario": "S2_running_expired_lease",
+  "userId": "skewm-8d51ec20",
+  "planId": "b9f059f6-d514-4fa3-91e5-deb5c1e45f4b",
+  "opId": "e7bacedd-cd35-4c3c-ab30-2de9d878e89a",
+  "message": {
+   "data": {
+    "goal": "MUSCLE_GAIN",
+    "userId": "skewm-8d51ec20",
+    "baseVersion": 1,
+    "daysPerWeek": 4,
+    "previousPlan": [
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 1",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-01"
+       },
+       {
+        "name": "Catalog Exercise 2",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-02"
+       },
+       {
+        "name": "Catalog Exercise 3",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-03"
+       },
+       {
+        "name": "Catalog Exercise 4",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-04"
+       }
+      ]
+     },
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 5",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-05"
+       },
+       {
+        "name": "Catalog Exercise 6",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-06"
+       },
+       {
+        "name": "Catalog Exercise 7",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-07"
+       },
+       {
+        "name": "Catalog Exercise 8",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-08"
+       }
+      ]
+     },
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 9",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-09"
+       },
+       {
+        "name": "Catalog Exercise 10",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-10"
+       },
+       {
+        "name": "Catalog Exercise 11",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-11"
+       },
+       {
+        "name": "Catalog Exercise 12",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-12"
+       }
+      ]
+     },
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 13",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-13"
+       },
+       {
+        "name": "Catalog Exercise 14",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-14"
+       },
+       {
+        "name": "Catalog Exercise 15",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-15"
+       },
+       {
+        "name": "Catalog Exercise 16",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-16"
+       }
+      ]
+     }
+    ],
+    "durationWeeks": 8,
+    "exercisesPerDay": 8,
+    "adjustmentContext": "Mỗi buổi 8 bài",
+    "exercisesPerDaySource": "text-absolute",
+    "operationId": "e7bacedd-cd35-4c3c-ab30-2de9d878e89a",
+    "epoch": 1,
+    "planId": "b9f059f6-d514-4fa3-91e5-deb5c1e45f4b",
+    "kind": "PLAN_ADJUSTMENT",
+    "actorUserId": "skewm-8d51ec20"
+   },
+   "opts": {
+    "jobId": "e7bacedd-cd35-4c3c-ab30-2de9d878e89a-e1"
+   }
+  }
+ },
+ {
+  "scenario": "S3_attempts_exhausted",
+  "userId": "skewm-92e42c10",
+  "planId": "d7a74283-bdd1-4739-898b-4e2b4955f376",
+  "opId": "7283b2dc-c052-4dcb-bf0a-81a8e539b234",
+  "message": {
+   "data": {
+    "goal": "MUSCLE_GAIN",
+    "userId": "skewm-92e42c10",
+    "baseVersion": 1,
+    "daysPerWeek": 4,
+    "previousPlan": [
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 1",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-01"
+       },
+       {
+        "name": "Catalog Exercise 2",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-02"
+       },
+       {
+        "name": "Catalog Exercise 3",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-03"
+       },
+       {
+        "name": "Catalog Exercise 4",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-04"
+       }
+      ]
+     },
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 5",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-05"
+       },
+       {
+        "name": "Catalog Exercise 6",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-06"
+       },
+       {
+        "name": "Catalog Exercise 7",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-07"
+       },
+       {
+        "name": "Catalog Exercise 8",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-08"
+       }
+      ]
+     },
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 9",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-09"
+       },
+       {
+        "name": "Catalog Exercise 10",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-10"
+       },
+       {
+        "name": "Catalog Exercise 11",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-11"
+       },
+       {
+        "name": "Catalog Exercise 12",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-12"
+       }
+      ]
+     },
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 13",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-13"
+       },
+       {
+        "name": "Catalog Exercise 14",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-14"
+       },
+       {
+        "name": "Catalog Exercise 15",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-15"
+       },
+       {
+        "name": "Catalog Exercise 16",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-16"
+       }
+      ]
+     }
+    ],
+    "durationWeeks": 8,
+    "exercisesPerDay": 8,
+    "adjustmentContext": "Mỗi buổi 8 bài",
+    "exercisesPerDaySource": "text-absolute",
+    "operationId": "7283b2dc-c052-4dcb-bf0a-81a8e539b234",
+    "epoch": 1,
+    "planId": "d7a74283-bdd1-4739-898b-4e2b4955f376",
+    "kind": "PLAN_ADJUSTMENT",
+    "actorUserId": "skewm-92e42c10"
+   },
+   "opts": {
+    "jobId": "7283b2dc-c052-4dcb-bf0a-81a8e539b234-e1"
+   }
+  }
+ },
+ {
+  "scenario": "S4_failed_op",
+  "userId": "skewm-1c8aca16",
+  "planId": "97574e7f-203a-4a31-9e3a-33f615f2c72d",
+  "opId": "a4661fe8-53d1-42c9-8a74-ab6f4a44c177",
+  "message": {
+   "data": {
+    "goal": "MUSCLE_GAIN",
+    "userId": "skewm-1c8aca16",
+    "baseVersion": 1,
+    "daysPerWeek": 4,
+    "previousPlan": [
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 1",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-01"
+       },
+       {
+        "name": "Catalog Exercise 2",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-02"
+       },
+       {
+        "name": "Catalog Exercise 3",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-03"
+       },
+       {
+        "name": "Catalog Exercise 4",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-04"
+       }
+      ]
+     },
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 5",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-05"
+       },
+       {
+        "name": "Catalog Exercise 6",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-06"
+       },
+       {
+        "name": "Catalog Exercise 7",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-07"
+       },
+       {
+        "name": "Catalog Exercise 8",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-08"
+       }
+      ]
+     },
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 9",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-09"
+       },
+       {
+        "name": "Catalog Exercise 10",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-10"
+       },
+       {
+        "name": "Catalog Exercise 11",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-11"
+       },
+       {
+        "name": "Catalog Exercise 12",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-12"
+       }
+      ]
+     },
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 13",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-13"
+       },
+       {
+        "name": "Catalog Exercise 14",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-14"
+       },
+       {
+        "name": "Catalog Exercise 15",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-15"
+       },
+       {
+        "name": "Catalog Exercise 16",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-16"
+       }
+      ]
+     }
+    ],
+    "durationWeeks": 8,
+    "exercisesPerDay": 8,
+    "adjustmentContext": "Mỗi buổi 8 bài",
+    "exercisesPerDaySource": "text-absolute",
+    "operationId": "a4661fe8-53d1-42c9-8a74-ab6f4a44c177",
+    "epoch": 1,
+    "planId": "97574e7f-203a-4a31-9e3a-33f615f2c72d",
+    "kind": "PLAN_ADJUSTMENT",
+    "actorUserId": "skewm-1c8aca16"
+   },
+   "opts": {
+    "jobId": "a4661fe8-53d1-42c9-8a74-ab6f4a44c177-e1"
+   }
+  }
+ },
+ {
+  "scenario": "S5_plan_not_completed_UNREACHABLE",
+  "userId": "skewm-161ac563",
+  "planId": "a47cd62c-b11a-44a5-aa54-7a87793fd043",
+  "opId": "738365d6-f294-451f-815d-0820d55a2679",
+  "message": {
+   "data": {
+    "goal": "MUSCLE_GAIN",
+    "userId": "skewm-161ac563",
+    "baseVersion": 1,
+    "daysPerWeek": 4,
+    "previousPlan": [
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 1",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-01"
+       },
+       {
+        "name": "Catalog Exercise 2",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-02"
+       },
+       {
+        "name": "Catalog Exercise 3",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-03"
+       },
+       {
+        "name": "Catalog Exercise 4",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-04"
+       }
+      ]
+     },
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 5",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-05"
+       },
+       {
+        "name": "Catalog Exercise 6",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-06"
+       },
+       {
+        "name": "Catalog Exercise 7",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-07"
+       },
+       {
+        "name": "Catalog Exercise 8",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-08"
+       }
+      ]
+     },
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 9",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-09"
+       },
+       {
+        "name": "Catalog Exercise 10",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-10"
+       },
+       {
+        "name": "Catalog Exercise 11",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-11"
+       },
+       {
+        "name": "Catalog Exercise 12",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-12"
+       }
+      ]
+     },
+     {
+      "goal": "Toàn thân",
+      "cardio": "Khởi động",
+      "exercises": [
+       {
+        "name": "Catalog Exercise 13",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-13"
+       },
+       {
+        "name": "Catalog Exercise 14",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-14"
+       },
+       {
+        "name": "Catalog Exercise 15",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-15"
+       },
+       {
+        "name": "Catalog Exercise 16",
+        "reps": "8-12",
+        "sets": 3,
+        "exerciseId": "cat-16"
+       }
+      ]
+     }
+    ],
+    "durationWeeks": 8,
+    "exercisesPerDay": 8,
+    "adjustmentContext": "Mỗi buổi 8 bài",
+    "exercisesPerDaySource": "text-absolute",
+    "operationId": "738365d6-f294-451f-815d-0820d55a2679",
+    "epoch": 1,
+    "planId": "a47cd62c-b11a-44a5-aa54-7a87793fd043",
+    "kind": "PLAN_ADJUSTMENT",
+    "actorUserId": "skewm-161ac563"
+   },
+   "opts": {
+    "jobId": "738365d6-f294-451f-815d-0820d55a2679-e1"
+   }
+  }
+ }
+]

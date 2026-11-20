@@ -1,0 +1,41 @@
+{
+    "date":  "2026-10-27",
+    "evidence":  "CODE AUDIT: hash/prefix comparison and clean tracked Git status before deletion",
+    "entries":  [
+                    {
+                        "removedPath":  "docs/ai-agent-evaluation-report - Copy.md",
+                        "canonicalPath":  "docs/ai-agent-evaluation-report.md",
+                        "relationship":  "identical",
+                        "removedSha256":  "8f4a567eee4f42f79c39328ad673e5e9f3e03da41c513bda69377e472d1a69e8",
+                        "canonicalSha256":  "8f4a567eee4f42f79c39328ad673e5e9f3e03da41c513bda69377e472d1a69e8"
+                    },
+                    {
+                        "removedPath":  "docs/ai-agent-implementation-report - Copy.md",
+                        "canonicalPath":  "docs/ai-agent-implementation-report.md",
+                        "relationship":  "identical",
+                        "removedSha256":  "2699c47985fdc99ab62f3d8f73d4ee3115026222e5ee049fb77f923176809797",
+                        "canonicalSha256":  "2699c47985fdc99ab62f3d8f73d4ee3115026222e5ee049fb77f923176809797"
+                    },
+                    {
+                        "removedPath":  "docs/ai-product/phase4-7r-rag-generalization-remediation - Copy.md",
+                        "canonicalPath":  "docs/ai-product/phase4-7r-rag-generalization-remediation.md",
+                        "relationship":  "identical",
+                        "removedSha256":  "c93fee4a14beddb98e72cb467e5a4b2edd0fffa376650c3e11be3151f4165b9f",
+                        "canonicalSha256":  "c93fee4a14beddb98e72cb467e5a4b2edd0fffa376650c3e11be3151f4165b9f"
+                    },
+                    {
+                        "removedPath":  "docs/ai-agent-system-meeting-summary - Copy.md",
+                        "canonicalPath":  "docs/ai-agent-system-meeting-summary.md",
+                        "relationship":  "prefix",
+                        "removedSha256":  "56deb5a7fb26b0499c92ebd4758f6c6d64fd390fab62999caf6618dbb61206aa",
+                        "canonicalSha256":  "962ed815846efef52817f44710735a8980fa7129371254fc601413cd7fab69da"
+                    },
+                    {
+                        "removedPath":  "docs/ai-product/phase4-7-evidence-grounded-coach - Copy.md",
+                        "canonicalPath":  "docs/ai-product/phase4-7-evidence-grounded-coach.md",
+                        "relationship":  "prefix",
+                        "removedSha256":  "8f59105faf64b5e2e39e7a309cd860d5b2e7520f8964376ee50183e700ba8245",
+                        "canonicalSha256":  "d0f33af631300bebd0c1e62439f2136fe44071193a629aa320c89325790d23e2"
+                    }
+                ]
+}

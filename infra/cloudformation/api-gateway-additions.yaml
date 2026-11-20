@@ -34,3 +34,76 @@ Resources:
       FunctionName: !Ref AuthLambdaArn
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/auth/password-reset/request"
+
+  # Gym-partner self-registration (public, no JWT). auth-service mounts these under
+  # /auth/partner-applications; API Gateway has no catch-all for /auth, so without these
+  # routes the web page gets a 404 with no CORS header and shows "Không kết nối được máy chủ".
+  AuthPartnerApplicationStartRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "POST /auth/partner-applications/start"
+      Target: !Sub "integrations/${AuthIntegrationId}"
+  AuthPartnerApplicationVerifyRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "POST /auth/partner-applications/verify"
+      Target: !Sub "integrations/${AuthIntegrationId}"
+  AuthPartnerApplicationSetPasswordRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "POST /auth/partner-applications/set-password"
+      Target: !Sub "integrations/${AuthIntegrationId}"
+  AuthPartnerApplicationPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/auth/partner-applications/*"
+
+  # Public auth routes the web calls but the live API never exposed (same 404-without-CORS symptom).
+  AuthRegisterResendRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "POST /auth/register/resend"
+      Target: !Sub "integrations/${AuthIntegrationId}"
+  AuthRegisterResendPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/auth/register/resend"
+  AuthPasswordResetRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "POST /auth/password-reset"
+      Target: !Sub "integrations/${AuthIntegrationId}"
+  AuthPasswordResetPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/auth/password-reset"
+
+  # Admin renames another user's display name (web calls it directly now that the
+  # gateway-only /admin/users/:id/name alias is gone on AWS).
+  AuthUserNameRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApiId
+      RouteKey: "PATCH /auth/users/{userId}/name"
+      Target: !Sub "integrations/${AuthIntegrationId}"
+  AuthUserNamePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthLambdaArn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:ap-southeast-1:191798898985:${HttpApiId}/*/*/auth/users/*/name"

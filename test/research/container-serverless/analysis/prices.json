@@ -1,0 +1,19 @@
+{
+  "_source": "AWS Price List API (aws pricing get-products), region ap-southeast-1, on-demand, retrieved 2026-11-12",
+  "lambda_request_usd": 0.0000002,
+  "lambda_gb_second_usd_x86_tier1": 0.0000166667,
+  "lambda_memory_gb": 1.0,
+  "apigw_http_request_usd": 0.00000125,
+  "ec2_hour_usd": { "m7i.large": 0.126, "c7i.xlarge": 0.2058 },
+  "alb_hour_usd": 0.0252,
+  "alb_lcu_hour_usd": 0.008,
+  "public_ipv4_hour_usd": 0.005,
+  "nat_hour_usd": 0.059,
+  "nat_gb_usd": 0.059,
+  "aurora_serverless_v2_acu_hour_usd": 0.20,
+  "_notes": [
+    "Free tiers are ignored so both arms are priced from zero usage.",
+    "Aurora and NAT are shared by both arms in this experiment and are reported separately, not inside the per-request comparison.",
+    "The load-generator instance (c7i.xlarge) is an experiment cost, not a cost of either deployment model."
+  ]
+}

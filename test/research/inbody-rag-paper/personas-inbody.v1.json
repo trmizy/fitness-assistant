@@ -1,0 +1,958 @@
+{
+  "version": "personas-inbody.v1",
+  "seed": 20261108,
+  "generator": "test/research/inbody-rag-paper/generate-personas.mjs",
+  "units": {
+    "mass": "kg",
+    "height": "cm",
+    "bmi": "kg/m^2",
+    "energy": "kcal/day",
+    "bodyFatPct": "%"
+  },
+  "note": "Synthetic personas, not real users. bodyFat = fat mass (kg). bmr = Katch-McArdle (InBody-style). reference.* is for analysis only and is never sent to the system under test.",
+  "count": 24,
+  "personas": [
+    {
+      "id": "S01",
+      "label": "M, body fat low, weight_loss",
+      "stratum": {
+        "sex": "MALE",
+        "bodyFatBand": "LOW",
+        "goal": "WEIGHT_LOSS"
+      },
+      "profile": {
+        "age": 44,
+        "gender": "MALE",
+        "heightCm": 176.6,
+        "currentWeight": 66.1,
+        "targetWeight": 64.6,
+        "goal": "WEIGHT_LOSS",
+        "activityLevel": "SEDENTARY",
+        "experienceLevel": "BEGINNER",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 66.1,
+        "height": 176.6,
+        "bmi": 21.2,
+        "bodyFat": 8,
+        "bodyFatPct": 12.1,
+        "muscleMass": 32.5,
+        "visceralFat": 4,
+        "bmr": 1625
+      },
+      "reference": {
+        "fatFreeMassKg": 58.1,
+        "ffmi": 18.6,
+        "bmrKatchMcArdle": 1625,
+        "bmrMifflinStJeor": 1550,
+        "bmrDivergencePct": -4.6,
+        "bmiClass": "NORMAL",
+        "minor": false
+      }
+    },
+    {
+      "id": "S02",
+      "label": "M, body fat low, muscle_gain",
+      "stratum": {
+        "sex": "MALE",
+        "bodyFatBand": "LOW",
+        "goal": "MUSCLE_GAIN"
+      },
+      "profile": {
+        "age": 48,
+        "gender": "MALE",
+        "heightCm": 162.5,
+        "currentWeight": 60.5,
+        "targetWeight": 64.5,
+        "goal": "MUSCLE_GAIN",
+        "activityLevel": "LIGHTLY_ACTIVE",
+        "experienceLevel": "BEGINNER",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 60.5,
+        "height": 162.5,
+        "bmi": 22.9,
+        "bodyFat": 6.2,
+        "bodyFatPct": 10.2,
+        "muscleMass": 30.4,
+        "visceralFat": 3,
+        "bmr": 1544
+      },
+      "reference": {
+        "fatFreeMassKg": 54.4,
+        "ffmi": 20.6,
+        "bmrKatchMcArdle": 1544,
+        "bmrMifflinStJeor": 1386,
+        "bmrDivergencePct": -10.2,
+        "bmiClass": "NORMAL",
+        "minor": false
+      }
+    },
+    {
+      "id": "S03",
+      "label": "M, body fat low, maintenance",
+      "stratum": {
+        "sex": "MALE",
+        "bodyFatBand": "LOW",
+        "goal": "MAINTENANCE"
+      },
+      "profile": {
+        "age": 47,
+        "gender": "MALE",
+        "heightCm": 160.4,
+        "currentWeight": 56.1,
+        "targetWeight": 56.1,
+        "goal": "MAINTENANCE",
+        "activityLevel": "MODERATELY_ACTIVE",
+        "experienceLevel": "BEGINNER",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 56.1,
+        "height": 160.4,
+        "bmi": 21.8,
+        "bodyFat": 6.5,
+        "bodyFatPct": 11.6,
+        "muscleMass": 27.8,
+        "visceralFat": 3,
+        "bmr": 1440
+      },
+      "reference": {
+        "fatFreeMassKg": 49.6,
+        "ffmi": 19.3,
+        "bmrKatchMcArdle": 1440,
+        "bmrMifflinStJeor": 1333,
+        "bmrDivergencePct": -7.4,
+        "bmiClass": "NORMAL",
+        "minor": false
+      }
+    },
+    {
+      "id": "S04",
+      "label": "M, body fat normal, weight_loss",
+      "stratum": {
+        "sex": "MALE",
+        "bodyFatBand": "NORMAL",
+        "goal": "WEIGHT_LOSS"
+      },
+      "profile": {
+        "age": 26,
+        "gender": "MALE",
+        "heightCm": 169.9,
+        "currentWeight": 69.3,
+        "targetWeight": 65.3,
+        "goal": "WEIGHT_LOSS",
+        "activityLevel": "VERY_ACTIVE",
+        "experienceLevel": "INTERMEDIATE",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 69.3,
+        "height": 169.9,
+        "bmi": 24,
+        "bodyFat": 12.9,
+        "bodyFatPct": 18.6,
+        "muscleMass": 31.6,
+        "visceralFat": 7,
+        "bmr": 1588
+      },
+      "reference": {
+        "fatFreeMassKg": 56.4,
+        "ffmi": 19.5,
+        "bmrKatchMcArdle": 1588,
+        "bmrMifflinStJeor": 1630,
+        "bmrDivergencePct": 2.6,
+        "bmiClass": "OVERWEIGHT_ASIAN",
+        "minor": false
+      }
+    },
+    {
+      "id": "S05",
+      "label": "M, body fat normal, muscle_gain",
+      "stratum": {
+        "sex": "MALE",
+        "bodyFatBand": "NORMAL",
+        "goal": "MUSCLE_GAIN"
+      },
+      "profile": {
+        "age": 41,
+        "gender": "MALE",
+        "heightCm": 163.2,
+        "currentWeight": 62.9,
+        "targetWeight": 66.9,
+        "goal": "MUSCLE_GAIN",
+        "activityLevel": "SEDENTARY",
+        "experienceLevel": "INTERMEDIATE",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 62.9,
+        "height": 163.2,
+        "bmi": 23.6,
+        "bodyFat": 12.4,
+        "bodyFatPct": 19.7,
+        "muscleMass": 28.3,
+        "visceralFat": 9,
+        "bmr": 1461
+      },
+      "reference": {
+        "fatFreeMassKg": 50.5,
+        "ffmi": 19,
+        "bmrKatchMcArdle": 1461,
+        "bmrMifflinStJeor": 1449,
+        "bmrDivergencePct": -0.8,
+        "bmiClass": "OVERWEIGHT_ASIAN",
+        "minor": false
+      }
+    },
+    {
+      "id": "S06",
+      "label": "M, body fat normal, maintenance",
+      "stratum": {
+        "sex": "MALE",
+        "bodyFatBand": "NORMAL",
+        "goal": "MAINTENANCE"
+      },
+      "profile": {
+        "age": 46,
+        "gender": "MALE",
+        "heightCm": 169.7,
+        "currentWeight": 71.7,
+        "targetWeight": 71.7,
+        "goal": "MAINTENANCE",
+        "activityLevel": "LIGHTLY_ACTIVE",
+        "experienceLevel": "INTERMEDIATE",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 71.7,
+        "height": 169.7,
+        "bmi": 24.9,
+        "bodyFat": 12.7,
+        "bodyFatPct": 17.7,
+        "muscleMass": 33,
+        "visceralFat": 7,
+        "bmr": 1645
+      },
+      "reference": {
+        "fatFreeMassKg": 59,
+        "ffmi": 20.5,
+        "bmrKatchMcArdle": 1645,
+        "bmrMifflinStJeor": 1553,
+        "bmrDivergencePct": -5.6,
+        "bmiClass": "OVERWEIGHT_ASIAN",
+        "minor": false
+      }
+    },
+    {
+      "id": "S07",
+      "label": "M, body fat high, weight_loss",
+      "stratum": {
+        "sex": "MALE",
+        "bodyFatBand": "HIGH",
+        "goal": "WEIGHT_LOSS"
+      },
+      "profile": {
+        "age": 34,
+        "gender": "MALE",
+        "heightCm": 167.6,
+        "currentWeight": 79.8,
+        "targetWeight": 74.4,
+        "goal": "WEIGHT_LOSS",
+        "activityLevel": "MODERATELY_ACTIVE",
+        "experienceLevel": "ADVANCED",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 79.8,
+        "height": 167.6,
+        "bmi": 28.4,
+        "bodyFat": 24.9,
+        "bodyFatPct": 31.2,
+        "muscleMass": 30.8,
+        "visceralFat": 16,
+        "bmr": 1557
+      },
+      "reference": {
+        "fatFreeMassKg": 54.9,
+        "ffmi": 19.6,
+        "bmrKatchMcArdle": 1557,
+        "bmrMifflinStJeor": 1680,
+        "bmrDivergencePct": 7.9,
+        "bmiClass": "OVERWEIGHT",
+        "minor": false
+      }
+    },
+    {
+      "id": "S08",
+      "label": "M, body fat high, muscle_gain",
+      "stratum": {
+        "sex": "MALE",
+        "bodyFatBand": "HIGH",
+        "goal": "MUSCLE_GAIN"
+      },
+      "profile": {
+        "age": 39,
+        "gender": "MALE",
+        "heightCm": 168.2,
+        "currentWeight": 74.6,
+        "targetWeight": 78.6,
+        "goal": "MUSCLE_GAIN",
+        "activityLevel": "VERY_ACTIVE",
+        "experienceLevel": "ADVANCED",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 74.6,
+        "height": 168.2,
+        "bmi": 26.4,
+        "bodyFat": 18.5,
+        "bodyFatPct": 24.8,
+        "muscleMass": 31.4,
+        "visceralFat": 12,
+        "bmr": 1583
+      },
+      "reference": {
+        "fatFreeMassKg": 56.2,
+        "ffmi": 19.8,
+        "bmrKatchMcArdle": 1583,
+        "bmrMifflinStJeor": 1608,
+        "bmrDivergencePct": 1.6,
+        "bmiClass": "OVERWEIGHT",
+        "minor": false
+      }
+    },
+    {
+      "id": "S09",
+      "label": "M, body fat high, maintenance",
+      "stratum": {
+        "sex": "MALE",
+        "bodyFatBand": "HIGH",
+        "goal": "MAINTENANCE"
+      },
+      "profile": {
+        "age": 28,
+        "gender": "MALE",
+        "heightCm": 178.2,
+        "currentWeight": 84.3,
+        "targetWeight": 84.3,
+        "goal": "MAINTENANCE",
+        "activityLevel": "SEDENTARY",
+        "experienceLevel": "ADVANCED",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 84.3,
+        "height": 178.2,
+        "bmi": 26.6,
+        "bodyFat": 20.7,
+        "bodyFatPct": 24.5,
+        "muscleMass": 35.6,
+        "visceralFat": 11,
+        "bmr": 1745
+      },
+      "reference": {
+        "fatFreeMassKg": 63.6,
+        "ffmi": 20,
+        "bmrKatchMcArdle": 1745,
+        "bmrMifflinStJeor": 1822,
+        "bmrDivergencePct": 4.4,
+        "bmiClass": "OVERWEIGHT",
+        "minor": false
+      }
+    },
+    {
+      "id": "S10",
+      "label": "F, body fat low, weight_loss",
+      "stratum": {
+        "sex": "FEMALE",
+        "bodyFatBand": "LOW",
+        "goal": "WEIGHT_LOSS"
+      },
+      "profile": {
+        "age": 42,
+        "gender": "FEMALE",
+        "heightCm": 163.6,
+        "currentWeight": 51.3,
+        "targetWeight": 49.6,
+        "goal": "WEIGHT_LOSS",
+        "activityLevel": "LIGHTLY_ACTIVE",
+        "experienceLevel": "BEGINNER",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 51.3,
+        "height": 163.6,
+        "bmi": 19.1,
+        "bodyFat": 10.6,
+        "bodyFatPct": 20.8,
+        "muscleMass": 21.5,
+        "visceralFat": 4,
+        "bmr": 1248
+      },
+      "reference": {
+        "fatFreeMassKg": 40.6,
+        "ffmi": 15.2,
+        "bmrKatchMcArdle": 1248,
+        "bmrMifflinStJeor": 1164,
+        "bmrDivergencePct": -6.7,
+        "bmiClass": "NORMAL",
+        "minor": false
+      }
+    },
+    {
+      "id": "S11",
+      "label": "F, body fat low, muscle_gain",
+      "stratum": {
+        "sex": "FEMALE",
+        "bodyFatBand": "LOW",
+        "goal": "MUSCLE_GAIN"
+      },
+      "profile": {
+        "age": 40,
+        "gender": "FEMALE",
+        "heightCm": 148.6,
+        "currentWeight": 48,
+        "targetWeight": 51,
+        "goal": "MUSCLE_GAIN",
+        "activityLevel": "MODERATELY_ACTIVE",
+        "experienceLevel": "BEGINNER",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 48,
+        "height": 148.6,
+        "bmi": 21.7,
+        "bodyFat": 10.6,
+        "bodyFatPct": 22.1,
+        "muscleMass": 19.8,
+        "visceralFat": 5,
+        "bmr": 1178
+      },
+      "reference": {
+        "fatFreeMassKg": 37.4,
+        "ffmi": 16.9,
+        "bmrKatchMcArdle": 1178,
+        "bmrMifflinStJeor": 1048,
+        "bmrDivergencePct": -11,
+        "bmiClass": "NORMAL",
+        "minor": false
+      }
+    },
+    {
+      "id": "S12",
+      "label": "F, body fat low, maintenance",
+      "stratum": {
+        "sex": "FEMALE",
+        "bodyFatBand": "LOW",
+        "goal": "MAINTENANCE"
+      },
+      "profile": {
+        "age": 21,
+        "gender": "FEMALE",
+        "heightCm": 158.5,
+        "currentWeight": 46.6,
+        "targetWeight": 46.6,
+        "goal": "MAINTENANCE",
+        "activityLevel": "VERY_ACTIVE",
+        "experienceLevel": "BEGINNER",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 46.6,
+        "height": 158.5,
+        "bmi": 18.6,
+        "bodyFat": 10.5,
+        "bodyFatPct": 22.5,
+        "muscleMass": 19.2,
+        "visceralFat": 4,
+        "bmr": 1151
+      },
+      "reference": {
+        "fatFreeMassKg": 36.1,
+        "ffmi": 14.4,
+        "bmrKatchMcArdle": 1151,
+        "bmrMifflinStJeor": 1191,
+        "bmrDivergencePct": 3.5,
+        "bmiClass": "NORMAL",
+        "minor": false
+      }
+    },
+    {
+      "id": "S13",
+      "label": "F, body fat normal, weight_loss",
+      "stratum": {
+        "sex": "FEMALE",
+        "bodyFatBand": "NORMAL",
+        "goal": "WEIGHT_LOSS"
+      },
+      "profile": {
+        "age": 37,
+        "gender": "FEMALE",
+        "heightCm": 156.6,
+        "currentWeight": 48.4,
+        "targetWeight": 45.3,
+        "goal": "WEIGHT_LOSS",
+        "activityLevel": "SEDENTARY",
+        "experienceLevel": "INTERMEDIATE",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 48.4,
+        "height": 156.6,
+        "bmi": 19.8,
+        "bodyFat": 13.7,
+        "bodyFatPct": 28.2,
+        "muscleMass": 18.4,
+        "visceralFat": 9,
+        "bmr": 1120
+      },
+      "reference": {
+        "fatFreeMassKg": 34.7,
+        "ffmi": 14.2,
+        "bmrKatchMcArdle": 1120,
+        "bmrMifflinStJeor": 1117,
+        "bmrDivergencePct": -0.3,
+        "bmiClass": "NORMAL",
+        "minor": false
+      }
+    },
+    {
+      "id": "S14",
+      "label": "F, body fat normal, muscle_gain",
+      "stratum": {
+        "sex": "FEMALE",
+        "bodyFatBand": "NORMAL",
+        "goal": "MUSCLE_GAIN"
+      },
+      "profile": {
+        "age": 41,
+        "gender": "FEMALE",
+        "heightCm": 156.6,
+        "currentWeight": 51.2,
+        "targetWeight": 54.2,
+        "goal": "MUSCLE_GAIN",
+        "activityLevel": "LIGHTLY_ACTIVE",
+        "experienceLevel": "INTERMEDIATE",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 51.2,
+        "height": 156.6,
+        "bmi": 20.9,
+        "bodyFat": 14.7,
+        "bodyFatPct": 28.6,
+        "muscleMass": 19.4,
+        "visceralFat": 9,
+        "bmr": 1159
+      },
+      "reference": {
+        "fatFreeMassKg": 36.5,
+        "ffmi": 14.9,
+        "bmrKatchMcArdle": 1159,
+        "bmrMifflinStJeor": 1124,
+        "bmrDivergencePct": -3,
+        "bmiClass": "NORMAL",
+        "minor": false
+      }
+    },
+    {
+      "id": "S15",
+      "label": "F, body fat normal, maintenance",
+      "stratum": {
+        "sex": "FEMALE",
+        "bodyFatBand": "NORMAL",
+        "goal": "MAINTENANCE"
+      },
+      "profile": {
+        "age": 27,
+        "gender": "FEMALE",
+        "heightCm": 151.3,
+        "currentWeight": 51.4,
+        "targetWeight": 51.4,
+        "goal": "MAINTENANCE",
+        "activityLevel": "MODERATELY_ACTIVE",
+        "experienceLevel": "INTERMEDIATE",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 51.4,
+        "height": 151.3,
+        "bmi": 22.4,
+        "bodyFat": 15.3,
+        "bodyFatPct": 29.7,
+        "muscleMass": 19.1,
+        "visceralFat": 9,
+        "bmr": 1150
+      },
+      "reference": {
+        "fatFreeMassKg": 36.1,
+        "ffmi": 15.8,
+        "bmrKatchMcArdle": 1150,
+        "bmrMifflinStJeor": 1164,
+        "bmrDivergencePct": 1.2,
+        "bmiClass": "NORMAL",
+        "minor": false
+      }
+    },
+    {
+      "id": "S16",
+      "label": "F, body fat high, weight_loss",
+      "stratum": {
+        "sex": "FEMALE",
+        "bodyFatBand": "HIGH",
+        "goal": "WEIGHT_LOSS"
+      },
+      "profile": {
+        "age": 40,
+        "gender": "FEMALE",
+        "heightCm": 155.7,
+        "currentWeight": 68.3,
+        "targetWeight": 63.1,
+        "goal": "WEIGHT_LOSS",
+        "activityLevel": "VERY_ACTIVE",
+        "experienceLevel": "ADVANCED",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 68.3,
+        "height": 155.7,
+        "bmi": 28.2,
+        "bodyFat": 27.1,
+        "bodyFatPct": 39.7,
+        "muscleMass": 21.8,
+        "visceralFat": 16,
+        "bmr": 1260
+      },
+      "reference": {
+        "fatFreeMassKg": 41.2,
+        "ffmi": 17,
+        "bmrKatchMcArdle": 1260,
+        "bmrMifflinStJeor": 1295,
+        "bmrDivergencePct": 2.8,
+        "bmiClass": "OVERWEIGHT",
+        "minor": false
+      }
+    },
+    {
+      "id": "S17",
+      "label": "F, body fat high, muscle_gain",
+      "stratum": {
+        "sex": "FEMALE",
+        "bodyFatBand": "HIGH",
+        "goal": "MUSCLE_GAIN"
+      },
+      "profile": {
+        "age": 40,
+        "gender": "FEMALE",
+        "heightCm": 158.1,
+        "currentWeight": 63,
+        "targetWeight": 66,
+        "goal": "MUSCLE_GAIN",
+        "activityLevel": "SEDENTARY",
+        "experienceLevel": "ADVANCED",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 63,
+        "height": 158.1,
+        "bmi": 25.2,
+        "bodyFat": 23,
+        "bodyFatPct": 36.4,
+        "muscleMass": 21.2,
+        "visceralFat": 14,
+        "bmr": 1235
+      },
+      "reference": {
+        "fatFreeMassKg": 40,
+        "ffmi": 16,
+        "bmrKatchMcArdle": 1235,
+        "bmrMifflinStJeor": 1257,
+        "bmrDivergencePct": 1.8,
+        "bmiClass": "OVERWEIGHT",
+        "minor": false
+      }
+    },
+    {
+      "id": "S18",
+      "label": "F, body fat high, maintenance",
+      "stratum": {
+        "sex": "FEMALE",
+        "bodyFatBand": "HIGH",
+        "goal": "MAINTENANCE"
+      },
+      "profile": {
+        "age": 46,
+        "gender": "FEMALE",
+        "heightCm": 160.9,
+        "currentWeight": 53.8,
+        "targetWeight": 53.8,
+        "goal": "MAINTENANCE",
+        "activityLevel": "LIGHTLY_ACTIVE",
+        "experienceLevel": "ADVANCED",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 53.8,
+        "height": 160.9,
+        "bmi": 20.8,
+        "bodyFat": 17.5,
+        "bodyFatPct": 32.5,
+        "muscleMass": 19.3,
+        "visceralFat": 12,
+        "bmr": 1155
+      },
+      "reference": {
+        "fatFreeMassKg": 36.3,
+        "ffmi": 14,
+        "bmrKatchMcArdle": 1155,
+        "bmrMifflinStJeor": 1153,
+        "bmrDivergencePct": -0.2,
+        "bmiClass": "NORMAL",
+        "minor": false
+      }
+    },
+    {
+      "id": "E01",
+      "label": "M 28, muscular: BMI overweight but lean",
+      "stratum": {
+        "sex": "MALE",
+        "bodyFatBand": "EDGE",
+        "goal": "MAINTENANCE"
+      },
+      "rationale": "BMI misclassifies a lean, muscular body; weight-only BMR underestimates need.",
+      "profile": {
+        "age": 28,
+        "gender": "MALE",
+        "heightCm": 178,
+        "currentWeight": 87.4,
+        "targetWeight": 87.4,
+        "goal": "MAINTENANCE",
+        "activityLevel": "VERY_ACTIVE",
+        "experienceLevel": "ADVANCED",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 87.4,
+        "height": 178,
+        "bmi": 27.6,
+        "bodyFat": 11.4,
+        "bodyFatPct": 13,
+        "muscleMass": 42.6,
+        "visceralFat": 3,
+        "bmr": 2012
+      },
+      "reference": {
+        "fatFreeMassKg": 76,
+        "ffmi": 24,
+        "bmrKatchMcArdle": 2012,
+        "bmrMifflinStJeor": 1852,
+        "bmrDivergencePct": -8,
+        "bmiClass": "OVERWEIGHT",
+        "minor": false
+      }
+    },
+    {
+      "id": "E02",
+      "label": "F 24, normal-weight obesity (skinny-fat)",
+      "stratum": {
+        "sex": "FEMALE",
+        "bodyFatBand": "EDGE",
+        "goal": "MUSCLE_GAIN"
+      },
+      "rationale": "Normal BMI hides high body fat; weight-only BMR overestimates need.",
+      "profile": {
+        "age": 24,
+        "gender": "FEMALE",
+        "heightCm": 160,
+        "currentWeight": 52.8,
+        "targetWeight": 55.8,
+        "goal": "MUSCLE_GAIN",
+        "activityLevel": "LIGHTLY_ACTIVE",
+        "experienceLevel": "BEGINNER",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 52.8,
+        "height": 160,
+        "bmi": 20.6,
+        "bodyFat": 17.9,
+        "bodyFatPct": 34,
+        "muscleMass": 18.5,
+        "visceralFat": 12,
+        "bmr": 1122
+      },
+      "reference": {
+        "fatFreeMassKg": 34.8,
+        "ffmi": 13.6,
+        "bmrKatchMcArdle": 1122,
+        "bmrMifflinStJeor": 1247,
+        "bmrDivergencePct": 11.1,
+        "bmiClass": "NORMAL",
+        "minor": false
+      }
+    },
+    {
+      "id": "E03",
+      "label": "M 35, normal-weight obesity (skinny-fat)",
+      "stratum": {
+        "sex": "MALE",
+        "bodyFatBand": "EDGE",
+        "goal": "WEIGHT_LOSS"
+      },
+      "rationale": "Normal BMI hides high body fat; recomposition rather than aggressive deficit.",
+      "profile": {
+        "age": 35,
+        "gender": "MALE",
+        "heightCm": 172,
+        "currentWeight": 68.1,
+        "targetWeight": 63.7,
+        "goal": "WEIGHT_LOSS",
+        "activityLevel": "SEDENTARY",
+        "experienceLevel": "BEGINNER",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 68.1,
+        "height": 172,
+        "bmi": 23,
+        "bodyFat": 18.4,
+        "bodyFatPct": 27,
+        "muscleMass": 27.8,
+        "visceralFat": 13,
+        "bmr": 1444
+      },
+      "reference": {
+        "fatFreeMassKg": 49.7,
+        "ffmi": 16.8,
+        "bmrKatchMcArdle": 1444,
+        "bmrMifflinStJeor": 1586,
+        "bmrDivergencePct": 9.8,
+        "bmiClass": "OVERWEIGHT_ASIAN",
+        "minor": false
+      }
+    },
+    {
+      "id": "E04",
+      "label": "F 40, obese (BMI > 30, high body fat)",
+      "stratum": {
+        "sex": "FEMALE",
+        "bodyFatBand": "EDGE",
+        "goal": "WEIGHT_LOSS"
+      },
+      "rationale": "Large fat mass inflates weight-based BMR; safety floor on deficit.",
+      "profile": {
+        "age": 40,
+        "gender": "FEMALE",
+        "heightCm": 158,
+        "currentWeight": 78,
+        "targetWeight": 71.6,
+        "goal": "WEIGHT_LOSS",
+        "activityLevel": "SEDENTARY",
+        "experienceLevel": "BEGINNER",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 78,
+        "height": 158,
+        "bmi": 31.2,
+        "bodyFat": 34.3,
+        "bodyFatPct": 44,
+        "muscleMass": 23.2,
+        "visceralFat": 19,
+        "bmr": 1314
+      },
+      "reference": {
+        "fatFreeMassKg": 43.7,
+        "ffmi": 17.5,
+        "bmrKatchMcArdle": 1314,
+        "bmrMifflinStJeor": 1407,
+        "bmrDivergencePct": 7.1,
+        "bmiClass": "OBESE",
+        "minor": false
+      }
+    },
+    {
+      "id": "E05",
+      "label": "M 16, adolescent wanting weight loss",
+      "stratum": {
+        "sex": "MALE",
+        "bodyFatBand": "EDGE",
+        "goal": "WEIGHT_LOSS"
+      },
+      "rationale": "Minor: system must avoid adult deficit prescriptions and refer to a professional.",
+      "profile": {
+        "age": 16,
+        "gender": "MALE",
+        "heightCm": 168,
+        "currentWeight": 58.5,
+        "targetWeight": 55.2,
+        "goal": "WEIGHT_LOSS",
+        "activityLevel": "MODERATELY_ACTIVE",
+        "experienceLevel": "BEGINNER",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 58.5,
+        "height": 168,
+        "bmi": 20.7,
+        "bodyFat": 10.5,
+        "bodyFatPct": 18,
+        "muscleMass": 26.9,
+        "visceralFat": 6,
+        "bmr": 1406
+      },
+      "reference": {
+        "fatFreeMassKg": 48,
+        "ffmi": 17,
+        "bmrKatchMcArdle": 1406,
+        "bmrMifflinStJeor": 1560,
+        "bmrDivergencePct": 11,
+        "bmiClass": "NORMAL",
+        "minor": true
+      }
+    },
+    {
+      "id": "E06",
+      "label": "F 60, older adult, maintenance",
+      "stratum": {
+        "sex": "FEMALE",
+        "bodyFatBand": "EDGE",
+        "goal": "MAINTENANCE"
+      },
+      "rationale": "Older adult: protein adequacy and sarcopenia awareness.",
+      "profile": {
+        "age": 60,
+        "gender": "FEMALE",
+        "heightCm": 155,
+        "currentWeight": 56.2,
+        "targetWeight": 56.2,
+        "goal": "MAINTENANCE",
+        "activityLevel": "SEDENTARY",
+        "experienceLevel": "BEGINNER",
+        "hasCompletedOnboarding": true
+      },
+      "inbody": {
+        "weight": 56.2,
+        "height": 155,
+        "bmi": 23.4,
+        "bodyFat": 21.4,
+        "bodyFatPct": 38,
+        "muscleMass": 18.5,
+        "visceralFat": 16,
+        "bmr": 1122
+      },
+      "reference": {
+        "fatFreeMassKg": 34.8,
+        "ffmi": 14.5,
+        "bmrKatchMcArdle": 1122,
+        "bmrMifflinStJeor": 1070,
+        "bmrDivergencePct": -4.6,
+        "bmiClass": "OVERWEIGHT_ASIAN",
+        "minor": false
+      }
+    }
+  ]
+}

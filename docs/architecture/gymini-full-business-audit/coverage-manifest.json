@@ -1,0 +1,49 @@
+{
+  "_meta": { "source": "14-audit-coverage-and-evidence-manifest.md" },
+  "start_head": "003545c6",
+  "branch": "aws-deploy",
+  "repo_baseline_changed": false,
+  "counts": {
+    "deployable_backend_services_plus_gateway": 8,
+    "deployable_frontend_apps": 2,
+    "total_deployable_apps_services": 10,
+    "confirmed_user_roles": 4,
+    "historically_removed_roles": 1,
+    "confirmed_business_domains": 14,
+    "business_capabilities_discovered": 101,
+    "major_end_to_end_workflows_traced": 8,
+    "distinct_ai_capabilities_classified": 16,
+    "backend_route_files_classified": 56,
+    "gateway_proxy_registrations": 90,
+    "frontend_routes_screens_classified": 161,
+    "database_entities_classified": 144,
+    "background_jobs_classified": 16,
+    "pre_existing_docs_categorized": 218,
+    "doc_clusters_treated_as_group": 3
+  },
+  "capability_status_breakdown": {
+    "IMPLEMENTED_AND_VERIFIED": 48,
+    "IMPLEMENTED_NOT_RUNTIME_VERIFIED": 14,
+    "PARTIALLY_IMPLEMENTED": 20,
+    "PLANNED_NOT_IMPLEMENTED": 6,
+    "FEATURE_FLAGGED_OFF": 4,
+    "BROKEN_OR_INCONSISTENT": 3,
+    "MOCK_OR_SEED_ONLY": 1,
+    "UNKNOWN_INSUFFICIENT_EVIDENCE": 4
+  },
+  "gap_counts": {
+    "external_register_production_readiness": { "P0": 4, "P1": 20, "P2": 10, "P3": 2, "total": 36 },
+    "this_audit_business_domain_register": { "P0": 0, "P1": 7, "P2": 9, "P3": 4, "total": 20 }
+  },
+  "unresolved_items_count": 10,
+  "agents_dispatched": 7,
+  "verdicts": {
+    "audit_verdict": "BUSINESS_AUDIT_PARTIAL_WITH_KNOWN_GAPS",
+    "ai_business_coverage_verdict": "AI_BUSINESS_COVERAGE_MAPPED",
+    "prioritization_readiness_verdict": "READY_FOR_BUSINESS_GAP_PRIORITIZATION"
+  },
+  "source_files_modified": false,
+  "database_modified": false,
+  "aws_deployment_modified": false,
+  "training_heldout_touched": false
+}

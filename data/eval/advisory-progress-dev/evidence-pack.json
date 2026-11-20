@@ -1,0 +1,43 @@
+{
+  "version": "advisory-progress-evidence-v1",
+  "purpose": "Small generation-only research corpus; not ingested into production",
+  "reviewAuthority": "ASSISTANT_SOURCE_CHECKED_NOT_INDEPENDENT_HUMAN_REVIEW",
+  "sources": [
+    {
+      "id": "ACSM_PROGRESSIVE",
+      "title": "American College of Sports Medicine position stand. Progression models in resistance training for healthy adults",
+      "year": 2009,
+      "doi": "10.1249/MSS.0b013e3181915670",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/19204579/?dopt=Abstract",
+      "sourceClass": "CURATED_EVIDENCE",
+      "evidenceLevel": "practice_guideline",
+      "originalExcerpt": "In order to stimulate further adaptation toward specific training goals, progressive resistance training (RT) protocols are necessary.",
+      "locator": "Abstract, first sentence",
+      "supportedSummaryVi": "Tài liệu khuyến nghị tiến triển tập kháng lực theo mục tiêu. Khuyến nghị phải đặt trong bối cảnh mục tiêu, khả năng thể chất và trạng thái tập luyện; chỉ biết số buổi không đủ để chọn điều chỉnh tải cá nhân.",
+      "applicability": "Healthy adults; recommendations interpreted according to individual goals, physical capacity and training status (abstract final sentence).",
+      "limitations": "Abstract-level source check only. This guideline does not establish the cause of a particular user's lack of progress or authorize a new prescription.",
+      "checkedAt": "2026-10-27",
+      "checkedBy": "assistant",
+      "reviewScope": "Excerpt, title, DOI and bounded paraphrase checked against the primary PubMed abstract; no full-text or independent expert review",
+      "humanReviewed": false
+    },
+    {
+      "id": "LOAD_OUTCOME_SPECIFICITY",
+      "title": "Strength and Hypertrophy Adaptations Between Low- vs. High-Load Resistance Training: A Systematic Review and Meta-analysis",
+      "year": 2017,
+      "doi": "10.1519/JSC.0000000000002200",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28834797/",
+      "sourceClass": "CURATED_EVIDENCE",
+      "evidenceLevel": "systematic_review",
+      "originalExcerpt": "Gains in 1RM strength were significantly greater in favor of high- vs. low-load training",
+      "locator": "Abstract, Results paragraph, second sentence (excerpt)",
+      "supportedSummaryVi": "Trong các nghiên cứu được tổng hợp, kết quả sức mạnh 1RM và phì đại cơ không phản ứng giống nhau giữa hai nhóm tải. Vì vậy phải phân biệt thước đo sức mạnh với kích thước cơ; một chỉ số sức mạnh đơn lẻ không xác nhận thay đổi kích thước cơ của người dùng.",
+      "applicability": "Trials comparing low versus high loads, sets performed to momentary muscular failure, at least six weeks, participants without known conditions/injuries impairing training capacity.",
+      "limitations": "Abstract-level source check only. Group comparisons do not prove individual causality. Estimated 1RM in app logs is not the same measurement as directly tested 1RM or muscle imaging. Do not generalize to injured populations or prescribe failure training.",
+      "checkedAt": "2026-10-27",
+      "checkedBy": "assistant",
+      "reviewScope": "Excerpt, title, DOI, inclusion criteria and bounded paraphrase checked against the primary PubMed abstract; no full-text or independent expert review",
+      "humanReviewed": false
+    }
+  ]
+}

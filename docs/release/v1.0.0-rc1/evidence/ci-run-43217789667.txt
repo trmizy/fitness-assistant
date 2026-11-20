@@ -1,0 +1,12 @@
+GitHub Actions — DEV Build (2026-11-12) — read via public GitHub API, no login
+run id        : 43217789667 (attempt 1), event push, branch aws-deploy
+head_sha      : 3cab8b216fae9e5f9fffb19ce535fcb7c4f5d58d  (tree b809ca3d6099f753fbfd781c438f47c874618f80)
+started/ended : 2026-11-12T12:25:43Z -> 12:29:50Z, conclusion success
+jobs          : impact, build(ai|user|payment|auth|gym|fitness) all success
+build(ai) steps: checkout, pnpm/action-setup, setup-node, `pnpm install --frozen-lockfile`, "Build + package ... and record manifest", upload-artifact, Summary — all success
+artifact (ai) : lambda-ai-3cab8b216fae9e5f9fffb19ce535fcb7c4f5d58d, 34,875,420 bytes, expires 2026-12-12
+  GitHub artifact digest (the wrapper zip, NOT the Lambda zip): sha256:39469bc16001211cf278653b4add8a56905976d78de90b1d1c9cf86fcd566a0f
+NOT VERIFIED here: Lambda zip sha256 (ai-<sha>.manifest.json inside the artifact; needs a GitHub login), S3 key ci-artifacts/ai/<gitSha>/<sha256>.zip (created only by dev-deploy), CI log text.
+Target functions (ci/service-impact-map.json): fitness-assistant-dev-ai, -ai-jobs, -ai-worker (+ migrate fn fitness-assistant-dev-ai-migrate)
+Current CodeSha256 BEFORE deploy: NOT READ. Profile `divuzha` = account 730323515543 (Bedrock account; 0 Lambda functions in ap-southeast-1/us-east-1);
+  the dev environment is account 191798898985 (scripts/aws/dev-status.ps1) and was last auto-stopped 2026-11-10 (.dev/aws/auto-stop-last.json: STOPPED).

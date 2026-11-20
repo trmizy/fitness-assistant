@@ -1,0 +1,53 @@
+✖ A. validator reachable, no violations: normal draft, no degraded warning
+✖ B. validator throws (network/timeout): draft is still shown but carries a truthful degraded warning, not silence
+✖ Bodyweight persona (bodyweight + pull-up-bar only): real generated plan passes the final equipment invariant validator
+✖ C. validator returns a malformed shape: same safe degraded result, no crash
+✖ CREATE_WORKOUT_PLAN daysPerWeek correction (real DB): 'Tôi muốn tập 3 buổi.' then 'Không, đổi thành 5 buổi.' resolves to 5 — never 3, never an average (AC05/AC26)
+✖ CREATE_WORKOUT_PLAN downstream persistence failure at confirm (real DB): a failed importAiPlanToSchedule call releases the action back to PENDING, never stuck EXECUTING or falsely COMPLETED (AC38/EX16)
+✖ CREATE_WORKOUT_PLAN equipment-aware draft generation (real DB): a violating exercise is substituted with a real equipment-compatible alternative before the user ever sees it (FR09/AC09/AC25/EX03)
+✖ CREATE_WORKOUT_PLAN equipment-aware draft generation (real DB): a violating exercise with no real substitute is dropped and honestly disclosed, not silently kept (EX03 recovery path)
+✖ CREATE_WORKOUT_PLAN equipment-aware draft generation (real DB): if every candidate exercise is equipment-incompatible with no substitutes, generation fails honestly instead of persisting a misleading empty draft (AC29/EX07)
+✖ CREATE_WORKOUT_PLAN exercise-count revision (real DB): '8 bai tap cho 1 ngay' is handled as draft shaping, never slow general QA
+✖ CREATE_WORKOUT_PLAN golden flow (real DB): asks only for sessionMinutes, resumes into a real draft, revises twice draft-only, confirms exactly once
+✖ CREATE_WORKOUT_PLAN interruption/resume (real DB): an unrelated supported READ (goal question) while sessionMinutes is still pending does not corrupt workflow state, and the SAME workflow resumes afterward (FR15/AC31/AC32)
+✖ CREATE_WORKOUT_PLAN no-repeat E2E (real DB): when daysPerWeek and sessionMinutes are already known, the AI never asks and no workflow row is ever created
+✖ CREATE_WORKOUT_PLAN save-collision guard (real DB): a free-text 'lưu lịch tập này' while a draft is pending is redirected to the real pending draft, never a competing SAVE_GENERATED_PLAN action
+✖ CREATE_WORKOUT_PLAN session-length revision (real DB): 'Buổi tập ngắn xuống 20 phút.' retrims exercises and is never misread as a day-count change
+✖ CREATE_WORKOUT_PLAN unsupported revision (real DB): 'Thêm superset.' is answered honestly, never silently accepted or misread as an exercise edit
+✖ CREATE_WORKOUT_PLAN weekday exercise-count revision (real DB): '8 bai tap cho thu 7' stays on the pending draft and never falls through to RAG
+✖ Commercial-gym persona (owns every active equipment item): 1 real generated plan passes the final equipment invariant validator
+✖ Cross-workflow context reuse (real DB): CREATE_WORKOUT_PLAN then CREATE_NUTRITION_PLAN both reuse the SAME already-known goal/days/sessionMinutes, no redundant re-asking
+✖ E. validator recovers on a later turn: a regenerated draft in the same session no longer carries the degraded warning
+✖ GOLDEN 4th turn (real DB, flag ON): '…1m73 thì 80kg là đang khá mập rồi tôi muốn xuống 72kg là đẹp' → height 173, current 80, target 72 (never 73), conflict resolved as a PROPOSED goal change, HITL preserved end to end
+✖ Home-gym persona (dumbbell/barbell/bench/rack/pull-up-bar/bands): real generated plan passes the final equipment invariant validator
+✖ J1 workout coach: create (4 buổi, ở nhà) -> revision (buổi chân nhẹ hơn) -> revision (3 buổi) -> confirm, exactly-once authoritative write
+✖ J10 duplicate confirmation: sequential double-confirm and concurrent Promise.allSettled confirms both yield exactly one authoritative mutation
+✖ J2 cross-domain interruption: a nutrition READ mid-workout-slot-filling preserves workflow state and resumes normally (requires CI-V2 on, per the documented dependency asymmetry)
+✖ J9 stale/revised proposal: propose A -> revise to B -> confirm -> only B is ever persisted (same invariant Batch 4 already proved, re-confirmed through this suite's own workout-coach setup)
+✖ M3 regressions: COMPLETED confirm stays idempotent (one write); EXPIRED still cannot execute; CANCELLED stays out of routing
+✖ M3: double dismiss is idempotent; dismiss AFTER completion never turns a saved action into CANCELLED
+✖ M4-C: Nutrition preview + newer Workout preview -> a workout edit updates the WORKOUT draft only
+✖ M5: real extracted training.injuries produces the promised warning (initial preview AND after a revision); beginner honesty note is shown; no medical gate is invented
+✖ M6: 'Tôi không có máy cable.' removes/substitutes EVERY cable exercise with canonical ids, never re-introduces cable, draft only
+✖ M6: 'Tôi không muốn deadlift.' matches BOTH Deadlift and Romanian Deadlift (token match), unrelated exercises untouched
+✖ M6: 'tránh squat' / 'đổi squat' both work; a phrase naming nothing in the draft gets a truthful no-op answer, never a fake edit
+✖ M7: 'Tôi tập được thứ 3, 5, 7' relabels the same draft, updates selectedWeekdays, and the save uses exactly those weekdays
+✖ M7: Mon/Wed/Fri preview labels == the selectedWeekdays sent to import == the first dates shown; real import payload carries them
+✖ M7: changing the weekday COUNT regenerates with the chosen weekdays (Chủ nhật = 0), never a count-only save
+✖ Remediation #2 recovery (real DB): after the deferred-context rejection, a valid corrected target weight resumes the SAME workflow normally
+✖ Remediation Fix D (real DB): 'Không, 70 kg.' after a 72kg proposal replaces the pending value, never treated as decline
+✖ T20/T21 stale-proposal safety: a workout draft revised twice, then confirmed, applies ONLY the latest version — reuses the existing in-place-update mechanism (no new mechanism needed)
+✖ WORKOUT race, CONFIRM wins: dismiss arriving mid-write must NOT report a successful cancellation; exactly one write; final COMPLETED
+✖ WORKOUT race, truly concurrent confirm||dismiss x25: exactly ONE winner, and both responses agree with it
+✖ WORKOUT: business FAILURE after the claim hands the action back to PENDING (retryable), records no fake COMPLETED, retry then succeeds once
+✖ WORKOUT: double confirm -> one business write; the second request is honestly rejected while the first is executing
+✖ Workout: double confirm = one logical import (idempotent) with unchanged reviewed content
+✖ a PERMANENT failure (no matching workout program) does not keep the action open forever: COMPLETED, reported ❌
+✖ after updateProfileFields the NEXT profile read is fresh (not the pre-write cached snapshot)
+✖ crash recovery: a STALE executing claim is reclaimable (retry safe via downstream idempotency); a FRESH one is not, and cannot be dismissed
+✖ failing tests:
+✖ getUserFitnessContext maps Chủ nhật (0) to 7 so the agent's own preference schema accepts it
+✖ independent X1 origin and unrelated errors, CI off
+✖ independent X1 origin and unrelated errors, CI on
+✖ pending workflow slot: a HYPOTHETICAL is not taken as the slot answer (no draft generated); a real answer still is
+✖ pending workout draft: hypothetical/advisory questions never edit it; a real revision does; confirm writes once

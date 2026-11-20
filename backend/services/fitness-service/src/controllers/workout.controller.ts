@@ -450,7 +450,8 @@ export const workoutController = {
         return;
       }
       if (error.status) {
-        res.status(error.status).json({ error: error.message });
+        // A conflict that needs a client decision carries a machine-readable code + details (nothing was written).
+        res.status(error.status).json({ error: error.message, ...(error.code ? { code: error.code } : {}), ...(error.details ? { details: error.details } : {}) });
         return;
       }
       logger.error({ err: error }, "Error importing AI plan");

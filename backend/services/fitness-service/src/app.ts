@@ -13,6 +13,7 @@ import equipmentRoutes from "./routes/equipment.routes";
 import importRoutes from "./routes/import.routes";
 import exportRoutes from "./routes/export.routes";
 import templateRoutes from "./routes/template.routes";
+import planReviewRoutes from "./routes/plan-review.routes";
 
 import agentProgramRoutes from "./routes/agent-program.routes";
 import nutritionAgentRoutes from "./routes/nutrition-agent.routes";
@@ -53,5 +54,6 @@ app.use("/equipment", equipmentRoutes);
 app.use("/imports", importRoutes);
 app.use("/exports", exportRoutes);
 app.use("/templates", templateRoutes);
+app.use("/plan-reviews", planReviewRoutes);
 
 export default app;

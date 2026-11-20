@@ -24,7 +24,18 @@ export interface WorkoutAdjustmentConstraints {
   strengthFocus: boolean;
   /** Numbers typed in the text ("còn 2 buổi", "mỗi buổi 4 bài") — used only when the numeric input was left empty. */
   daysPerWeek?: number;
+  /** Relative change ("tăng/thêm 1 buổi" = +1, "giảm/bớt 1 buổi" = -1), set only when no absolute target was typed. */
+  daysDelta?: number;
+  /** ABSOLUTE exercises per session ("mỗi buổi 8 bài", "từ 4 lên 8 bài" -> 8, "giảm còn 3 bài" -> 3). */
   exercisesPerDay?: number;
+  /** RELATIVE change in exercises per session ("thêm 2 bài mỗi buổi" = +2, "bớt 1 bài mỗi buổi" = -1); only with per-session framing. */
+  exercisesDelta?: number;
+  /** "giữ nguyên bài cũ" — existing exercises must be kept; only additions/removals the user named are allowed. */
+  keepExisting?: boolean;
+  /** "đổi bài thứ 2 của buổi ngực": replace the Nth exercise of the day described by `dayHint` (resolved against the plan later). */
+  replaceOrdinal?: { ordinal: number; dayHint: string };
+  /** Set when the request cannot be applied without guessing; the caller must ask the user instead of changing anything. */
+  ambiguity?: string;
   /** 0-based day indexes the user wants turned into a full-body session ("đổi buổi 1 thành toàn thân"). */
   fullBodyDays: number[];
 }
@@ -45,7 +56,7 @@ const ADVANCED_NAME = /snatch|clean|jerk|pistol|muscle.?up|nordic|commando|behin
 /** English exercise vocabulary accepted from a generic "bỏ X" phrase — anything else is too risky to turn into a filter. */
 const ENGLISH_EXERCISE_WORDS = ["squat", "deadlift", "lunge", "bench press", "bench", "row", "curl", "fly", "dip", "dips", "burpee", "burpees", "plank", "crunch", "pull up", "pullup", "push up", "pushup", "hip thrust", "thrust", "shrug", "kettlebell", "leg press", "good morning"];
 
-const NUM_WORDS: Record<string, number> = { mot: 1, hai: 2, ba: 3, bon: 4, tu: 4, nam: 5, sau: 6, bay: 7, tam: 8 };
+const NUM_WORDS: Record<string, number> = { mot: 1, hai: 2, ba: 3, bon: 4, tu: 4, nam: 5, sau: 6, bay: 7, tam: 8, chin: 9, muoi: 10 };
 const num = (s: string): number | undefined => (/^\d+$/.test(s) ? Number(s) : NUM_WORDS[s]);
 
 export function parseWorkoutAdjustment(raw: string): WorkoutAdjustmentConstraints {
@@ -108,17 +119,81 @@ export function parseWorkoutAdjustment(raw: string): WorkoutAdjustmentConstraint
   // ── numbers typed in the text ─────────────────────────────────────────────
   // A count only counts with clear framing: "còn/xuống/lên/chỉ N buổi", "N buổi (mỗi/một/1) tuần"; "mỗi buổi (chỉ) N bài",
   // "chỉ/còn N bài", "N bài mỗi buổi". "buổi 1" (an ordinal) and "thêm 2 bài bụng" (an addition) are NOT counts.
-  const N = "(\\d|mot|hai|ba|bon|nam|sau|bay|tam)";
-  const days =
-    new RegExp(`\\b(?:con|xuong|len|chi|giam|tang)\\s+(?:con\\s+)?${N}\\s+buoi\\b`).exec(s) ??
-    new RegExp(`\\b${N}\\s+buoi\\s*(?:\\/|moi|mot|1)?\\s*tuan\\b`).exec(s);
-  if (days) { const n = num(days[1]); if (n && n >= 1 && n <= 7) c.daysPerWeek = n; }
-  const per =
-    new RegExp(`\\bmoi buoi\\s+(?:chi\\s+|tap\\s+|co\\s+)?${N}\\s+bai\\b`).exec(s) ??
-    new RegExp(`\\b(?:chi|con)\\s+(?:con\\s+)?${N}\\s+bai\\b`).exec(s) ??
-    new RegExp(`\\b${N}\\s+bai(?:\\s+tap)?\\s+(?:moi|mot|1)\\s+buoi\\b`).exec(s);
-  if (per && !/\bthem\b/.test(s.slice(Math.max(0, per.index - 6), per.index + 1))) { const n = num(per[1]); if (n && n >= 1 && n <= 8) c.exercisesPerDay = n; }
+  const N = "(\\d{1,2}|mot|hai|ba|bon|nam|sau|bay|tam|chin|muoi)";
+  // Absolute target first ("còn/xuống/lên/chỉ N buổi"; the LAST one wins, so "tăng 1 buổi từ 5 lên 6 buổi" → 6, not 1).
+  // "tăng/thêm/giảm/bớt N buổi" with no absolute target is RELATIVE (daysDelta) — the caller knows the current count.
+  const absDays = [...s.matchAll(new RegExp(`\\b(?:con|xuong|len|chi)\\s+(?:con\\s+)?${N}\\s+buoi\\b`, "g"))].pop();
+  const perWeekDays = new RegExp(`\\b${N}\\s+buoi\\s*(?:\\/|moi|mot|1)?\\s*tuan\\b`).exec(s);
+  const rel = absDays ? null : new RegExp(`\\b(tang|them|giam|bot)\\s+${N}\\s+buoi\\b`).exec(s);
+  if (rel) {
+    const n = num(rel[2]);
+    if (n && n >= 1 && n <= 6) c.daysDelta = rel[1] === "tang" || rel[1] === "them" ? n : -n;
+  } else {
+    const days = absDays ?? perWeekDays;
+    if (days) { const n = num(days[1]); if (n && n >= 1 && n <= 7) c.daysPerWeek = n; }
+  }
+  // ── exercises per session ─────────────────────────────────────────────────
+  // A RELATIVE change needs per-session framing ("thêm 2 bài mỗi buổi", "mỗi buổi thêm 2 bài", "bớt 1 bài/buổi"); without it
+  // "thêm 2 bài bụng" is an addition of a muscle focus, never a count. Checked first so it is never read as an absolute number.
+  const perSession = "(?:\\/|moi|mot|1|moi mot|trong moi)\\s*(?:buoi|ngay)";
+  const relEx =
+    new RegExp(`\\b(them|tang them|tang|bo sung|bot|giam)\\s+${N}\\s+bai(?:\\s+tap)?\\s*${perSession}\\b`).exec(s) ??
+    new RegExp(`\\b(?:moi|mot) buoi\\s+(them|tang them|tang|bo sung|bot|giam)\\s+${N}\\s+bai\\b`).exec(s);
+  if (relEx) {
+    const n = num(relEx[2]);
+    if (n && n >= 1 && n <= 9) c.exercisesDelta = /^(bot|giam)/.test(relEx[1]) ? -n : n;
+  } else {
+    // ABSOLUTE target. "lên/thành/xuống/còn/chỉ N bài" (the LAST number wins: "từ 4 lên 8 bài" → 8, never 4), "mỗi buổi N bài",
+    // "N bài mỗi buổi", "tất cả các buổi (đều) N bài".
+    const perPhrases = [
+      new RegExp(`\\b(?:tat ca (?:cac )?buoi|buoi nao cung|moi buoi)\\s+(?:deu\\s+|chi\\s+|tap\\s+|co\\s+)?${N}\\s+bai\\b`),
+      new RegExp(`\\b${N}\\s+bai(?:\\s+tap)?\\s+(?:moi|mot|1)\\s+buoi\\b`),
+    ];
+    const toCount = [...s.matchAll(new RegExp(`\\b(?:len|thanh|xuong|con|chi)\\s+(?:con\\s+)?${N}\\s+bai\\b`, "g"))].pop();
+    const per = toCount ?? perPhrases.map((re) => re.exec(s)).find(Boolean);
+    if (per && !/\bthem\b/.test(s.slice(Math.max(0, per.index - 6), per.index + 1))) {
+      const n = num(per[1]);
+      if (n && n >= 1 && n <= MAX_EXERCISES_PER_DAY) c.exercisesPerDay = n;
+      else if (n && n > MAX_EXERCISES_PER_DAY) c.ambiguity = `Số bài mỗi buổi tối đa là ${MAX_EXERCISES_PER_DAY}. Bạn muốn mỗi buổi bao nhiêu bài (không quá ${MAX_EXERCISES_PER_DAY})?`;
+    }
+  }
+  // A count aimed at SOME sessions only ("buổi 1 và 3 lên 6 bài") is recognised but not silently generalised to every session.
+  const someDays = /\bbuoi\s*\d(?:\s*(?:,|va|voi)\s*(?:buoi\s*)?\d)+\b[^.]{0,30}\b(?:len|thanh|con|xuong)\s+\S+\s+bai\b/.exec(s);
+  if (someDays && c.exercisesPerDay !== undefined) {
+    c.ambiguity = "Hiện mình chỉ đổi số bài cho TẤT CẢ các buổi cùng lúc. Bạn muốn áp dụng cho mọi buổi, hay chỉnh riêng từng buổi (ví dụ “thêm bài vai vào buổi 1”)?";
+    c.exercisesPerDay = undefined;
+  }
+  c.keepExisting = /\bgiu (?:nguyen|lai)\s+(?:cac |nhung |het )?(?:bai|bai tap)\s+(?:cu|hien tai|dang co|dang tap)\b|\bgiu (?:nguyen|lai) (?:ke hoach|bai cu)\b/.test(s);
+  // "đổi bài thứ 2 của buổi ngực" — an ordinal replacement. Resolved against the plan later (it needs the plan's days).
+  const ord = /\b(?:doi|thay)\s+bai\s+(?:thu\s+)?(\d)\s+(?:cua|trong|o)\s+buoi\s+(\S+(?:\s+\S+)?)/.exec(s);
+  if (ord) c.replaceOrdinal = { ordinal: Number(ord[1]), dayHint: ord[2].replace(/\s+(thanh|bang|sang|cho)\b.*$/, "").trim() };
+  // "tăng/giảm số bài" with no number anywhere: ask, never guess.
+  if (!c.ambiguity && c.exercisesPerDay === undefined && c.exercisesDelta === undefined && /\b(?:tang|them|giam|bot)\s+(?:so\s+)?bai(?:\s+tap)?\s*(?:moi buoi|\/buoi|moi ngay)?\s*$/.test(s.replace(/[.!?]+$/, "").trim())) {
+    c.ambiguity = "Bạn muốn mỗi buổi có bao nhiêu bài? (ví dụ: “mỗi buổi 7 bài” hoặc “thêm 2 bài mỗi buổi”)";
+  }
   return c;
+}
+
+export const MAX_EXERCISES_PER_DAY = 10;
+
+export type ExercisesPerDayResolution =
+  | { ok: true; target: number; source: "explicit" | "text-absolute" | "text-relative" | "current" }
+  | { ok: false; code: "AMBIGUOUS" | "OUT_OF_RANGE"; message: string };
+
+/**
+ * The FINAL number of exercises per session for a revision. The stored/previous value is only the fallback: whatever the user asked
+ * for ("lên 7 bài", "thêm 2 bài mỗi buổi") always wins over it — the old code kept the previous 4 and then trimmed the model's 7 back to 4.
+ * Precedence: explicit numeric input > absolute number in the text > relative change from the CURRENT count > current count.
+ */
+export function resolveExercisesPerDay(input: { explicit?: number; parsed: WorkoutAdjustmentConstraints; current: number }): ExercisesPerDayResolution {
+  if (input.parsed.ambiguity) return { ok: false, code: "AMBIGUOUS", message: input.parsed.ambiguity };
+  const within = (n: number) => Number.isInteger(n) && n >= 1 && n <= MAX_EXERCISES_PER_DAY;
+  const out = (n: number, source: "explicit" | "text-absolute" | "text-relative" | "current"): ExercisesPerDayResolution =>
+    within(n) ? { ok: true, target: n, source } : { ok: false, code: "OUT_OF_RANGE", message: `Số bài mỗi buổi phải từ 1 đến ${MAX_EXERCISES_PER_DAY} (yêu cầu này cho ${n}).` };
+  if (input.explicit !== undefined) return out(input.explicit, "explicit");
+  if (input.parsed.exercisesPerDay !== undefined) return out(input.parsed.exercisesPerDay, "text-absolute");
+  if (input.parsed.exercisesDelta !== undefined) return out(input.current + input.parsed.exercisesDelta, "text-relative");
+  return out(input.current, "current");
 }
 
 export interface ExerciseLike { exerciseName?: string; name?: string; typeOfEquipment?: string | null; difficultyLevel?: string | null }

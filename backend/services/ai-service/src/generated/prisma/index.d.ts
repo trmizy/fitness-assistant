@@ -34,6 +34,15 @@ export type UserMemory = $Result.DefaultSelection<Prisma.$UserMemoryPayload>
  */
 export type WorkoutPlan = $Result.DefaultSelection<Prisma.$WorkoutPlanPayload>
 /**
+ * Model WorkoutPlanRevision
+ * In-place AI workout plan revision history ("Điều chỉnh"). The WorkoutPlan row keeps its id; every applied revision bumps
+ * WorkoutPlan.version by exactly one and stores the content it REPLACED here, so a revision can be audited and reverted without
+ * ever creating a second plan row. A row exists only for a COMMITTED revision (a failed/queued one lives in ai_generation_operations).
+ * operation_id is UNIQUE: re-delivering/retrying the same operation can never apply (or record) a revision twice.
+ * (plan_id, result_version) is UNIQUE: two writers can never both produce the same version.
+ */
+export type WorkoutPlanRevision = $Result.DefaultSelection<Prisma.$WorkoutPlanRevisionPayload>
+/**
  * Model PublishedPlan
  * 
  */
@@ -535,6 +544,16 @@ export class PrismaClient<
     * ```
     */
   get workoutPlan(): Prisma.WorkoutPlanDelegate<ExtArgs>;
+
+  /**
+   * `prisma.workoutPlanRevision`: Exposes CRUD operations for the **WorkoutPlanRevision** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more WorkoutPlanRevisions
+    * const workoutPlanRevisions = await prisma.workoutPlanRevision.findMany()
+    * ```
+    */
+  get workoutPlanRevision(): Prisma.WorkoutPlanRevisionDelegate<ExtArgs>;
 
   /**
    * `prisma.publishedPlan`: Exposes CRUD operations for the **PublishedPlan** model.
@@ -1210,6 +1229,7 @@ export namespace Prisma {
     ChatSession: 'ChatSession',
     UserMemory: 'UserMemory',
     WorkoutPlan: 'WorkoutPlan',
+    WorkoutPlanRevision: 'WorkoutPlanRevision',
     PublishedPlan: 'PublishedPlan',
     PlanModerationAnalysis: 'PlanModerationAnalysis',
     PlanReview: 'PlanReview',
@@ -1248,7 +1268,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "conversation" | "chatSession" | "userMemory" | "workoutPlan" | "publishedPlan" | "planModerationAnalysis" | "planReview" | "planImprovementSuggestion" | "planAdoption" | "trainingPackage" | "trainingPackagePurchase" | "personalizedService" | "personalizedServiceOrder" | "personalizedServicePlanVersion" | "personalizedServiceCheckIn" | "personalizedServiceReview" | "personalizedServiceRevisionRequest" | "nutritionPlan" | "knowledgeSource" | "knowledgeDocument" | "knowledgeChunk" | "knowledgePipelineRun" | "knowledgeReviewItem" | "fitnessRecommendation" | "fitnessAgentAction" | "agentWorkflowSession" | "aiGenerationOperation"
+      modelProps: "conversation" | "chatSession" | "userMemory" | "workoutPlan" | "workoutPlanRevision" | "publishedPlan" | "planModerationAnalysis" | "planReview" | "planImprovementSuggestion" | "planAdoption" | "trainingPackage" | "trainingPackagePurchase" | "personalizedService" | "personalizedServiceOrder" | "personalizedServicePlanVersion" | "personalizedServiceCheckIn" | "personalizedServiceReview" | "personalizedServiceRevisionRequest" | "nutritionPlan" | "knowledgeSource" | "knowledgeDocument" | "knowledgeChunk" | "knowledgePipelineRun" | "knowledgeReviewItem" | "fitnessRecommendation" | "fitnessAgentAction" | "agentWorkflowSession" | "aiGenerationOperation"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1529,6 +1549,76 @@ export namespace Prisma {
           count: {
             args: Prisma.WorkoutPlanCountArgs<ExtArgs>
             result: $Utils.Optional<WorkoutPlanCountAggregateOutputType> | number
+          }
+        }
+      }
+      WorkoutPlanRevision: {
+        payload: Prisma.$WorkoutPlanRevisionPayload<ExtArgs>
+        fields: Prisma.WorkoutPlanRevisionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.WorkoutPlanRevisionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutPlanRevisionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.WorkoutPlanRevisionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutPlanRevisionPayload>
+          }
+          findFirst: {
+            args: Prisma.WorkoutPlanRevisionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutPlanRevisionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.WorkoutPlanRevisionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutPlanRevisionPayload>
+          }
+          findMany: {
+            args: Prisma.WorkoutPlanRevisionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutPlanRevisionPayload>[]
+          }
+          create: {
+            args: Prisma.WorkoutPlanRevisionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutPlanRevisionPayload>
+          }
+          createMany: {
+            args: Prisma.WorkoutPlanRevisionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.WorkoutPlanRevisionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutPlanRevisionPayload>[]
+          }
+          delete: {
+            args: Prisma.WorkoutPlanRevisionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutPlanRevisionPayload>
+          }
+          update: {
+            args: Prisma.WorkoutPlanRevisionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutPlanRevisionPayload>
+          }
+          deleteMany: {
+            args: Prisma.WorkoutPlanRevisionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.WorkoutPlanRevisionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.WorkoutPlanRevisionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkoutPlanRevisionPayload>
+          }
+          aggregate: {
+            args: Prisma.WorkoutPlanRevisionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateWorkoutPlanRevision>
+          }
+          groupBy: {
+            args: Prisma.WorkoutPlanRevisionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<WorkoutPlanRevisionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.WorkoutPlanRevisionCountArgs<ExtArgs>
+            result: $Utils.Optional<WorkoutPlanRevisionCountAggregateOutputType> | number
           }
         }
       }
@@ -7694,6 +7784,987 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: WorkoutPlanInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model WorkoutPlanRevision
+   */
+
+  export type AggregateWorkoutPlanRevision = {
+    _count: WorkoutPlanRevisionCountAggregateOutputType | null
+    _avg: WorkoutPlanRevisionAvgAggregateOutputType | null
+    _sum: WorkoutPlanRevisionSumAggregateOutputType | null
+    _min: WorkoutPlanRevisionMinAggregateOutputType | null
+    _max: WorkoutPlanRevisionMaxAggregateOutputType | null
+  }
+
+  export type WorkoutPlanRevisionAvgAggregateOutputType = {
+    baseVersion: number | null
+    resultVersion: number | null
+  }
+
+  export type WorkoutPlanRevisionSumAggregateOutputType = {
+    baseVersion: number | null
+    resultVersion: number | null
+  }
+
+  export type WorkoutPlanRevisionMinAggregateOutputType = {
+    id: string | null
+    planId: string | null
+    userId: string | null
+    operationId: string | null
+    kind: string | null
+    baseVersion: number | null
+    resultVersion: number | null
+    adjustments: string | null
+    createdAt: Date | null
+  }
+
+  export type WorkoutPlanRevisionMaxAggregateOutputType = {
+    id: string | null
+    planId: string | null
+    userId: string | null
+    operationId: string | null
+    kind: string | null
+    baseVersion: number | null
+    resultVersion: number | null
+    adjustments: string | null
+    createdAt: Date | null
+  }
+
+  export type WorkoutPlanRevisionCountAggregateOutputType = {
+    id: number
+    planId: number
+    userId: number
+    operationId: number
+    kind: number
+    baseVersion: number
+    resultVersion: number
+    adjustments: number
+    previous: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type WorkoutPlanRevisionAvgAggregateInputType = {
+    baseVersion?: true
+    resultVersion?: true
+  }
+
+  export type WorkoutPlanRevisionSumAggregateInputType = {
+    baseVersion?: true
+    resultVersion?: true
+  }
+
+  export type WorkoutPlanRevisionMinAggregateInputType = {
+    id?: true
+    planId?: true
+    userId?: true
+    operationId?: true
+    kind?: true
+    baseVersion?: true
+    resultVersion?: true
+    adjustments?: true
+    createdAt?: true
+  }
+
+  export type WorkoutPlanRevisionMaxAggregateInputType = {
+    id?: true
+    planId?: true
+    userId?: true
+    operationId?: true
+    kind?: true
+    baseVersion?: true
+    resultVersion?: true
+    adjustments?: true
+    createdAt?: true
+  }
+
+  export type WorkoutPlanRevisionCountAggregateInputType = {
+    id?: true
+    planId?: true
+    userId?: true
+    operationId?: true
+    kind?: true
+    baseVersion?: true
+    resultVersion?: true
+    adjustments?: true
+    previous?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type WorkoutPlanRevisionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WorkoutPlanRevision to aggregate.
+     */
+    where?: WorkoutPlanRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkoutPlanRevisions to fetch.
+     */
+    orderBy?: WorkoutPlanRevisionOrderByWithRelationInput | WorkoutPlanRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: WorkoutPlanRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkoutPlanRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkoutPlanRevisions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned WorkoutPlanRevisions
+    **/
+    _count?: true | WorkoutPlanRevisionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: WorkoutPlanRevisionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: WorkoutPlanRevisionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: WorkoutPlanRevisionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: WorkoutPlanRevisionMaxAggregateInputType
+  }
+
+  export type GetWorkoutPlanRevisionAggregateType<T extends WorkoutPlanRevisionAggregateArgs> = {
+        [P in keyof T & keyof AggregateWorkoutPlanRevision]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateWorkoutPlanRevision[P]>
+      : GetScalarType<T[P], AggregateWorkoutPlanRevision[P]>
+  }
+
+
+
+
+  export type WorkoutPlanRevisionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WorkoutPlanRevisionWhereInput
+    orderBy?: WorkoutPlanRevisionOrderByWithAggregationInput | WorkoutPlanRevisionOrderByWithAggregationInput[]
+    by: WorkoutPlanRevisionScalarFieldEnum[] | WorkoutPlanRevisionScalarFieldEnum
+    having?: WorkoutPlanRevisionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: WorkoutPlanRevisionCountAggregateInputType | true
+    _avg?: WorkoutPlanRevisionAvgAggregateInputType
+    _sum?: WorkoutPlanRevisionSumAggregateInputType
+    _min?: WorkoutPlanRevisionMinAggregateInputType
+    _max?: WorkoutPlanRevisionMaxAggregateInputType
+  }
+
+  export type WorkoutPlanRevisionGroupByOutputType = {
+    id: string
+    planId: string
+    userId: string
+    operationId: string | null
+    kind: string
+    baseVersion: number
+    resultVersion: number
+    adjustments: string | null
+    previous: JsonValue
+    createdAt: Date
+    _count: WorkoutPlanRevisionCountAggregateOutputType | null
+    _avg: WorkoutPlanRevisionAvgAggregateOutputType | null
+    _sum: WorkoutPlanRevisionSumAggregateOutputType | null
+    _min: WorkoutPlanRevisionMinAggregateOutputType | null
+    _max: WorkoutPlanRevisionMaxAggregateOutputType | null
+  }
+
+  type GetWorkoutPlanRevisionGroupByPayload<T extends WorkoutPlanRevisionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<WorkoutPlanRevisionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof WorkoutPlanRevisionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], WorkoutPlanRevisionGroupByOutputType[P]>
+            : GetScalarType<T[P], WorkoutPlanRevisionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type WorkoutPlanRevisionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    planId?: boolean
+    userId?: boolean
+    operationId?: boolean
+    kind?: boolean
+    baseVersion?: boolean
+    resultVersion?: boolean
+    adjustments?: boolean
+    previous?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["workoutPlanRevision"]>
+
+  export type WorkoutPlanRevisionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    planId?: boolean
+    userId?: boolean
+    operationId?: boolean
+    kind?: boolean
+    baseVersion?: boolean
+    resultVersion?: boolean
+    adjustments?: boolean
+    previous?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["workoutPlanRevision"]>
+
+  export type WorkoutPlanRevisionSelectScalar = {
+    id?: boolean
+    planId?: boolean
+    userId?: boolean
+    operationId?: boolean
+    kind?: boolean
+    baseVersion?: boolean
+    resultVersion?: boolean
+    adjustments?: boolean
+    previous?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $WorkoutPlanRevisionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "WorkoutPlanRevision"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      planId: string
+      userId: string
+      /**
+       * null for a REVERT (not produced by a generation operation)
+       */
+      operationId: string | null
+      /**
+       * ADJUST | REVERT
+       */
+      kind: string
+      baseVersion: number
+      resultVersion: number
+      adjustments: string | null
+      /**
+       * {name, description, goal, duration, daysPerWeek, plan} exactly as they were BEFORE this revision
+       */
+      previous: Prisma.JsonValue
+      createdAt: Date
+    }, ExtArgs["result"]["workoutPlanRevision"]>
+    composites: {}
+  }
+
+  type WorkoutPlanRevisionGetPayload<S extends boolean | null | undefined | WorkoutPlanRevisionDefaultArgs> = $Result.GetResult<Prisma.$WorkoutPlanRevisionPayload, S>
+
+  type WorkoutPlanRevisionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<WorkoutPlanRevisionFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: WorkoutPlanRevisionCountAggregateInputType | true
+    }
+
+  export interface WorkoutPlanRevisionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['WorkoutPlanRevision'], meta: { name: 'WorkoutPlanRevision' } }
+    /**
+     * Find zero or one WorkoutPlanRevision that matches the filter.
+     * @param {WorkoutPlanRevisionFindUniqueArgs} args - Arguments to find a WorkoutPlanRevision
+     * @example
+     * // Get one WorkoutPlanRevision
+     * const workoutPlanRevision = await prisma.workoutPlanRevision.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends WorkoutPlanRevisionFindUniqueArgs>(args: SelectSubset<T, WorkoutPlanRevisionFindUniqueArgs<ExtArgs>>): Prisma__WorkoutPlanRevisionClient<$Result.GetResult<Prisma.$WorkoutPlanRevisionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one WorkoutPlanRevision that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {WorkoutPlanRevisionFindUniqueOrThrowArgs} args - Arguments to find a WorkoutPlanRevision
+     * @example
+     * // Get one WorkoutPlanRevision
+     * const workoutPlanRevision = await prisma.workoutPlanRevision.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends WorkoutPlanRevisionFindUniqueOrThrowArgs>(args: SelectSubset<T, WorkoutPlanRevisionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__WorkoutPlanRevisionClient<$Result.GetResult<Prisma.$WorkoutPlanRevisionPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first WorkoutPlanRevision that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutPlanRevisionFindFirstArgs} args - Arguments to find a WorkoutPlanRevision
+     * @example
+     * // Get one WorkoutPlanRevision
+     * const workoutPlanRevision = await prisma.workoutPlanRevision.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends WorkoutPlanRevisionFindFirstArgs>(args?: SelectSubset<T, WorkoutPlanRevisionFindFirstArgs<ExtArgs>>): Prisma__WorkoutPlanRevisionClient<$Result.GetResult<Prisma.$WorkoutPlanRevisionPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first WorkoutPlanRevision that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutPlanRevisionFindFirstOrThrowArgs} args - Arguments to find a WorkoutPlanRevision
+     * @example
+     * // Get one WorkoutPlanRevision
+     * const workoutPlanRevision = await prisma.workoutPlanRevision.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends WorkoutPlanRevisionFindFirstOrThrowArgs>(args?: SelectSubset<T, WorkoutPlanRevisionFindFirstOrThrowArgs<ExtArgs>>): Prisma__WorkoutPlanRevisionClient<$Result.GetResult<Prisma.$WorkoutPlanRevisionPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more WorkoutPlanRevisions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutPlanRevisionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all WorkoutPlanRevisions
+     * const workoutPlanRevisions = await prisma.workoutPlanRevision.findMany()
+     * 
+     * // Get first 10 WorkoutPlanRevisions
+     * const workoutPlanRevisions = await prisma.workoutPlanRevision.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const workoutPlanRevisionWithIdOnly = await prisma.workoutPlanRevision.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends WorkoutPlanRevisionFindManyArgs>(args?: SelectSubset<T, WorkoutPlanRevisionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutPlanRevisionPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a WorkoutPlanRevision.
+     * @param {WorkoutPlanRevisionCreateArgs} args - Arguments to create a WorkoutPlanRevision.
+     * @example
+     * // Create one WorkoutPlanRevision
+     * const WorkoutPlanRevision = await prisma.workoutPlanRevision.create({
+     *   data: {
+     *     // ... data to create a WorkoutPlanRevision
+     *   }
+     * })
+     * 
+     */
+    create<T extends WorkoutPlanRevisionCreateArgs>(args: SelectSubset<T, WorkoutPlanRevisionCreateArgs<ExtArgs>>): Prisma__WorkoutPlanRevisionClient<$Result.GetResult<Prisma.$WorkoutPlanRevisionPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many WorkoutPlanRevisions.
+     * @param {WorkoutPlanRevisionCreateManyArgs} args - Arguments to create many WorkoutPlanRevisions.
+     * @example
+     * // Create many WorkoutPlanRevisions
+     * const workoutPlanRevision = await prisma.workoutPlanRevision.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends WorkoutPlanRevisionCreateManyArgs>(args?: SelectSubset<T, WorkoutPlanRevisionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many WorkoutPlanRevisions and returns the data saved in the database.
+     * @param {WorkoutPlanRevisionCreateManyAndReturnArgs} args - Arguments to create many WorkoutPlanRevisions.
+     * @example
+     * // Create many WorkoutPlanRevisions
+     * const workoutPlanRevision = await prisma.workoutPlanRevision.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many WorkoutPlanRevisions and only return the `id`
+     * const workoutPlanRevisionWithIdOnly = await prisma.workoutPlanRevision.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends WorkoutPlanRevisionCreateManyAndReturnArgs>(args?: SelectSubset<T, WorkoutPlanRevisionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutPlanRevisionPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a WorkoutPlanRevision.
+     * @param {WorkoutPlanRevisionDeleteArgs} args - Arguments to delete one WorkoutPlanRevision.
+     * @example
+     * // Delete one WorkoutPlanRevision
+     * const WorkoutPlanRevision = await prisma.workoutPlanRevision.delete({
+     *   where: {
+     *     // ... filter to delete one WorkoutPlanRevision
+     *   }
+     * })
+     * 
+     */
+    delete<T extends WorkoutPlanRevisionDeleteArgs>(args: SelectSubset<T, WorkoutPlanRevisionDeleteArgs<ExtArgs>>): Prisma__WorkoutPlanRevisionClient<$Result.GetResult<Prisma.$WorkoutPlanRevisionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one WorkoutPlanRevision.
+     * @param {WorkoutPlanRevisionUpdateArgs} args - Arguments to update one WorkoutPlanRevision.
+     * @example
+     * // Update one WorkoutPlanRevision
+     * const workoutPlanRevision = await prisma.workoutPlanRevision.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends WorkoutPlanRevisionUpdateArgs>(args: SelectSubset<T, WorkoutPlanRevisionUpdateArgs<ExtArgs>>): Prisma__WorkoutPlanRevisionClient<$Result.GetResult<Prisma.$WorkoutPlanRevisionPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more WorkoutPlanRevisions.
+     * @param {WorkoutPlanRevisionDeleteManyArgs} args - Arguments to filter WorkoutPlanRevisions to delete.
+     * @example
+     * // Delete a few WorkoutPlanRevisions
+     * const { count } = await prisma.workoutPlanRevision.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends WorkoutPlanRevisionDeleteManyArgs>(args?: SelectSubset<T, WorkoutPlanRevisionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more WorkoutPlanRevisions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutPlanRevisionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many WorkoutPlanRevisions
+     * const workoutPlanRevision = await prisma.workoutPlanRevision.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends WorkoutPlanRevisionUpdateManyArgs>(args: SelectSubset<T, WorkoutPlanRevisionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one WorkoutPlanRevision.
+     * @param {WorkoutPlanRevisionUpsertArgs} args - Arguments to update or create a WorkoutPlanRevision.
+     * @example
+     * // Update or create a WorkoutPlanRevision
+     * const workoutPlanRevision = await prisma.workoutPlanRevision.upsert({
+     *   create: {
+     *     // ... data to create a WorkoutPlanRevision
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the WorkoutPlanRevision we want to update
+     *   }
+     * })
+     */
+    upsert<T extends WorkoutPlanRevisionUpsertArgs>(args: SelectSubset<T, WorkoutPlanRevisionUpsertArgs<ExtArgs>>): Prisma__WorkoutPlanRevisionClient<$Result.GetResult<Prisma.$WorkoutPlanRevisionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of WorkoutPlanRevisions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutPlanRevisionCountArgs} args - Arguments to filter WorkoutPlanRevisions to count.
+     * @example
+     * // Count the number of WorkoutPlanRevisions
+     * const count = await prisma.workoutPlanRevision.count({
+     *   where: {
+     *     // ... the filter for the WorkoutPlanRevisions we want to count
+     *   }
+     * })
+    **/
+    count<T extends WorkoutPlanRevisionCountArgs>(
+      args?: Subset<T, WorkoutPlanRevisionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], WorkoutPlanRevisionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a WorkoutPlanRevision.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutPlanRevisionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends WorkoutPlanRevisionAggregateArgs>(args: Subset<T, WorkoutPlanRevisionAggregateArgs>): Prisma.PrismaPromise<GetWorkoutPlanRevisionAggregateType<T>>
+
+    /**
+     * Group by WorkoutPlanRevision.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkoutPlanRevisionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends WorkoutPlanRevisionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: WorkoutPlanRevisionGroupByArgs['orderBy'] }
+        : { orderBy?: WorkoutPlanRevisionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, WorkoutPlanRevisionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetWorkoutPlanRevisionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the WorkoutPlanRevision model
+   */
+  readonly fields: WorkoutPlanRevisionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for WorkoutPlanRevision.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__WorkoutPlanRevisionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the WorkoutPlanRevision model
+   */ 
+  interface WorkoutPlanRevisionFieldRefs {
+    readonly id: FieldRef<"WorkoutPlanRevision", 'String'>
+    readonly planId: FieldRef<"WorkoutPlanRevision", 'String'>
+    readonly userId: FieldRef<"WorkoutPlanRevision", 'String'>
+    readonly operationId: FieldRef<"WorkoutPlanRevision", 'String'>
+    readonly kind: FieldRef<"WorkoutPlanRevision", 'String'>
+    readonly baseVersion: FieldRef<"WorkoutPlanRevision", 'Int'>
+    readonly resultVersion: FieldRef<"WorkoutPlanRevision", 'Int'>
+    readonly adjustments: FieldRef<"WorkoutPlanRevision", 'String'>
+    readonly previous: FieldRef<"WorkoutPlanRevision", 'Json'>
+    readonly createdAt: FieldRef<"WorkoutPlanRevision", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * WorkoutPlanRevision findUnique
+   */
+  export type WorkoutPlanRevisionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutPlanRevision
+     */
+    select?: WorkoutPlanRevisionSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutPlanRevision to fetch.
+     */
+    where: WorkoutPlanRevisionWhereUniqueInput
+  }
+
+  /**
+   * WorkoutPlanRevision findUniqueOrThrow
+   */
+  export type WorkoutPlanRevisionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutPlanRevision
+     */
+    select?: WorkoutPlanRevisionSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutPlanRevision to fetch.
+     */
+    where: WorkoutPlanRevisionWhereUniqueInput
+  }
+
+  /**
+   * WorkoutPlanRevision findFirst
+   */
+  export type WorkoutPlanRevisionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutPlanRevision
+     */
+    select?: WorkoutPlanRevisionSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutPlanRevision to fetch.
+     */
+    where?: WorkoutPlanRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkoutPlanRevisions to fetch.
+     */
+    orderBy?: WorkoutPlanRevisionOrderByWithRelationInput | WorkoutPlanRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WorkoutPlanRevisions.
+     */
+    cursor?: WorkoutPlanRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkoutPlanRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkoutPlanRevisions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WorkoutPlanRevisions.
+     */
+    distinct?: WorkoutPlanRevisionScalarFieldEnum | WorkoutPlanRevisionScalarFieldEnum[]
+  }
+
+  /**
+   * WorkoutPlanRevision findFirstOrThrow
+   */
+  export type WorkoutPlanRevisionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutPlanRevision
+     */
+    select?: WorkoutPlanRevisionSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutPlanRevision to fetch.
+     */
+    where?: WorkoutPlanRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkoutPlanRevisions to fetch.
+     */
+    orderBy?: WorkoutPlanRevisionOrderByWithRelationInput | WorkoutPlanRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WorkoutPlanRevisions.
+     */
+    cursor?: WorkoutPlanRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkoutPlanRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkoutPlanRevisions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WorkoutPlanRevisions.
+     */
+    distinct?: WorkoutPlanRevisionScalarFieldEnum | WorkoutPlanRevisionScalarFieldEnum[]
+  }
+
+  /**
+   * WorkoutPlanRevision findMany
+   */
+  export type WorkoutPlanRevisionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutPlanRevision
+     */
+    select?: WorkoutPlanRevisionSelect<ExtArgs> | null
+    /**
+     * Filter, which WorkoutPlanRevisions to fetch.
+     */
+    where?: WorkoutPlanRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkoutPlanRevisions to fetch.
+     */
+    orderBy?: WorkoutPlanRevisionOrderByWithRelationInput | WorkoutPlanRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing WorkoutPlanRevisions.
+     */
+    cursor?: WorkoutPlanRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkoutPlanRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkoutPlanRevisions.
+     */
+    skip?: number
+    distinct?: WorkoutPlanRevisionScalarFieldEnum | WorkoutPlanRevisionScalarFieldEnum[]
+  }
+
+  /**
+   * WorkoutPlanRevision create
+   */
+  export type WorkoutPlanRevisionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutPlanRevision
+     */
+    select?: WorkoutPlanRevisionSelect<ExtArgs> | null
+    /**
+     * The data needed to create a WorkoutPlanRevision.
+     */
+    data: XOR<WorkoutPlanRevisionCreateInput, WorkoutPlanRevisionUncheckedCreateInput>
+  }
+
+  /**
+   * WorkoutPlanRevision createMany
+   */
+  export type WorkoutPlanRevisionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many WorkoutPlanRevisions.
+     */
+    data: WorkoutPlanRevisionCreateManyInput | WorkoutPlanRevisionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * WorkoutPlanRevision createManyAndReturn
+   */
+  export type WorkoutPlanRevisionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutPlanRevision
+     */
+    select?: WorkoutPlanRevisionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many WorkoutPlanRevisions.
+     */
+    data: WorkoutPlanRevisionCreateManyInput | WorkoutPlanRevisionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * WorkoutPlanRevision update
+   */
+  export type WorkoutPlanRevisionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutPlanRevision
+     */
+    select?: WorkoutPlanRevisionSelect<ExtArgs> | null
+    /**
+     * The data needed to update a WorkoutPlanRevision.
+     */
+    data: XOR<WorkoutPlanRevisionUpdateInput, WorkoutPlanRevisionUncheckedUpdateInput>
+    /**
+     * Choose, which WorkoutPlanRevision to update.
+     */
+    where: WorkoutPlanRevisionWhereUniqueInput
+  }
+
+  /**
+   * WorkoutPlanRevision updateMany
+   */
+  export type WorkoutPlanRevisionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update WorkoutPlanRevisions.
+     */
+    data: XOR<WorkoutPlanRevisionUpdateManyMutationInput, WorkoutPlanRevisionUncheckedUpdateManyInput>
+    /**
+     * Filter which WorkoutPlanRevisions to update
+     */
+    where?: WorkoutPlanRevisionWhereInput
+  }
+
+  /**
+   * WorkoutPlanRevision upsert
+   */
+  export type WorkoutPlanRevisionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutPlanRevision
+     */
+    select?: WorkoutPlanRevisionSelect<ExtArgs> | null
+    /**
+     * The filter to search for the WorkoutPlanRevision to update in case it exists.
+     */
+    where: WorkoutPlanRevisionWhereUniqueInput
+    /**
+     * In case the WorkoutPlanRevision found by the `where` argument doesn't exist, create a new WorkoutPlanRevision with this data.
+     */
+    create: XOR<WorkoutPlanRevisionCreateInput, WorkoutPlanRevisionUncheckedCreateInput>
+    /**
+     * In case the WorkoutPlanRevision was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<WorkoutPlanRevisionUpdateInput, WorkoutPlanRevisionUncheckedUpdateInput>
+  }
+
+  /**
+   * WorkoutPlanRevision delete
+   */
+  export type WorkoutPlanRevisionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutPlanRevision
+     */
+    select?: WorkoutPlanRevisionSelect<ExtArgs> | null
+    /**
+     * Filter which WorkoutPlanRevision to delete.
+     */
+    where: WorkoutPlanRevisionWhereUniqueInput
+  }
+
+  /**
+   * WorkoutPlanRevision deleteMany
+   */
+  export type WorkoutPlanRevisionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WorkoutPlanRevisions to delete
+     */
+    where?: WorkoutPlanRevisionWhereInput
+  }
+
+  /**
+   * WorkoutPlanRevision without action
+   */
+  export type WorkoutPlanRevisionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutPlanRevision
+     */
+    select?: WorkoutPlanRevisionSelect<ExtArgs> | null
   }
 
 
@@ -32129,6 +33200,22 @@ export namespace Prisma {
   export type WorkoutPlanScalarFieldEnum = (typeof WorkoutPlanScalarFieldEnum)[keyof typeof WorkoutPlanScalarFieldEnum]
 
 
+  export const WorkoutPlanRevisionScalarFieldEnum: {
+    id: 'id',
+    planId: 'planId',
+    userId: 'userId',
+    operationId: 'operationId',
+    kind: 'kind',
+    baseVersion: 'baseVersion',
+    resultVersion: 'resultVersion',
+    adjustments: 'adjustments',
+    previous: 'previous',
+    createdAt: 'createdAt'
+  };
+
+  export type WorkoutPlanRevisionScalarFieldEnum = (typeof WorkoutPlanRevisionScalarFieldEnum)[keyof typeof WorkoutPlanRevisionScalarFieldEnum]
+
+
   export const PublishedPlanScalarFieldEnum: {
     id: 'id',
     sourcePlanId: 'sourcePlanId',
@@ -33321,6 +34408,86 @@ export namespace Prisma {
     archivedAt?: DateTimeNullableWithAggregatesFilter<"WorkoutPlan"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"WorkoutPlan"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"WorkoutPlan"> | Date | string
+  }
+
+  export type WorkoutPlanRevisionWhereInput = {
+    AND?: WorkoutPlanRevisionWhereInput | WorkoutPlanRevisionWhereInput[]
+    OR?: WorkoutPlanRevisionWhereInput[]
+    NOT?: WorkoutPlanRevisionWhereInput | WorkoutPlanRevisionWhereInput[]
+    id?: StringFilter<"WorkoutPlanRevision"> | string
+    planId?: StringFilter<"WorkoutPlanRevision"> | string
+    userId?: StringFilter<"WorkoutPlanRevision"> | string
+    operationId?: StringNullableFilter<"WorkoutPlanRevision"> | string | null
+    kind?: StringFilter<"WorkoutPlanRevision"> | string
+    baseVersion?: IntFilter<"WorkoutPlanRevision"> | number
+    resultVersion?: IntFilter<"WorkoutPlanRevision"> | number
+    adjustments?: StringNullableFilter<"WorkoutPlanRevision"> | string | null
+    previous?: JsonFilter<"WorkoutPlanRevision">
+    createdAt?: DateTimeFilter<"WorkoutPlanRevision"> | Date | string
+  }
+
+  export type WorkoutPlanRevisionOrderByWithRelationInput = {
+    id?: SortOrder
+    planId?: SortOrder
+    userId?: SortOrder
+    operationId?: SortOrderInput | SortOrder
+    kind?: SortOrder
+    baseVersion?: SortOrder
+    resultVersion?: SortOrder
+    adjustments?: SortOrderInput | SortOrder
+    previous?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type WorkoutPlanRevisionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    operationId?: string
+    planId_resultVersion?: WorkoutPlanRevisionPlanIdResultVersionCompoundUniqueInput
+    AND?: WorkoutPlanRevisionWhereInput | WorkoutPlanRevisionWhereInput[]
+    OR?: WorkoutPlanRevisionWhereInput[]
+    NOT?: WorkoutPlanRevisionWhereInput | WorkoutPlanRevisionWhereInput[]
+    planId?: StringFilter<"WorkoutPlanRevision"> | string
+    userId?: StringFilter<"WorkoutPlanRevision"> | string
+    kind?: StringFilter<"WorkoutPlanRevision"> | string
+    baseVersion?: IntFilter<"WorkoutPlanRevision"> | number
+    resultVersion?: IntFilter<"WorkoutPlanRevision"> | number
+    adjustments?: StringNullableFilter<"WorkoutPlanRevision"> | string | null
+    previous?: JsonFilter<"WorkoutPlanRevision">
+    createdAt?: DateTimeFilter<"WorkoutPlanRevision"> | Date | string
+  }, "id" | "operationId" | "planId_resultVersion">
+
+  export type WorkoutPlanRevisionOrderByWithAggregationInput = {
+    id?: SortOrder
+    planId?: SortOrder
+    userId?: SortOrder
+    operationId?: SortOrderInput | SortOrder
+    kind?: SortOrder
+    baseVersion?: SortOrder
+    resultVersion?: SortOrder
+    adjustments?: SortOrderInput | SortOrder
+    previous?: SortOrder
+    createdAt?: SortOrder
+    _count?: WorkoutPlanRevisionCountOrderByAggregateInput
+    _avg?: WorkoutPlanRevisionAvgOrderByAggregateInput
+    _max?: WorkoutPlanRevisionMaxOrderByAggregateInput
+    _min?: WorkoutPlanRevisionMinOrderByAggregateInput
+    _sum?: WorkoutPlanRevisionSumOrderByAggregateInput
+  }
+
+  export type WorkoutPlanRevisionScalarWhereWithAggregatesInput = {
+    AND?: WorkoutPlanRevisionScalarWhereWithAggregatesInput | WorkoutPlanRevisionScalarWhereWithAggregatesInput[]
+    OR?: WorkoutPlanRevisionScalarWhereWithAggregatesInput[]
+    NOT?: WorkoutPlanRevisionScalarWhereWithAggregatesInput | WorkoutPlanRevisionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"WorkoutPlanRevision"> | string
+    planId?: StringWithAggregatesFilter<"WorkoutPlanRevision"> | string
+    userId?: StringWithAggregatesFilter<"WorkoutPlanRevision"> | string
+    operationId?: StringNullableWithAggregatesFilter<"WorkoutPlanRevision"> | string | null
+    kind?: StringWithAggregatesFilter<"WorkoutPlanRevision"> | string
+    baseVersion?: IntWithAggregatesFilter<"WorkoutPlanRevision"> | number
+    resultVersion?: IntWithAggregatesFilter<"WorkoutPlanRevision"> | number
+    adjustments?: StringNullableWithAggregatesFilter<"WorkoutPlanRevision"> | string | null
+    previous?: JsonWithAggregatesFilter<"WorkoutPlanRevision">
+    createdAt?: DateTimeWithAggregatesFilter<"WorkoutPlanRevision"> | Date | string
   }
 
   export type PublishedPlanWhereInput = {
@@ -36076,6 +37243,97 @@ export namespace Prisma {
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkoutPlanRevisionCreateInput = {
+    id?: string
+    planId: string
+    userId: string
+    operationId?: string | null
+    kind?: string
+    baseVersion: number
+    resultVersion: number
+    adjustments?: string | null
+    previous: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type WorkoutPlanRevisionUncheckedCreateInput = {
+    id?: string
+    planId: string
+    userId: string
+    operationId?: string | null
+    kind?: string
+    baseVersion: number
+    resultVersion: number
+    adjustments?: string | null
+    previous: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type WorkoutPlanRevisionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    planId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    operationId?: NullableStringFieldUpdateOperationsInput | string | null
+    kind?: StringFieldUpdateOperationsInput | string
+    baseVersion?: IntFieldUpdateOperationsInput | number
+    resultVersion?: IntFieldUpdateOperationsInput | number
+    adjustments?: NullableStringFieldUpdateOperationsInput | string | null
+    previous?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkoutPlanRevisionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    planId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    operationId?: NullableStringFieldUpdateOperationsInput | string | null
+    kind?: StringFieldUpdateOperationsInput | string
+    baseVersion?: IntFieldUpdateOperationsInput | number
+    resultVersion?: IntFieldUpdateOperationsInput | number
+    adjustments?: NullableStringFieldUpdateOperationsInput | string | null
+    previous?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkoutPlanRevisionCreateManyInput = {
+    id?: string
+    planId: string
+    userId: string
+    operationId?: string | null
+    kind?: string
+    baseVersion: number
+    resultVersion: number
+    adjustments?: string | null
+    previous: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type WorkoutPlanRevisionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    planId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    operationId?: NullableStringFieldUpdateOperationsInput | string | null
+    kind?: StringFieldUpdateOperationsInput | string
+    baseVersion?: IntFieldUpdateOperationsInput | number
+    resultVersion?: IntFieldUpdateOperationsInput | number
+    adjustments?: NullableStringFieldUpdateOperationsInput | string | null
+    previous?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkoutPlanRevisionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    planId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    operationId?: NullableStringFieldUpdateOperationsInput | string | null
+    kind?: StringFieldUpdateOperationsInput | string
+    baseVersion?: IntFieldUpdateOperationsInput | number
+    resultVersion?: IntFieldUpdateOperationsInput | number
+    adjustments?: NullableStringFieldUpdateOperationsInput | string | null
+    previous?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type PublishedPlanCreateInput = {
@@ -39325,6 +40583,58 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedEnumPtReviewStatusNullableFilter<$PrismaModel>
     _max?: NestedEnumPtReviewStatusNullableFilter<$PrismaModel>
+  }
+
+  export type WorkoutPlanRevisionPlanIdResultVersionCompoundUniqueInput = {
+    planId: string
+    resultVersion: number
+  }
+
+  export type WorkoutPlanRevisionCountOrderByAggregateInput = {
+    id?: SortOrder
+    planId?: SortOrder
+    userId?: SortOrder
+    operationId?: SortOrder
+    kind?: SortOrder
+    baseVersion?: SortOrder
+    resultVersion?: SortOrder
+    adjustments?: SortOrder
+    previous?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type WorkoutPlanRevisionAvgOrderByAggregateInput = {
+    baseVersion?: SortOrder
+    resultVersion?: SortOrder
+  }
+
+  export type WorkoutPlanRevisionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    planId?: SortOrder
+    userId?: SortOrder
+    operationId?: SortOrder
+    kind?: SortOrder
+    baseVersion?: SortOrder
+    resultVersion?: SortOrder
+    adjustments?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type WorkoutPlanRevisionMinOrderByAggregateInput = {
+    id?: SortOrder
+    planId?: SortOrder
+    userId?: SortOrder
+    operationId?: SortOrder
+    kind?: SortOrder
+    baseVersion?: SortOrder
+    resultVersion?: SortOrder
+    adjustments?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type WorkoutPlanRevisionSumOrderByAggregateInput = {
+    baseVersion?: SortOrder
+    resultVersion?: SortOrder
   }
 
   export type EnumPublishModerationStatusFilter<$PrismaModel = never> = {
@@ -46552,6 +47862,10 @@ export namespace Prisma {
      * @deprecated Use WorkoutPlanDefaultArgs instead
      */
     export type WorkoutPlanArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = WorkoutPlanDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use WorkoutPlanRevisionDefaultArgs instead
+     */
+    export type WorkoutPlanRevisionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = WorkoutPlanRevisionDefaultArgs<ExtArgs>
     /**
      * @deprecated Use PublishedPlanDefaultArgs instead
      */

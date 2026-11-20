@@ -84,7 +84,7 @@ function markProfileReadOrigin(err: unknown): never {
   throw err;
 }
 
-async function domain<T>(identity: AgentIdentity, service: "user" | "fitness", method: "GET" | "POST" | "PUT" | "PATCH", route: string, body: unknown, schema: z.ZodType<T>, timeoutMs = 20000): Promise<T> {
+async function domain<T>(identity: AgentIdentity, service: "user" | "fitness", method: "GET" | "POST" | "PUT" | "PATCH", route: string, body: unknown, schema: z.ZodType<T>, timeoutMs = 20000, extraHeaders: Record<string, string> = {}): Promise<T> {
   const started = Date.now();
   try {
     const response = await requestService({ service, path: route, method, body, timeoutMs,
@@ -95,7 +95,7 @@ async function domain<T>(identity: AgentIdentity, service: "user" | "fitness", m
       // other route here, which never looks at it.
       headers: { ...(identity.authorizationHeader ? { Authorization: identity.authorizationHeader } : {}),
         "x-gateway-secret": process.env.INTERNAL_SERVICE_SECRET ?? "", "x-internal-token": process.env.INTERNAL_SERVICE_SECRET ?? "",
-        "x-user-id": identity.userId, "x-user-role": "CUSTOMER" } });
+        "x-user-id": identity.userId, "x-user-role": "CUSTOMER", ...extraHeaders } });
     const output = schema.parse(response.data);
     logger.info({ tool: route, latencyMs: Date.now() - started, status: "success" }, "fitness agent tool");
     return output;
@@ -595,6 +595,41 @@ export const fitnessAgentTools = {
   cancelCycle(identity: AgentIdentity, cycleId: string) {
     return domain(identity, "fitness", "POST", `/training-cycles/${z.string().min(1).parse(cycleId)}/cancel`, {},
       z.record(z.unknown()));
+  },
+  // ── Plan Review (chat "gửi plan hiện tại cho PT xem") ──────────────────────────────────────────────────────────────────
+  // Every call goes through the ordinary client-facing APIs with the USER's own token: the agent has no extra authority, the
+  // PT↔client relationship is re-verified server-side at submit time, and nothing here can approve/decide a review.
+  /** The client's current ACTIVE program (identity + version only — the plan content is never read into the chat layer). */
+  async getCurrentProgramForReview(identity: AgentIdentity) {
+    // Real response shape (workout.controller getCurrentProgram): { success, data: { program | null } }.
+    const res = await domain(identity, "fitness", "GET", "/workouts/programs/current", undefined,
+      z.object({ data: z.object({
+        program: z.object({ id: z.string().min(1), name: z.string().nullable().optional(), version: z.number().int().optional() }).passthrough().nullable(),
+      }).passthrough() }).passthrough());
+    return res.data.program;
+  },
+  /** The client's ACTIVE PT contracts (user-service is the authority). Only id + display name are used. */
+  async getActivePtContracts(identity: AgentIdentity) {
+    const record = z.record(z.unknown());
+    const raw = await domain(identity, "user", "GET", "/contracts/client?status=ACTIVE", undefined,
+      z.union([z.array(record), z.object({ contracts: z.array(record) })]));
+    const list: Array<Record<string, unknown>> = Array.isArray(raw) ? raw : raw.contracts;
+    return list
+      .filter((c) => typeof c.ptUserId === "string" && c.ptUserId.length > 0 && (c.status === undefined || c.status === "ACTIVE"))
+      .map((c) => {
+        const profile = (c.ptProfile ?? {}) as { firstName?: string | null; lastName?: string | null };
+        return {
+          ptUserId: c.ptUserId as string,
+          name: `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() || null,
+        };
+      });
+  },
+  /** Submits the current program for PT review. `idempotencyKey` is derived from the confirmed action, so a retry/double click replays. */
+  submitPlanReview(identity: AgentIdentity, input: { ptUserId: string; programId: string; expectedVersion?: number; idempotencyKey: string }) {
+    const { idempotencyKey, ...body } = input;
+    return domain(identity, "fitness", "POST", "/plan-reviews", body,
+      z.object({ request: z.object({ id: z.string().min(1), status: z.string() }).passthrough(), replayed: z.boolean().optional() }).passthrough(),
+      20000, { "Idempotency-Key": idempotencyKey });
   },
   reviewRecommendation(identity: AgentIdentity, params: {
     cycleId: string; assessmentId: string; target: "TRAINING" | "NUTRITION"; decision: "ACCEPT" | "REJECT";

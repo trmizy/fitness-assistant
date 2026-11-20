@@ -1,0 +1,969 @@
+{
+  "business_gaps": [
+    {
+      "id": "BDG-01",
+      "verification_status": "DUPLICATE_ROOT_CAUSE",
+      "type": "ARCHITECTURE_RISK",
+      "severity": "P2",
+      "original_severity": "P1",
+      "claude_audit_claim": "AI 'LLM off' governance does not actually stop LLM calls",
+      "codex_independent_finding": "Same issue as G-17. Flags document a local semantic-parser scope. Off does not stop all LLM calls, but this is not proof that the documented flag contract is broken. Define an actual global budget/kill contract separately.",
+      "evidence_refs": [
+        "E07",
+        "E36"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "agreement_or_disagreement": "CORRECTION_OR_UNCERTAINTY",
+      "related_gap_ids": [
+        "G-17"
+      ],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    },
+    {
+      "id": "BDG-02",
+      "verification_status": "PRODUCT_DECISION_REQUIRED",
+      "type": "PRODUCT_FEATURE",
+      "severity": "P3",
+      "original_severity": "P2",
+      "claude_audit_claim": "PaymentProviderType.STRIPE exists with zero implementation",
+      "codex_independent_finding": "No Stripe provider in switch. Dormant enum is not a broken launched payment flow; build only if required.",
+      "evidence_refs": [
+        "E46"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "agreement_or_disagreement": "CORRECTION_OR_UNCERTAINTY",
+      "related_gap_ids": [],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    },
+    {
+      "id": "BDG-03",
+      "verification_status": "CONFIRMED_RESOLVED",
+      "type": "DOCUMENTATION",
+      "severity": "P3",
+      "original_severity": "P3",
+      "claude_audit_claim": "frontend/mobile architecture mis-documented as Capacitor in repo docs",
+      "codex_independent_finding": "Correct architecture is Expo mobile and Capacitor web; verified package/config paths. This confirms correction, not every old document was repaired.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "agreement_or_disagreement": "CORRECTION_OR_UNCERTAINTY",
+      "related_gap_ids": [],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    },
+    {
+      "id": "BDG-04",
+      "verification_status": "PRODUCT_DECISION_REQUIRED",
+      "type": "PRODUCT_FEATURE",
+      "severity": "P2",
+      "original_severity": "P2",
+      "claude_audit_claim": "Admin nav: 3 self-acknowledged missing screens (Membership Oversight, global Audit Log, Notifications)",
+      "codex_independent_finding": "Standalone admin pages deliberately omitted. Existing partner detail/audit context must be considered before adding pages.",
+      "evidence_refs": [
+        "E45"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "agreement_or_disagreement": "CORRECTION_OR_UNCERTAINTY",
+      "related_gap_ids": [],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    },
+    {
+      "id": "BDG-05",
+      "verification_status": "PRODUCT_DECISION_REQUIRED",
+      "type": "DOCUMENTATION",
+      "severity": "P3",
+      "original_severity": "P3",
+      "claude_audit_claim": "Gym-partner onboarding: 6 originally-spec'd sub-routes never built",
+      "codex_independent_finding": "State-driven flow versus originally proposed routes is not by itself a broken workflow. External link compatibility is untested.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "agreement_or_disagreement": "CORRECTION_OR_UNCERTAINTY",
+      "related_gap_ids": [],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    },
+    {
+      "id": "BDG-06",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "PRODUCT_FEATURE",
+      "severity": "P2",
+      "original_severity": "P2",
+      "claude_audit_claim": "Admin active-PT-list view blocked on missing backend API",
+      "codex_independent_finding": "Dedicated active-PT admin screen not source-traced. Public PT search and admin user enrichment exist; blanket missing-backend claim not established.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "agreement_or_disagreement": "CORRECTION_OR_UNCERTAINTY",
+      "related_gap_ids": [],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    },
+    {
+      "id": "BDG-07",
+      "verification_status": "PRODUCT_DECISION_REQUIRED",
+      "type": "PRODUCT_FEATURE",
+      "severity": "P2",
+      "original_severity": "P2",
+      "claude_audit_claim": "Equipment-compliance gate is AI-generation-only; manual/coach programs bypass it",
+      "codex_independent_finding": "Manual caller validates canonical identity; equipment gating differs from AI. Human intentional selections require a product policy.",
+      "evidence_refs": [
+        "E43",
+        "E20"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "agreement_or_disagreement": "CORRECTION_OR_UNCERTAINTY",
+      "related_gap_ids": [],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    },
+    {
+      "id": "BDG-08",
+      "verification_status": "CONFIRMED_OPEN",
+      "type": "PRODUCT_FEATURE",
+      "severity": "P2",
+      "original_severity": "P2",
+      "claude_audit_claim": "PT-dashboard cross-client adherence aggregate does not exist",
+      "codex_independent_finding": "Sampled roster/coach contracts have no roster-wide workout/nutrition adherence projection. This is a missing capability, not a failed existing endpoint.",
+      "evidence_refs": [
+        "E19",
+        "E22",
+        "E23"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "agreement_or_disagreement": "AGREEMENT_WITH_SCOPE_QUALIFICATIONS",
+      "related_gap_ids": [],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    },
+    {
+      "id": "BDG-09",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "DOCUMENTATION",
+      "severity": "P3",
+      "original_severity": "P3",
+      "claude_audit_claim": "UserPreference model flagged as legacy/unmapped",
+      "codex_independent_finding": "UserPreference exists with legacy-table mapping comments. No non-generated service reference found by scoped search; insufficient to prove no external consumer.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "agreement_or_disagreement": "CORRECTION_OR_UNCERTAINTY",
+      "related_gap_ids": [],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    },
+    {
+      "id": "BDG-10",
+      "verification_status": "PRODUCT_DECISION_REQUIRED",
+      "type": "ARCHITECTURE_RISK",
+      "severity": "P2",
+      "original_severity": "P2",
+      "claude_audit_claim": "Deprecated duplicate RAG pipeline has unported Crossref/OpenAlex sources",
+      "codex_independent_finding": "Crossref/OpenAlex connectors exist under knowledge. Porting sources requires provenance, licensing, deduplication and retrieval evaluation; do not assume risk-free benefit.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "agreement_or_disagreement": "CORRECTION_OR_UNCERTAINTY",
+      "related_gap_ids": [],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    },
+    {
+      "id": "BDG-11",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "PRODUCT_FEATURE",
+      "severity": "P2",
+      "original_severity": "P2",
+      "claude_audit_claim": "Account deletion capability not found in either frontend",
+      "codex_independent_finding": "No delete-account implementation identified by bounded search. Export is separate; no claim of repository-wide nonexistence or legal noncompliance.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "agreement_or_disagreement": "CORRECTION_OR_UNCERTAINTY",
+      "related_gap_ids": [
+        "G-28"
+      ],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    },
+    {
+      "id": "BDG-12",
+      "verification_status": "NOT_REPRODUCED_STATICALLY",
+      "type": "SECURITY",
+      "severity": "P1",
+      "original_severity": "P1",
+      "claude_audit_claim": "Web-side query-cache clearing on logout/account-switch not traced by any audit",
+      "codex_independent_finding": "Web has cancelQueries and clear at logout and auth transitions. Original uncertainty is closed at source level; live two-account and refresh races remain untested.",
+      "evidence_refs": [
+        "E24",
+        "E25",
+        "E26"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "agreement_or_disagreement": "CORRECTION_OR_UNCERTAINTY",
+      "related_gap_ids": [],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    },
+    {
+      "id": "BDG-13",
+      "verification_status": "CONFIRMED_OPEN",
+      "type": "DOCUMENTATION",
+      "severity": "P3",
+      "original_severity": "P3",
+      "claude_audit_claim": "GYMINI_PT_PERMISSION_MATRIX.md omits training-side CycleAssessment recommendation approve/reject routes",
+      "codex_independent_finding": "Training approve/reject routes exist beyond nutrition. Update permission documentation in a future authorized change.",
+      "evidence_refs": [
+        "E21",
+        "E23"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "agreement_or_disagreement": "AGREEMENT_WITH_SCOPE_QUALIFICATIONS",
+      "related_gap_ids": [],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    },
+    {
+      "id": "BDG-14",
+      "verification_status": "CONFIRMED_OPEN",
+      "type": "BEHAVIORAL_DEFECT",
+      "severity": "P1",
+      "original_severity": "P1",
+      "claude_audit_claim": "Workout frequency constraint becomes prompt-only when injury-mentioned or combined-plan request",
+      "codex_independent_finding": "Hard frequency semantics differ by generation surface. Injury/combined general-chat path lacks deterministic output count enforcement. No model invocation performed.",
+      "evidence_refs": [
+        "E01",
+        "E03",
+        "E07",
+        "E08"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "agreement_or_disagreement": "AGREEMENT_WITH_SCOPE_QUALIFICATIONS",
+      "related_gap_ids": [],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    },
+    {
+      "id": "BDG-15",
+      "verification_status": "CONFIRMED_OPEN",
+      "type": "BEHAVIORAL_DEFECT",
+      "severity": "P1",
+      "original_severity": "P1",
+      "claude_audit_claim": "Session MOVE requests execute as full plan regeneration, discarding unrelated days",
+      "codex_independent_finding": "Explicit from/to weekday request is interpreted as weekday selection; different count triggers regeneration. Preserve all unrelated session identities/content.",
+      "evidence_refs": [
+        "E05",
+        "E06"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "agreement_or_disagreement": "AGREEMENT_WITH_SCOPE_QUALIFICATIONS",
+      "related_gap_ids": [
+        "BDG-20"
+      ],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    },
+    {
+      "id": "BDG-16",
+      "verification_status": "CONFIRMED_OPEN",
+      "type": "BEHAVIORAL_DEFECT",
+      "severity": "P1",
+      "original_severity": "P1",
+      "claude_audit_claim": "Disclosed physical limitations never become a persistent exercise-exclusion constraint",
+      "codex_independent_finding": "Warning-only injury context and empty draft exclusions do not enforce unresolved limitations. Temporary symptoms must not be blindly persisted as chronic profile injuries. Scope correction: PT client-plan-draft.service.ts DOES prefilter injuries; chat workout gap must not be generalized to all generators. That existing filter is keyword/coarse-bodyPart based and not a complete symptom lifecycle.",
+      "evidence_refs": [
+        "E01",
+        "E02",
+        "E03",
+        "E44"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "agreement_or_disagreement": "AGREEMENT_WITH_SCOPE_QUALIFICATIONS",
+      "related_gap_ids": [
+        "BDG-17"
+      ],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    },
+    {
+      "id": "BDG-17",
+      "verification_status": "DUPLICATE_ROOT_CAUSE",
+      "type": "BEHAVIORAL_DEFECT",
+      "severity": "P1",
+      "original_severity": "P1",
+      "claude_audit_claim": "Workout slot-filling has no constraint slot; nutrition's fix for this was never ported",
+      "codex_independent_finding": "Missing capture/lifecycle semantics shares BDG-16 cause. Existing captured named exclusions survive regeneration; not generic overwrite of stored constraints.",
+      "evidence_refs": [
+        "E01",
+        "E04",
+        "E17"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "agreement_or_disagreement": "CORRECTION_OR_UNCERTAINTY",
+      "related_gap_ids": [
+        "BDG-16"
+      ],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    },
+    {
+      "id": "BDG-18",
+      "verification_status": "CONFIRMED_OPEN",
+      "type": "BEHAVIORAL_DEFECT",
+      "severity": "P1",
+      "original_severity": "P1",
+      "claude_audit_claim": "AI roadmap duration hardcoded to 16 weeks on chat path regardless of user's stated timeline",
+      "codex_independent_finding": "Chat literal 16 is real. Non-chat path forwards timeframe; fallback six is phase duration, not necessarily a global roadmap duration.",
+      "evidence_refs": [
+        "E12",
+        "E13",
+        "E14",
+        "E16"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "agreement_or_disagreement": "AGREEMENT_WITH_SCOPE_QUALIFICATIONS",
+      "related_gap_ids": [],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    },
+    {
+      "id": "BDG-19",
+      "verification_status": "CONFIRMED_OPEN",
+      "type": "ARCHITECTURE_RISK",
+      "severity": "P2",
+      "original_severity": "P2",
+      "claude_audit_claim": "No rollback/compensation and no per-step retry for partially-failed CREATE_PLAN_BUNDLE",
+      "codex_independent_finding": "Truthful partial success exists; durable per-step recovery absent in bundle. Blind retry is unsafe: chat accept omits stable idempotencyKey and ACTIVE roadmap is not reused by DRAFT-only policy.",
+      "evidence_refs": [
+        "E09",
+        "E11",
+        "E15"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "agreement_or_disagreement": "AGREEMENT_WITH_SCOPE_QUALIFICATIONS",
+      "related_gap_ids": [],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    },
+    {
+      "id": "BDG-20",
+      "verification_status": "DUPLICATE_ROOT_CAUSE",
+      "type": "ARCHITECTURE_RISK",
+      "severity": "P2",
+      "original_severity": "P2",
+      "claude_audit_claim": "MOVE, incremental ADD, REMOVE_CONSTRAINT, COMPARE have no real distinct implementation",
+      "codex_independent_finding": "Missing targeted MOVE/ordinal workout replace is real. Global no-COMPARE and only-regeneration claims are false: nutrition hypothetical comparison and several scoped edits exist.",
+      "evidence_refs": [
+        "E05",
+        "E06",
+        "E18",
+        "E48"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "agreement_or_disagreement": "CORRECTION_OR_UNCERTAINTY",
+      "related_gap_ids": [
+        "BDG-15"
+      ],
+      "remaining_uncertainty": "No runtime reproduction; static finding only. Evidence-free rows are not source-verified closures."
+    }
+  ],
+  "production_gaps": [
+    {
+      "id": "G-01",
+      "title": "JWT signing secret falls back to a public literal",
+      "original_severity": "P0",
+      "verification_status": "PARTIALLY_RESOLVED",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [
+        "E27",
+        "E28",
+        "E29"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "current_finding": "Source has guards in both server and Lambda when NODE_ENV=production. Literal fallback remains in auth.service.ts. Production runtime/config and negative boot regression not executed; do not report current confirmed exploitable P0.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-02",
+      "title": "Bearer access tokens written to logs",
+      "original_severity": "P0",
+      "verification_status": "CONFIRMED_OPEN",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [
+        "E31",
+        "E32"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "current_finding": "pino-http still uses an unredacted shared logger. Token-bearing request reaches it; historical live log evidence is not a new live verification. P0 source risk retained.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-03",
+      "title": "No TLS in the repository's production topology",
+      "original_severity": "P0",
+      "verification_status": "PARTIALLY_RESOLVED",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [
+        "E34"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "current_finding": "Current repository has CloudFront HTTPS redirect/default certificate; historical absence-of-TLS-in-all-IaC claim is stale. Served domains, origins and direct access unknown.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-04",
+      "title": "Destructive migrations and no enforced backup/rollback gate",
+      "original_severity": "P0",
+      "verification_status": "CONFIRMED_OPEN",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [
+        "E33"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "current_finding": "Destructive historical migration remains. Potential P0 migration risk, not proof of current loss or that this migration is pending. Snapshot/restore/deployed migration state requires separate evidence.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-05",
+      "title": "OTP stored with an unsalted fast hash; attempt counter reset on resend",
+      "original_severity": "P1",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-06",
+      "title": "Debug OTP disclosure is fail-open on environment misconfiguration",
+      "original_severity": "P1",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-07",
+      "title": "Refresh tokens stored in plaintext; no reuse detection",
+      "original_severity": "P1",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-08",
+      "title": "Admin mutations enforced only at the gateway",
+      "original_severity": "P1",
+      "verification_status": "PARTIALLY_RESOLVED",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [
+        "E30",
+        "E52"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "current_finding": "Role mutation is guarded by verified ADMIN inside auth-service. Tests cover direct requests, not executed here. listUsers and enable/name handlers also have service checks; deployment/regression closure outstanding.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-09",
+      "title": "`/auth/internal/*` reachable through the public proxy; one shared static secret",
+      "original_severity": "P1",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-10",
+      "title": "Inconsistent fail-fast guards for internal secrets",
+      "original_severity": "P1",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-11",
+      "title": "CI does not typecheck, lint code, scan dependencies, or deploy",
+      "original_severity": "P1",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-12",
+      "title": "Deployment target undefined; IaC covers dev only",
+      "original_severity": "P1",
+      "verification_status": "PARTIALLY_RESOLVED",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [
+        "E28",
+        "E34"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "current_finding": "AWS Lambda entry and CloudFront deployment configuration exist; deployment target no longer absent in source. Do not infer live infrastructure or production selection.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-13",
+      "title": "No automated backup or restore drill",
+      "original_severity": "P1",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-14",
+      "title": "Monitoring and alerting not part of production deployment",
+      "original_severity": "P1",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-15",
+      "title": "Health endpoints are liveness-only",
+      "original_severity": "P1",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-16",
+      "title": "Synchronous auth round-trip on every authenticated request",
+      "original_severity": "P1",
+      "verification_status": "PARTIALLY_RESOLVED",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [
+        "E49"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "current_finding": "Fitness middleware has readGatewayVerifiedUser fast path (auth.middleware.ts:37), plus auth-service client with Lambda support. Original every-service HTTP-roundtrip assertion overbroad; gateway still calls verify.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-17",
+      "title": "Conversational Intelligence flag does not govern all LLM use; ships off",
+      "original_severity": "P1",
+      "verification_status": "PRODUCT_DECISION_REQUIRED",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [
+        "E07",
+        "E36"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "current_finding": "Local parser flags do not govern all model calls by documented scope. Define global model governance contract, deduplicate BDG-01.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-18",
+      "title": "LLM timeout budget produces 170-second user-visible turns",
+      "original_severity": "P1",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-19",
+      "title": "Redis, vector store and LLM outage behaviour not verified",
+      "original_severity": "P1",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-20",
+      "title": "Migration history contains drift catch-up; fresh replay not proven for all services",
+      "original_severity": "P1",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-21",
+      "title": "Research artifacts and frozen dataset are untracked by git",
+      "original_severity": "P1",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-22",
+      "title": "No dependency vulnerability assessment completed",
+      "original_severity": "P1",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-23",
+      "title": "Payment webhooks: MoMo and VNPay verified; other providers and money flows unverified",
+      "original_severity": "P1",
+      "verification_status": "PARTIALLY_RESOLVED",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [
+        "E37",
+        "E38",
+        "E47"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "current_finding": "PayOS and ZaloPay signature checks fail closed; webhook service has provider-scoped lookup and idempotent settlement machinery. Full money-flow concurrency/refund reconciliation still unverified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-24",
+      "title": "Authorization audited by sampling; no complete owner-check matrix or isolation suite",
+      "original_severity": "P1",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [
+        "E19",
+        "E20",
+        "E21",
+        "E49",
+        "E50"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "current_finding": "Positive coach samples do not establish all-route isolation. Full backend/frontend ownership matrix and negative revoked/cross-client tests outstanding.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-25",
+      "title": "Login throttling per (IP, email) only; no account lockout",
+      "original_severity": "P2",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-26",
+      "title": "Multiple live PENDING actions per session not constrained",
+      "original_severity": "P2",
+      "verification_status": "CONFIRMED_OPEN",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [
+        "E09",
+        "E42"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "current_finding": "Latest pending-draft selection and action claim exist, but no reviewed-content version on confirm. Multiple-draft policy remains a decision; see NEW-GAP-001 for a separate same-row revision race.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-27",
+      "title": "Nutrition single-active invariant lives only in SQL",
+      "original_severity": "P2",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-28",
+      "title": "Cross-service `user_id` references are soft",
+      "original_severity": "P2",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-29",
+      "title": "Shared exercise cache depends on every caller applying visibility after the read",
+      "original_severity": "P2",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-30",
+      "title": "Development credentials and a credential-bearing script are tracked",
+      "original_severity": "P2",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-31",
+      "title": "Web container runs as root",
+      "original_severity": "P2",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-32",
+      "title": "No redaction policy in the shared logger",
+      "original_severity": "P2",
+      "verification_status": "CONFIRMED_OPEN",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [
+        "E32"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "current_finding": "Shared logger still lacks redact policy; same logging root cause as G-02, not a second independent blocker.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-33",
+      "title": "Rate limits are per IP only",
+      "original_severity": "P2",
+      "verification_status": "PARTIALLY_RESOLVED",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [
+        "E35",
+        "E10"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "current_finding": "Per-user ai-expensive bucket exists on image routes and ai-service has configurable fail-closed provider. Historic no-per-user-quota claim stale in source; deployed provider and budgets unverified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-34",
+      "title": "AI `/health` returns the internal LLM URL",
+      "original_severity": "P2",
+      "verification_status": "CONFIRMED_OPEN",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [
+        "E66"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "current_finding": "AI /health still includes llmUrl and full LLM status; current public deployment exposure is not verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-35",
+      "title": "Operational artifacts tracked in the repository",
+      "original_severity": "P3",
+      "verification_status": "INSUFFICIENT_EVIDENCE",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "current_finding": "Historical claim retained without closure; current path and deployment applicability not fully verified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    },
+    {
+      "id": "G-36",
+      "title": "Demo-only code paths and Lambda entrypoints of unclear status",
+      "original_severity": "P3",
+      "verification_status": "PARTIALLY_RESOLVED",
+      "type": "HISTORICAL_PRODUCTION_RISK",
+      "evidence_refs": [
+        "E28",
+        "E34"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "current_finding": "Lambda entrypoints have real AWS infrastructure counterparts, so blanket legacy/dead-code label rejected. Demo flag exposure still unverified.",
+      "blocker": "DEPLOYMENT_STATE_NOT_VERIFIED; no production access, credentials testing, dependency scan or destructive replay authorized/performed."
+    }
+  ],
+  "new_gaps": [
+    {
+      "id": "NEW-GAP-001",
+      "title": "Draft edits and confirmation are not tied to a reviewed content version",
+      "verification_status": "CONFIRMED_OPEN",
+      "type": "ARCHITECTURE_RISK",
+      "severity": "P1",
+      "evidence_refs": [
+        "E04",
+        "E09",
+        "E10",
+        "E13",
+        "E54"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "codex_independent_finding": "execute reads payload before conditional status claim; revision writes by id without expected payload/version/status. Device A can confirm an old preview after B edits the same action, or an in-flight revision can overwrite payload after confirm has read/claimed it. Conditional confirm/dismiss protection does not cover revision. This is a source-supported race risk, not a reproduced exploit.",
+      "related_gap_ids": [
+        "G-26"
+      ],
+      "remaining_uncertainty": "Runtime interleaving and UI impact not reproduced.",
+      "acceptance_criteria": "Client submits reviewed action revision/content hash; atomic owner/status/revision/expiry claim; revision CAS rejects EXECUTING and stale base; persisted snapshot equals confirmed preview; lost update test across two DB clients."
+    },
+    {
+      "id": "NEW-GAP-002",
+      "title": "Workflow revision counter is incremented but does not prevent lost slot updates",
+      "verification_status": "CONFIRMED_OPEN",
+      "type": "ARCHITECTURE_RISK",
+      "severity": "P2",
+      "evidence_refs": [
+        "E41"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "codex_independent_finding": "workflowStateRepository.update writes slotsJson by id and optionally increments revision without comparing expected revision. Unique active workflow prevents duplicate rows, not two turns replacing each other's captured fields.",
+      "related_gap_ids": [
+        "NEW-GAP-001"
+      ],
+      "remaining_uncertainty": "No real two-device execution; exact affected call-site set needs integration tracing.",
+      "acceptance_criteria": "Two concurrent distinct corrections either merge without dropping fields or one receives explicit conflict/reload. State predicates cover lifecycle transitions; do not merely add another counter."
+    },
+    {
+      "id": "NEW-GAP-003",
+      "title": "Service-like model endpoints accept ordinary end-user tokens outside per-user generation buckets",
+      "verification_status": "CONFIRMED_OPEN",
+      "type": "SECURITY_AND_COST_GOVERNANCE_RISK",
+      "severity": "P1",
+      "evidence_refs": [
+        "E64",
+        "E65",
+        "E66"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "codex_independent_finding": "Router-wide requireAuth accepts normal bearer JWTs. analyze-cycle/assess-cycle/analyze-feedback/generate-client-plan-draft/generate-roadmap-draft/explain-exercise-progression omit the limiter used by ask/generate-workout. Client-plan controller passes validated body userId and context to LLM generation without service-only enforcement. An authenticated caller can reach these model-call paths without consuming ai-ask/ai-expensive buckets. This is a local-route policy gap; API Gateway/WAF exposure and deployment limits are unknown. It does not demonstrate access to another client's stored data, because this sampled generator consumes submitted payload.",
+      "related_gap_ids": [
+        "G-33",
+        "G-24"
+      ],
+      "remaining_uncertainty": "No request executed, costs incurred or external route exposure tested; no customer data read.",
+      "acceptance_criteria": "Classify each endpoint trusted-service-only versus public; enforce that boundary in service. Public endpoints bind identity/accounting to verified caller and consume shared distributed quota/cost budget. Negative JWT/service-secret/rate-budget bypass tests and actual deployed routing evidence."
+    }
+  ]
+}

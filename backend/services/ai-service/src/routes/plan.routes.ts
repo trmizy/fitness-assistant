@@ -130,6 +130,12 @@ router.post(
 );
 
 /**
+ * POST /plans/:planId/revert
+ * Undo an adjustment: restore the plan this (adjusted) plan replaced.
+ */
+router.post("/:planId/revert", planController.revertPlanAdjustment);
+
+/**
  * GET /plans/pt/pending-review
  * PT fetches plans pending their review.
  * MUST be before /:planId to avoid "pt" being matched as a planId.

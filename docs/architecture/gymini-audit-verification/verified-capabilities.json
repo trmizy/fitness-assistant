@@ -1,0 +1,3068 @@
+{
+  "scope": "PARTIAL_SOURCE_VERIFICATION",
+  "original_status_counts": {
+    "IMPLEMENTED_NOT_RUNTIME_VERIFIED": 9,
+    "IMPLEMENTED_AND_VERIFIED": 58,
+    "UNKNOWN_INSUFFICIENT_EVIDENCE": 3,
+    "PARTIALLY_IMPLEMENTED": 16,
+    "BROKEN_OR_INCONSISTENT": 3,
+    "MOCK_OR_SEED_ONLY": 1,
+    "PLANNED_NOT_IMPLEMENTED": 7,
+    "FEATURE_FLAGGED_OFF": 4
+  },
+  "domains": [
+    {
+      "id": "DOM-01",
+      "name": "Identity, Account & User Lifecycle",
+      "owning_service": "auth-service"
+    },
+    {
+      "id": "DOM-02",
+      "name": "Onboarding & Personalization",
+      "owning_service": "user-service,fitness-service"
+    },
+    {
+      "id": "DOM-03",
+      "name": "Workout & Exercise Management",
+      "owning_service": "fitness-service"
+    },
+    {
+      "id": "DOM-04",
+      "name": "Nutrition & Meal Management",
+      "owning_service": "fitness-service"
+    },
+    {
+      "id": "DOM-05",
+      "name": "Body Measurements & InBody",
+      "owning_service": "user-service"
+    },
+    {
+      "id": "DOM-06",
+      "name": "Long-Term Fitness Roadmap",
+      "owning_service": "fitness-service"
+    },
+    {
+      "id": "DOM-07",
+      "name": "PT Discovery & Recommendation",
+      "owning_service": "user-service,ai-service"
+    },
+    {
+      "id": "DOM-08",
+      "name": "PT Client Management",
+      "owning_service": "user-service,fitness-service,ai-service"
+    },
+    {
+      "id": "DOM-09",
+      "name": "AI Conversational Coach / Agent",
+      "owning_service": "ai-service"
+    },
+    {
+      "id": "DOM-10",
+      "name": "Notifications & Communications",
+      "owning_service": "user-service"
+    },
+    {
+      "id": "DOM-11",
+      "name": "Payments, Plans & Commercial",
+      "owning_service": "payment-service"
+    },
+    {
+      "id": "DOM-12",
+      "name": "Gym Management / Partner Portal",
+      "owning_service": "gym-service"
+    },
+    {
+      "id": "DOM-13",
+      "name": "Health & Safety",
+      "owning_service": "ai-service"
+    },
+    {
+      "id": "DOM-14",
+      "name": "Admin & Platform Operations",
+      "owning_service": "cross-cutting"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "CAP-01-01",
+      "domain": "DOM-01",
+      "name": "Registration + email OTP verification",
+      "claimed_status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
+      "claimed_evidence": "auth.routes.ts register/register-verify; weak OTP hashing see gap G-05",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "auth-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-01-02",
+      "domain": "DOM-01",
+      "name": "Login (rate-limited)",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "gateway authRateLimiter 20/15min, LIVE_LOCAL confirmed",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "auth-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-01-03",
+      "domain": "DOM-01",
+      "name": "Token refresh / logout",
+      "claimed_status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
+      "claimed_evidence": "refresh tokens plaintext, no reuse detection, gap G-07",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E25",
+        "E26"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "frontend/web/src/app/context/AppContext.tsx",
+        "frontend/mobile/src/context/AppContext.tsx"
+      ],
+      "owning_business_service": "auth-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-01-04",
+      "domain": "DOM-01",
+      "name": "Password reset",
+      "claimed_status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
+      "claimed_evidence": "PasswordResetToken model + route",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "auth-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-01-05",
+      "domain": "DOM-01",
+      "name": "Role assignment",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "auth-service Role enum CUSTOMER/PT/ADMIN/GYM_OWNER; admin mutation gateway-only enforced, gap G-08",
+      "independent_verdict": "INCORRECT_CLASSIFICATION",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E30",
+        "E52"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/auth-service/src/controllers/auth.controller.ts",
+        "backend/services/auth-service/src/__tests__/role-change-authorization.test.ts"
+      ],
+      "owning_business_service": "auth-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [
+        "E52"
+      ],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-01-06",
+      "domain": "DOM-01",
+      "name": "One account, client+pt dual capability",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "role is a single mutually-exclusive enum (not multi-role), but functional dual-capability works because ownership is checked by userId not role; resolved by PT-copilot agent",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "auth-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-01-07",
+      "domain": "DOM-01",
+      "name": "Admin user management",
+      "claimed_status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
+      "claimed_evidence": "auth.routes.ts PATCH users/:id/*, gateway-only role check, gap G-08",
+      "independent_verdict": "INCORRECT_CLASSIFICATION",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E30",
+        "E52"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/auth-service/src/controllers/auth.controller.ts",
+        "backend/services/auth-service/src/__tests__/role-change-authorization.test.ts"
+      ],
+      "owning_business_service": "auth-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-01-08",
+      "domain": "DOM-01",
+      "name": "Gym-partner self-onboarding account creation",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "partner-application.routes.ts",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "auth-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-01-09",
+      "domain": "DOM-01",
+      "name": "Consent/privacy/data export-deletion",
+      "claimed_status": "UNKNOWN_INSUFFICIENT_EVIDENCE",
+      "claimed_evidence": "export confirmed both platforms; deletion capability not found, see gap BDG-11",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "auth-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-01-10",
+      "domain": "DOM-01",
+      "name": "Session cache isolation on logout/switch",
+      "claimed_status": "PARTIALLY_IMPLEMENTED",
+      "claimed_evidence": "mobile queryClient.clear() confirmed; web not traced, see gap BDG-12",
+      "independent_verdict": "INCORRECT_CLASSIFICATION",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E24",
+        "E25",
+        "E26"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "frontend/web/src/app/context/AppContext.tsx",
+        "frontend/mobile/src/context/AppContext.tsx"
+      ],
+      "owning_business_service": "auth-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-02-01",
+      "domain": "DOM-02",
+      "name": "Client onboarding wizard",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "/client/onboarding web + mobile",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service,fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-02-02",
+      "domain": "DOM-02",
+      "name": "Equipment availability capture",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "UserEquipment model, training-equipment routes",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service,fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-02-03",
+      "domain": "DOM-02",
+      "name": "Post-onboarding profile edits propagating downstream",
+      "claimed_status": "UNKNOWN_INSUFFICIENT_EVIDENCE",
+      "claimed_evidence": "not yet traced",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service,fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-02-04",
+      "domain": "DOM-02",
+      "name": "PT-specific intake/safety questionnaire",
+      "claimed_status": "PARTIALLY_IMPLEMENTED",
+      "claimed_evidence": "design review docs, proposal status unclear",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service,fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-03-01",
+      "domain": "DOM-03",
+      "name": "Exercise catalog browse/detail/search",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "exercise.routes.ts ~13 routes",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-03-02",
+      "domain": "DOM-03",
+      "name": "Custom exercise creation",
+      "claimed_status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
+      "claimed_evidence": "USER_CUSTOM visibility; shared cache risk gap G-29",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-03-03",
+      "domain": "DOM-03",
+      "name": "Admin duplicate-exercise review queue",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "ExerciseReviewDecision model, /admin/exercise-review",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-03-04",
+      "domain": "DOM-03",
+      "name": "Manual workout/program creation",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "workout.routes.ts ~30 routes; no equipment validation on this path, gap BDG-07",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E43"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/fitness-service/src/services/workout.service.ts"
+      ],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-03-05",
+      "domain": "DOM-03",
+      "name": "AI-generated workout plan",
+      "claimed_status": "PARTIALLY_IMPLEMENTED",
+      "claimed_evidence": "full pipeline exists, exercise-catalog grounding robust (Case E fixed); frequency-enforcement and injury-exclusion defects confirmed (BDG-14, BDG-16, BDG-17); governance caveat BDG-01",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; source/service/route guards do not prove full workflow.",
+      "evidence_refs": [
+        "E01",
+        "E02",
+        "E03",
+        "E07",
+        "E57",
+        "E58",
+        "E78"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/ai-service/src/agent-workflow/workflows/create-workout-plan.workflow.ts",
+        "backend/services/ai-service/src/services/fitness-agent.service.ts",
+        "backend/services/ai-service/src/llm/orchestrator.service.ts",
+        "backend/services/ai-service/src/services/client-plan-draft.service.ts",
+        "backend/services/ai-service/src/workers/ai.worker.ts"
+      ],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [
+        "E51",
+        "E53"
+      ],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-03-06",
+      "domain": "DOM-03",
+      "name": "Workout logging / active session tracking",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "WorkoutSet/WorkoutSetSegment models",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-03-07",
+      "domain": "DOM-03",
+      "name": "Exercise substitution",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "getExerciseSubstitute tool + catalog routes",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-03-08",
+      "domain": "DOM-03",
+      "name": "Supersets/drop-sets/training techniques",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "WorkoutProgramExerciseGroup models",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-03-09",
+      "domain": "DOM-03",
+      "name": "Import from Hevy/Strong/FitNotes",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "import.routes.ts, idempotent unique constraint",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-03-10",
+      "domain": "DOM-03",
+      "name": "Workout templates create/share",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "template.routes.ts, closed Phase-14B",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-03-11",
+      "domain": "DOM-03",
+      "name": "Reschedule session / recovery-day handling",
+      "claimed_status": "BROKEN_OR_INCONSISTENT",
+      "claimed_evidence": "confirmed Case B CONFIRMED_LIVE_DEFECT: a move request executes as full plan regeneration, discarding unrelated days. See gap BDG-15",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E05",
+        "E06",
+        "E48"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/ai-service/src/services/fitness-agent.service.ts",
+        "backend/services/ai-service/src/services/revision/workout-guards.ts"
+      ],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-03-12",
+      "domain": "DOM-03",
+      "name": "Progress analytics",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "stats.routes.ts 8 routes",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-03-13",
+      "domain": "DOM-03",
+      "name": "Training Cycle + CycleAssessment",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "training-cycle.routes.ts ~22 routes, DB partial unique index VERIFIED_OK",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; source/service/route guards do not prove full workflow.",
+      "evidence_refs": [
+        "E55",
+        "E56",
+        "E73"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/ai-service/src/schemas/cycle-assessment.schemas.ts",
+        "backend/services/ai-service/src/services/cycle-assessment.service.ts",
+        "backend/services/ai-service/src/services/cycle-analysis.service.ts"
+      ],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-04-01",
+      "domain": "DOM-04",
+      "name": "Nutrition goal (authoritative)",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "NutritionGoal model, invariant only in migration not schema comment, gap G-27",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-04-02",
+      "domain": "DOM-04",
+      "name": "Nutrition Program derived from goal",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "sourceGoalId linkage, VERIFIED per corpus",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-04-03",
+      "domain": "DOM-04",
+      "name": "Food logging / meal completion",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "NutritionMealCompletion model",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-04-04",
+      "domain": "DOM-04",
+      "name": "AI-generated nutrition plan",
+      "claimed_status": "PARTIALLY_IMPLEMENTED",
+      "claimed_evidence": "one real invariant-violation bug fixed historically, worth regression check",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-04-05",
+      "domain": "DOM-04",
+      "name": "AI meal-item substitution",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "nutrition-agent.routes.ts",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E39",
+        "E40"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/fitness-service/src/services/nutrition-agent.service.ts",
+        "backend/services/fitness-service/src/services/nutrition.service.ts"
+      ],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-04-06",
+      "domain": "DOM-04",
+      "name": "Food catalog",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "FoodSource model, food.routes.ts",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-04-07",
+      "domain": "DOM-04",
+      "name": "Dietary restrictions/allergy handling",
+      "claimed_status": "PARTIALLY_IMPLEMENTED",
+      "claimed_evidence": "safety signal detects disclosure; durability across turns pending Case D",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E17"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/ai-service/src/services/fitness-agent.service.ts"
+      ],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-04-08",
+      "domain": "DOM-04",
+      "name": "Standalone chat CREATE_NUTRITION_PLAN",
+      "claimed_status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
+      "claimed_evidence": "broader AI-coach surface concluded DEMO READY = NO as of 2026-09-20",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E17",
+        "E18"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/ai-service/src/services/fitness-agent.service.ts",
+        "backend/services/ai-service/src/services/revision/nutrition-revision.ts"
+      ],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-05-01",
+      "domain": "DOM-05",
+      "name": "Manual InBody entry",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "inbody.routes.ts",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-05-02",
+      "domain": "DOM-05",
+      "name": "Photo-scan InBody extraction",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "moved to local vision model 2026-09-01",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-05-03",
+      "domain": "DOM-05",
+      "name": "Body composition history/trend viz",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "BodyMetrics model",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-05-04",
+      "domain": "DOM-05",
+      "name": "Historical destructive InBody migration",
+      "claimed_status": "BROKEN_OR_INCONSISTENT",
+      "claimed_evidence": "gap G-04, P0, DELETE FROM inbody_entries in a migration",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E33"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/user-service/prisma/migrations/20260528_inbody_unique_per_day/migration.sql"
+      ],
+      "owning_business_service": "user-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-05-05",
+      "domain": "DOM-05",
+      "name": "PT/Coach analytics over client InBody history",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "mobile PT student-detail screen",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E21"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/fitness-service/src/services/coach.service.ts"
+      ],
+      "owning_business_service": "user-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-05-06",
+      "domain": "DOM-05",
+      "name": "AI explanation of body-composition trend",
+      "claimed_status": "PARTIALLY_IMPLEMENTED",
+      "claimed_evidence": "fetchInBodyHistory swallows errors as empty array",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-06-01",
+      "domain": "DOM-06",
+      "name": "Roadmap creation (guided wizard)",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "per corpus claim, not independently re-verified",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E15",
+        "E16"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/fitness-service/src/services/fitness-roadmap.service.ts"
+      ],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-06-02",
+      "domain": "DOM-06",
+      "name": "AI roadmap draft + accept",
+      "claimed_status": "PARTIALLY_IMPLEMENTED",
+      "claimed_evidence": "proposed-vs-persisted boundary confirmed real, BUT chat-path duration is hardcoded to 16 weeks regardless of user's stated timeline, confirmed Case G, see gap BDG-18",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E12",
+        "E13",
+        "E14",
+        "E16"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/ai-service/src/services/fitness-agent.service.ts",
+        "backend/services/ai-service/src/services/roadmap-draft.service.ts",
+        "backend/services/fitness-service/src/services/fitness-roadmap.service.ts"
+      ],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-06-03",
+      "domain": "DOM-06",
+      "name": "Roadmap projection / adaptive forecast",
+      "claimed_status": "PARTIALLY_IMPLEMENTED",
+      "claimed_evidence": "one named gap (Gap D) in latest closure verification",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-06-04",
+      "domain": "DOM-06",
+      "name": "Cross-system journey (onboarding to roadmap to workout/nutrition to assessment)",
+      "claimed_status": "PARTIALLY_IMPLEMENTED",
+      "claimed_evidence": "3 P0 bugs found+fixed in that pass; latest state VERIFIED",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-06-05",
+      "domain": "DOM-06",
+      "name": "PT integration with client roadmap",
+      "claimed_status": "PARTIALLY_IMPLEMENTED",
+      "claimed_evidence": "PT-positive E2E explicitly BLOCKED on human-dependency testing",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E21"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/fitness-service/src/services/coach.service.ts"
+      ],
+      "owning_business_service": "fitness-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-07-01",
+      "domain": "DOM-07",
+      "name": "PT search/filter/listing",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "profile.routes.ts PT listing",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service,ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-07-02",
+      "domain": "DOM-07",
+      "name": "PT recommendation scoring",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "findPTCandidates agent tool",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service,ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-07-03",
+      "domain": "DOM-07",
+      "name": "PT booking/consultation",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "PTAvailability, SessionRescheduleRequest models",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service,ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-07-04",
+      "domain": "DOM-07",
+      "name": "PT-client contract lifecycle",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "contract.routes.ts ~15 routes",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service,ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-07-05",
+      "domain": "DOM-07",
+      "name": "Decline a recommendation and get alternative without repeating profile",
+      "claimed_status": "UNKNOWN_INSUFFICIENT_EVIDENCE",
+      "claimed_evidence": "scenario 6, not yet traced",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service,ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-07-06",
+      "domain": "DOM-07",
+      "name": "Synthetic/demo PT performance data",
+      "claimed_status": "MOCK_OR_SEED_ONLY",
+      "claimed_evidence": "explicitly self-labeled synthetic",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service,ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-08-01",
+      "domain": "DOM-08",
+      "name": "PT client roster/detail",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "PTClientList/PTClientDetail web, students/* mobile",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E19",
+        "E22",
+        "E23"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/fitness-service/src/services/coach.service.ts",
+        "backend/services/user-service/src/services/contract.service.ts",
+        "backend/services/fitness-service/src/routes/coach.routes.ts"
+      ],
+      "owning_business_service": "user-service,fitness-service,ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-08-02",
+      "domain": "DOM-08",
+      "name": "PT assigns training program to client",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "assign-plan.tsx, coach.routes.ts",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E20",
+        "E43"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/fitness-service/src/services/coach.service.ts",
+        "backend/services/fitness-service/src/services/workout.service.ts"
+      ],
+      "owning_business_service": "user-service,fitness-service,ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-08-03",
+      "domain": "DOM-08",
+      "name": "PT reviews/edits/rejects CycleAssessment proposal",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "coach.service.ts:206-275 (nutrition) + 556-594 (training, undocumented in permission matrix, see BDG-13); mutates only userDecision, never the AI's own decision field",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E21",
+        "E23"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/fitness-service/src/services/coach.service.ts",
+        "backend/services/fitness-service/src/routes/coach.routes.ts"
+      ],
+      "owning_business_service": "user-service,fitness-service,ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-08-04",
+      "domain": "DOM-08",
+      "name": "PT-dashboard cross-client aggregate",
+      "claimed_status": "PLANNED_NOT_IMPLEMENTED",
+      "claimed_evidence": "confirmed NOT_IMPLEMENTED by direct trace, see gap BDG-08",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E19",
+        "E22",
+        "E23"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/fitness-service/src/services/coach.service.ts",
+        "backend/services/user-service/src/services/contract.service.ts",
+        "backend/services/fitness-service/src/routes/coach.routes.ts"
+      ],
+      "owning_business_service": "user-service,fitness-service,ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-08-05",
+      "domain": "DOM-08",
+      "name": "PT-client messaging",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "chat-service Conversation/Message",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; source/service/route guards do not prove full workflow.",
+      "evidence_refs": [
+        "E62",
+        "E63"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/chat-service/src/services/chat.policy.ts",
+        "backend/services/chat-service/src/services/chat.service.ts"
+      ],
+      "owning_business_service": "user-service,fitness-service,ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-08-06",
+      "domain": "DOM-08",
+      "name": "PT contracts / e-signature",
+      "claimed_status": "PARTIALLY_IMPLEMENTED",
+      "claimed_evidence": "web removed PDF-download button; scope narrowed over time",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service,fitness-service,ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-08-07",
+      "domain": "DOM-08",
+      "name": "Multi-client AI batch operations",
+      "claimed_status": "PARTIALLY_IMPLEMENTED",
+      "claimed_evidence": "single-client generatePlanDraft real and production-tested, draft-only; no batch orchestration exists",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E20",
+        "E23"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/fitness-service/src/services/coach.service.ts",
+        "backend/services/fitness-service/src/routes/coach.routes.ts"
+      ],
+      "owning_business_service": "user-service,fitness-service,ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-09-01",
+      "domain": "DOM-09",
+      "name": "Core chat /ai/ask",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "full call chain traced; governance caveat BDG-01",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E07",
+        "E08"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/ai-service/src/llm/orchestrator.service.ts"
+      ],
+      "owning_business_service": "ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-09-02",
+      "domain": "DOM-09",
+      "name": "Multi-turn slot-filling workflows (5 registered)",
+      "claimed_status": "PARTIALLY_IMPLEMENTED",
+      "claimed_evidence": "Postgres-backed; constraint preservation pending Case D",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E01",
+        "E17",
+        "E41"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/ai-service/src/agent-workflow/workflows/create-workout-plan.workflow.ts",
+        "backend/services/ai-service/src/services/fitness-agent.service.ts",
+        "backend/services/ai-service/src/agent-workflow/workflow-state.repository.ts"
+      ],
+      "owning_business_service": "ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-09-03",
+      "domain": "DOM-09",
+      "name": "True LLM tool-calling",
+      "claimed_status": "FEATURE_FLAGGED_OFF",
+      "claimed_evidence": "ENABLE_TOOL_CALLING false in code and prod compose",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; source/service/route guards do not prove full workflow.",
+      "evidence_refs": [
+        "E07",
+        "E36",
+        "E59",
+        "E60"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/ai-service/src/llm/orchestrator.service.ts",
+        "backend/services/ai-service/src/conversational-intelligence/index.ts",
+        "backend/services/ai-service/src/llm/tools.ts"
+      ],
+      "owning_business_service": "ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "Code default only; DEPLOYMENT_STATE_NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-09-04",
+      "domain": "DOM-09",
+      "name": "Conversational Intelligence V2",
+      "claimed_status": "FEATURE_FLAGGED_OFF",
+      "claimed_evidence": "CONVERSATIONAL_INTELLIGENCE_V2 off, not set in prod compose",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E36"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/ai-service/src/conversational-intelligence/index.ts"
+      ],
+      "owning_business_service": "ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "Code default only; DEPLOYMENT_STATE_NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-09-05",
+      "domain": "DOM-09",
+      "name": "Unified AI Coach",
+      "claimed_status": "FEATURE_FLAGGED_OFF",
+      "claimed_evidence": "latest corpus work concludes shadow-only readiness",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E36"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/ai-service/src/conversational-intelligence/index.ts"
+      ],
+      "owning_business_service": "ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "Code default only; DEPLOYMENT_STATE_NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-09-06",
+      "domain": "DOM-09",
+      "name": "RAG / fitness-knowledge grounding",
+      "claimed_status": "PARTIALLY_IMPLEMENTED",
+      "claimed_evidence": "authoritative vs self-documented-deprecated pipeline coexist, gap BDG-10",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; source/service/route guards do not prove full workflow.",
+      "evidence_refs": [
+        "E75",
+        "E76"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/ai-service/src/llm/retriever.ts"
+      ],
+      "owning_business_service": "ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-09-07",
+      "domain": "DOM-09",
+      "name": "AI image analysis",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "fitness-goal-vision.service.ts, GoalImageSchema",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; source/service/route guards do not prove full workflow.",
+      "evidence_refs": [
+        "E10",
+        "E79",
+        "E81"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/ai-service/src/routes/fitness-agent.routes.ts",
+        "backend/services/ai-service/src/services/fitness-goal-vision.service.ts"
+      ],
+      "owning_business_service": "ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-09-08",
+      "domain": "DOM-09",
+      "name": "Marketplace plan moderation AI assist",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "plan-moderation-analysis.schemas.ts",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; source/service/route guards do not prove full workflow.",
+      "evidence_refs": [
+        "E70",
+        "E71"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/ai-service/src/services/plan-moderation-analysis.service.ts",
+        "backend/services/ai-service/src/services/plan-improvement.service.ts"
+      ],
+      "owning_business_service": "ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-09-09",
+      "domain": "DOM-09",
+      "name": "Health/safety routing",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "deterministic only, no ML classifier currently load-bearing",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-10-01",
+      "domain": "DOM-10",
+      "name": "In-app notification list/read/preferences",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "notification.routes.ts 8 routes",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-10-02",
+      "domain": "DOM-10",
+      "name": "Push notifications (mobile)",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "expo-notifications, PushManager",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-10-03",
+      "domain": "DOM-10",
+      "name": "Historical missing-enum notification defect",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "fixed via migration, git log 34682ea7",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-10-04",
+      "domain": "DOM-10",
+      "name": "PT-copilot-drafted outbound check-in messages",
+      "claimed_status": "PLANNED_NOT_IMPLEMENTED",
+      "claimed_evidence": "confirmed NOT_IMPLEMENTED: zero LLM-to-notification call sites found anywhere in the repo",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-10-05",
+      "domain": "DOM-10",
+      "name": "Platform admin notification oversight screen",
+      "claimed_status": "PLANNED_NOT_IMPLEMENTED",
+      "claimed_evidence": "self-acknowledged in adminNav code comment",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "user-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-11-01",
+      "domain": "DOM-11",
+      "name": "Wallet",
+      "claimed_status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
+      "claimed_evidence": "module listed NOT_VERIFIED by prior audit",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "payment-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-11-02",
+      "domain": "DOM-11",
+      "name": "MoMo/VNPay payment+webhook",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "signature verification + fail-closed confirmed",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "payment-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-11-03",
+      "domain": "DOM-11",
+      "name": "PayOS/ZaloPay payment+webhook",
+      "claimed_status": "PARTIALLY_IMPLEMENTED",
+      "claimed_evidence": "provider code exists, webhook verification not traced, gap G-23",
+      "independent_verdict": "INCORRECT_CLASSIFICATION",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E37",
+        "E38",
+        "E47"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/payment-service/src/providers/payos.provider.ts",
+        "backend/services/payment-service/src/providers/zalopay.provider.ts",
+        "backend/services/payment-service/src/services/webhook.service.ts"
+      ],
+      "owning_business_service": "payment-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-11-04",
+      "domain": "DOM-11",
+      "name": "Stripe",
+      "claimed_status": "PLANNED_NOT_IMPLEMENTED",
+      "claimed_evidence": "enum value only, no provider, gap BDG-02",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E46"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/payment-service/src/services/payment.service.ts"
+      ],
+      "owning_business_service": "payment-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-11-05",
+      "domain": "DOM-11",
+      "name": "PT sellable packages / 1:1 marketplace",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "personalized-service.routes.ts ~28 routes",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "payment-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-11-06",
+      "domain": "DOM-11",
+      "name": "Gym membership plans/contracts",
+      "claimed_status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
+      "claimed_evidence": "module listed NOT_VERIFIED by prior audit",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "payment-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-11-07",
+      "domain": "DOM-11",
+      "name": "Platform commission/partner receivables",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "PlatformCommissionRate, admin/commission-rate route",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "payment-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-11-08",
+      "domain": "DOM-11",
+      "name": "Refunds/withdrawal approval",
+      "claimed_status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
+      "claimed_evidence": "routes exist, idempotency/double-credit not audited, gap G-23",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "payment-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-12-01",
+      "domain": "DOM-12",
+      "name": "Gym-partner self-service onboarding",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "full doc chain + independently re-verified route gaps",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "gym-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-12-02",
+      "domain": "DOM-12",
+      "name": "OWNER vs MANAGER permission split",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "confirmed 3 independent places, web/mobile/backend, no contradiction",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "gym-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-12-03",
+      "domain": "DOM-12",
+      "name": "Branch management",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "closed Phase-14B commit 16f620b8",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "gym-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-12-04",
+      "domain": "DOM-12",
+      "name": "Gym-PT collaboration",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "GymPtCollaboration model",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "gym-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-12-05",
+      "domain": "DOM-12",
+      "name": "Front-desk QR check-in",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "GymCheckIn model, camera+share mobile flow",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "gym-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-12-06",
+      "domain": "DOM-12",
+      "name": "Admin partner oversight",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "8-tab detail, closed Phase-14B commit 0f073ac3",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "gym-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-12-07",
+      "domain": "DOM-12",
+      "name": "Admin active-PT-list view",
+      "claimed_status": "PLANNED_NOT_IMPLEMENTED",
+      "claimed_evidence": "blocked on missing backend API, gap BDG-06",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "gym-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-13-01",
+      "domain": "DOM-13",
+      "name": "Deterministic safety gate (12 categories)",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "safety_guard.ts, runs first in orchestrator",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-13-02",
+      "domain": "DOM-13",
+      "name": "Symptom-aware safety signal classification",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "safety-signals.ts, fails closed on RAG",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-13-03",
+      "domain": "DOM-13",
+      "name": "BMI-aware target-weight rejection",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "target-weight-safety.ts, narrow scope only",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-13-04",
+      "domain": "DOM-13",
+      "name": "ML-based safety/routing classifier",
+      "claimed_status": "FEATURE_FLAGGED_OFF",
+      "claimed_evidence": "trained offline, model artifacts directory empty in this checkout",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; source/service/route guards do not prove full workflow.",
+      "evidence_refs": [
+        "E68",
+        "E69"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/ai-service/src/llm/query-classifiers/classifier-runtime.ts"
+      ],
+      "owning_business_service": "ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "Code default only; DEPLOYMENT_STATE_NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-13-05",
+      "domain": "DOM-13",
+      "name": "Constraint persistence across turns",
+      "claimed_status": "BROKEN_OR_INCONSISTENT",
+      "claimed_evidence": "confirmed Case C/D CONFIRMED_LIVE_DEFECT: no chat-writable injuries field, no exclusion slot in CREATE_WORKOUT_PLAN workflow; nutrition workflow has the fix, workout never got it. See gaps BDG-16, BDG-17",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E01",
+        "E02",
+        "E04",
+        "E17"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/ai-service/src/agent-workflow/workflows/create-workout-plan.workflow.ts",
+        "backend/services/ai-service/src/services/fitness-agent.service.ts"
+      ],
+      "owning_business_service": "ai-service",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-14-01",
+      "domain": "DOM-14",
+      "name": "User management",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "/admin/users",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E30",
+        "E52"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/auth-service/src/controllers/auth.controller.ts",
+        "backend/services/auth-service/src/__tests__/role-change-authorization.test.ts"
+      ],
+      "owning_business_service": "cross-cutting",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-14-02",
+      "domain": "DOM-14",
+      "name": "PT application review",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "pt_application.routes.ts 11 routes",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; source/service/route guards do not prove full workflow.",
+      "evidence_refs": [
+        "E80"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "backend/services/user-service/src/routes/pt_application.routes.ts"
+      ],
+      "owning_business_service": "cross-cutting",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-14-03",
+      "domain": "DOM-14",
+      "name": "Marketplace moderation",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "admin-marketplace.routes.ts",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "cross-cutting",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-14-04",
+      "domain": "DOM-14",
+      "name": "Finance overview + reconciliation",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "closed Phase-14B commit 0f073ac3",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "cross-cutting",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-14-05",
+      "domain": "DOM-14",
+      "name": "Global cross-partner audit-log view",
+      "claimed_status": "PLANNED_NOT_IMPLEMENTED",
+      "claimed_evidence": "self-acknowledged gap, gap BDG-04",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E45"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "frontend/web/src/app/components/layout/Sidebar.tsx"
+      ],
+      "owning_business_service": "cross-cutting",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-14-06",
+      "domain": "DOM-14",
+      "name": "Membership oversight screen",
+      "claimed_status": "PLANNED_NOT_IMPLEMENTED",
+      "claimed_evidence": "self-acknowledged gap, gap BDG-04",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "verification_scope": "Scoped source trace only; whole capability and all clients are not proven.",
+      "evidence_refs": [
+        "E45"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "confidence": "MEDIUM",
+      "frontend_entry_point": null,
+      "backend_entry_point": [
+        "frontend/web/src/app/components/layout/Sidebar.tsx"
+      ],
+      "owning_business_service": "cross-cutting",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-14-07",
+      "domain": "DOM-14",
+      "name": "AI observability",
+      "claimed_status": "IMPLEMENTED_AND_VERIFIED",
+      "claimed_evidence": "/admin/ai-observability",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "cross-cutting",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    },
+    {
+      "id": "CAP-14-08",
+      "domain": "DOM-14",
+      "name": "System monitoring",
+      "claimed_status": "PARTIALLY_IMPLEMENTED",
+      "claimed_evidence": "UI exists; no Prometheus/Grafana/Alertmanager in prod compose, gap G-14",
+      "independent_verdict": "NOT_VERIFIED",
+      "verification_scope": "Inventory consistency check only; no complete independent source trace.",
+      "evidence_refs": [],
+      "evidence_levels": [
+        "DOCUMENTED_ONLY"
+      ],
+      "confidence": "UNASSESSED",
+      "frontend_entry_point": null,
+      "backend_entry_point": [],
+      "owning_business_service": "cross-cutting",
+      "persistence_model": null,
+      "authorization": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "validation": "See referenced scoped trace; otherwise NOT_VERIFIED",
+      "relevant_tests": [],
+      "feature_flag_state": "NOT_VERIFIED",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "Frontend/backend/persistence/permission cross-product not exhaustively traced; null fields explicitly mean NOT_VERIFIED."
+    }
+  ],
+  "unverified_ids": [
+    "CAP-01-01",
+    "CAP-01-02",
+    "CAP-01-04",
+    "CAP-01-06",
+    "CAP-01-08",
+    "CAP-01-09",
+    "CAP-02-01",
+    "CAP-02-02",
+    "CAP-02-03",
+    "CAP-02-04",
+    "CAP-03-01",
+    "CAP-03-02",
+    "CAP-03-03",
+    "CAP-03-06",
+    "CAP-03-07",
+    "CAP-03-08",
+    "CAP-03-09",
+    "CAP-03-10",
+    "CAP-03-12",
+    "CAP-04-01",
+    "CAP-04-02",
+    "CAP-04-03",
+    "CAP-04-04",
+    "CAP-04-06",
+    "CAP-05-01",
+    "CAP-05-02",
+    "CAP-05-03",
+    "CAP-05-06",
+    "CAP-06-03",
+    "CAP-06-04",
+    "CAP-07-01",
+    "CAP-07-02",
+    "CAP-07-03",
+    "CAP-07-04",
+    "CAP-07-05",
+    "CAP-07-06",
+    "CAP-08-06",
+    "CAP-09-09",
+    "CAP-10-01",
+    "CAP-10-02",
+    "CAP-10-03",
+    "CAP-10-04",
+    "CAP-10-05",
+    "CAP-11-01",
+    "CAP-11-02",
+    "CAP-11-05",
+    "CAP-11-06",
+    "CAP-11-07",
+    "CAP-11-08",
+    "CAP-12-01",
+    "CAP-12-02",
+    "CAP-12-03",
+    "CAP-12-04",
+    "CAP-12-05",
+    "CAP-12-06",
+    "CAP-12-07",
+    "CAP-13-01",
+    "CAP-13-02",
+    "CAP-13-03",
+    "CAP-14-03",
+    "CAP-14-04",
+    "CAP-14-07",
+    "CAP-14-08"
+  ],
+  "ai_capabilities": [
+    {
+      "id": "AICAP-01",
+      "name": "Core chat (/ai/ask)",
+      "original_governance_claim": "active, but LLM-off flags don't fully gate it (BDG-01)",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "evidence_refs": [
+        "E07",
+        "E08"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "scope": "Scoped route/service/schema source inspection; whole persistence chain and live feature flag/provider not verified.",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "No model invocation or deployed-config inspection. AICAP-03/11/14 still require deeper generator/executor analysis."
+    },
+    {
+      "id": "AICAP-02",
+      "name": "AI workout plan generation",
+      "original_governance_claim": "active",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "evidence_refs": [
+        "E03",
+        "E78"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "scope": "Scoped route/service/schema source inspection; whole persistence chain and live feature flag/provider not verified.",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "No model invocation or deployed-config inspection. AICAP-03/11/14 still require deeper generator/executor analysis."
+    },
+    {
+      "id": "AICAP-03",
+      "name": "AI nutrition plan generation",
+      "original_governance_claim": "active",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "evidence_refs": [
+        "E17",
+        "E18"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "scope": "Scoped route/service/schema source inspection; whole persistence chain and live feature flag/provider not verified.",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "No model invocation or deployed-config inspection. AICAP-03/11/14 still require deeper generator/executor analysis."
+    },
+    {
+      "id": "AICAP-04",
+      "name": "AI roadmap draft",
+      "original_governance_claim": "active",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "evidence_refs": [
+        "E12",
+        "E14",
+        "E16"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "scope": "Scoped route/service/schema source inspection; whole persistence chain and live feature flag/provider not verified.",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "No model invocation or deployed-config inspection. AICAP-03/11/14 still require deeper generator/executor analysis."
+    },
+    {
+      "id": "AICAP-05",
+      "name": "PT-facing client plan draft",
+      "original_governance_claim": "active, draft-only confirmed",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "evidence_refs": [
+        "E57",
+        "E58",
+        "E65"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "scope": "Scoped route/service/schema source inspection; whole persistence chain and live feature flag/provider not verified.",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "No model invocation or deployed-config inspection. AICAP-03/11/14 still require deeper generator/executor analysis."
+    },
+    {
+      "id": "AICAP-06",
+      "name": "Cycle-completion analysis + next-cycle draft",
+      "original_governance_claim": "active",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "evidence_refs": [
+        "E73"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "scope": "Scoped route/service/schema source inspection; whole persistence chain and live feature flag/provider not verified.",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "No model invocation or deployed-config inspection. AICAP-03/11/14 still require deeper generator/executor analysis."
+    },
+    {
+      "id": "AICAP-07",
+      "name": "CycleAssessment explanation",
+      "original_governance_claim": "active, decision-field deliberately absent from schema",
+      "independent_verdict": "INCORRECT_CLASSIFICATION",
+      "evidence_refs": [
+        "E55",
+        "E56"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "scope": "Scoped route/service/schema source inspection; whole persistence chain and live feature flag/provider not verified.",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "No model invocation or deployed-config inspection. AICAP-03/11/14 still require deeper generator/executor analysis.",
+      "correction": "Decision field exists in output schema; service forces it to deterministic input value. Absence was not the guarantee."
+    },
+    {
+      "id": "AICAP-08",
+      "name": "Session-feedback interpretation",
+      "original_governance_claim": "active",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "evidence_refs": [
+        "E74"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "scope": "Scoped route/service/schema source inspection; whole persistence chain and live feature flag/provider not verified.",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "No model invocation or deployed-config inspection. AICAP-03/11/14 still require deeper generator/executor analysis."
+    },
+    {
+      "id": "AICAP-09",
+      "name": "Exercise-progression explanation",
+      "original_governance_claim": "active, decision-field deliberately absent",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "evidence_refs": [
+        "E72"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "scope": "Scoped route/service/schema source inspection; whole persistence chain and live feature flag/provider not verified.",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "No model invocation or deployed-config inspection. AICAP-03/11/14 still require deeper generator/executor analysis."
+    },
+    {
+      "id": "AICAP-10",
+      "name": "Marketplace plan moderation/improvement AI assist",
+      "original_governance_claim": "active",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "evidence_refs": [
+        "E70",
+        "E71"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "scope": "Scoped route/service/schema source inspection; whole persistence chain and live feature flag/provider not verified.",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "No model invocation or deployed-config inspection. AICAP-03/11/14 still require deeper generator/executor analysis."
+    },
+    {
+      "id": "AICAP-11",
+      "name": "AI image analysis",
+      "original_governance_claim": "active",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "evidence_refs": [
+        "E79",
+        "E81"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "scope": "Scoped route/service/schema source inspection; whole persistence chain and live feature flag/provider not verified.",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "No model invocation or deployed-config inspection. AICAP-03/11/14 still require deeper generator/executor analysis."
+    },
+    {
+      "id": "AICAP-12",
+      "name": "True LLM tool-calling",
+      "original_governance_claim": "OFF by default, code+compose",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "evidence_refs": [
+        "E59",
+        "E60"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "scope": "Scoped route/service/schema source inspection; whole persistence chain and live feature flag/provider not verified.",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "No model invocation or deployed-config inspection. AICAP-03/11/14 still require deeper generator/executor analysis."
+    },
+    {
+      "id": "AICAP-13",
+      "name": "Conversational Intelligence V2",
+      "original_governance_claim": "OFF by default, code+compose, does not gate all LLM calls even when off",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "evidence_refs": [
+        "E36"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "scope": "Scoped route/service/schema source inspection; whole persistence chain and live feature flag/provider not verified.",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "No model invocation or deployed-config inspection. AICAP-03/11/14 still require deeper generator/executor analysis."
+    },
+    {
+      "id": "AICAP-14",
+      "name": "Unified AI Coach (bounded multi-intent)",
+      "original_governance_claim": "OFF/shadow, team's own latest assessment is shadow-only-ready",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "evidence_refs": [
+        "E36"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "scope": "Scoped route/service/schema source inspection; whole persistence chain and live feature flag/provider not verified.",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "No model invocation or deployed-config inspection. AICAP-03/11/14 still require deeper generator/executor analysis."
+    },
+    {
+      "id": "AICAP-15",
+      "name": "ML-based safety/routing classifier",
+      "original_governance_claim": "trained but not deployed, empty model artifacts",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "evidence_refs": [
+        "E68",
+        "E69"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "scope": "Scoped route/service/schema source inspection; whole persistence chain and live feature flag/provider not verified.",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "No model invocation or deployed-config inspection. AICAP-03/11/14 still require deeper generator/executor analysis."
+    },
+    {
+      "id": "AICAP-16",
+      "name": "RAG/knowledge grounding",
+      "original_governance_claim": "active (authoritative pipeline); deprecated duplicate pipeline has unported sources",
+      "independent_verdict": "CONFIRMED_WITH_QUALIFICATIONS",
+      "evidence_refs": [
+        "E75",
+        "E76"
+      ],
+      "evidence_levels": [
+        "STATIC_CODE_VERIFIED"
+      ],
+      "scope": "Scoped route/service/schema source inspection; whole persistence chain and live feature flag/provider not verified.",
+      "runtime_evidence": [],
+      "remaining_uncertainty": "No model invocation or deployed-config inspection. AICAP-03/11/14 still require deeper generator/executor analysis."
+    }
+  ]
+}

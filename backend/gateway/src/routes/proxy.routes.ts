@@ -991,6 +991,17 @@ router.use(
   }),
 );
 
+// Protected — Fitness Service (Workout Plan Review & Approval: client submits the current program to a PT, PT decides).
+// authMiddleware only identifies the caller; plan-review.service.ts re-derives owner / assigned PT / ACTIVE contract on every call.
+router.use(
+  "/plan-reviews",
+  authMiddleware,
+  createProxyMiddleware({
+    target: FITNESS_SERVICE_URL,
+    changeOrigin: true,
+  }),
+);
+
 // Protected — Fitness Service (nutrition)
 router.use(
   "/nutrition",

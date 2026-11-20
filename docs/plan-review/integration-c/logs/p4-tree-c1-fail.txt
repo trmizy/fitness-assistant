@@ -1,0 +1,22 @@
+✖ Adaptive Training Cycle Evaluation — full 9-step lifecycle
+✖ GET /exercises/:id/substitute — garbage bearer token -> 401
+✖ GET /exercises/:id/substitute — no Authorization header -> 401
+✖ HIGHER_PROTEIN: every candidate has strictly higher protein-per-100g than the current item
+✖ Persona A (bodyweight only + pull-up bar): no machine/barbell/dumbbell/cable exercise is ever returned
+✖ Persona B (home gym: dumbbell/barbell/bench/rack/pull-up bar): no machine/cable/leg-press-only exercise appears
+✖ Persona C (full commercial gym: owns everything in the catalog): full pool available, at least one machine exercise present
+✖ Persona without any saved equipment falls back to the pre-existing coarse behavior (never 500s, still returns exercises)
+✖ REPLACE: swapping ức gà (protein role) returns a different protein food, calorie-equivalent quantity
+✖ VEGETARIAN: LACTO_OVO mode may include trứng-derived candidates; VEGAN mode never does
+✖ backfill: a known powder/isolate food is classified as a supplement with a tight serving cap
+✖ backfill: hard cheese (Parmesan) gets a tight 40g cap
+✖ desiredFoodName: resolves the SPECIFIC named food ("cá hồi" -> salmon), not a pool pick, calorie-equivalent quantity
+✖ failing tests:
+✖ getFilterOptions: returns real source and food form values from the catalog
+✖ listExercises: loggingMode filter only returns exercises with that exact mode
+✖ listFoods: source and foodForm filters only return matching rows
+✖ region personalization: NAM region reorders REPLACE candidates toward cá basa/tôm over the national default order
+✖ substituteMealItem: applies the SPECIFICALLY named replacement in one call, no confirm step, and the day/meal totals stay correct
+✖ substituteMealItem: mealHint narrows an otherwise-ambiguous match down to one meal
+✖ substituteMealItem: no desiredFoodMention -> falls back to the pool-based REPLACE engine, still applies directly
+✖ substituteMealItem: resolvedMealId (the follow-up call after AMBIGUOUS_MEAL) targets exactly that meal

@@ -1,0 +1,260 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Gymini NCKH experiment (container vs serverless, fitness-service).
+  TEMPORARY stack: one EC2 container host (same subnet and Lambda security
+  group as fitness-assistant-dev-fitness), one ALB, one load-generator EC2.
+  Creates only new resources; modifies nothing that already exists.
+  Delete the whole stack after the experiment.
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Default: vpc-010c13afd8920c8f1
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet::Id
+    Default: subnet-0f1a5fcd6ed0401ee
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet::Id
+    Default: subnet-043180192466a53b5
+  AppSubnetA:
+    Type: AWS::EC2::Subnet::Id
+    Default: subnet-02b39d77762465ef8   # same private subnet the Lambda uses
+  LambdaSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Default: sg-0b38ab22927b284ab       # attached (not modified) so the host gets the Lambda's DB / Secrets access
+  FunctionName:
+    Type: String
+    Default: fitness-assistant-dev-fitness
+  DatabaseSecretName:
+    Type: String
+    Default: fitness-assistant/dev/fitness-database
+  HostInstanceType:
+    Type: String
+    Default: m7i.large
+  LoadGenInstanceType:
+    Type: String
+    Default: c7i.xlarge
+  AmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+
+Resources:
+  # ---------------- load generator (public subnet, fixed public IP) ----------
+  LoadGenSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: nckh-exp load generator (no inbound; SSM only)
+      VpcId: !Ref VpcId
+      Tags: [{ Key: Name, Value: nckh-exp-loadgen }, { Key: Project, Value: nckh-exp }]
+
+  LoadGenEni:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      GroupSet: [!Ref LoadGenSg]
+      Tags: [{ Key: Project, Value: nckh-exp }]
+
+  LoadGenEip:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags: [{ Key: Project, Value: nckh-exp }]
+
+  LoadGenEipAssoc:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt LoadGenEip.AllocationId
+      NetworkInterfaceId: !Ref LoadGenEni
+
+  # ---------------- ALB (internet-facing, only the load generator may call) --
+  AlbSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: nckh-exp ALB - HTTP from the load generator IP only
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: !Sub "${LoadGenEip}/32" }
+      Tags: [{ Key: Name, Value: nckh-exp-alb }, { Key: Project, Value: nckh-exp }]
+
+  HostSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: nckh-exp container host - app ports from the ALB only
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 3002, ToPort: 3004, SourceSecurityGroupId: !Ref AlbSg }
+      Tags: [{ Key: Name, Value: nckh-exp-host }, { Key: Project, Value: nckh-exp }]
+
+  Alb:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: nckh-exp-alb
+      Scheme: internet-facing
+      Type: application
+      Subnets: [!Ref PublicSubnetA, !Ref PublicSubnetB]
+      SecurityGroups: [!Ref AlbSg]
+      LoadBalancerAttributes:
+        - { Key: idle_timeout.timeout_seconds, Value: "60" }
+        - { Key: routing.http.drop_invalid_header_fields.enabled, Value: "true" }
+      Tags: [{ Key: Project, Value: nckh-exp }]
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: nckh-exp-fitness
+      VpcId: !Ref VpcId
+      Protocol: HTTP
+      Port: 3002
+      TargetType: instance
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 10
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      TargetGroupAttributes:
+        - { Key: deregistration_delay.timeout_seconds, Value: "10" }
+      # Up to 3 replicas (ports 3002-3004); replicas that are not running are
+      # simply unhealthy and receive no traffic.
+      Targets:
+        - { Id: !Ref Host, Port: 3002 }
+        - { Id: !Ref Host, Port: 3003 }
+        - { Id: !Ref Host, Port: 3004 }
+      Tags: [{ Key: Project, Value: nckh-exp }]
+
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref Alb
+      Port: 80
+      Protocol: HTTP
+      DefaultActions: [{ Type: forward, TargetGroupArn: !Ref TargetGroup }]
+
+  # ---------------- exchange bucket (scripts in, results out) ----------------
+  ExchangeBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "nckh-exp-${AWS::AccountId}-${AWS::Region}"
+      PublicAccessBlockConfiguration:
+        { BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true }
+      LifecycleConfiguration:
+        Rules: [{ Id: expire, Status: Enabled, ExpirationInDays: 7 }]
+      Tags: [{ Key: Project, Value: nckh-exp }]
+
+  # ---------------- IAM ------------------------------------------------------
+  HostRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{ Effect: Allow, Principal: { Service: ec2.amazonaws.com }, Action: sts:AssumeRole }]
+      ManagedPolicyArns: [arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore]
+      Policies:
+        - PolicyName: nckh-exp-host
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow   # read the deployed artifact + its env (identical code/config)
+                Action: [lambda:GetFunction, lambda:GetFunctionConfiguration]
+                Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${FunctionName}"
+              - Effect: Allow   # same DB secret the Lambda reads at cold start
+                Action: secretsmanager:GetSecretValue
+                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${DatabaseSecretName}-*"
+              - Effect: Allow
+                Action: kms:Decrypt
+                Resource: "*"
+                Condition:
+                  StringEquals: { "kms:ViaService": !Sub "secretsmanager.${AWS::Region}.amazonaws.com" }
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub "${ExchangeBucket.Arn}/*"
+      Tags: [{ Key: Project, Value: nckh-exp }]
+
+  HostProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: { Roles: [!Ref HostRole] }
+
+  LoadGenRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{ Effect: Allow, Principal: { Service: ec2.amazonaws.com }, Action: sts:AssumeRole }]
+      ManagedPolicyArns: [arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore]
+      Policies:
+        - PolicyName: nckh-exp-loadgen
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub "${ExchangeBucket.Arn}/*"
+      Tags: [{ Key: Project, Value: nckh-exp }]
+
+  LoadGenProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: { Roles: [!Ref LoadGenRole] }
+
+  # ---------------- instances ------------------------------------------------
+  Host:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AmiId
+      InstanceType: !Ref HostInstanceType
+      IamInstanceProfile: !Ref HostProfile
+      SubnetId: !Ref AppSubnetA
+      SecurityGroupIds: [!Ref LambdaSecurityGroupId, !Ref HostSg]
+      MetadataOptions: { HttpTokens: required, HttpEndpoint: enabled }
+      BlockDeviceMappings:
+        - { DeviceName: /dev/xvda, Ebs: { VolumeSize: 20, VolumeType: gp3, DeleteOnTermination: true } }
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euxo pipefail
+          # Private subnet: wait (up to 40 min) until dev-start has brought the NAT up.
+          for i in $(seq 1 240); do dnf -q -y makecache && break; sleep 10; done
+          dnf install -y docker unzip
+          systemctl enable --now docker
+          mkdir -p /opt/fitness/artifact && cd /opt/fitness
+          # Exactly the code the Lambda runs.
+          URL=$(aws lambda get-function --region ${AWS::Region} --function-name ${FunctionName} --query Code.Location --output text)
+          curl -sSfL "$URL" -o fitness.zip
+          unzip -q fitness.zip -d artifact
+          touch /opt/fitness/USERDATA_DONE
+      Tags: [{ Key: Name, Value: nckh-exp-container-host }, { Key: Project, Value: nckh-exp }]
+
+  LoadGen:
+    Type: AWS::EC2::Instance
+    DependsOn: LoadGenEipAssoc
+    Properties:
+      ImageId: !Ref AmiId
+      InstanceType: !Ref LoadGenInstanceType
+      IamInstanceProfile: !Ref LoadGenProfile
+      NetworkInterfaces: [{ NetworkInterfaceId: !Ref LoadGenEni, DeviceIndex: "0" }]
+      MetadataOptions: { HttpTokens: required, HttpEndpoint: enabled }
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          set -euxo pipefail
+          dnf install -y docker
+          systemctl enable --now docker
+          # Node 22 from the same image family as the Lambda runtime.
+          docker pull public.ecr.aws/lambda/nodejs:22
+          mkdir -p /opt/lg/results
+          touch /opt/lg/USERDATA_DONE
+      Tags: [{ Key: Name, Value: nckh-exp-loadgen }, { Key: Project, Value: nckh-exp }]
+
+Outputs:
+  AlbUrl:
+    Value: !Sub "http://${Alb.DNSName}"
+  AlbFullName:
+    Value: !GetAtt Alb.LoadBalancerFullName
+  TargetGroupFullName:
+    Value: !GetAtt TargetGroup.TargetGroupFullName
+  HostInstanceId:
+    Value: !Ref Host
+  LoadGenInstanceId:
+    Value: !Ref LoadGen
+  LoadGenPublicIp:
+    Value: !Ref LoadGenEip
+  Bucket:
+    Value: !Ref ExchangeBucket

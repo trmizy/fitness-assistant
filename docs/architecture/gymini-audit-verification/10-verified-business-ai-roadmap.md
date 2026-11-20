@@ -1,0 +1,30 @@
+# 10 — Roadmap dựa trên bằng chứng có giới hạn
+
+Ngày 2026-10-19 (Asia/Saigon). START_HEAD: 003545c6da8d524e8c4f6fbe4575444102f1fc50. Nhánh aws-deploy.
+
+Bằng chứng: **CODE AUDIT / STATIC_CODE_VERIFIED** trong phạm vi từng trích đoạn; không có test chạy, REAL BROWSER, REAL HTTP/API, live runtime hay deployment verification. Định nghĩa test được đọc không tương đương UNIT_TEST_VERIFIED hoặc INTEGRATION_TEST_VERIFIED.
+
+Roadmap verdict: **READY_FOR_LIMITED_IMPLEMENTATION_ONLY**. Đây là baseline ưu tiên có điều kiện, không signoff cho toàn ecosystem. Milestone độc lập đầu tiên: **V-T001 — log redaction + captured-output regressions**; không cần chờ thêm agent framework, aggregate hoặc thay schema fitness. Chỉ thực hiện ở nhiệm vụ triển khai được ủy quyền sau audit.
+
+| Task / phase | Gap | Mục tiêu và scope | Dependency | Acceptance / tests / độ phức tạp |
+| --- | --- | --- | --- | --- |
+| V-T001 / 0 | G-02, G-32 | Prevent bearer credentials reaching logs — Central redact policy and safe request/error serializers; scope to auth/user logging. | Không | Captured supported log paths contain no secret values. Tests: INV-V17. M |
+| V-T002 / 0 | G-01, G-03, G-04, G-08 | Resolve release blockers using current evidence — Run safe local negative boot/admin regressions; separately authorized deployment-config and migration/snapshot evidence review. | Không | No historical P0 silently closed; recorded pending migrations, recovery evidence and actual edge configuration. Tests: negative boot, direct admin denial, isolated migration replay. M |
+| V-T003 / 1 | NEW-GAP-001, NEW-GAP-002, G-26 | Make reviewed proposals safe across devices — Extend existing conditional claims to draft edit/confirm and workflow slots. | Không | Reviewed hash/version, atomic status/owner/revision/TTL; losing writer gets conflict. Tests: INV-V12, INV-V13, INV-V16. M |
+| V-T004 / 1 | BDG-16, BDG-17 | Keep unresolved physical limitations active — Typed workflow constraints with source/scope/body region/status/uncertainty; explicit resolution; reuse existing safety classification. | V-T003 | C/D and cross-session scope tests pass; temporary symptoms never silently become permanent profile restrictions. Tests: INV-V04, INV-V18. L |
+| V-T005 / 1 | BDG-14, BDG-15, BDG-20 | Preserve intent and unrelated workout content — Domain MOVE/targeted replacement patches; normalize validation across draft/general chat/worker. | V-T003, V-T004 | A/B/E preserve requested count or fail honestly and do not mutate unrelated data. Tests: INV-V01, INV-V02, INV-V03, INV-V05. L |
+| V-T006 / 2 | BDG-18 | Respect requested roadmap horizon — Capture explicit/unspecified/open-ended intent; reuse non-chat API; disclose fallback assumptions. | V-T003 | Wizard unchanged; chat honors/clarifies requested horizon; phase bounds maintained. Tests: INV-V09. M |
+| V-T007 / 2 | BDG-19 | Recover partial bundles without duplicate writes — Persist step state/created IDs and action-derived keys; resume only failed/uncommitted steps. | V-T003 | Crash after each commit, retries and concurrency produce same IDs and truthful statuses. Tests: INV-V14, INV-V13. L |
+| V-T008 / 2 |  | Prove nutrition target and revision invariants — Trace and test existing substitution/constraint/quantity contracts before adding behavior. | Không | Goal unchanged by substitution; totals consistent; explicit restriction correction policy. Tests: INV-V06, INV-V07, INV-V08. M |
+| V-T009 / 3 | BDG-08, G-24 | Offer authorized PT multi-client attention view — User-service owns authorized roster; fitness-service computes bounded batch projections; freshness/window/timezone and missing-data semantics explicit. | V-T004, V-T005 | Bounded query count; revocation rechecked; no-data differs from non-adherence; no automatic plan/message writes. Tests: INV-V10, INV-V11. L |
+| V-T010 / 4 | BDG-20 | Extend AI operations only over verified contracts — Shared typed intent/target/diff interfaces plus domain-specific patch engines; reuse existing reference resolver/confirmation. | V-T007, V-T009 | Explicit PT approval per client change and send; independent partial results; no new autonomous authority. Tests: INV-V03, INV-V11, INV-V12. L |
+| V-T011 / 5 | G-17, G-18, G-19, G-22 | Evaluate and roll out with bounded cost and latency — Offline synthetic evaluations, scoped regression and controlled staging rollout; inventory model entry points and global policy decision. | V-T005, V-T006, V-T007 | No sealed heldout/paid calls during audit; later staging negative cases, metrics and rollback gates recorded. Tests: all critical invariants, outage drills, cost/latency budgets. L |
+
+Phase 0: token logging và bằng chứng blocker theo deployment thực tế; không tái làm “JWT/TLS chưa tồn tại” trái source hiện tại. Phase 1: version/claim integrity, symptom lifecycle, workout patches/count enforcement. Phase 2: timeframe, nutrition invariants, bundle recovery. Phase 3: authorized roster projection/Copilot foundations. Phase 4: domain operation expansion. Phase 5: controlled rollout sau regression; instrumentation/evaluation thiết kế xuyên suốt, không trì hoãn đến cuối.
+
+Mỗi task JSON có excluded scope, rollback/flag, severity, complexity, impact và confidence. Không đưa delivery date chưa đo effort.
+
+Các đề xuất sửa: A chỉ tái sử dụng cơ chế capture/merge, không copy allergy/preference union thành injury semantics. B giữ symptom unresolved ở workflow, profile chỉ khi user xác nhận restriction phù hợp. C reject blanket retry. D roster authority ở user-service, metric authority ở fitness-service, bounded projection/freshness rõ. E shared typed interfaces + domain patches dựa trên revision infrastructure hiện có.
+
+
+**V-T012 / Phase 0 bổ sung:** NEW-GAP-003 + G-33 — phân loại public/service-only cho mọi structured generation route; enforce service boundary hoặc verified-user quota chung. Dependency: không; tests INV-V19; complexity M; severity P1. Không khóa nhầm legitimate internal service calls hoặc yêu cầu PT-client relationship cho một pure request-data explanation. V-T001 vẫn milestone đầu nhỏ nhất.

@@ -1,4 +1,4 @@
-import { describeOperationJob } from "../services/generation-operations";
+import { describeOperationJob, findActiveRevisionOperation } from "../services/generation-operations";
 import { Request, Response, NextFunction } from "express";
 import { AxiosError } from "axios";
 import { logger, aiPlanGenerationsTotal } from "@gym-coach/shared";
@@ -17,6 +17,7 @@ import { getActiveNutritionGoal } from "../services/enterprise-data/nutrition.re
 import { parseSubstituteSavedExerciseRequest } from "../services/revision/substitute-saved-exercise";
 import { fitnessAgentTools } from "../services/fitness-agent-tools";
 import { normalizeAgentText } from "../services/fitness-agent-intent";
+import { parseWorkoutAdjustment } from "../services/revision/workout-adjustment-constraints";
 
 export interface ExerciseSwap { fromNames: string[]; toExerciseId?: string; toName?: string }
 
@@ -147,6 +148,28 @@ function idempotencyKeyFrom(req: Request, scope: string): string | undefined {
   const raw = req.header("idempotency-key");
   if (!raw || !/^[A-Za-z0-9._:-]{8,128}$/.test(raw)) return undefined;
   return `rest:${scope}:${raw}`;
+}
+
+
+/**
+ * "Đổi bài thứ N của buổi <nhóm cơ>" -> the exact exercise to replace, taken from the plan itself. Null when the text is not that kind of
+ * request. An unknown day, several matching days or a missing Nth exercise returns an error with a question, so nothing is changed by guesswork.
+ */
+function resolveOrdinalReplacement(
+  text: string,
+  planContent: unknown,
+): null | { kind: "swap"; swap: { fromNames: string[] } } | { kind: "error"; message: string } {
+  const parsed = parseWorkoutAdjustment(text);
+  if (!parsed.replaceOrdinal) return null;
+  const { ordinal, dayHint } = parsed.replaceOrdinal;
+  const days: Array<{ goal?: string; exercises?: Array<{ name?: string }> }> = (planContent as any)?.weeklySchedule ?? [];
+  const hint = normalizeAgentText(dayHint);
+  const matches = days.map((d, i) => ({ d, i })).filter(({ d }) => normalizeAgentText(String(d.goal ?? "")).includes(hint.split(" ")[0]));
+  if (matches.length === 0) return { kind: "error", message: `Mình không thấy buổi nào có “${dayHint}” trong kế hoạch này. Bạn nói số buổi (ví dụ “đổi bài thứ 2 của buổi 1”) nhé.` };
+  if (matches.length > 1) return { kind: "error", message: `Có ${matches.length} buổi liên quan đến “${dayHint}” (buổi ${matches.map((m) => m.i + 1).join(", ")}). Bạn muốn đổi ở buổi nào?` };
+  const name = matches[0].d.exercises?.[ordinal - 1]?.name;
+  if (!name) return { kind: "error", message: `Buổi ${matches[0].i + 1} không có bài thứ ${ordinal}.` };
+  return { kind: "swap", swap: { fromNames: [String(name)] } };
 }
 
 export const planController = {
@@ -697,7 +720,7 @@ export const planController = {
     next: NextFunction,
   ): Promise<void> {
     const { userId } = req.context;
-    const { planId, adjustments, daysPerWeek, exercisesPerDay } =
+    const { planId, adjustments, daysPerWeek, exercisesPerDay, expectedVersion } =
       req.body as AdjustPlanRequest;
 
     try {
@@ -719,6 +742,17 @@ export const planController = {
               "You do not have access to this plan",
             ),
           );
+        return;
+      }
+      // A RETRY of a request the server already accepted is answered from its operation FIRST — before the checks below, which all look at the
+      // CURRENT plan (already changed by the first request) or at the LLM's health: a swap whose "X" is gone, an LLM blip or a moved version must
+      // not turn a request that succeeded into an error.
+      const idempotencyKey = idempotencyKeyFrom(req, `adjust:${planId}`);
+      const replay = await conversationService.findAdjustmentReplay({
+        userId, planId, currentVersion: plan.version, idempotencyKey, adjustments, expectedVersion, daysPerWeek, exercisesPerDay,
+      });
+      if (replay) {
+        res.status(202).json(formatSuccessResponse(replay));
         return;
       }
       if (plan.status === PlanStatus.PROCESSING) {
@@ -752,15 +786,22 @@ export const planController = {
         res.status(422).json(formatErrorResponse("VALIDATION_ERROR", swapResolution.message));
         return;
       }
+      // "Đổi bài thứ 2 của buổi ngực": resolved against THIS plan; several matching days or a missing slot is a question back, never a guess.
+      const ordinal = swapResolution.kind === "none" ? resolveOrdinalReplacement(adjustments, plan.plan) : null;
+      if (ordinal && ordinal.kind === "error") {
+        res.status(422).json(formatErrorResponse("NEEDS_CLARIFICATION", ordinal.message));
+        return;
+      }
 
       const result = await conversationService.queuePlanAdjustment({
         originalPlanId: planId,
         userId,
-        idempotencyKey: idempotencyKeyFrom(req, `adjust:${planId}`),
+        idempotencyKey,
         adjustments,
         daysPerWeek,
         exercisesPerDay,
-        swap: swapResolution.kind === "swap" ? swapResolution.swap : undefined,
+        swap: swapResolution.kind === "swap" ? swapResolution.swap : ordinal?.kind === "swap" ? ordinal.swap : undefined,
+        expectedVersion,
       });
       aiPlanGenerationsTotal.inc({ status: "queued" });
       res.status(202).json(formatSuccessResponse(result));
@@ -772,6 +813,65 @@ export const planController = {
         return;
       }
       logger.error({ err, planId, userId }, "Error adjusting plan");
+      next(err);
+    }
+  },
+
+  /**
+   * POST /plans/:planId/revert
+   * Undo an adjustment: the adjusted plan is archived and the plan it replaced is restored (ownership checked on both).
+   */
+  async revertPlanAdjustment(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    const { userId } = req.context;
+    const { planId } = req.params;
+    try {
+      const plan = await conversationRepository.findPlanById(planId);
+      if (!plan || plan.userId !== userId) {
+        res.status(404).json(formatErrorResponse("PLAN_NOT_FOUND", `Plan ${planId} not found`));
+        return;
+      }
+      if (plan.status === PlanStatus.PROCESSING || plan.status === PlanStatus.QUEUED) {
+        res.status(409).json(formatErrorResponse("VALIDATION_ERROR", "Không thể quay lại khi kế hoạch đang được xử lý"));
+        return;
+      }
+      // An adjustment still running for this plan would commit against the version this undo is about to move (it could only fail, after a paid model call).
+      if (await findActiveRevisionOperation(planId)) {
+        res.status(409).json(formatErrorResponse("REVISION_IN_PROGRESS", "Kế hoạch này đang được AI điều chỉnh. Hãy đợi bản điều chỉnh hoàn tất rồi quay lại."));
+        return;
+      }
+      // Revisions are in place now: undo restores the previous CONTENT into this same plan (version still moves forward).
+      const inPlace = await conversationRepository.revertPlanRevisionInPlace(planId, userId);
+      if (inPlace.kind === "plan_published") {
+        res.status(409).json(formatErrorResponse("VALIDATION_ERROR", "Kế hoạch này đang được đăng trên chợ nên không thể quay lại phiên bản trước tại chỗ."));
+        return;
+      }
+      if (inPlace.kind === "ok") {
+        logger.info({ planId, resultVersion: inPlace.resultVersion, userId }, "Plan revision reverted in place");
+        res.json(formatSuccessResponse({ planId, revertedFrom: planId, version: inPlace.resultVersion }));
+        return;
+      }
+      if (inPlace.kind === "version_conflict") {
+        res.status(409).json(formatErrorResponse("VERSION_CONFLICT", "Kế hoạch vừa được cập nhật, hãy tải lại."));
+        return;
+      }
+      // Plans adjusted before in-place revisions existed (replace-by-new-row model) keep their legacy undo.
+      const result = await conversationRepository.revertToPreviousVersion(planId, userId);
+      if (result.kind === "not_found") {
+        res.status(404).json(formatErrorResponse("PLAN_NOT_FOUND", `Plan ${planId} not found`));
+        return;
+      }
+      if (result.kind === "no_previous") {
+        res.status(409).json(formatErrorResponse("VALIDATION_ERROR", "Kế hoạch này không có phiên bản trước để quay lại"));
+        return;
+      }
+      logger.info({ planId, restoredPlanId: result.restoredPlanId, userId }, "Plan adjustment reverted");
+      res.json(formatSuccessResponse({ planId: result.restoredPlanId, revertedFrom: planId }));
+    } catch (err) {
+      logger.error({ err, planId, userId }, "Error reverting plan adjustment");
       next(err);
     }
   },
@@ -972,6 +1072,9 @@ export const planController = {
             cancelledScheduleCount: fitnessPayload.cancelledScheduleCount,
             skippedDuplicateCount: fitnessPayload.skippedDuplicateCount ?? 0,
             alreadyExists: Boolean(fitnessPayload.alreadyExists),
+            // In-place revision visibility for clients: did saving this (revised) plan change the program being trained?
+            ...(fitnessPayload.contentSynced !== undefined ? { contentSynced: Boolean(fitnessPayload.contentSynced), previousAiPlanVersion: fitnessPayload.previousAiPlanVersion ?? null, programVersion: fitnessPayload.programVersion ?? null } : {}),
+            ...(fitnessPayload.daysChange ? { daysChange: fitnessPayload.daysChange } : {}),
             selectedWeekdays: fitnessPayload.selectedWeekdays,
             schedulePreview: fitnessPayload.schedulePreview,
             message:
@@ -982,6 +1085,11 @@ export const planController = {
       if (err instanceof AxiosError) {
         const status = err.response?.status || 500;
         const data = err.response?.data as any;
+        // A conflict that needs the CLIENT to decide (e.g. dropping days that still have future sessions) keeps its machine-readable code + details.
+        if (typeof data?.code === "string" && data?.error) {
+          res.status(status).json({ success: false, error: { code: data.code, message: String(data.error), ...(data.details ? { details: data.details } : {}) } });
+          return;
+        }
         res
           .status(status)
           .json(

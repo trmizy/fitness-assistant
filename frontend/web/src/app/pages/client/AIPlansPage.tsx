@@ -43,6 +43,18 @@ const QUERY_GOAL_LABELS: Record<string, string> = {
   ATHLETIC_PERFORMANCE: "Cải thiện sức khỏe",
 };
 
+/** Plan this plan is an adjusted version of (set by the backend adjust flow in plan._metadata.revision). */
+function getRevisionPreviousPlanId(plan: WorkoutPlanRecord | null | undefined): string | null {
+  const id = (plan?.plan as { _metadata?: { revision?: { previousPlanId?: unknown } } } | undefined)
+    ?._metadata?.revision?.previousPlanId;
+  return typeof id === "string" && id ? id : null;
+}
+
+/** An adjustment that is still being made (or failed) is a hidden draft: the plan it adjusts stays the visible one. */
+function isAdjustmentDraft(plan: WorkoutPlanRecord): boolean {
+  return plan.status !== "COMPLETED" && getRevisionPreviousPlanId(plan) !== null;
+}
+
 type JobActionType = "generate" | "adjust";
 type AiPlanTab = "workout" | "nutrition";
 
@@ -513,6 +525,9 @@ export function AIPlansPage() {
   const [expandedDayKey, setExpandedDayKey] = useState<string | null>(null);
   const appliedInitialFilter = useRef(false);
   const handledTaskIdsRef = useRef(new Set<string>());
+  // Task ids this mounted page has seen pending (or started itself). A task that was ALREADY finished when the page opened
+  // finished while the user was elsewhere: it is cleaned up silently instead of replaying a stale toast on every visit.
+  const liveTaskIdsRef = useRef(new Set<string>());
 
   const {
     data: plans,
@@ -539,7 +554,7 @@ export function AIPlansPage() {
   });
 
   const sortedPlans = useMemo(() => {
-    const list = plans ?? [];
+    const list = (plans ?? []).filter((plan) => !isAdjustmentDraft(plan));
     return [...list].sort((a, b) => {
       const tsA = Math.max(toTimestamp(a.updatedAt), toTimestamp(a.createdAt));
       const tsB = Math.max(toTimestamp(b.updatedAt), toTimestamp(b.createdAt));
@@ -722,6 +737,8 @@ export function AIPlansPage() {
       equipmentPreference: "MACHINE_ONLY" | "MIXED_GYM";
     }) => planService.generateWorkoutPlan(payload),
     onSuccess: (result) => {
+      // Tasks started on this page stay "live" here, so their completion toast is shown (see the resolved-task effect).
+      liveTaskIdsRef.current.add(result.jobId);
       enqueuePlanTask(userScopeId, {
         jobId: result.jobId,
         planId: result.planId,
@@ -730,6 +747,12 @@ export function AIPlansPage() {
         goal,
         daysPerWeek,
         durationWeeks,
+      });
+      // Show the new "Đang xử lý" plan right away — it used to appear only after a manual page reload.
+      setPlanFilter("active");
+      setSelectedPlanId(result.planId);
+      void queryClient.invalidateQueries({
+        queryKey: ["ai-plans", "current", userScopeId],
       });
       toast.success("Đã gửi yêu cầu tạo kế hoạch AI");
     },
@@ -784,6 +807,7 @@ export function AIPlansPage() {
         payload.exercisesPerDay,
       ),
     onSuccess: (result) => {
+      liveTaskIdsRef.current.add(result.jobId);
       enqueuePlanTask(userScopeId, {
         jobId: result.jobId,
         planId: result.planId,
@@ -803,6 +827,21 @@ export function AIPlansPage() {
     },
     onError: (error: unknown) => {
       toast.error(summarizeApiError(error, "Không thể điều chỉnh kế hoạch"));
+    },
+  });
+
+  const revertMutation = useMutation({
+    mutationFn: (planId: string) => planService.revertPlanAdjustment(planId),
+    onSuccess: async (result) => {
+      setSelectedPlanId(result.planId);
+      setPlanFilter("completed");
+      await queryClient.invalidateQueries({
+        queryKey: ["ai-plans", "current", userScopeId],
+      });
+      toast.success("Đã quay lại phiên bản kế hoạch trước");
+    },
+    onError: (error: unknown) => {
+      toast.error(summarizeApiError(error, "Không thể quay lại phiên bản trước"));
     },
   });
 
@@ -853,38 +892,51 @@ export function AIPlansPage() {
   });
 
   useEffect(() => {
-    const pendingTasks = pendingAiTasks.filter(
-      (task) => task.status === "QUEUED" || task.status === "PROCESSING",
-    );
-    const resolvedTasks = pendingAiTasks.filter(
+    // Only plan jobs belong here. Finished AI-Coach chat tasks (kind "chat-ask") live in the same store and used to be
+    // picked up too, so every visit replayed a "Kế hoạch AI đã tạo xong" toast per old chat turn. The chat page owns those.
+    const planTasks = pendingAiTasks.filter((task) => task.kind !== "chat-ask");
+    for (const task of planTasks) {
+      if (task.status === "QUEUED" || task.status === "PROCESSING") {
+        liveTaskIdsRef.current.add(task.id);
+      }
+    }
+    const resolvedTasks = planTasks.filter(
       (task) => task.status === "COMPLETED" || task.status === "FAILED",
     );
 
     for (const task of resolvedTasks) {
       if (handledTaskIdsRef.current.has(task.id)) continue;
       handledTaskIdsRef.current.add(task.id);
+      // Finished while the user was on another page: refresh data and clear it, but do not toast a stale result.
+      const finishedWhileAway = !liveTaskIdsRef.current.has(task.id);
       if (task.status === "COMPLETED") {
-        if (task.planId) {
+        if (task.planId && !finishedWhileAway) {
           setSelectedPlanId(task.planId);
+          setPlanFilter("completed");
         }
-        setPlanFilter("completed");
         void queryClient.invalidateQueries({
           queryKey: ["ai-plans", "current", userScopeId],
         });
         void refetchPlans();
-        toast.success(
-          task.kind === "plan-adjust"
-            ? "Đã tạo phiên bản kế hoạch mới"
-            : "Kế hoạch AI đã tạo xong",
-        );
+        if (!finishedWhileAway) {
+          toast.success(
+            task.kind === "plan-adjust"
+              ? "Đã điều chỉnh kế hoạch"
+              : "Kế hoạch AI đã tạo xong",
+          );
+        }
         acknowledgeTask(userScopeId, task.id);
       } else {
-        setPlanFilter("failed");
+        // A failed ADJUSTMENT leaves the existing plan untouched (the draft is hidden by the backend): stay on the plans
+        // list instead of jumping to the "Thất bại" tab.
+        if (task.kind !== "plan-adjust") setPlanFilter("failed");
         void queryClient.invalidateQueries({
           queryKey: ["ai-plans", "current", userScopeId],
         });
         void refetchPlans();
-        toast.error(task.error || "Job tạo kế hoạch thất bại");
+        if (!finishedWhileAway) {
+          toast.error(task.error || "Job tạo kế hoạch thất bại");
+        }
         acknowledgeTask(userScopeId, task.id);
       }
     }
@@ -1196,7 +1248,8 @@ export function AIPlansPage() {
     });
   };
 
-  const headerGoal = currentPlan?.goal || currentContent?.goal || "--";
+  const rawHeaderGoal = currentPlan?.goal || currentContent?.goal || "--";
+  const headerGoal = QUERY_GOAL_LABELS[rawHeaderGoal] ?? rawHeaderGoal;
   const headerDuration =
     currentContent?.durationWeeks ?? currentPlan?.duration ?? "--";
   const headerDays =
@@ -1618,7 +1671,8 @@ export function AIPlansPage() {
                           </div>
                         </div>
                         <div className="text-xs text-zinc-500 mt-1 truncate">
-                          Goal: {plan.goal || "--"} | v{plan.version ?? 1}
+                          Mục tiêu: {(plan.goal && QUERY_GOAL_LABELS[plan.goal]) || plan.goal || "--"}
+                          {(plan.version ?? 1) > 1 ? ` | bản ${plan.version}` : ""}
                         </div>
                         <div className="text-[11px] text-zinc-600 mt-1">
                           {formatDate(plan.updatedAt || plan.createdAt)}
@@ -1899,6 +1953,35 @@ export function AIPlansPage() {
                           <SlidersHorizontal className="w-4 h-4" />
                           Điều chỉnh kế hoạch
                         </button>
+
+                        {currentPlan.status === "COMPLETED" &&
+                          getRevisionPreviousPlanId(currentPlan) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (
+                                  window.confirm(
+                                    "Quay lại phiên bản trước khi điều chỉnh? Bản đang xem sẽ được ẩn đi.",
+                                  )
+                                ) {
+                                  revertMutation.mutate(currentPlan.id);
+                                }
+                              }}
+                              disabled={
+                                revertMutation.isPending ||
+                                adjustMutation.isPending ||
+                                pendingPlanTasks.length > 0
+                              }
+                              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-zinc-600 bg-zinc-800/60 text-zinc-200 hover:bg-zinc-700/60 disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              {revertMutation.isPending ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <RefreshCw className="w-4 h-4" />
+                              )}
+                              Quay lại bản trước
+                            </button>
+                          )}
 
                         <button
                           type="button"

@@ -38,10 +38,47 @@ const MAX_PLAUSIBLE_RELATIVE_CHANGE = 0.6; // 60%
  * instruction in cycle-assessment.service.ts (which the model could ignore). */
 const MAX_PLAUSIBLE_RELATIVE_CHANGE_BEGINNER = 0.2; // 20%
 
-function extractLeadingNumber(value: string): number | null {
-  const match = value.trim().match(/-?\d+(\.\d+)?/);
+// A number token: thousands grouping ("38.225", "38,225", "1.000.000") or a plain decimal ("62,5", "2.5"). Grouping is recognised
+// ONLY for groups of exactly three digits, so "2.5" / "62,5" stay decimals while Vietnamese "38.225 kg" is 38225.
+const NUM = String.raw`(?:\d{1,3}(?:[.,]\d{3})+(?!\d)|\d+(?:[.,]\d+)?)`;
+const GROUPED = /^\d{1,3}(?:[.,]\d{3})+$/;
+const toNumber = (raw: string): number => (GROUPED.test(raw) ? Number(raw.replace(/[.,]/g, "")) : Number(raw.replace(",", ".")));
+
+/** A leading period label such as "tuần 4:", "week 2 -", "buổi 3:" is NOT the value: its number is an index, not a magnitude. */
+const PERIOD_LABEL = /^\s*(?:tuần|tuan|week|wk|buổi|buoi|ngày|ngay|day|chu kỳ|chu ky|cycle|session|lần|lan)\s*\d+\s*[:：]\s*/i;
+/** Units that mark a number as the magnitude itself (preferred over any other number in the text). */
+const UNIT_AFTER = new RegExp(`(${NUM})\\s*(?:kg|lbs?|reps?|rep|lần|lan|sets?|buổi|buoi|kcal|cal|g|gam|phút|phut|min|%)(?![a-zà-ỹ])`, "i");
+
+/**
+ * The comparable magnitude of a free-text value. The old version read only the FIRST number, which is wrong for the two shapes a
+ * training prescription is usually written in:
+ *  - "3x10" / "3 sets x 10 reps"  -> sets x reps. Reading only "3" let "3x8 -> 3x12" (+50% volume) through as 0% and judged
+ *    "3x10 -> 4x10" by sets alone;
+ *  - "8-10 reps" / "8–10"          -> a range; its midpoint is the honest single number ("8-10 -> 10-12" is 9 -> 11, not 8 -> 10).
+ * Anything else keeps the previous behaviour (first number), so "60kg" / "2.5 sessions" are unchanged. Returns null when there is no
+ * number at all (the caller then treats the pair as not checkable, as before).
+ */
+export function extractLeadingNumber(value: string): number | null {
+  const text = value.trim().replace(PERIOD_LABEL, "");
+  const product = text.match(new RegExp(`(${NUM})\\s*(?:sets?\\s*)?[x×*]\\s*(${NUM})`, "i"));
+  if (product) {
+    const n = toNumber(product[1]) * toNumber(product[2]);
+    return Number.isFinite(n) ? n : null;
+  }
+  const range = text.match(new RegExp(`(${NUM})\\s*[-–—]\\s*(${NUM})`));
+  if (range) {
+    const n = (toNumber(range[1]) + toNumber(range[2])) / 2;
+    return Number.isFinite(n) ? n : null;
+  }
+  // A number carrying a unit ("38225 kg") is the magnitude, even when another number came first in the text.
+  const withUnit = text.match(UNIT_AFTER);
+  if (withUnit) {
+    const n = toNumber(withUnit[1]);
+    return Number.isFinite(n) ? n : null;
+  }
+  const match = text.match(new RegExp(`-?${NUM}`));
   if (!match) return null;
-  const n = Number(match[0]);
+  const n = toNumber(match[0].replace(/^-/, "")) * (match[0].startsWith("-") ? -1 : 1);
   return Number.isFinite(n) ? n : null;
 }
 

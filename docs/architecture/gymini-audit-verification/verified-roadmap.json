@@ -1,0 +1,370 @@
+{
+  "status": "PROPOSED_NOT_IMPLEMENTED",
+  "first_minimal_milestone": [
+    "V-T001"
+  ],
+  "tasks": [
+    {
+      "id": "V-T001",
+      "phase": 0,
+      "related_gap_ids": [
+        "G-02",
+        "G-32"
+      ],
+      "business_objective": "Prevent bearer credentials reaching logs",
+      "current_defect": "Unredacted pino-http/shared logger",
+      "root_cause": "Unredacted pino-http/shared logger",
+      "affected_services": [
+        "auth-service",
+        "shared",
+        "deployment review"
+      ],
+      "dependencies": [],
+      "implementation_scope": "Central redact policy and safe request/error serializers; scope to auth/user logging.",
+      "explicitly_excluded_scope": "No new agent framework; no unrelated redesign; no training; no production mutation under audit authorization.",
+      "acceptance_criteria": "Captured supported log paths contain no secret values.",
+      "required_tests": [
+        "INV-V17"
+      ],
+      "rollback_feature_flag_strategy": "Small independently reviewed change; existing behavior behind a scoped flag where relevant; rollback must not disable authorization/redaction.",
+      "severity": "P0",
+      "estimated_complexity": "M",
+      "expected_impact": "Prevent bearer credentials reaching logs",
+      "evidence_confidence": "STATIC_CODE_VERIFIED where linked; runtime closure required"
+    },
+    {
+      "id": "V-T002",
+      "phase": 0,
+      "related_gap_ids": [
+        "G-01",
+        "G-03",
+        "G-04",
+        "G-08"
+      ],
+      "business_objective": "Resolve release blockers using current evidence",
+      "current_defect": "Historical source and deployment states differ",
+      "root_cause": "Historical source and deployment states differ",
+      "affected_services": [
+        "auth-service",
+        "shared",
+        "deployment review"
+      ],
+      "dependencies": [],
+      "implementation_scope": "Run safe local negative boot/admin regressions; separately authorized deployment-config and migration/snapshot evidence review.",
+      "explicitly_excluded_scope": "No new agent framework; no unrelated redesign; no training; no production mutation under audit authorization.",
+      "acceptance_criteria": "No historical P0 silently closed; recorded pending migrations, recovery evidence and actual edge configuration.",
+      "required_tests": [
+        "negative boot",
+        "direct admin denial",
+        "isolated migration replay"
+      ],
+      "rollback_feature_flag_strategy": "Small independently reviewed change; existing behavior behind a scoped flag where relevant; rollback must not disable authorization/redaction.",
+      "severity": "P0",
+      "estimated_complexity": "M",
+      "expected_impact": "Resolve release blockers using current evidence",
+      "evidence_confidence": "STATIC_CODE_VERIFIED where linked; runtime closure required"
+    },
+    {
+      "id": "V-T012",
+      "phase": 0,
+      "related_gap_ids": [
+        "NEW-GAP-003",
+        "G-33"
+      ],
+      "business_objective": "Close authenticated alternate-endpoint model-budget bypass",
+      "current_defect": "Service-like endpoints are bearer-reachable without AI per-user limiter",
+      "root_cause": "Partial coverage of model-entry-point policy",
+      "affected_services": [
+        "ai-service",
+        "API routing review"
+      ],
+      "dependencies": [],
+      "implementation_scope": "Inventory direct model routes, enforce service-only or shared verified-user quota; preserve legitimate domain service calls.",
+      "explicitly_excluded_scope": "No model training/new framework; do not change business generation semantics.",
+      "acceptance_criteria": "INV-V19; no bypass via alternate endpoints or supplied userId; deployment exposure separately checked.",
+      "required_tests": [
+        "INV-V19"
+      ],
+      "rollback_feature_flag_strategy": "Scoped rollout; retain fail-closed service authorization and cost quotas during rollback.",
+      "severity": "P1",
+      "estimated_complexity": "M",
+      "expected_impact": "Protect bounded model spend and intended service boundary.",
+      "evidence_confidence": "STATIC_CODE_VERIFIED; deployment unknown"
+    },
+    {
+      "id": "V-T003",
+      "phase": 1,
+      "related_gap_ids": [
+        "NEW-GAP-001",
+        "NEW-GAP-002",
+        "G-26"
+      ],
+      "business_objective": "Make reviewed proposals safe across devices",
+      "current_defect": "No expected content revision in action/workflow update",
+      "root_cause": "No expected content revision in action/workflow update",
+      "affected_services": [
+        "ai-service",
+        "fitness-service"
+      ],
+      "dependencies": [],
+      "implementation_scope": "Extend existing conditional claims to draft edit/confirm and workflow slots.",
+      "explicitly_excluded_scope": "No new agent framework; no unrelated redesign; no training; no production mutation under audit authorization.",
+      "acceptance_criteria": "Reviewed hash/version, atomic status/owner/revision/TTL; losing writer gets conflict.",
+      "required_tests": [
+        "INV-V12",
+        "INV-V13",
+        "INV-V16"
+      ],
+      "rollback_feature_flag_strategy": "Small independently reviewed change; existing behavior behind a scoped flag where relevant; rollback must not disable authorization/redaction.",
+      "severity": "P1",
+      "estimated_complexity": "M",
+      "expected_impact": "Make reviewed proposals safe across devices",
+      "evidence_confidence": "STATIC_CODE_VERIFIED where linked; runtime closure required"
+    },
+    {
+      "id": "V-T004",
+      "phase": 1,
+      "related_gap_ids": [
+        "BDG-16",
+        "BDG-17"
+      ],
+      "business_objective": "Keep unresolved physical limitations active",
+      "current_defect": "No workout safety-constraint lifecycle",
+      "root_cause": "No workout safety-constraint lifecycle",
+      "affected_services": [
+        "ai-service",
+        "fitness-service"
+      ],
+      "dependencies": [
+        "V-T003"
+      ],
+      "implementation_scope": "Typed workflow constraints with source/scope/body region/status/uncertainty; explicit resolution; reuse existing safety classification.",
+      "explicitly_excluded_scope": "No new agent framework; no unrelated redesign; no training; no production mutation under audit authorization.",
+      "acceptance_criteria": "C/D and cross-session scope tests pass; temporary symptoms never silently become permanent profile restrictions.",
+      "required_tests": [
+        "INV-V04",
+        "INV-V18"
+      ],
+      "rollback_feature_flag_strategy": "Small independently reviewed change; existing behavior behind a scoped flag where relevant; rollback must not disable authorization/redaction.",
+      "severity": "P1",
+      "estimated_complexity": "L",
+      "expected_impact": "Keep unresolved physical limitations active",
+      "evidence_confidence": "STATIC_CODE_VERIFIED where linked; runtime closure required"
+    },
+    {
+      "id": "V-T005",
+      "phase": 1,
+      "related_gap_ids": [
+        "BDG-14",
+        "BDG-15",
+        "BDG-20"
+      ],
+      "business_objective": "Preserve intent and unrelated workout content",
+      "current_defect": "Unequal count validation and no MOVE operation",
+      "root_cause": "Unequal count validation and no MOVE operation",
+      "affected_services": [
+        "ai-service",
+        "fitness-service"
+      ],
+      "dependencies": [
+        "V-T003",
+        "V-T004"
+      ],
+      "implementation_scope": "Domain MOVE/targeted replacement patches; normalize validation across draft/general chat/worker.",
+      "explicitly_excluded_scope": "No new agent framework; no unrelated redesign; no training; no production mutation under audit authorization.",
+      "acceptance_criteria": "A/B/E preserve requested count or fail honestly and do not mutate unrelated data.",
+      "required_tests": [
+        "INV-V01",
+        "INV-V02",
+        "INV-V03",
+        "INV-V05"
+      ],
+      "rollback_feature_flag_strategy": "Small independently reviewed change; existing behavior behind a scoped flag where relevant; rollback must not disable authorization/redaction.",
+      "severity": "P1",
+      "estimated_complexity": "L",
+      "expected_impact": "Preserve intent and unrelated workout content",
+      "evidence_confidence": "STATIC_CODE_VERIFIED where linked; runtime closure required"
+    },
+    {
+      "id": "V-T006",
+      "phase": 2,
+      "related_gap_ids": [
+        "BDG-18"
+      ],
+      "business_objective": "Respect requested roadmap horizon",
+      "current_defect": "Chat hardcodes 16",
+      "root_cause": "Chat hardcodes 16",
+      "affected_services": [
+        "ai-service",
+        "fitness-service"
+      ],
+      "dependencies": [
+        "V-T003"
+      ],
+      "implementation_scope": "Capture explicit/unspecified/open-ended intent; reuse non-chat API; disclose fallback assumptions.",
+      "explicitly_excluded_scope": "No new agent framework; no unrelated redesign; no training; no production mutation under audit authorization.",
+      "acceptance_criteria": "Wizard unchanged; chat honors/clarifies requested horizon; phase bounds maintained.",
+      "required_tests": [
+        "INV-V09"
+      ],
+      "rollback_feature_flag_strategy": "Small independently reviewed change; existing behavior behind a scoped flag where relevant; rollback must not disable authorization/redaction.",
+      "severity": "P2",
+      "estimated_complexity": "M",
+      "expected_impact": "Respect requested roadmap horizon",
+      "evidence_confidence": "STATIC_CODE_VERIFIED where linked; runtime closure required"
+    },
+    {
+      "id": "V-T007",
+      "phase": 2,
+      "related_gap_ids": [
+        "BDG-19"
+      ],
+      "business_objective": "Recover partial bundles without duplicate writes",
+      "current_defect": "No durable step result/idempotency ledger in chat bundle",
+      "root_cause": "No durable step result/idempotency ledger in chat bundle",
+      "affected_services": [
+        "ai-service",
+        "fitness-service"
+      ],
+      "dependencies": [
+        "V-T003"
+      ],
+      "implementation_scope": "Persist step state/created IDs and action-derived keys; resume only failed/uncommitted steps.",
+      "explicitly_excluded_scope": "No new agent framework; no unrelated redesign; no training; no production mutation under audit authorization.",
+      "acceptance_criteria": "Crash after each commit, retries and concurrency produce same IDs and truthful statuses.",
+      "required_tests": [
+        "INV-V14",
+        "INV-V13"
+      ],
+      "rollback_feature_flag_strategy": "Small independently reviewed change; existing behavior behind a scoped flag where relevant; rollback must not disable authorization/redaction.",
+      "severity": "P2",
+      "estimated_complexity": "L",
+      "expected_impact": "Recover partial bundles without duplicate writes",
+      "evidence_confidence": "STATIC_CODE_VERIFIED where linked; runtime closure required"
+    },
+    {
+      "id": "V-T008",
+      "phase": 2,
+      "related_gap_ids": [],
+      "business_objective": "Prove nutrition target and revision invariants",
+      "current_defect": "Coverage not independently established",
+      "root_cause": "Coverage not independently established",
+      "affected_services": [
+        "ai-service",
+        "fitness-service"
+      ],
+      "dependencies": [],
+      "implementation_scope": "Trace and test existing substitution/constraint/quantity contracts before adding behavior.",
+      "explicitly_excluded_scope": "No new agent framework; no unrelated redesign; no training; no production mutation under audit authorization.",
+      "acceptance_criteria": "Goal unchanged by substitution; totals consistent; explicit restriction correction policy.",
+      "required_tests": [
+        "INV-V06",
+        "INV-V07",
+        "INV-V08"
+      ],
+      "rollback_feature_flag_strategy": "Small independently reviewed change; existing behavior behind a scoped flag where relevant; rollback must not disable authorization/redaction.",
+      "severity": "P2",
+      "estimated_complexity": "M",
+      "expected_impact": "Prove nutrition target and revision invariants",
+      "evidence_confidence": "STATIC_CODE_VERIFIED where linked; runtime closure required"
+    },
+    {
+      "id": "V-T009",
+      "phase": 3,
+      "related_gap_ids": [
+        "BDG-08",
+        "G-24"
+      ],
+      "business_objective": "Offer authorized PT multi-client attention view",
+      "current_defect": "No roster-wide adherence contract in inspected API",
+      "root_cause": "No roster-wide adherence contract in inspected API",
+      "affected_services": [
+        "user-service",
+        "fitness-service",
+        "ai-service"
+      ],
+      "dependencies": [
+        "V-T004",
+        "V-T005"
+      ],
+      "implementation_scope": "User-service owns authorized roster; fitness-service computes bounded batch projections; freshness/window/timezone and missing-data semantics explicit.",
+      "explicitly_excluded_scope": "No new agent framework; no unrelated redesign; no training; no production mutation under audit authorization.",
+      "acceptance_criteria": "Bounded query count; revocation rechecked; no-data differs from non-adherence; no automatic plan/message writes.",
+      "required_tests": [
+        "INV-V10",
+        "INV-V11"
+      ],
+      "rollback_feature_flag_strategy": "Small independently reviewed change; existing behavior behind a scoped flag where relevant; rollback must not disable authorization/redaction.",
+      "severity": "P2",
+      "estimated_complexity": "L",
+      "expected_impact": "Offer authorized PT multi-client attention view",
+      "evidence_confidence": "STATIC_CODE_VERIFIED where linked; runtime closure required"
+    },
+    {
+      "id": "V-T010",
+      "phase": 4,
+      "related_gap_ids": [
+        "BDG-20"
+      ],
+      "business_objective": "Extend AI operations only over verified contracts",
+      "current_defect": "Missing domain operations, not lack of agents",
+      "root_cause": "Missing domain operations, not lack of agents",
+      "affected_services": [
+        "ai-service",
+        "fitness-service"
+      ],
+      "dependencies": [
+        "V-T007",
+        "V-T009"
+      ],
+      "implementation_scope": "Shared typed intent/target/diff interfaces plus domain-specific patch engines; reuse existing reference resolver/confirmation.",
+      "explicitly_excluded_scope": "No new agent framework; no unrelated redesign; no training; no production mutation under audit authorization.",
+      "acceptance_criteria": "Explicit PT approval per client change and send; independent partial results; no new autonomous authority.",
+      "required_tests": [
+        "INV-V03",
+        "INV-V11",
+        "INV-V12"
+      ],
+      "rollback_feature_flag_strategy": "Small independently reviewed change; existing behavior behind a scoped flag where relevant; rollback must not disable authorization/redaction.",
+      "severity": "P2",
+      "estimated_complexity": "L",
+      "expected_impact": "Extend AI operations only over verified contracts",
+      "evidence_confidence": "STATIC_CODE_VERIFIED where linked; runtime closure required"
+    },
+    {
+      "id": "V-T011",
+      "phase": 5,
+      "related_gap_ids": [
+        "G-17",
+        "G-18",
+        "G-19",
+        "G-22"
+      ],
+      "business_objective": "Evaluate and roll out with bounded cost and latency",
+      "current_defect": "Runtime/deployment coverage remains missing",
+      "root_cause": "Runtime/deployment coverage remains missing",
+      "affected_services": [
+        "ai-service",
+        "fitness-service"
+      ],
+      "dependencies": [
+        "V-T005",
+        "V-T006",
+        "V-T007"
+      ],
+      "implementation_scope": "Offline synthetic evaluations, scoped regression and controlled staging rollout; inventory model entry points and global policy decision.",
+      "explicitly_excluded_scope": "No new agent framework; no unrelated redesign; no training; no production mutation under audit authorization.",
+      "acceptance_criteria": "No sealed heldout/paid calls during audit; later staging negative cases, metrics and rollback gates recorded.",
+      "required_tests": [
+        "all critical invariants",
+        "outage drills",
+        "cost/latency budgets"
+      ],
+      "rollback_feature_flag_strategy": "Small independently reviewed change; existing behavior behind a scoped flag where relevant; rollback must not disable authorization/redaction.",
+      "severity": "P2",
+      "estimated_complexity": "L",
+      "expected_impact": "Evaluate and roll out with bounded cost and latency",
+      "evidence_confidence": "STATIC_CODE_VERIFIED where linked; runtime closure required"
+    }
+  ]
+}

@@ -5,6 +5,35 @@ import { runFenced, expectOneRowInWorker } from "../services/generation-lease-co
 export { PlanStatus };
 export const prisma = new PrismaClient();
 
+/**
+ * Adjustment revision marker (no schema change — lives in the plan JSON): `plan._metadata.revision.previousPlanId` is the
+ * plan this row is an adjusted version of. Present on the in-flight draft, the completed plan and (after a failure) the
+ * hidden failed draft.
+ */
+export function readRevisionPreviousPlanId(plan: unknown): string | null {
+  const id = (plan as { _metadata?: { revision?: { previousPlanId?: unknown } } } | null | undefined)?._metadata?.revision?.previousPlanId;
+  return typeof id === "string" && id.length > 0 ? id : null;
+}
+
+/** Outcome of applying (or reverting) an in-place revision. Nothing is written for any outcome except "applied". */
+export type PlanRevisionOutcome =
+  | { kind: "applied"; resultVersion: number }
+  | { kind: "already_applied"; resultVersion: number }
+  | { kind: "version_conflict"; currentVersion: number | null }
+  | { kind: "plan_missing" }
+  | { kind: "plan_archived" }
+  | { kind: "plan_not_ready" }
+  | { kind: "plan_published" };
+
+/** Run `fn` atomically: inside a worker's fenced transaction `db` is already one; otherwise open one. */
+async function atomically<T>(db: any, fn: (tx: any) => Promise<T>): Promise<T> {
+  return typeof db.$transaction === "function" ? db.$transaction(fn) : fn(db);
+}
+
+const planSnapshot = (p: { name: string; description: string | null; goal: string; duration: number; daysPerWeek: number; plan: unknown }) => ({
+  name: p.name, description: p.description, goal: p.goal, duration: p.duration, daysPerWeek: p.daysPerWeek, plan: p.plan,
+});
+
 // ── Conversation ──────────────────────────────────────────────────────────────
 
 export type CreateConversationInput = {
@@ -506,9 +535,19 @@ export const conversationRepository = {
       // Read ptUserId first — worker reads from DB, not job data, to prevent job-data tampering.
       const existing = await db.workoutPlan.findUnique({
         where: { id: planId },
-        select: { ptUserId: true },
+        select: { ptUserId: true, userId: true, plan: true },
       });
-      return db.workoutPlan.update({
+      // An adjustment draft carries its revision marker through to the final content and replaces the plan it adjusted.
+      const previousId = readRevisionPreviousPlanId(existing?.plan);
+      if (previousId) {
+        const meta = ((content as any)._metadata ??= {});
+        meta.revision = {
+          ...(((existing?.plan as any)?._metadata?.revision) ?? {}),
+          previousPlanId: previousId,
+          adjustedAt: new Date().toISOString(),
+        };
+      }
+      const updated = await db.workoutPlan.update({
         where: { id: planId },
         data: {
           status: PlanStatus.COMPLETED,
@@ -520,14 +559,29 @@ export const conversationRepository = {
           ...(existing?.ptUserId ? { ptReviewStatus: "PENDING_PT_REVIEW" } : {}),
         },
       });
+      if (previousId && existing?.userId) {
+        // Same transaction as the completion; idempotent on retry. The previous plan is archived (restorable), not deleted.
+        await db.workoutPlan.updateMany({
+          where: { id: previousId, userId: existing.userId, archivedAt: null },
+          data: { archivedAt: new Date() },
+        });
+      }
+      return updated;
     });
   },
 
   updatePlanFailed(planId: string, reason: string) {
     return runFenced(prisma, planId, async (db) => {
+      // A failed adjustment draft must not litter the list as a "failed plan": hide it, the previous plan is untouched.
+      const existing = await db.workoutPlan.findUnique({ where: { id: planId }, select: { plan: true } });
+      const isAdjustmentDraft = Boolean(readRevisionPreviousPlanId(existing?.plan));
       const r = await db.workoutPlan.updateMany({
         where: { id: planId },
-        data: { status: PlanStatus.FAILED, failReason: reason },
+        data: {
+          status: PlanStatus.FAILED,
+          failReason: reason,
+          ...(isAdjustmentDraft ? { archivedAt: new Date() } : {}),
+        },
       });
       expectOneRowInWorker(r.count, "workout failed");
       return r;
@@ -584,21 +638,180 @@ export const conversationRepository = {
     daysPerWeek: number;
     adjustments: string;
     version: number;
+    /** The adjusted plan keeps the name the user already knows (no "(v2)" suffix, no raw goal enum). */
+    name?: string;
   }) {
     return prisma.workoutPlan.create({
       data: {
         ...(data.id ? { id: data.id } : {}),
         ...(data.jobId ? { jobId: data.jobId } : {}),
         userId: data.userId,
-        name: `${data.goal} Plan (v${data.version})`,
-        description: `Adjusted from plan ${data.originalPlanId}: ${data.adjustments}`,
+        name: data.name?.trim() || `${data.goal} Plan`,
+        description: `Đã điều chỉnh theo yêu cầu: ${String(data.adjustments ?? "").slice(0, 300)}`,
         goal: data.goal,
         duration: data.duration,
         daysPerWeek: data.daysPerWeek,
-        plan: {},
+        // Revision marker: this row is a DRAFT of `previousPlanId`. On success it replaces that plan (which is archived, and
+        // can be restored via revertToPreviousVersion); on failure it archives itself and the previous plan stays untouched.
+        plan: {
+          _metadata: {
+            revision: {
+              previousPlanId: data.originalPlanId,
+              adjustments: String(data.adjustments ?? "").slice(0, 300),
+            },
+          },
+        },
         status: PlanStatus.QUEUED,
         version: data.version,
       },
+    });
+  },
+
+  /**
+   * Apply an AI revision IN PLACE: the WorkoutPlan keeps its id; version goes baseVersion -> baseVersion+1 exactly once.
+   * Atomic (one transaction; inside a worker it is the lease-fenced one) and optimistic: the write only happens while the plan is
+   * still COMPLETED, not archived and still at `expectedVersion`; anything else returns an outcome and writes NOTHING.
+   * Idempotent per operation: workout_plan_revisions.operation_id is UNIQUE, so a retry/redelivery of the same operation
+   * reports "already_applied" and never applies or records a second revision.
+   * A previously recorded legacy PT review (ptReviewStatus) is reset: an approval never carries over to new content.
+   */
+  async commitPlanRevision(input: {
+    planId: string;
+    userId: string;
+    operationId: string | null;
+    expectedVersion: number;
+    content: unknown;
+    daysPerWeek: number;
+    adjustments?: string | null;
+    kind?: "ADJUST" | "REVERT";
+  }): Promise<PlanRevisionOutcome> {
+    const run = () => runFenced(prisma, input.planId, (db) => atomically(db, async (tx): Promise<PlanRevisionOutcome> => {
+      if (input.operationId) {
+        const done = await tx.workoutPlanRevision.findUnique({ where: { operationId: input.operationId } });
+        if (done) return { kind: "already_applied", resultVersion: done.resultVersion };
+      }
+      const plan = await tx.workoutPlan.findUnique({ where: { id: input.planId } });
+      if (!plan || plan.userId !== input.userId) return { kind: "plan_missing" };
+      if (plan.archivedAt) return { kind: "plan_archived" };
+      if (plan.status !== PlanStatus.COMPLETED) return { kind: "plan_not_ready" };
+      if (plan.version !== input.expectedVersion) return { kind: "version_conflict", currentVersion: plan.version };
+      // A plan with a SUBMITTED/APPROVED marketplace listing is a moderated product whose buyers read THIS row's content live: never edit it in place.
+      if (await tx.publishedPlan.count({ where: { sourcePlanId: plan.id, moderationStatus: { in: ["SUBMITTED", "APPROVED"] } } })) return { kind: "plan_published" };
+      const content: any = input.content;
+      // `revision.previousPlanId` is the flag existing clients (web: the "Quay lại bản trước" button) read; in an in-place revision the plan is its own predecessor.
+      content._metadata = { ...(content._metadata ?? {}), revision: { previousPlanId: plan.id, inPlace: true, adjustedAt: new Date().toISOString() }, lastRevision: { operationId: input.operationId, baseVersion: plan.version, resultVersion: plan.version + 1, at: new Date().toISOString() } };
+      const updated = await tx.workoutPlan.updateMany({
+        where: { id: plan.id, version: plan.version, status: PlanStatus.COMPLETED, archivedAt: null },
+        data: {
+          plan: content as Prisma.InputJsonValue,
+          daysPerWeek: input.daysPerWeek,
+          version: { increment: 1 },
+          ...(plan.ptUserId ? { ptReviewStatus: "PENDING_PT_REVIEW", ptNote: null, ptReviewedAt: null } : {}),
+        },
+      });
+      if (updated.count !== 1) return { kind: "version_conflict", currentVersion: null };
+      await tx.workoutPlanRevision.create({
+        data: {
+          planId: plan.id, userId: plan.userId, operationId: input.operationId, kind: input.kind ?? "ADJUST",
+          baseVersion: plan.version, resultVersion: plan.version + 1,
+          adjustments: input.adjustments ? String(input.adjustments).slice(0, 500) : null,
+          previous: planSnapshot(plan) as unknown as Prisma.InputJsonValue,
+        },
+      });
+      return { kind: "applied", resultVersion: plan.version + 1 };
+    }));
+    try {
+      return await run();
+    } catch (err) {
+      // Two deliveries of the SAME operation racing: the loser hits the operation_id / (plan, version) UNIQUE index.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002" && input.operationId) {
+        const done = await prisma.workoutPlanRevision.findUnique({ where: { operationId: input.operationId } });
+        if (done) return { kind: "already_applied", resultVersion: done.resultVersion };
+        return { kind: "version_conflict", currentVersion: null };
+      }
+      throw err;
+    }
+  },
+
+  /** Marketplace listings (SUBMITTED/APPROVED) that read this plan's content live. */
+  countActiveListings(planId: string) {
+    return prisma.publishedPlan.count({ where: { sourcePlanId: planId, moderationStatus: { in: ["SUBMITTED", "APPROVED"] } } });
+  },
+
+  /** Was this operation's revision committed? (the durable "success" fact for a revision job) */
+  findRevisionByOperation(operationId: string) {
+    return prisma.workoutPlanRevision.findUnique({ where: { operationId } });
+  },
+
+  /** Revision history of a plan the caller owns, newest first (content snapshots are not returned here). */
+  async listPlanRevisions(planId: string, userId: string, take = 50) {
+    return prisma.workoutPlanRevision.findMany({
+      where: { planId, userId },
+      orderBy: { resultVersion: "desc" },
+      take,
+      select: { id: true, kind: true, baseVersion: true, resultVersion: true, adjustments: true, operationId: true, createdAt: true },
+    });
+  },
+
+  /**
+   * Undo the latest applied revision IN PLACE: the plan returns to the content it had before, but the version still moves FORWARD
+   * (monotonic — an old version number is never reused), and the undo is itself recorded as a REVERT revision.
+   */
+  async revertPlanRevisionInPlace(planId: string, userId: string, expectedVersion?: number): Promise<
+    | { kind: "ok"; resultVersion: number }
+    | { kind: "not_found" }
+    | { kind: "no_previous" }
+    | { kind: "plan_published" }
+    | { kind: "version_conflict"; currentVersion: number }
+  > {
+    return atomically(prisma, async (tx) => {
+      const plan = await tx.workoutPlan.findUnique({ where: { id: planId } });
+      if (!plan || plan.userId !== userId) return { kind: "not_found" } as const;
+      if (expectedVersion !== undefined && plan.version !== expectedVersion) return { kind: "version_conflict", currentVersion: plan.version } as const;
+      const last = await tx.workoutPlanRevision.findUnique({ where: { planId_resultVersion: { planId, resultVersion: plan.version } } });
+      // Undo undoes an ADJUSTMENT. The latest history row being a REVERT means the undo already happened (client retry / double click): doing it again
+      // would silently bring the adjusted content back (independent review R2).
+      if (!last || last.kind === "REVERT") return { kind: "no_previous" } as const;
+      // Same rule as commitPlanRevision: buyers of a SUBMITTED/APPROVED listing read this row live, so it is never rewritten in place (review R1).
+      if (await tx.publishedPlan.count({ where: { sourcePlanId: plan.id, moderationStatus: { in: ["SUBMITTED", "APPROVED"] } } })) return { kind: "plan_published" } as const;
+      const prev: any = last.previous;
+      const updated = await tx.workoutPlan.updateMany({
+        where: { id: planId, version: plan.version, archivedAt: null },
+        data: {
+          name: prev.name, description: prev.description ?? null, goal: prev.goal, duration: prev.duration, daysPerWeek: prev.daysPerWeek,
+          plan: prev.plan as Prisma.InputJsonValue, version: { increment: 1 },
+          ...(plan.ptUserId ? { ptReviewStatus: "PENDING_PT_REVIEW", ptNote: null, ptReviewedAt: null } : {}),
+        },
+      });
+      if (updated.count !== 1) return { kind: "version_conflict", currentVersion: plan.version } as const;
+      await tx.workoutPlanRevision.create({
+        data: { planId, userId, operationId: null, kind: "REVERT", baseVersion: plan.version, resultVersion: plan.version + 1, adjustments: null, previous: planSnapshot(plan) as unknown as Prisma.InputJsonValue },
+      });
+      return { kind: "ok", resultVersion: plan.version + 1 } as const;
+    });
+  },
+
+  /** Undo an adjustment: restore the plan that the given (adjusted) plan replaced and archive the adjusted one. */
+  async revertToPreviousVersion(
+    planId: string,
+    userId: string,
+  ): Promise<
+    | { kind: "ok"; restoredPlanId: string }
+    | { kind: "not_found" }
+    | { kind: "no_previous" }
+  > {
+    return prisma.$transaction(async (db) => {
+      const current = await db.workoutPlan.findUnique({ where: { id: planId } });
+      if (!current || current.userId !== userId) return { kind: "not_found" } as const;
+      const previousId = readRevisionPreviousPlanId(current.plan);
+      if (!previousId || previousId === planId) return { kind: "no_previous" } as const; // in-place revisions have their own undo
+      const previous = await db.workoutPlan.findUnique({ where: { id: previousId } });
+      if (!previous || previous.userId !== userId || previous.status !== PlanStatus.COMPLETED) {
+        return { kind: "no_previous" } as const;
+      }
+      await db.workoutPlan.update({ where: { id: previousId }, data: { archivedAt: null } });
+      await db.workoutPlan.update({ where: { id: planId }, data: { archivedAt: new Date() } });
+      return { kind: "ok", restoredPlanId: previousId } as const;
     });
   },
 

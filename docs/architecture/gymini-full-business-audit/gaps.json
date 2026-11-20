@@ -1,0 +1,46 @@
+{
+  "_meta": {
+    "note": "Two registers combined by reference: G-01..G-36 are the pre-existing, independently-audited security/infra/auth gaps (docs/production-readiness/15-production-gap-register.md, pinned to HEAD 81d9f432, NOT duplicated here in full). BDG-01..BDG-12 are this audit's own additional business-domain/AI-capability findings (full detail in 10-business-gap-register.md). Cases A-G (conversational-state) are pending the in-flight agent and will be appended as BDG-13+ once verdicts land.",
+    "external_register_summary": { "file": "docs/production-readiness/15-production-gap-register.md", "total": 36, "P0": 4, "P1": 20, "P2": 10, "P3": 2, "verdict": "NO-GO for public production" }
+  },
+  "gaps": [
+    { "id": "BDG-01", "class": "AI_INTENT_OR_CONTEXT_GAP", "severity": "P1", "title": "AI 'LLM off' governance does not actually stop LLM calls", "related_external_gap": "G-17", "status": "OPEN" },
+    { "id": "BDG-02", "class": "DATABASE_OR_DATA_COVERAGE_GAP", "severity": "P2", "title": "PaymentProviderType.STRIPE exists with zero implementation", "related_external_gap": null, "status": "OPEN" },
+    { "id": "BDG-03", "class": "DOCUMENTATION_ONLY_GAP", "severity": "P3", "title": "frontend/mobile architecture mis-documented as Capacitor in repo docs", "related_external_gap": null, "status": "CORRECTED_BY_THIS_AUDIT" },
+    { "id": "BDG-04", "class": "FRONTEND_BACKEND_DISCONNECT", "severity": "P2", "title": "Admin nav: 3 self-acknowledged missing screens (Membership Oversight, global Audit Log, Notifications)", "related_external_gap": null, "status": "OPEN" },
+    { "id": "BDG-05", "class": "DOCUMENTATION_ONLY_GAP", "severity": "P3", "title": "Gym-partner onboarding: 6 originally-spec'd sub-routes never built", "related_external_gap": null, "status": "OPEN_LOW_IMPACT" },
+    { "id": "BDG-06", "class": "FRONTEND_BACKEND_DISCONNECT", "severity": "P2", "title": "Admin active-PT-list view blocked on missing backend API", "related_external_gap": null, "status": "OPEN" },
+    { "id": "BDG-07", "class": "DETERMINISTIC_VALIDATION_GAP", "severity": "P2", "title": "Equipment-compliance gate is AI-generation-only; manual/coach programs bypass it", "related_external_gap": null, "status": "OPEN_PRODUCT_DECISION_REQUIRED" },
+    { "id": "BDG-08", "class": "MISSING_BUSINESS_CAPABILITY", "severity": "P2", "title": "PT-dashboard cross-client adherence aggregate does not exist", "related_external_gap": null, "status": "CONFIRMED_OPEN", "blocks_use_cases": ["falling-behind-clients", "missed-workouts-this-week", "nutrition-target-misses"] },
+    { "id": "BDG-09", "class": "UNKNOWN_NEEDS_VERIFICATION", "severity": "P3", "title": "UserPreference model flagged as legacy/unmapped", "related_external_gap": null, "status": "OPEN" },
+    { "id": "BDG-10", "class": "INTEGRATION_OR_AUTOMATION_GAP", "severity": "P2", "title": "Deprecated duplicate RAG pipeline has unported Crossref/OpenAlex sources", "related_external_gap": null, "status": "OPEN" },
+    { "id": "BDG-11", "class": "MISSING_BUSINESS_CAPABILITY", "severity": "P2", "title": "Account deletion capability not found in either frontend", "related_external_gap": null, "status": "UNCONFIRMED" },
+    { "id": "BDG-12", "class": "AUTHORIZATION_OR_PRIVACY_GAP", "severity": "P1", "title": "Web-side query-cache clearing on logout/account-switch not traced by any audit", "related_external_gap": null, "status": "UNCONFIRMED" },
+    { "id": "BDG-13", "class": "DOCUMENTATION_ONLY_GAP", "severity": "P3", "title": "GYMINI_PT_PERMISSION_MATRIX.md omits training-side CycleAssessment recommendation approve/reject routes", "related_external_gap": null, "status": "OPEN_LOW_IMPACT" },
+    { "id": "BDG-14", "class": "AI_REVISION_OR_STATE_GAP", "severity": "P1", "title": "Workout frequency constraint becomes prompt-only when injury-mentioned or combined-plan request", "related_external_gap": null, "status": "CONFIRMED_LIVE_DEFECT", "case": "CASE-A" },
+    { "id": "BDG-15", "class": "AI_REVISION_OR_STATE_GAP", "severity": "P1", "title": "Session MOVE requests execute as full plan regeneration, discarding unrelated days", "related_external_gap": null, "status": "CONFIRMED_LIVE_DEFECT", "case": "CASE-B" },
+    { "id": "BDG-16", "class": "HEALTH_SAFETY_GAP", "severity": "P1", "title": "Disclosed physical limitations never become a persistent exercise-exclusion constraint", "related_external_gap": null, "status": "CONFIRMED_LIVE_DEFECT", "case": "CASE-C" },
+    { "id": "BDG-17", "class": "AI_REVISION_OR_STATE_GAP", "severity": "P1", "title": "Workout slot-filling has no constraint slot; nutrition's fix for this was never ported", "related_external_gap": null, "status": "CONFIRMED_LIVE_DEFECT", "case": "CASE-D" },
+    { "id": "BDG-18", "class": "AI_INTENT_OR_CONTEXT_GAP", "severity": "P1", "title": "AI roadmap duration hardcoded to 16 weeks on chat path regardless of user's stated timeline", "related_external_gap": null, "status": "CONFIRMED_LIVE_DEFECT", "case": "CASE-G" },
+    { "id": "BDG-19", "class": "INCOMPLETE_BUSINESS_WORKFLOW", "severity": "P2", "title": "No rollback/compensation and no per-step retry for partially-failed CREATE_PLAN_BUNDLE", "related_external_gap": null, "status": "ARCHITECTURAL_RISK_NOT_CONFIRMED_BY_DESIGN", "case": "CASE-F" },
+    { "id": "BDG-20", "class": "AI_REVISION_OR_STATE_GAP", "severity": "P2", "title": "MOVE, incremental ADD, REMOVE_CONSTRAINT, COMPARE have no real distinct implementation", "related_external_gap": null, "status": "OPEN_ARCHITECTURAL" }
+  ],
+  "pt_copilot_authorization": {
+    "verdict": "No code path exists where a PT can reach another PT's client's data via a supplied clientId; relationship re-verified fresh, fail-closed, on every call. Client+PT dual role confirmed NOT a multi-role DB model (single mutually-exclusive enum); functional dual-capability exists only because ownership checks use userId not role. AI never autonomously messages a client or writes to a client's plan without an explicit human action.",
+    "source": "08-pt-client-management-ai-copilot-audit.md"
+  },
+  "known_failure_cases": [
+    { "id": "CASE-A", "title": "Workout frequency mismatch (5 requested, 6 proposed)", "verdict": "SPLIT: APPEARS_FIXED common case / CONFIRMED_LIVE_DEFECT for injury-mention and combined-plan exception set", "gap": "BDG-14" },
+    { "id": "CASE-B", "title": "Session move interpreted as plan replacement", "verdict": "CONFIRMED_LIVE_DEFECT", "gap": "BDG-15" },
+    { "id": "CASE-C", "title": "Physical limitation (leg pain) ignored in subsequent proposals", "verdict": "CONFIRMED_LIVE_DEFECT", "gap": "BDG-16" },
+    { "id": "CASE-D", "title": "Correction (frequency) loses previous constraint (leg exclusion)", "verdict": "CONFIRMED_LIVE_DEFECT (root cause: constraint never captured, not merge-overwrite)", "gap": "BDG-17" },
+    { "id": "CASE-E", "title": "Generated exercises don't match canonical catalog", "verdict": "APPEARS_FIXED (minor cosmetic residual only)", "gap": null },
+    { "id": "CASE-F", "title": "Roadmap partial application (nutrition ok, workout fails)", "verdict": "APPEARS_FIXED for honest reporting; ARCHITECTURAL_RISK_NOT_CONFIRMED for rollback (by design)", "gap": "BDG-19" },
+    { "id": "CASE-G", "title": "Unlimited-timeline request still gets a fixed 6-week roadmap", "verdict": "CONFIRMED_LIVE_DEFECT (cleanest finding in the audit — timeframeWeeks hardcoded to 16 on chat path)", "gap": "BDG-18" }
+  ],
+  "operation_vocabulary": {
+    "real_distinct_path": ["CREATE", "UPDATE", "REVISE", "CHANGE_DURATION", "CHANGE_TARGET", "ADD_CONSTRAINT", "EXPLAIN", "CONFIRM", "CANCEL"],
+    "collapses_or_missing": ["MOVE (collapses into CREATE/REPLACE)", "CHANGE_FREQUENCY (always full regeneration)", "ADD incremental (no primitive, superset explicitly refused)", "REMOVE_CONSTRAINT (no code path anywhere)", "REPLACE (the implicit fallback default)", "COMPARE (not implemented at all)"],
+    "gap": "BDG-20"
+  }
+}

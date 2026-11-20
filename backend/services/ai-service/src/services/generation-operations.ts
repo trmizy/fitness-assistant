@@ -28,6 +28,14 @@ import { leaseStorage, registerFencedRunner, StaleLeaseError, type LeaseContext 
  */
 
 export type OperationKind = "WORKOUT_PLAN" | "NUTRITION_PLAN" | "PLAN_ADJUSTMENT";
+
+/**
+ * A PLAN_ADJUSTMENT operation does NOT create a plan row: its target is the EXISTING WorkoutPlan (stable id) and the operation row itself is
+ * the revision job. The plan stays COMPLETED and fully usable while the revision runs; success = a committed workout_plan_revisions row
+ * for this operation, failure = operation FAILED with the plan untouched (same content, same version).
+ */
+export const REVISION_TARGET = "WORKOUT_PLAN_REVISION";
+export const isRevisionTarget = (targetType: string | null | undefined) => targetType === REVISION_TARGET;
 export type OperationStatus = "RESERVING" | "ADMITTED" | "PUBLISHED" | "RUNNING" | "COMPLETED" | "FAILED";
 
 export interface OperationRow {
@@ -247,9 +255,16 @@ export const prismaOperationStore: OperationStore = {
         if (!op) return null;
         const eligible = op.status === "ADMITTED" || op.status === "PUBLISHED" || (op.status === "RUNNING" && !!op.leaseExpiresAt && op.leaseExpiresAt < now);
         if (!eligible) return null;
+        const done = { leaseOwner: null, leaseExpiresAt: null, completedAt: now, updatedAt: now };
+        if (isRevisionTarget(op.targetType)) {
+          // Revision job: the plan row is never touched. Applied revision => COMPLETED, otherwise FAILED (plan keeps its content and version).
+          const applied = await tx.workoutPlanRevision.findUnique({ where: { operationId: id }, select: { id: true } });
+          if (applied) { await tx.aiGenerationOperation.update({ where: { id }, data: { status: "COMPLETED", lastError: null, ...done } }); return "COMPLETED" as const; }
+          await tx.aiGenerationOperation.update({ where: { id }, data: { status: "FAILED", lastError: reason, ...done } });
+          return "FAILED" as const;
+        }
         const table = op.targetType === "NUTRITION_PLAN" ? tx.nutritionPlan : tx.workoutPlan;
         const plan = op.targetId ? await (table as any).findUnique({ where: { id: op.targetId }, select: { status: true } }) : null;
-        const done = { leaseOwner: null, leaseExpiresAt: null, completedAt: now, updatedAt: now };
         if (plan?.status === "COMPLETED") {
           await tx.aiGenerationOperation.update({ where: { id }, data: { status: "COMPLETED", lastError: null, ...done } });
           return "COMPLETED" as const;
@@ -271,6 +286,7 @@ export const prismaOperationStore: OperationStore = {
         FROM "ai_generation_operations" WHERE "id" = ${id} AND "epoch" = ${epoch} FOR UPDATE`;
       const op = locked[0];
       if (!op || op.status !== "FAILED" || !op.targetId) return false;
+      if (isRevisionTarget(op.targetType)) return false; // a failed revision never left the plan QUEUED/PROCESSING: nothing to repair
       const table = op.targetType === "NUTRITION_PLAN" ? tx.nutritionPlan : tx.workoutPlan;
       const r = await (table as any).updateMany({ where: { id: op.targetId, status: { in: ["QUEUED", "PROCESSING"] } }, data: { status: "FAILED", failReason: op.lastError ?? "generation failed" } });
       return r.count === 1;
@@ -399,6 +415,7 @@ export interface SubmitGenerationResult { operationId: string; planId: string; j
 
 async function ensurePlanRow(row: OperationRow): Promise<void> {
   const planId = row.targetId!;
+  if (isRevisionTarget(row.targetType)) return; // the stable plan already exists; a revision never creates a plan row
   const create = row.payload?.planCreate ?? {};
   if (row.kind === "NUTRITION_PLAN") {
     const existing = await conversationRepository.findNutritionPlanById(planId);
@@ -494,6 +511,36 @@ async function resolveExisting(id: string, fingerprint: string): Promise<SubmitG
   return advance(row, true);
 }
 
+/** A revision that has not moved for this long (lost message, dead worker, recovery not running) no longer blocks the plan. */
+const revisionStaleMs = () => intEnv("AI_REVISION_STALE_SECONDS", 900) * 1000;
+
+/**
+ * ATOMIC admission of an in-place revision: the partial unique index `ai_generation_operations_one_active_revision_per_plan` allows ONE operation
+ * in ADMITTED/PUBLISHED/RUNNING per plan, so of two concurrent requests (different keys, same plan) exactly one reaches `markAdmitted` successfully;
+ * the other gets a unique violation HERE — before anything is published, so no queue message and no model call exist for it — and its own
+ * reservation row is deleted. A blocker that is stuck (no progress for `revisionStaleMs`) is settled FAILED first so the plan is never locked forever.
+ * (The rejected request has already passed the quota gate: one rate-limit unit is spent on a refused request in this rare race.)
+ */
+async function admitRevision(row: OperationRow, token: string, admission: { targetType: string; targetId: string; payload: unknown }): Promise<boolean> {
+  const d = generationOpsDeps;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await d.store.markAdmitted(row.id, row.epoch, token, admission, d.now());
+    } catch (err) {
+      if (!isUniqueViolation(err)) throw err;
+      const blocker = await findActiveRevisionOperation(admission.targetId, 365 * 24 * 3600_000);
+      if (blocker && attempt === 0 && d.now().getTime() - blocker.updatedAt.getTime() > revisionStaleMs()) {
+        await d.store.settleStranded(blocker.id, blocker.epoch, "superseded: revision made no progress", d.now()).catch(() => undefined);
+        continue; // the slot may be free now: one more try
+      }
+      await d.store.deleteIfReserving(row.id, row.epoch, token).catch(() => undefined);
+      throw new ApiError("REVISION_IN_PROGRESS", "Kế hoạch này đang được AI điều chỉnh. Hãy đợi bản điều chỉnh hiện tại hoàn tất rồi thử lại.", 409);
+    }
+  }
+  await d.store.deleteIfReserving(row.id, row.epoch, token).catch(() => undefined);
+  throw new ApiError("REVISION_IN_PROGRESS", "Kế hoạch này đang được AI điều chỉnh. Hãy đợi bản điều chỉnh hiện tại hoàn tất rồi thử lại.", 409);
+}
+
 export async function submitGeneration(input: SubmitGenerationInput): Promise<SubmitGenerationResult> {
   const d = generationOpsDeps;
   const fingerprint = fingerprintOf({ kind: input.kind, subject: input.subjectUserId ?? null, planCreate: input.planCreate, job: input.job });
@@ -532,12 +579,14 @@ export async function submitGeneration(input: SubmitGenerationInput): Promise<Su
     await d.store.deleteIfReserving(row.id, row.epoch, token).catch(() => undefined);
     throw err;
   }
-  const planId = randomUUID();
-  const ok = await d.store.markAdmitted(
-    row.id, row.epoch, token,
-    { targetType: input.kind === "NUTRITION_PLAN" ? "NUTRITION_PLAN" : "WORKOUT_PLAN", targetId: planId, payload: { planCreate: input.planCreate, job: input.job } },
-    d.now(),
-  );
+  const isRevision = input.kind === "PLAN_ADJUSTMENT";
+  // A revision targets the EXISTING plan id (stable identity); every other kind gets a fresh pre-assigned plan id.
+  const planId = isRevision ? String((input.planCreate as any)?.originalPlanId ?? "") : randomUUID();
+  if (isRevision && !planId) { await d.store.deleteIfReserving(row.id, row.epoch, token).catch(() => undefined); throw new ApiError("VALIDATION_ERROR", "A revision needs the id of the plan to revise.", 400); }
+  const admission = { targetType: isRevision ? REVISION_TARGET : input.kind === "NUTRITION_PLAN" ? "NUTRITION_PLAN" : "WORKOUT_PLAN", targetId: planId, payload: { planCreate: input.planCreate, job: input.job } };
+  const ok = isRevision
+    ? await admitRevision(row, token, admission)
+    : await d.store.markAdmitted(row.id, row.epoch, token, admission, d.now());
   if (!ok) return resolveExisting(row.id, fingerprint); // lost the reservation to a takeover: never act on a successor's row
   return advance((await d.store.get(row.id))!, false);
 }
@@ -546,6 +595,11 @@ export async function submitGeneration(input: SubmitGenerationInput): Promise<Su
 
 async function planStatusOf(row: OperationRow): Promise<string | null> {
   if (!row.targetId) return null;
+  if (isRevisionTarget(row.targetType)) {
+    // The durable fact of success for a revision is its committed history row (idempotent per operation).
+    if (await conversationRepository.findRevisionByOperation(row.id)) return "COMPLETED";
+    return (await conversationRepository.findPlanById(row.targetId)) ? "PROCESSING" : null;
+  }
   const plan = row.targetType === "NUTRITION_PLAN"
     ? await conversationRepository.findNutritionPlanById(row.targetId)
     : await conversationRepository.findPlanById(row.targetId);
@@ -709,12 +763,12 @@ export async function withGenerationOperation(job: { id?: string; data: any }, r
         logger.warn({ operationId }, "[generation] stale attempt abandoned; a newer claim owns this execution");
         return;
       }
-      await d.store.release(ctx, (err as Error).message?.slice(0, 500) ?? "error", d.now()).catch(() => undefined);
+      await d.store.release(ctx, (ctx.failReason ?? (err as Error).message)?.slice(0, 500) ?? "error", d.now()).catch(() => undefined);
       throw err;
     }
     const status = await planStatusOf(row);
     const outcome = status === "COMPLETED" ? "COMPLETED" : "FAILED";
-    const finished = await d.store.finish(ctx, outcome, outcome === "FAILED" ? "plan finished FAILED" : null, d.now());
+    const finished = await d.store.finish(ctx, outcome, outcome === "FAILED" ? (ctx.failReason ?? "plan finished FAILED") : null, d.now());
     if (!finished) logger.warn({ operationId }, "[generation] finish refused; lease no longer held");
   });
 }
@@ -741,6 +795,64 @@ export const jobStatusDeps = {
   },
 };
 
+const FRIENDLY_REVISION_FAILURE = "AI chưa điều chỉnh được kế hoạch lần này. Kế hoạch cũ vẫn giữ nguyên — bạn bấm “Điều chỉnh” lại sau vài giây nhé.";
+const TECHNICAL_FAILURES = /^(max attempts exhausted|publication budget exhausted|target plan missing|plan finished FAILED|plan record missing|superseded: revision made no progress)$/i;
+
+/**
+ * Public status of a REVISION job, derived from the operation (never from the plan row, which stays COMPLETED throughout):
+ * RESERVING/ADMITTED/PUBLISHED -> QUEUED, RUNNING -> PROCESSING, COMPLETED -> COMPLETED (the SAME planId, now at the new version), FAILED -> FAILED.
+ * The response keeps the fields existing pollers read (jobId, planId, status, plan, failReason, createdAt, updatedAt, kind) and adds revision facts.
+ */
+async function describeRevisionJob(op: OperationRow): Promise<JobStatusResult> {
+  const planId = op.targetId!;
+  const plan: any = await conversationRepository.findPlanById(planId);
+  const revision = await conversationRepository.findRevisionByOperation(op.id);
+  let status: string;
+  let failReason: string | null = null;
+  if (revision) status = "COMPLETED";
+  // An operation marked COMPLETED WITHOUT a committed revision can only come from a worker that does not know in-place revisions (version skew
+  // during a partial deploy): it must never be shown to the user as a successful adjustment.
+  else if (op.status === "COMPLETED") { status = "FAILED"; failReason = FRIENDLY_REVISION_FAILURE; }
+  else if (op.status === "FAILED") { status = "FAILED"; const e = op.lastError ?? ""; failReason = !e || TECHNICAL_FAILURES.test(e) ? FRIENDLY_REVISION_FAILURE : e; }
+  else if (op.status === "RUNNING") status = "PROCESSING";
+  else status = "QUEUED";
+  if (status === "QUEUED" && process.env.QUEUE_PROVIDER !== "sqs" && op.status !== "RESERVING") {
+    const bull = await jobStatusDeps.bullState(transportJobId(op.id, op.epoch)).catch(() => null);
+    if (bull?.state === "failed") { status = "FAILED"; failReason = bull.failedReason || FRIENDLY_REVISION_FAILURE; }
+  }
+  const baseVersion = Number((op.payload?.job as any)?.baseVersion ?? NaN);
+  return {
+    kind: "OK",
+    body: {
+      jobId: op.id, revisionJobId: op.id, planId,
+      status,
+      plan: status === "COMPLETED" && plan ? plan.plan : null,
+      version: plan?.version ?? null,
+      expectedVersion: Number.isFinite(baseVersion) ? baseVersion : null,
+      resultVersion: revision?.resultVersion ?? null,
+      revision: true,
+      failReason,
+      createdAt: op.createdAt ?? null, updatedAt: op.updatedAt ?? null,
+      operationId: op.id, epoch: op.epoch, kind: "WORKOUT_PLAN",
+    },
+  };
+}
+
+/** The revision operation (if any) previously created by this actor with this idempotency key: a retry must be answered from it, not re-judged. */
+export async function findRevisionOperationByKey(actorUserId: string, idempotencyKey: string): Promise<OperationRow | null> {
+  const row = await prisma.aiGenerationOperation.findFirst({ where: { actorUserId, idempotencyKey, kind: "PLAN_ADJUSTMENT" } });
+  return (row as unknown as OperationRow) ?? null;
+}
+
+/** A revision of this plan that is still in flight (not terminal and not abandoned): used to refuse a concurrent second revision. */
+export async function findActiveRevisionOperation(planId: string, maxAgeMs = 15 * 60_000): Promise<OperationRow | null> {
+  const rows = await prisma.aiGenerationOperation.findMany({
+    where: { targetType: REVISION_TARGET, targetId: planId, status: { in: ["RESERVING", "ADMITTED", "PUBLISHED", "RUNNING"] }, updatedAt: { gt: new Date(Date.now() - maxAgeMs) } },
+    orderBy: { createdAt: "desc" }, take: 1,
+  });
+  return (rows[0] as unknown as OperationRow) ?? null;
+}
+
 export type JobStatusResult = { kind: "NOT_OPERATION" } | { kind: "FORBIDDEN" } | { kind: "OK"; body: Record<string, unknown> };
 
 /**
@@ -756,6 +868,8 @@ export async function describeOperationJob(userId: string, jobId: string): Promi
   const op = await d.store.get(jobId).catch(() => null);
   if (!op) return { kind: "NOT_OPERATION" };
   if (op.actorUserId !== userId) return { kind: "FORBIDDEN" };
+
+  if (isRevisionTarget(op.targetType)) return describeRevisionJob(op);
 
   const plan: any = op.targetId
     ? await (op.targetType === "NUTRITION_PLAN" ? conversationRepository.findNutritionPlanById(op.targetId) : conversationRepository.findPlanById(op.targetId))

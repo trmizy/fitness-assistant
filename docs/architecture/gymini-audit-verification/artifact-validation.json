@@ -1,0 +1,100 @@
+{
+  "artifact_json_validation": true,
+  "errors": [],
+  "original_inputs": {
+    "ai-integrations.json": {
+      "parse_ok": true,
+      "collections": [
+        {
+          "key": "providers",
+          "count": 8,
+          "duplicate_ids": []
+        },
+        {
+          "key": "capabilities",
+          "count": 16,
+          "duplicate_ids": []
+        }
+      ]
+    },
+    "capabilities.json": {
+      "parse_ok": true,
+      "collections": [
+        {
+          "key": "domains",
+          "count": 14,
+          "duplicate_ids": []
+        },
+        {
+          "key": "capabilities",
+          "count": 101,
+          "duplicate_ids": []
+        }
+      ]
+    },
+    "coverage-manifest.json": {
+      "parse_ok": true,
+      "collections": []
+    },
+    "gaps.json": {
+      "parse_ok": true,
+      "collections": [
+        {
+          "key": "gaps",
+          "count": 20,
+          "duplicate_ids": []
+        },
+        {
+          "key": "known_failure_cases",
+          "count": 7,
+          "duplicate_ids": []
+        }
+      ]
+    },
+    "roles-and-permissions.json": {
+      "parse_ok": true,
+      "collections": [
+        {
+          "key": "roles",
+          "count": 4,
+          "duplicate_ids": []
+        },
+        {
+          "key": "authorization_findings",
+          "count": 8,
+          "duplicate_ids": []
+        }
+      ]
+    },
+    "tests-and-invariants.json": {
+      "parse_ok": true,
+      "collections": [
+        {
+          "key": "invariants",
+          "count": 12,
+          "duplicate_ids": []
+        }
+      ]
+    },
+    "workflows.json": {
+      "parse_ok": true,
+      "collections": [
+        {
+          "key": "workflows",
+          "count": 8,
+          "duplicate_ids": []
+        }
+      ]
+    }
+  },
+  "capabilities": 101,
+  "scoped_traces": 38,
+  "unverified": 63,
+  "ai_scoped": 16,
+  "bdg": 20,
+  "g": 36,
+  "new_gaps": 3,
+  "evidence_records": 81,
+  "original_record_counts_sum": 101,
+  "note": "Artifact structure checks only, not application regression or correctness tests."
+}

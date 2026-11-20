@@ -1,0 +1,20 @@
+{
+  "counts": {
+    "IMPLEMENTED_NOT_RUNTIME_VERIFIED": 9,
+    "IMPLEMENTED_AND_VERIFIED": 58,
+    "UNKNOWN_INSUFFICIENT_EVIDENCE": 3,
+    "PARTIALLY_IMPLEMENTED": 16,
+    "BROKEN_OR_INCONSISTENT": 3,
+    "MOCK_OR_SEED_ONLY": 1,
+    "PLANNED_NOT_IMPLEMENTED": 7,
+    "FEATURE_FLAGGED_OFF": 4
+  },
+  "total": 101,
+  "duplicate_ids": [],
+  "markdown_unique_ids": 102,
+  "markdown_only": [
+    "CAP-06-06"
+  ],
+  "json_only": [],
+  "invalid_domains": []
+}

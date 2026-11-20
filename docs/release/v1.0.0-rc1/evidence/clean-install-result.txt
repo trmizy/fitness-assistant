@@ -1,0 +1,9 @@
+Clean-dependency RC build check (2026-11-12, tools/rc-clean-install.cjs) — VERIFIED BY TEST
+worktree: detached HEAD 5ce4a0ee + the RC manifest files (87 at setup time; the 3 provider-gate .mjs files are not compiled by tsc)
+pnpm install --frozen-lockfile --offline : lockfile accepted; resolved 1801, reused 1775, downloaded 0, added 1801
+  (exit 1 only from the unrelated frontend/mobile postinstall script; backend packages fully linked)
+pnpm --filter @gym-coach/shared run build          : exit 0
+pnpm --filter @gym-coach/ai-service run db:generate : exit 0
+pnpm --filter @gym-coach/ai-service run build (tsc) : exit 0   <- the local TS error in dynamodb-rate-limiter.ts is node_modules drift, not RC code
+ai-service llm suite (offline, fake AWS profile)    : 673/673 pass
+NOT RUN: build:lambda:package (downloads linux deps from the npm registry), CI build from a commit SHA, service DB suites.

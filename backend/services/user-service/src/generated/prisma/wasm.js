@@ -393,6 +393,7 @@ exports.Prisma.NotificationScalarFieldEnum = {
   entityType: 'entityType',
   entityId: 'entityId',
   link: 'link',
+  dedupeKey: 'dedupeKey',
   unread: 'unread',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -1405,7 +1406,9 @@ exports.NotificationEventType = exports.$Enums.NotificationEventType = {
   GYM_BRANCH_SUSPENDED: 'GYM_BRANCH_SUSPENDED',
   GYM_BRANCH_SUSPENSION_LIFTED: 'GYM_BRANCH_SUSPENSION_LIFTED',
   GYM_BRANCH_TEMPORARILY_CLOSED: 'GYM_BRANCH_TEMPORARILY_CLOSED',
-  GYM_BRANCH_REOPENED: 'GYM_BRANCH_REOPENED'
+  GYM_BRANCH_REOPENED: 'GYM_BRANCH_REOPENED',
+  PLAN_REVIEW_REQUESTED: 'PLAN_REVIEW_REQUESTED',
+  PLAN_REVIEW_DECIDED: 'PLAN_REVIEW_DECIDED'
 };
 
 exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
@@ -1423,7 +1426,8 @@ exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
   GYM_PARTNER_APPLICATION: 'GYM_PARTNER_APPLICATION',
   DISPUTE_CASE: 'DISPUTE_CASE',
   GYM_COMPLAINT_CASE: 'GYM_COMPLAINT_CASE',
-  WITHDRAWAL_REQUEST: 'WITHDRAWAL_REQUEST'
+  WITHDRAWAL_REQUEST: 'WITHDRAWAL_REQUEST',
+  PLAN_REVIEW: 'PLAN_REVIEW'
 };
 
 exports.DayOfWeek = exports.$Enums.DayOfWeek = {

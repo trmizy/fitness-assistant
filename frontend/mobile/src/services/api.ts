@@ -3498,6 +3498,9 @@ function extractLlmHealth(payload: unknown): LlmHealthStatus {
   };
 }
 
+/** A fresh Idempotency-Key (accepted charset/length: [A-Za-z0-9._:-]{8,128}). */
+export const newIdempotencyKey = (): string => `m-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}${Math.random().toString(36).slice(2, 8)}`;
+
 export const planService = {
   getLlmHealth: async (): Promise<LlmHealthStatus> => {
     const { data } = await api.get("/plans/llm-health", {
@@ -3633,12 +3636,14 @@ export const planService = {
     adjustments: string,
     daysPerWeek?: number,
     exercisesPerDay?: number,
+    options?: { idempotencyKey?: string; expectedVersion?: number },
   ): Promise<PlanJobResponse> => {
     const body: {
       planId: string;
       adjustments: string;
       daysPerWeek?: number;
       exercisesPerDay?: number;
+      expectedVersion?: number;
     } = {
       planId,
       adjustments,
@@ -3649,7 +3654,11 @@ export const planService = {
     if (typeof exercisesPerDay === "number") {
       body.exercisesPerDay = exercisesPerDay;
     }
-    const { data } = await api.post("/plans/adjust", body);
+    if (typeof options?.expectedVersion === "number") {
+      body.expectedVersion = options.expectedVersion;
+    }
+    // One key per business action: a retry of the SAME action after a timeout is answered from the original operation instead of being run twice.
+    const { data } = await api.post("/plans/adjust", body, options?.idempotencyKey ? { headers: { "Idempotency-Key": options.idempotencyKey } } : undefined);
     return extractPlanJobResponse(data);
   },
 
