@@ -37,7 +37,12 @@ $account = aws sts get-caller-identity --query Account --output text
 if ($account -ne $ExpectedAccount) { Write-Host "HARD STOP: wrong AWS account '$account'." -ForegroundColor Red; exit 1 }
 
 function Get-ProxyStackStatus {
-    $s = aws cloudformation describe-stacks --stack-name $StackName --region $Region --query "Stacks[0].StackStatus" --output text 2>$null
+    # A missing stack is the NORMAL answer here ("absent"). Windows PowerShell 5.1 turns a native command's redirected stderr into a terminating
+    # error under $ErrorActionPreference = "Stop" (dev-auto-stop 2026-11-20 18:00 died here, 4x, and left DEV running) — so relax it for this one call.
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try { $s = aws cloudformation describe-stacks --stack-name $StackName --region $Region --query "Stacks[0].StackStatus" --output text 2>$null }
+    finally { $ErrorActionPreference = $previousPreference }
     if ($LASTEXITCODE -ne 0) { return $null }
     return $s
 }
