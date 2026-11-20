@@ -253,20 +253,29 @@ export function AgentBlock({
                   </View>
                 </View>
               ) : null}
-              <View className="flex-row flex-wrap gap-2">
-                {c.packages && !synthetic ? (
-                  <Button size="sm" variant="secondary" onPress={() => router.push(`/client/services/pt/${encodeURIComponent(c.id)}`)}>
-                    Xem hồ sơ
+              {c.packages ? (
+                // PT cards no longer draft a contract in chat: booking, gym choice and payment happen on the normal PT page.
+                !synthetic ? (
+                  <View className="gap-1.5">
+                    <Small>Đặt gói, chọn phòng gym và thanh toán trên trang PT.</Small>
+                    <View className="flex-row flex-wrap gap-2">
+                      <Button size="sm" onPress={() => router.push(`/client/services/pt/${encodeURIComponent(c.id)}`)}>
+                        Xem hồ sơ & đặt lịch
+                      </Button>
+                    </View>
+                  </View>
+                ) : null
+              ) : (
+                <View className="flex-row flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    disabled={busy || completed}
+                    onPress={() => void run(() => fitnessAgentService.choose(block.recommendationId!, c.id, chosenPkg))}
+                  >
+                    {completed ? "Đã chọn" : "Áp dụng kế hoạch"}
                   </Button>
-                ) : null}
-                <Button
-                  size="sm"
-                  disabled={busy || completed || (c.packages && synthetic)}
-                  onPress={() => void run(() => fitnessAgentService.choose(block.recommendationId!, c.id, chosenPkg))}
-                >
-                  {completed ? "Đã chọn" : c.packages ? "Chọn PT" : "Áp dụng kế hoạch"}
-                </Button>
-              </View>
+                </View>
+              )}
             </Panel>
           );
         })}

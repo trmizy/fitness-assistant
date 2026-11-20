@@ -13,6 +13,7 @@ import {
   summarizeJourneys,
   journeySimilarity,
   FITNESS_SCORING,
+  GOAL_SPECIALTIES,
   type JourneyObservation,
 } from "@gym-coach/shared";
 import type { PTCandidate, AgentPreferences, HistoricalSummary } from "@gym-coach/shared";
@@ -142,4 +143,15 @@ test("journeySimilarity: does not use any demographic dimension (age/gender) —
   const a = { goal: "WEIGHT_LOSS", experience: "BEGINNER", baselineWeight: 80, baselineBodyFat: 25, trainingDays: 3, sessionMinutes: 60, durationWeeks: 12, constraints: [] };
   const keys = Object.keys(a).sort();
   assert.deepEqual(keys, ["baselineBodyFat", "baselineWeight", "constraints", "durationWeeks", "experience", "goal", "sessionMinutes", "trainingDays"]);
+});
+
+test("GOAL_SPECIALTIES: picker specialties HIIT / Functional Training can match goals (they matched none before)", () => {
+  assert.ok(GOAL_SPECIALTIES.WEIGHT_LOSS.includes("HIIT") && GOAL_SPECIALTIES.MAINTENANCE.includes("HIIT"));
+  assert.ok(GOAL_SPECIALTIES.MAINTENANCE.includes("Functional Training") && GOAL_SPECIALTIES.ATHLETIC_PERFORMANCE.includes("Functional Training"));
+  const han = baseCandidate({ specialties: ["Functional Training", "HIIT"] });
+  const score = (goal: AgentPreferences["goal"]) => scorePT(han, { ...prefs, goal }).components.goal;
+  assert.equal(score("WEIGHT_LOSS"), 1);
+  assert.equal(score("MAINTENANCE"), 1);
+  assert.equal(score("ATHLETIC_PERFORMANCE"), 1);
+  assert.equal(score("MUSCLE_GAIN"), 0, "no mapping to MUSCLE_GAIN was added");
 });
