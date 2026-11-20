@@ -16,21 +16,24 @@ const adjust = planService.adjustPlan as unknown as jest.Mock;
 const jobStatus = planService.getJobStatus as unknown as jest.Mock;
 
 describe("PlanSyncCard", () => {
-  it("update available: shows the new version and 'Áp dụng bản mới' fires apply", async () => {
+  it("update available: shows the new version and 'Cập nhật lịch tập theo bản 2' fires apply", async () => {
     const model = deriveSyncState({ program: { sourcePlanId: "p", aiPlanVersion: 1 }, planId: "p", planVersion: 2 })!;
     const onAction = jest.fn();
     const view = await render(<PlanSyncCard model={model} onAction={onAction} />);
-    expect(view.getByText("Có bản cập nhật mới (v2) chưa áp dụng vào lịch tập")).toBeTruthy();
-    await fireEvent.press(view.getByText("Áp dụng bản mới"));
+    expect(view.getByText("Bản 2 chưa được áp dụng vào lịch tập đang tập.")).toBeTruthy();
+    await fireEvent.press(view.getByText("Cập nhật lịch tập theo bản 2"));
     expect(onAction).toHaveBeenCalledWith("apply");
   });
 
-  it("synced: status only, no button; not saved: 'Lưu vào lịch tập'; failed: 'Thử lại'; saving: spinner text only", async () => {
+  it("synced: status + 'Lưu lại vào lịch tập' fires save; not saved: 'Lưu vào lịch tập'; failed: 'Thử lại'; saving: spinner text only", async () => {
+    const syncedAction = jest.fn();
     const synced = await render(
-      <PlanSyncCard model={deriveSyncState({ program: { sourcePlanId: "p", aiPlanVersion: 2 }, planId: "p", planVersion: 2 })!} onAction={jest.fn()} />,
+      <PlanSyncCard model={deriveSyncState({ program: { sourcePlanId: "p", aiPlanVersion: 2 }, planId: "p", planVersion: 2 })!} onAction={syncedAction} />,
     );
-    expect(synced.getByText("Lịch tập đang dùng bản mới nhất")).toBeTruthy();
-    expect(synced.queryByText("Áp dụng bản mới")).toBeNull();
+    expect(synced.getByText("Lịch tập đang theo bản 2 của kế hoạch này.")).toBeTruthy();
+    expect(synced.queryByText(/Cập nhật lịch tập theo bản/)).toBeNull();
+    await fireEvent.press(synced.getByText("Lưu lại vào lịch tập"));
+    expect(syncedAction).toHaveBeenCalledWith("save");
 
     const notSaved = await render(<PlanSyncCard model={deriveSyncState({ program: null, planId: "p", planVersion: 1 })!} onAction={jest.fn()} />);
     expect(notSaved.getByText("Lưu vào lịch tập")).toBeTruthy();

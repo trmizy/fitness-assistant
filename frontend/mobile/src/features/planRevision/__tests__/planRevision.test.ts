@@ -14,24 +14,25 @@ test("sync: no program, or a program built from ANOTHER plan -> not saved, actio
   for (const program of [null, { sourcePlanId: "other", aiPlanVersion: 5 }]) {
     const m = deriveSyncState({ program, planId: PLAN, planVersion: 2 })!;
     assert.equal(m.kind, "NOT_SAVED");
+    assert.equal(m.title, "Kế hoạch này chưa được lưu vào lịch tập.");
     assert.deepEqual(m.action, { id: "save", label: "Lưu vào lịch tập" });
   }
 });
 
-test("sync: program follows this plan at >= its version -> 'Lịch tập đang dùng bản mới nhất', no action", () => {
+test("sync: program follows this plan at >= its version -> 'Lịch tập đang theo bản N của kế hoạch này.' + action 'Lưu lại vào lịch tập'", () => {
   for (const v of [2, 3]) {
     const m = deriveSyncState({ program: { sourcePlanId: PLAN, aiPlanVersion: v }, planId: PLAN, planVersion: 2 })!;
     assert.equal(m.kind, "SYNCED");
-    assert.equal(m.title, "Lịch tập đang dùng bản mới nhất");
-    assert.equal(m.action, null);
+    assert.equal(m.title, "Lịch tập đang theo bản 2 của kế hoạch này.");
+    assert.deepEqual(m.action, { id: "save", label: "Lưu lại vào lịch tập" });
   }
 });
 
-test("sync: plan revised after the program followed it -> update available with the new version + 'Áp dụng bản mới'", () => {
+test("sync: plan revised after the program followed it -> update available with the new version + 'Cập nhật lịch tập theo bản N'", () => {
   const m = deriveSyncState({ program: { sourcePlanId: PLAN, aiPlanVersion: 1 }, planId: PLAN, planVersion: 2 })!;
   assert.equal(m.kind, "UPDATE_AVAILABLE");
-  assert.equal(m.title, "Có bản cập nhật mới (v2) chưa áp dụng vào lịch tập");
-  assert.deepEqual(m.action, { id: "apply", label: "Áp dụng bản mới" });
+  assert.equal(m.title, "Bản 2 chưa được áp dụng vào lịch tập đang tập.");
+  assert.deepEqual(m.action, { id: "apply", label: "Cập nhật lịch tập theo bản 2" });
   // a program with no aiPlanVersion at all counts as 0
   assert.equal(deriveSyncState({ program: { sourcePlanId: PLAN }, planId: PLAN, planVersion: 2 })!.kind, "UPDATE_AVAILABLE");
 });
@@ -43,7 +44,7 @@ test("sync: saving beats everything (spinner, no action); failed -> message + 'T
   assert.equal(saving.action, null);
   const failed = deriveSyncState({ program: null, planId: PLAN, planVersion: 1, failedMessage: "Bạn đang có một buổi tập diễn ra dở dang." })!;
   assert.equal(failed.kind, "FAILED");
-  assert.equal(failed.description, "Bạn đang có một buổi tập diễn ra dở dang.");
+  assert.equal(failed.title, "Chưa đồng bộ được: Bạn đang có một buổi tập diễn ra dở dang.");
   assert.deepEqual(failed.action, { id: "retry", label: "Thử lại" });
   assert.equal(deriveSyncState({ program: undefined, planId: PLAN, planVersion: 1 }), null);
 });
@@ -51,14 +52,14 @@ test("sync: saving beats everything (spinner, no action); failed -> message + 'T
 test("sync: never prints 'vundefined' / 'vNaN' for a missing or garbage version", () => {
   for (const planVersion of [undefined, null, "x", NaN, 0]) {
     const m = deriveSyncState({ program: { sourcePlanId: PLAN, aiPlanVersion: 0 }, planId: PLAN, planVersion })!;
-    assert.doesNotMatch(`${m.title} ${m.description}`, /undefined|NaN|null/);
+    assert.doesNotMatch(`${m.title} ${m.description ?? ""}`, /undefined|NaN|null/);
   }
 });
 
 test("K9: a re-save that applied the revision is NOT announced as 'đã lưu trước đó'", () => {
   const synced = saveOutcomeFrom({ alreadyExists: true, contentSynced: true, previousAiPlanVersion: 1 }, 2);
   assert.equal(synced.kind, "synced");
-  assert.match(synced.message, /Đã cập nhật lịch tập theo phiên bản 2/);
+  assert.match(synced.message, /Đã cập nhật chương trình tập theo phiên bản 2/);
   assert.doesNotMatch(synced.message, /trước đó/);
   assert.equal(saveOutcomeFrom({ alreadyExists: false }, 1).message, "Đã lưu kế hoạch vào lịch tập.");
   assert.equal(saveOutcomeFrom({ alreadyExists: true, contentSynced: false, previousAiPlanVersion: 2 }, 2).kind, "already_current");

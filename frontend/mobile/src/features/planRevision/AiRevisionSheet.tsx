@@ -139,7 +139,7 @@ export function AiRevisionSheet({
       {phase === "done" ? (
         <View className="gap-3 pb-2">
           <Text className="font-body text-sm text-foreground">
-            Xong! AI đã chỉnh kế hoạch. Bản mới chưa tự áp dụng vào lịch tập — hãy bấm “Áp dụng bản mới” khi bạn đồng ý.
+            Xong! AI đã chỉnh kế hoạch. Bản mới chưa tự áp dụng vào lịch tập — hãy bấm “Cập nhật lịch tập theo bản mới” khi bạn đồng ý.
           </Text>
           <Button full onPress={onClose}>
             Xong

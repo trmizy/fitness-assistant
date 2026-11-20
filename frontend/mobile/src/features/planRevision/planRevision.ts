@@ -26,10 +26,10 @@ export interface SyncViewModel {
 
 export const SYNC_COPY = {
   notSaved: "Lưu vào lịch tập",
-  synced: "Lịch tập đang dùng bản mới nhất",
-  apply: "Áp dụng bản mới",
+  notSavedLine: "Kế hoạch này chưa được lưu vào lịch tập.",
+  resave: "Lưu lại vào lịch tập",
   saving: "Đang đồng bộ lịch tập…",
-  failed: "Chưa đồng bộ được vào lịch tập",
+  failedPrefix: "Chưa đồng bộ được",
   retry: "Thử lại",
 } as const;
 
@@ -52,7 +52,7 @@ export interface SyncInput {
 /**
  * K9 state table (web spec):
  *  - saving                                            -> spinner
- *  - failed (this plan)                                -> error + "Thử lại"
+ *  - failed (this plan)                                -> "Chưa đồng bộ được: <lý do>" + "Thử lại"
  *  - no program, or program.sourcePlanId !== plan.id   -> not saved ("Lưu vào lịch tập")
  *  - same plan, (aiPlanVersion ?? 0) >= plan.version   -> synced
  *  - same plan, aiPlanVersion < plan.version           -> update available ("Áp dụng bản mới")
@@ -64,8 +64,8 @@ export function deriveSyncState(input: SyncInput): SyncViewModel | null {
   if (input.failedMessage) {
     return {
       kind: "FAILED",
-      title: SYNC_COPY.failed,
-      description: input.failedMessage,
+      title: `${SYNC_COPY.failedPrefix}: ${input.failedMessage}`,
+      description: null,
       tone: "danger",
       busy: false,
       action: { id: "retry", label: SYNC_COPY.retry },
@@ -78,8 +78,8 @@ export function deriveSyncState(input: SyncInput): SyncViewModel | null {
   if (!program || program.sourcePlanId !== input.planId) {
     return {
       kind: "NOT_SAVED",
-      title: "Kế hoạch chưa có trong lịch tập",
-      description: "Lưu kế hoạch vào lịch tập để bắt đầu tập theo lịch.",
+      title: SYNC_COPY.notSavedLine,
+      description: null,
       tone: "neutral",
       busy: false,
       action: { id: "save", label: SYNC_COPY.notSaved },
@@ -88,15 +88,23 @@ export function deriveSyncState(input: SyncInput): SyncViewModel | null {
 
   const applied = validVersion(program.aiPlanVersion) ?? 0;
   if (applied >= planVersion) {
-    return { kind: "SYNCED", title: SYNC_COPY.synced, description: null, tone: "success", busy: false, action: null };
+    // Spec: "bản N" is the plan's version (the program is at >= it).
+    return {
+      kind: "SYNCED",
+      title: `Lịch tập đang theo bản ${planVersion} của kế hoạch này.`,
+      description: null,
+      tone: "success",
+      busy: false,
+      action: { id: "save", label: SYNC_COPY.resave },
+    };
   }
   return {
     kind: "UPDATE_AVAILABLE",
-    title: `Có bản cập nhật mới (v${planVersion}) chưa áp dụng vào lịch tập`,
-    description: applied > 0 ? `Lịch tập của bạn đang theo bản v${applied}.` : "Lịch tập của bạn đang theo bản cũ.",
+    title: `Bản ${planVersion} chưa được áp dụng vào lịch tập đang tập.`,
+    description: null,
     tone: "warning",
     busy: false,
-    action: { id: "apply", label: SYNC_COPY.apply },
+    action: { id: "apply", label: `Cập nhật lịch tập theo bản ${planVersion}` },
   };
 }
 
@@ -125,14 +133,14 @@ export function saveOutcomeFrom(result: SaveResultLike, planVersion: unknown): {
   const v = validVersion(planVersion) ?? 1;
   if (!result.alreadyExists) return { kind: "first_save", message: "Đã lưu kế hoạch vào lịch tập." };
   if (result.contentSynced) {
-    return { kind: "synced", message: `Đã cập nhật lịch tập theo phiên bản ${v} của kế hoạch.` };
+    return { kind: "synced", message: `Đã cập nhật chương trình tập theo phiên bản ${v} của kế hoạch.` };
   }
   if ((result.previousAiPlanVersion ?? 0) >= v) {
-    return { kind: "already_current", message: `Lịch tập đã khớp với phiên bản ${v} của kế hoạch — không có gì thay đổi.` };
+    return { kind: "already_current", message: `Chương trình tập đã khớp với phiên bản ${v} của kế hoạch — không có gì thay đổi.` };
   }
   return {
     kind: "unchanged_content",
-    message: `Phiên bản ${v} không đổi nội dung buổi tập nên lịch tập giữ nguyên (đã ghi nhận theo phiên bản mới).`,
+    message: `Phiên bản ${v} không đổi nội dung buổi tập nên chương trình giữ nguyên (đã ghi nhận theo phiên bản mới).`,
   };
 }
 

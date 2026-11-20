@@ -465,17 +465,6 @@ export default function AiPlanDetailScreen() {
                   {explainMutation.isPending ? "Đang giải thích…" : "Giải thích"}
                 </Button>
               </View>
-              <View className="flex-1">
-                <Button
-                  variant="secondary"
-                  full
-                  icon={Wand2}
-                  disabled={llmDown}
-                  onPress={() => router.push({ pathname: "/client/plans/wizard", params: { mode: "adjust", planId } })}
-                >
-                  Điều chỉnh
-                </Button>
-              </View>
             </View>
             <Button variant="secondary" full icon={Wand2} disabled={llmDown || isPending(plan.status)} onPress={() => setReviseOpen(true)}>
               Nhờ AI chỉnh kế hoạch
