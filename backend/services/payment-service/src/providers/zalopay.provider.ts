@@ -30,6 +30,26 @@ function yymmdd(d: Date): string {
   return `${String(t.getUTCFullYear()).slice(2)}${p(t.getUTCMonth() + 1)}${p(t.getUTCDate())}`;
 }
 
+/**
+ * Where ZaloPay sends the payer's browser after checkout (embed_data.redirecturl).
+ * Mobile: ZaloPay's gateway page does not navigate to a custom scheme (`fitnessassistant://` left the payer
+ * stuck on "THANH TOÁN THÀNH CÔNG"), so it returns to OUR https bridge GET /payments/zalopay/return, which
+ * 302s to the deep link (see vnpay-return.routes.ts). Public base, same source as VNPay's return: the payer's
+ * request door (returnBaseUrl) > ZALOPAY_RETURN_URL > the base of VNPAY_RETURN_URL.
+ * Web: straight to the frontend result page, unchanged.
+ */
+export function buildRedirectUrl(transactionId: string, platform?: 'web' | 'mobile', returnBaseUrl?: string): string {
+  if (platform === 'mobile') {
+    const explicit = process.env.ZALOPAY_RETURN_URL;
+    const vnpay = process.env.VNPAY_RETURN_URL;
+    const bridge = returnBaseUrl
+      ? `${returnBaseUrl}/payments/zalopay/return`
+      : explicit || (vnpay ? vnpay.replace(/\/payments\/vnpay\/return\/?$/, '/payments/zalopay/return') : 'http://localhost:3007/payments/zalopay/return');
+    return `${bridge}?txnId=${transactionId}`;
+  }
+  return `${returnBaseUrl ?? FRONTEND_URL}/client/payments/result?txnId=${transactionId}`;
+}
+
 export class ZaloPayProvider implements PaymentProvider {
   static configStatus(): { configured: boolean; missing: string[] } {
     const missing = ['ZALOPAY_APP_ID', 'ZALOPAY_KEY1', 'ZALOPAY_KEY2'].filter((k) => !process.env[k]);
@@ -61,9 +81,7 @@ export class ZaloPayProvider implements PaymentProvider {
     // moment the dev machine's DHCP lease changes, same failure this fixed for VNPay already
     // (confirmed by reproducing it: ZaloPay redirected to a stale 192.168.2.103 while the
     // payer's browser was actually on 192.168.1.2, timing out).
-    const returnBase =
-      params.platform === 'mobile' ? 'fitnessassistant://client' : `${params.returnBaseUrl ?? FRONTEND_URL}/client`;
-    const embedData = JSON.stringify({ redirecturl: `${returnBase}/payments/result?txnId=${transactionId}` });
+    const embedData = JSON.stringify({ redirecturl: buildRedirectUrl(transactionId, params.platform, params.returnBaseUrl) });
     const item = '[]';
     const appUser = 'gymcoach';
 

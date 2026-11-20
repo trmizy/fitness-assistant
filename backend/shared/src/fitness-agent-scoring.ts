@@ -20,10 +20,12 @@ export const FITNESS_SCORING = {
   minimumCohort: 5, maximumCohort: 20,
 } as const;
 export const GOAL_SPECIALTIES: Record<string, string[]> = {
-  WEIGHT_LOSS: ["Giảm mỡ", "Fat Loss", "Body Recomposition", "FAT_LOSS"],
+  // "HIIT" / "Functional Training" are options of the PT specialty picker (frontend constants/specialties.ts) that no goal list
+  // contained, so a PT who picked only those could never be a candidate for any goal.
+  WEIGHT_LOSS: ["Giảm mỡ", "Fat Loss", "Body Recomposition", "FAT_LOSS", "HIIT"],
   MUSCLE_GAIN: ["Tăng cơ", "Thể hình", "Muscle Gain", "Hypertrophy", "MUSCLE_GAIN"],
-  MAINTENANCE: ["Sức bền", "General Fitness", "GENERAL_FITNESS"],
-  ATHLETIC_PERFORMANCE: ["Powerlifting", "Thể thao thành tích", "Sports Performance", "STRENGTH"],
+  MAINTENANCE: ["Sức bền", "General Fitness", "GENERAL_FITNESS", "HIIT", "Functional Training"],
+  ATHLETIC_PERFORMANCE: ["Powerlifting", "Thể thao thành tích", "Sports Performance", "STRENGTH", "Functional Training"],
 };
 export interface JourneyFeatures {
   goal: string; experience: string; baselineWeight: number; baselineBodyFat: number | null;
