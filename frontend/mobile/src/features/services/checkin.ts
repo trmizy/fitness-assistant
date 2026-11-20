@@ -14,6 +14,7 @@ const MESSAGES: Record<string, string> = {
   NO_MEMBERSHIP: "Bạn chưa có gói hội viên dùng được tại phòng gym này.",
   NOT_ACTIVE: "Gói hội viên của bạn không còn hiệu lực.",
   VISIT_LIMIT_REACHED: "Bạn đã dùng hết số lượt của gói.",
+  NOT_STARTED: "Gói gia hạn của bạn chưa bắt đầu — bạn sẽ dùng được từ ngày bắt đầu của gói.",
   TOO_SOON: "Bạn vừa check-in xong — không cần quét lại.",
   GYM_NOT_ACTIVE: "Phòng gym này đang tạm ngưng nhận check-in.",
 };

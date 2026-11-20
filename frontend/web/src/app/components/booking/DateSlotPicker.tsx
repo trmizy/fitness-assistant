@@ -7,6 +7,8 @@ import {
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { availabilityService } from "../../services/api";
+import { latestEndByWeekday, isWorkingDay } from "../../utils/ptWeeklyHours";
+import { DAY_FULL_HINT } from "../../utils/batchBooking";
 
 /**
  * Month calendar + available-slot grid, shared by fresh booking (BookingPage.tsx) and
@@ -46,6 +48,7 @@ export function DateSlotPicker({
   onChange,
   minDate,
   maxDate,
+  fullDays,
 }: {
   ptUserId: string;
   value: DateSlotValue | null;
@@ -56,6 +59,8 @@ export function DateSlotPicker({
   minDate?: Date;
   /** Latest selectable date, e.g. the contract's own end date. */
   maxDate?: Date;
+  /** Days (YYYY-MM-DD) where the client already holds the daily maximum of sessions: greyed out with a hint. The server stays the authority. */
+  fullDays?: ReadonlySet<string>;
 }) {
   const today = new Date();
   const floor = minDate ?? today;
@@ -84,6 +89,16 @@ export function DateSlotPicker({
     enabled: !!ptUserId && !!value?.dateStr,
   });
   const slots: string[] = (availableSlots as string[]) ?? [];
+
+  // Which weekdays the PT works - the same source and marker the booking calendar uses, so a reschedule (client or PT
+  // side) shows the days to pick instead of making the user probe day by day. Highlight only; nothing is disabled by it.
+  const { data: ptWeeklyHours = [] } = useQuery({
+    queryKey: ["pt-weekly-hours", ptUserId],
+    queryFn: () => availabilityService.getAvailability(ptUserId),
+    enabled: !!ptUserId,
+    staleTime: 60_000,
+  });
+  const latestEnd = latestEndByWeekday(ptWeeklyHours);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -121,22 +136,30 @@ export function DateSlotPicker({
             const floorDay = new Date(floor.getFullYear(), floor.getMonth(), floor.getDate());
             const isBeforeMin = dateObj < floorDay;
             const isAfterMax = !!maxDate && dateObj > maxDate;
-            const disabled = isBeforeMin || isAfterMax;
+            const dayKey = `${year}-${pad(month + 1)}-${pad(day)}`;
+            const dayFull = !!fullDays?.has(dayKey);
+            const disabled = isBeforeMin || isAfterMax || dayFull;
             const isSelected = !!selectedInThisMonth && selectedDay === day;
+            const isBookable = !disabled && isWorkingDay(dateObj, latestEnd);
             return (
               <button
                 type="button"
                 key={day}
-                aria-label={`Ngày ${day} tháng ${month + 1}`}
+                aria-label={`Ngày ${day} tháng ${month + 1}${dayFull ? `, ${DAY_FULL_HINT.toLowerCase()}` : ""}`}
+                title={dayFull ? DAY_FULL_HINT : undefined}
                 aria-pressed={isSelected}
                 disabled={disabled}
                 onClick={() => onChange({ dateStr: `${year}-${pad(month + 1)}-${pad(day)}`, slot: "" })}
                 className={`aspect-square min-h-10 flex items-center justify-center rounded-xl text-xs font-medium transition-all ${
                   isSelected
                     ? "bg-green-500 text-black shadow-lg shadow-green-500/25"
-                    : disabled
+                    : dayFull
+                      ? "text-zinc-600 line-through cursor-not-allowed"
+                      : disabled
                       ? "text-zinc-700 cursor-not-allowed"
-                      : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                      : isBookable
+                        ? "bg-green-500/10 text-green-300 border border-green-500/25 hover:bg-green-500/20"
+                        : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
                 }`}
               >
                 {day}
@@ -144,6 +167,17 @@ export function DateSlotPicker({
             );
           })}
         </div>
+        {fullDays && fullDays.size > 0 && (
+          <p className="mt-2 text-[11px] text-zinc-500" data-testid="calendar-full-days-hint">
+            Ngày bị gạch: {DAY_FULL_HINT.toLowerCase()}, không dời thêm buổi vào được.
+          </p>
+        )}
+        {latestEnd.size > 0 && (
+          <div className="mt-3 flex items-center gap-1.5 text-[11px] text-zinc-500">
+            <span className="w-2.5 h-2.5 rounded bg-green-500/20 border border-green-500/40" />
+            Ngày PT có lịch rảnh - bấm để xem giờ trống
+          </div>
+        )}
       </div>
 
       {/* Slots */}

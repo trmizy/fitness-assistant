@@ -1,6 +1,6 @@
 import type { SlotDefinition, WorkflowContext, WorkflowDefinition } from "../types";
 import { parseBudgetVnd, parseExperienceLevel, parseGoal, parseMinutes, parseTrainingDays } from "../slot-values";
-import { normalizeAgentText } from "../../services/fitness-agent-intent";
+import { normalizeAgentText, parseConstraintPhrase, parsePlacePhrase } from "../../services/fitness-agent-intent";
 
 /**
  * FIND_PT / FIND_TRAINING_PROGRAM — realized as the existing "PT"/"PROGRAM"
@@ -150,11 +150,50 @@ const experienceSlot: SlotDefinition<"BEGINNER" | "INTERMEDIATE" | "ADVANCED"> =
 };
 
 export const findProgramSlots: SlotDefinition<any>[] = [goalSlot, daysSlot, sessionMinutesSlot, experienceSlot];
-export const findPtSlots: SlotDefinition<any>[] = [goalSlot, daysSlot, sessionMinutesSlot, budgetSlot];
+// Optional PT-search context stated in the OPENING message ("tìm PT ở Gò Vấp, tập trực tiếp"). Never asked (required: false) — they exist
+// so the workflow carries them across the follow-up questions (resumeKnownSlots) instead of losing them with the first message.
+const modeSlot: SlotDefinition<"ONLINE" | "OFFLINE"> = {
+  key: "mode", label: "hình thức tập", source: "WORKFLOW", persistence: "WORKFLOW_ONLY", required: false,
+  readFromContext: () => undefined,
+  parse: (raw) => {
+    const s = normalizeAgentText(raw);
+    if (/online|truc tuyen/.test(s)) return { ok: true, value: "ONLINE" };
+    if (/offline|truc tiep|tai gym|tai phong/.test(s)) return { ok: true, value: "OFFLINE" };
+    return { ok: false, reason: "unrecognized", clarifyingQuestion: "Bạn muốn tập online hay trực tiếp tại phòng gym?" };
+  },
+  question: () => "Bạn muốn tập online hay trực tiếp tại phòng gym?",
+  format: (v) => (v === "ONLINE" ? "Online" : "Trực tiếp"),
+};
+const placeSlot: SlotDefinition<string> = {
+  key: "placeText", label: "khu vực", source: "WORKFLOW", persistence: "WORKFLOW_ONLY", required: false,
+  readFromContext: () => undefined,
+  parse: (raw) => {
+    const place = parsePlacePhrase("o " + raw) ?? normalizeAgentText(raw).trim();
+    return place.length >= 2 ? { ok: true, value: place } : { ok: false, reason: "unrecognized", clarifyingQuestion: "Bạn muốn tìm PT ở khu vực nào (ví dụ Gò Vấp)?" };
+  },
+  question: () => "Bạn muốn tìm PT ở khu vực nào (ví dụ Gò Vấp)?",
+  format: (v) => v,
+};
+
+export const findPtSlots: SlotDefinition<any>[] = [goalSlot, daysSlot, sessionMinutesSlot, budgetSlot, modeSlot, placeSlot];
 
 export const findTrainingProgramWorkflow: WorkflowDefinition = {
   type: "FIND_TRAINING_PROGRAM", gatesIntentKind: "PROGRAM", slots: findProgramSlots,
 };
 export const findPtWorkflow: WorkflowDefinition = {
   type: "FIND_PT", gatesIntentKind: "PT", slots: findPtSlots,
+  // The opening message already says what it says ("Tìm PT giảm mỡ, 5 triệu, ở Gò Vấp") — asking for the budget again was the bug. Only
+  // deterministic, explicit values (parseConstraintPhrase / parsePlacePhrase); anything unclear stays missing and is asked normally.
+  extractFromMessage: (message: string) => {
+    const p = parseConstraintPhrase(message);
+    const out: Record<string, unknown> = {};
+    if (p.goal) out.goal = p.goal;
+    if (p.days?.length) out.days = p.days;
+    if (p.sessionMinutes) out.sessionMinutes = p.sessionMinutes;
+    if (p.budgetVnd) out.budgetVnd = p.budgetVnd;
+    if (p.mode) out.mode = p.mode;
+    const place = parsePlacePhrase(message);
+    if (place) out.placeText = place;
+    return out;
+  },
 };

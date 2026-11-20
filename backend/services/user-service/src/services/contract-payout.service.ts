@@ -359,7 +359,7 @@ export function recordReleaseIntent(tx: Tx, contractId: string, sessionId: strin
 
 /**
  * THE one helper every road into the terminal status NO_SHOW goes through, inside the transaction of the status change (contract lock held, contract ACTIVE):
- *   PT admits (markNoShow), PT AGREEs to a client report (respondToNoShowReport -> markNoShow), a late PT cancel (cancelSession), a PT blocking a date with a confirmed session < 24h away
+ *   PT admits (markNoShow), PT AGREEs to a client report (respondToNoShowReport -> markNoShow), a PT cancel (cancelSession), a PT blocking a date with a confirmed session
  *   (availability addException), the room-close sweep (PT never entered), the admin ruling PT_NO_SHOW_CONFIRMED and the Case Executor (both resolveDisputeCore).
  * It (1) books the entitlement (Quota A+: compensatedSessions + 1, once, marked on the session) and (2) records the money intent. The payment is NOT awaited: the quota is the client's right, the money follows.
  * (An ended contract - the historical branch - books nothing; its ruling records a resolution of the held value instead.)

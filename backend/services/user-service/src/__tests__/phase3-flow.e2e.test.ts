@@ -405,7 +405,7 @@ test("case 2: expired membership (by end date, and by status EXPIRED / CANCELLED
   });
 });
 
-test("case 3: active but too short -> 422 MEMBERSHIP_DOES_NOT_COVER_CONTRACT (10 days vs a 60-day contract); exactly 60 days and longer are allowed", { skip }, async () => {
+test("case 3: active but too short (10 days vs a 60-day contract) -> ALLOWED with a coverage warning (owner rule 19/11/2026); exactly 60 days and longer are allowed and cover", { skip }, async () => {
   await scenario(async () => {
     const ptw = await makePtWithPackage({ validityDays: VALIDITY });
     const world = await makeBrandWorld(ptw.pt);
@@ -414,14 +414,16 @@ test("case 3: active but too short -> 422 MEMBERSHIP_DOES_NOT_COVER_CONTRACT (10
     const short = newClient();
     const shortMem = await addMembership(world, short.id, { endInDays: 10 });
     const opts = await gymOptions(short, ptw.pt, ptw.pkg.id);
-    for (const g of opts.body.gyms) assert.deepEqual(g.eligibility, { canRequest: false, reason: "MEMBERSHIP_DOES_NOT_COVER_CONTRACT" });
+    for (const g of opts.body.gyms) {
+      assert.equal(g.eligibility.canRequest, true);
+      assert.equal(g.eligibility.coverage.coversContract, false);
+      assert.ok(Date.parse(g.eligibility.coverage.membershipEndsAt) < Date.parse(g.eligibility.coverage.contractEndsAt));
+    }
     const r = await requestVia(short, ptw.pt, ptw.pkg.id, A1);
-    assert.equal(r.status, 422, JSON.stringify(r.body));
-    assert.equal(r.body.code, "MEMBERSHIP_DOES_NOT_COVER_CONTRACT");
-    assert.ok(r.body.membershipEndDate && r.body.contractEndDate);
-    assert.ok(Date.parse(r.body.membershipEndDate) < Date.parse(r.body.contractEndDate));
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    userCreated.contracts.push(r.body.id);
     assert.equal(shortMem.id.length > 0, true);
-    assert.equal((await rowsOf(short.id)).length, 0, "no row");
+    assert.equal((await rowsOf(short.id)).length, 1);
 
     // 60 vs 60 (bought a minute ago - ends in 60 days, rounded up): allowed; and longer: allowed
     for (const days of [60, 61, 365]) {

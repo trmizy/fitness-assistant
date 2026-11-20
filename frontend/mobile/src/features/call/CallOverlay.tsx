@@ -76,12 +76,14 @@ function RoundButton({
   label,
   tone = "neutral",
   size = 56,
+  disabled,
   children,
 }: {
   onPress: () => void;
   label: string;
   tone?: "neutral" | "danger" | "success" | "off";
   size?: number;
+  disabled?: boolean;
   children: ReactNode;
 }) {
   const bg =
@@ -95,9 +97,10 @@ function RoundButton({
   return (
     <Tappable
       onPress={onPress}
+      disabled={disabled}
       accessibilityLabel={label}
       className="items-center justify-center rounded-full"
-      style={{ width: size, height: size, backgroundColor: bg }}
+      style={{ width: size, height: size, backgroundColor: bg, opacity: disabled ? 0.5 : 1 }}
     >
       {children}
     </Tappable>
@@ -182,6 +185,8 @@ function IncomingCall() {
   const { state, acceptCall, rejectCall } = useCall();
   const accent = useWorkspaceAccent();
   const info = state.callInfo;
+  // One tap on "Nghe máy" is enough: the button is disabled from then on (the provider ignores a repeat as well).
+  const [accepting, setAccepting] = useState(false);
   return (
     <Backdrop>
       <Initial name={info?.callerName} color={accent.primary} />
@@ -193,7 +198,16 @@ function IncomingCall() {
         <RoundButton label="Từ chối" tone="danger" onPress={rejectCall}>
           <PhoneOff size={24} color="#fff" />
         </RoundButton>
-        <RoundButton label="Nghe máy" tone="success" onPress={acceptCall}>
+        <RoundButton
+          label="Nghe máy"
+          tone="success"
+          disabled={accepting}
+          onPress={() => {
+            if (accepting) return;
+            setAccepting(true);
+            acceptCall();
+          }}
+        >
           {info?.callType === "VIDEO" ? <Video size={24} color="#fff" /> : <Phone size={24} color="#fff" />}
         </RoundButton>
       </View>

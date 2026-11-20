@@ -6,6 +6,11 @@ export const AgentPreferencesSchema = z.object({
   sessionMinutes: z.number().int().min(15).max(180).optional(),
   budgetVnd: z.number().int().positive().max(100000000).optional(),
   provinceCode: z.number().int().positive().optional(),
+  // Optional location reference for PT search (additive). `wardCode`: an admin ward the client named or picked;
+  // `placeText`: a free-text place the client wrote ("Gò Vấp", "Thủ Đức") that user-service resolves against the admin
+  // ward table. Neither is required: without them user-service falls back to the client's profile search region.
+  wardCode: z.number().int().positive().optional(),
+  placeText: z.string().trim().min(2).max(80).optional(),
   mode: z.enum(["ONLINE", "OFFLINE"]).optional(),
   durationWeeks: z.number().int().min(1).max(52).optional(),
   demo: z.boolean().default(false),
@@ -38,6 +43,9 @@ export interface PTCandidate {
   certificates: Array<{ name: string; issuer: string; verificationStatus: string }>;
   packages: Array<{ id: string; name: string; price: number; sessions: number; sessionMinutes: number; mode: string }>;
   availableDays: number[]; availableSlots: number;
+  /** Nearest ACTIVE training location of the PT (ward/district label) and its distance from the client's reference point.
+   * Absent for a PT that only sells ONLINE packages. distanceKm is null when no reference point is known. */
+  location?: { label: string; distanceKm: number | null };
   averageRating: number | null; reviewCount: number;
   clientsStarted: number; clientsCompleted: number;
   cancellationRate: number | null; noShowRate: number | null;

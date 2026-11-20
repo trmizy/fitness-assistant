@@ -1,5 +1,5 @@
 import { Prisma, type GymCheckInSource } from '../generated/prisma';
-import { hasPassedEndDate, hasVisitsLeft } from './membership-eligibility.service';
+import { hasPassedEndDate, hasStarted, hasVisitsLeft } from './membership-eligibility.service';
 import { assertGymOpenForCheckin } from './checkin-gym-guard';
 
 /**
@@ -21,6 +21,8 @@ export function checkinErr(message: string, status: number) {
 export interface MembershipRow {
   id: string;
   status: string;
+  /** Stacked renewal: a paid membership whose start is still in the future cannot be used yet (NOT_STARTED). Optional for hand-built rows. */
+  start_date?: Date | null;
   end_date: Date | null;
   total_visits: number | null;
   used_visits: number;
@@ -59,7 +61,7 @@ export async function lockMembershipForCheckIn(
     : Prisma.sql`c.status IN ('ACTIVE', 'EXPIRED')`;
   const idFilter = membershipId ? Prisma.sql`AND c.id = ${membershipId}` : Prisma.empty;
   const rows = await tx.$queryRaw<MembershipRow[]>`
-    SELECT c.id, c.status, c.end_date, c.total_visits, c.used_visits, c.gym_id, c.client_id, c.plan_id,
+    SELECT c.id, c.status, c.start_date, c.end_date, c.total_visits, c.used_visits, c.gym_id, c.client_id, c.plan_id,
            scanned.status AS gym_status, scanned.operational_status AS gym_operational_status,
            scanned.expected_reopen_at AS gym_expected_reopen_at
     FROM gyms scanned
@@ -67,7 +69,13 @@ export async function lockMembershipForCheckIn(
     JOIN gym_membership_contracts c ON c.plan_id = p.id
     WHERE scanned.id = ${gymId} AND scanned.brand_id IS NOT NULL AND c.client_id = ${clientId}
       AND ${statusFilter} ${idFilter}
-    ORDER BY CASE WHEN c.status = 'ACTIVE' THEN 0 ELSE 1 END, c.created_at DESC
+    ORDER BY CASE
+               WHEN c.status = 'ACTIVE' AND (c.start_date IS NULL OR c.start_date <= now()) AND (c.end_date IS NULL OR c.end_date > now()) THEN 0
+               WHEN c.status = 'ACTIVE' AND c.start_date > now() THEN 1
+               WHEN c.status = 'ACTIVE' THEN 2
+               ELSE 3 END,
+             CASE WHEN c.status = 'ACTIVE' AND c.start_date > now() THEN c.start_date END ASC NULLS LAST,
+             c.created_at DESC
     LIMIT 1
     FOR UPDATE OF c`;
   if (rows.length === 0) throw checkinErr('NO_MEMBERSHIP', 403);
@@ -111,6 +119,8 @@ export async function applyMemberCheckIn(
     status = 'EXPIRED';
   }
   if (status !== 'ACTIVE') throw checkinErr('NOT_ACTIVE', 409);
+  // Stacked renewal queued behind the current membership: paid, but its period has not begun - nobody walks in on it early.
+  if (!hasStarted(m.start_date)) throw checkinErr('NOT_STARTED', 409);
 
   // Anti double-scan.
   const recent = await tx.gymCheckIn.findFirst({

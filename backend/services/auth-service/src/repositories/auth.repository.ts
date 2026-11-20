@@ -320,6 +320,8 @@ export const authRepository = {
     token: string;
     userId: string;
     expiresAt: Date;
+    platform?: string;
+    sessionId?: string | null;
   }) => prisma.refreshToken.create({ data }),
 
   findRefreshToken: (token: string) =>
@@ -328,8 +330,38 @@ export const authRepository = {
       include: { user: true },
     }),
 
+  /** Deletes the row only while it is still live; count 0 = it was revoked (or already gone) meanwhile. */
   deleteRefreshToken: (id: string) =>
-    prisma.refreshToken.delete({ where: { id } }),
+    prisma.refreshToken.deleteMany({ where: { id, revokedAt: null } }),
+
+  /**
+   * Concurrent-login rule: marks every still-live session of `userId` on `platform` as superseded (kept, with
+   * `revokedAt`, so the signed-out device can be told why) and sweeps this user's long-expired tombstones.
+   * Returns how many live sessions were superseded.
+   */
+  revokeSessionsOnPlatform: async (userId: string, platform: string) => {
+    const now = new Date();
+    await prisma.refreshToken.deleteMany({ where: { userId, revokedAt: { not: null }, expiresAt: { lt: now } } });
+    const result = await prisma.refreshToken.updateMany({
+      where: { userId, platform, revokedAt: null },
+      data: { revokedAt: now },
+    });
+    return result.count;
+  },
+
+  /** Live (not superseded, not expired) sessions of `userId` on `platform`, other than the row `exceptId`. */
+  countLiveSessionsOnPlatform: (userId: string, platform: string, exceptId: string) =>
+    prisma.refreshToken.count({
+      where: { userId, platform, revokedAt: null, expiresAt: { gt: new Date() }, id: { not: exceptId } },
+    }),
+
+  /** Marks one session superseded (kept as a tombstone so the device is told why). */
+  revokeRefreshTokenById: (id: string) =>
+    prisma.refreshToken.updateMany({ where: { id, revokedAt: null }, data: { revokedAt: new Date() } }),
+
+  /** True when a newer login superseded the session with this id (`sid` claim of an access token). */
+  isSessionRevoked: async (sessionId: string) =>
+    (await prisma.refreshToken.findFirst({ where: { sessionId, revokedAt: { not: null } }, select: { id: true } })) !== null,
 
   deleteRefreshTokenByValue: (token: string) =>
     prisma.refreshToken.deleteMany({ where: { token } }),

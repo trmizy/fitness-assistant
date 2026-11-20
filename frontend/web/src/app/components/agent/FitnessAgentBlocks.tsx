@@ -66,7 +66,6 @@ export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: {
   const [focus, setFocus] = useState<string[]>(block.attributes?.focusMuscles ?? []);
   const [muscularity, setMuscularity] = useState(block.attributes?.muscularity ?? "MODERATE");
   const [leanness, setLeanness] = useState(block.attributes?.relativeLeanness ?? "MODERATE");
-  const [packages, setPackages] = useState<Record<string, string>>({});
   async function dismissDraft() {
     if (busy || completed || dismissed || !block.actionId) return;
     setBusy(true); setError("");
@@ -93,6 +92,7 @@ export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: {
       {c.specialties && <p>{c.specialties.join(" · ")}</p>}
       {c.yearsExperience && <p>Kinh nghiệm: {c.yearsExperience}</p>}
       {c.availableDays && <p>Lịch: {c.availableDays.map((d: number) => d === 7 ? "CN" : `T${d + 1}`).join(" · ")}</p>}
+      {c.location?.label && <p className="break-words">📍 {c.location.label}{typeof c.location.distanceKm === "number" ? ` · ~${c.location.distanceKm} km` : ""}</p>}
       {c.daysPerWeek && <p>{c.daysPerWeek} buổi/tuần · {c.durationWeeks} tuần · khoảng {c.estimatedMinutes} phút/buổi</p>}
       {c.reviewCount > 0 && <p>Đánh giá {Number(c.averageRating).toFixed(1)}/5 ({c.reviewCount} lượt)</p>}
       <details><summary className="cursor-pointer min-h-11 py-2">Lý do và bằng chứng</summary>
@@ -110,16 +110,16 @@ export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: {
         {c.certificates?.map((cert: any, n: number) => <p className="text-xs" key={n}>{cert.name} · {cert.issuer} · {cert.verificationStatus}</p>)}
         {c.days?.map((day: any, n: number) => <div key={n} className="mt-2"><strong>Buổi {n + 1}</strong>{day.exercises?.map((e: any) => <p key={e.exerciseId}>{e.name}: {e.sets} × {e.reps}</p>)}</div>)}
       </details>
-      {c.packages?.length > 0 && <label className="block">Gói dịch vụ
-        <select aria-label={`Gói của ${c.name}`} value={packages[c.id] ?? c.packages[0].id} onChange={e => setPackages(p => ({ ...p, [c.id]: e.target.value }))} className="block w-full min-h-11 rounded bg-zinc-800 p-2 mt-1">
-          {c.packages.map((p: any) => <option key={p.id} value={p.id}>{p.name} · {p.sessions} buổi · {money(p.price)}</option>)}
-        </select></label>}
+      {c.packages?.length > 0 && <div className="text-sm"><p className="text-zinc-400">Gói dịch vụ</p>
+        <ul className="list-disc pl-5">{c.packages.map((p: any) => <li key={p.id} className="break-words">{p.name} · {p.sessions} buổi · {money(p.price)}{p.mode ? ` · ${p.mode === "ONLINE" ? "Online" : p.mode === "OFFLINE" ? "Trực tiếp" : "Kết hợp"}` : ""}</li>)}</ul></div>}
       <div className="flex flex-wrap gap-2">
-        {c.packages && c.dataOrigin !== "SYNTHETIC" && <Link className={button} to={`/client/services?tab=coaches&ptId=${encodeURIComponent(c.id)}`}>Xem hồ sơ</Link>}
-        <button className={button} disabled={busy || completed || (c.packages && c.dataOrigin === "SYNTHETIC")}
-          onClick={() => void run(() => fitnessAgentService.choose(block.recommendationId!, c.id, packages[c.id] ?? c.packages?.[0]?.id))}>
-          {completed ? "Đã chọn" : c.packages ? "Chọn PT" : "Áp dụng plan"}</button>
+        {c.packages
+          ? c.dataOrigin !== "SYNTHETIC" && <Link className={button} to={`/client/services?tab=coaches&ptId=${encodeURIComponent(c.id)}`}>Xem hồ sơ &amp; đặt lịch</Link>
+          : <button className={button} disabled={busy || completed}
+            onClick={() => void run(() => fitnessAgentService.choose(block.recommendationId!, c.id, undefined))}>
+            {completed ? "Đã chọn" : "Áp dụng plan"}</button>}
       </div>
+      {c.packages && c.dataOrigin !== "SYNTHETIC" && <p className="text-xs text-zinc-400">Đặt gói, chọn phòng gym và thanh toán trên trang PT.</p>}
     </article>)}
     {block.evidence?.length ? <details><summary className="min-h-11 py-2 cursor-pointer">Nguồn khoa học ({block.evidence.length})</summary>
       {block.evidence.map(e => <div key={e.id} className="mb-3 text-xs"><a href={isSafeHttpUrl(e.sourceUrl) ? e.sourceUrl : undefined} target="_blank" rel="noreferrer" className="text-cyan-300 underline">{e.title}</a><p>{e.evidenceLevel}</p><p>{e.finding}</p></div>)}

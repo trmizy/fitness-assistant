@@ -8,6 +8,7 @@ import { getServerOverride, setServerOverride } from "../../config/serverUrl";
 import { ROLE_HOME, landingPathFor, isSafeReturnPath, isReturnPathForRole, roleOf } from "../../config/landing";
 import { Preferences } from "@capacitor/preferences";
 import { AppLogo } from "../../components/brand/AppLogo";
+import { consumePersistedSessionNotice, peekPersistedSessionNotice } from "../../services/sessionEvents";
 
 const features = [
   { icon: Activity, text: "Phân tích thành phần cơ thể InBody" },
@@ -45,6 +46,11 @@ export function LoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Why the previous session ended (e.g. another device signed in), kept across a full page load and shown once.
+  const [sessionNotice] = useState<string | null>(() => peekPersistedSessionNotice());
+  useEffect(() => {
+    consumePersistedSessionNotice();
+  }, []);
   // "Cấu hình máy chủ": the APK reaches the backend through a tunnel whose URL changes on
   // every restart, so the address is pasted here at runtime instead of baked into the build
   // (see config/serverUrl.ts + CAPACITOR-NOTES.md). Saving reloads so every module re-reads it.
@@ -189,6 +195,16 @@ export function LoginPage() {
           <p className="text-zinc-500 text-sm mb-6">
             Đăng nhập vào tài khoản của bạn để tiếp tục
           </p>
+
+          {sessionNotice && (
+            <div
+              role="status"
+              data-testid="login-session-notice"
+              className="mb-6 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-sm text-center"
+            >
+              {sessionNotice}
+            </div>
+          )}
 
           {error && (
             <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center">

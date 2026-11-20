@@ -43,6 +43,8 @@ export interface ConfirmDialogProps {
   /** Disable confirm — e.g. a required reason field is still empty. */
   confirmDisabled?: boolean;
   danger?: boolean;
+  /** Label of the safe button (default "Huỷ"). Set it when the action itself is a cancel ("Huỷ buổi"), so the two never read alike. */
+  cancelLabel?: string;
 }
 
 /**
@@ -63,6 +65,7 @@ export function ConfirmDialog({
   onConfirm,
   confirmDisabled,
   danger = true,
+  cancelLabel = "Huỷ",
 }: ConfirmDialogProps) {
   const [pending, setPending] = useState(false);
 
@@ -84,7 +87,7 @@ export function ConfirmDialog({
         </AlertDialogHeader>
         {children}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending} className={TOUCH_CLASS}>Huỷ</AlertDialogCancel>
+          <AlertDialogCancel disabled={pending} className={TOUCH_CLASS}>{cancelLabel}</AlertDialogCancel>
           <Button
             variant="default"
             className={`${TOUCH_CLASS} ${danger ? DANGER_CLASS : CONFIRM_CLASS}`}

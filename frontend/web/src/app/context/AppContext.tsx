@@ -8,14 +8,21 @@ import React, {
 } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Preferences } from "@capacitor/preferences";
 import { App as CapacitorApp } from "@capacitor/app";
 import { User } from "../types";
 import { authService } from "../services/api";
 import { bootstrapSession, ensureFreshAccessToken } from "../services/session";
 import { sessionGuard } from "../services/sessionGuard";
-import { onSessionExpired } from "../services/sessionEvents";
+import { onSessionExpired, takeSessionNotice } from "../services/sessionEvents";
 import { clearPendingAiState } from "../stores/pendingAiTasks";
+
+/** Tells the user why they were signed out (e.g. another computer logged in), once. No-op when nothing is pending. */
+function announceSessionNotice(): void {
+  const notice = takeSessionNotice();
+  if (notice) toast.error(notice, { duration: 12000 });
+}
 
 // Money-flow plan 5.1: "gym_staff" removed — see the `role` assignment below.
 export type UserRole = "client" | "pt" | "gym_owner" | "admin";
@@ -75,6 +82,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } else {
         setUser(null);
         setIsAuth(false);
+        announceSessionNotice();
       }
       setIsInitializing(false);
     })();
@@ -91,6 +99,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsAuth(false);
       setUser(null);
       setActiveView("client");
+      announceSessionNotice();
       // gymini-account-session-isolation — cancel in-flight user-scoped
       // fetches before wiping the cache: a request from the outgoing
       // session that hasn't settled yet must never be allowed to resolve
@@ -147,13 +156,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (!stillValid) {
           setIsAuth(false);
           setUser(null);
+          void queryClient.cancelQueries();
+          queryClient.clear();
+          announceSessionNotice();
         }
       })();
     });
     return () => {
       void listener.then((l) => l.remove());
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, queryClient]);
 
   // Money-flow plan 5.1: GYM_STAFF removed — gym owners operate everything themselves now.
   const role: UserRole =

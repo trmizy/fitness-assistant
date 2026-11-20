@@ -160,7 +160,7 @@ test("sessions called off by a suspension are SYSTEM cancellations, a genuine PT
     // administrative: suspended, then lifted straight away (≈0 suspended time, so the idle rule is judged on the sessions alone)
     await ptRestrictionService.suspend(suspendInput(ptAdmin));
     await ptRestrictionService.lift({ ptUserId: ptAdmin, adminId: "a", reason: "ok" });
-    // real: the PT cancels a confirmed session himself, 3 days ahead (≥ 24h: free, no money)
+    // real: the PT cancels a confirmed session himself, 3 days ahead (owner decision 20/11/2026: a PT cancel always compensates the client, whatever the notice)
     await bookingService.cancelSession(real.id, ptReal, "bận");
 
     const adminSession = await prisma.session.findFirstOrThrow({ where: { contractId: cAdmin.id } });
@@ -171,7 +171,8 @@ test("sessions called off by a suspension are SYSTEM cancellations, a genuine PT
     assert.equal((await contractRepository.findEndedHoldbackCandidates({ id: cAdmin.id })).length, 0);
     assert.equal((await contractRepository.findEndedHoldbackCandidates({ id: cReal.id })).length, 0);
     await contractService.releaseDueHoldbacks(new Date(T));
-    assert.equal(s.payments.length, 0, "no payment-service call at all: nothing is due while the contracts run");
+    // The PT's own cancel compensates the client (noShow, the only payment call); nothing is released or settled while the contracts run.
+    assert.deepEqual(s.payments.map((p) => p.method), ["noShow"], "only the client's compensation for the PT's own cancel: nothing is due while the contracts run");
   } finally {
     s.restore();
     await cleanup([ptAdmin, ptReal], [cAdmin.id, cReal.id]);

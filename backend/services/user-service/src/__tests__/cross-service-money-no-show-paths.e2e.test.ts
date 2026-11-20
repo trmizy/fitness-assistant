@@ -2,10 +2,10 @@
  * QUOTA A+ - EVERY PATH that ends a session in NO_SHOW by the PT's fault (or must NOT), and the visibility of an exhausted late-open recovery. REAL payment-service.
  *
  *   P1  client reports the PT no-show, the PT AGREES        (POST /sessions/:id/report-no-show -> POST /sessions/:id/respond-no-show)
- *   P2  the PT cancels a CONFIRMED session under 24h before the start   (PATCH /sessions/:id/cancel)
- *   P3  the PT blocks a date holding a CONFIRMED session under 24h away (POST /availability/me/exceptions)
+ *   P2  the PT cancels a CONFIRMED session (any notice; 23h here)       (PATCH /sessions/:id/cancel)
+ *   P3  the PT blocks a date holding a CONFIRMED session (any notice; 6h here) (POST /availability/me/exceptions)
  *       each: session NO_SHOW + noShowQuotaBookedAt, compensated 1, used 0, remaining 3, client +250,000, PT 0; a settlement sweep and a replay of the action change nothing.
- *   P4 / P4b  the PT cancels / blocks at 24h or more: CANCELLED, no quota, no money
+ *   P4 / P4b  the PT cancels / blocks at 24h or more (owner decision 20/11/2026: no 24h grace): the SAME NO_SHOW + compensation as P2 / P3
  *   P5  the CLIENT cancels late: CANCELLED, NO compensation, no mark (the session is charged to the client as today)
  *   P6  nobody joined the room (room-close sweep): CANCELLED, no quota, no money
  *   P7  the PT accuses the CLIENT of no-show: PENDING_CLIENT_CONFIRMATION, no quota, no money while pending
@@ -184,36 +184,28 @@ test("P3 the PT blocks a date holding a CONFIRMED session 6h away (POST availabi
 });
 
 // ═════════════════════ negative controls ═════════════════════
-test("P4 the PT cancels at 24h or more (24h02): CANCELLED, compensated 0, no mark, remaining 4, no money", { skip }, async () => {
+// Owner decision 20/11/2026: the 24h grace is gone, so the PT cancelling / blocking at 24h or more compensates exactly like under 24h.
+test("P4 the PT cancels a CONFIRMED session 24h02 before the start (no 24h grace any more): NO_SHOW, mark, compensated 1, client +250,000; sweep and replay change nothing", { skip }, async () => {
   await scenario(async () => {
     const c = await newContract();
     const S = await confirmedAhead(c, 24 + 2 / 60);
-    const res = await H.call("PATCH", `/sessions/${S.id}/cancel`, c.ptToken, { reason: "PT đổi lịch" });
+    const cancel = () => H.call("PATCH", `/sessions/${S.id}/cancel`, c.ptToken, { reason: "PT đổi lịch" });
+    const res = await cancel();
     assert.equal(res.status, 200, JSON.stringify(res.body));
-    const s = await sessionOf(S.id);
-    assert.deepEqual([s.status, s.sessionDeducted, s.cancelledBy, s.ptAtFault], ["CANCELLED", false, c.ptUserId, false]);
-    await assertNoQuotaNoMoney("P4", c, S.id);
-    assert.deepEqual(await entitlement(c), FRESH);
-    assert.deepEqual(await totals(c), UNTOUCHED);
-    await drain(c.id, 3);
-    assert.deepEqual(await entitlement(c), FRESH);
-    assert.deepEqual(await totals(c), UNTOUCHED);
-    await H.invariant("P4");
+    await assertBookedNoShow("P4", c, S.id, false);
+    await assertStable("P4", c, S.id, cancel, 400);
   });
 });
 
-test("P4b the PT blocks a date holding a CONFIRMED session 30h away: CANCELLED, compensated 0, no mark, remaining 4, no money", { skip }, async () => {
+test("P4b the PT blocks a date holding a CONFIRMED session 30h away (no 24h grace any more): NO_SHOW, mark, compensated 1, client +250,000; sweep and replay change nothing", { skip }, async () => {
   await scenario(async () => {
     const c = await newContract();
     const S = await confirmedAhead(c, 30);
-    const res = await H.call("POST", "/availability/me/exceptions", c.ptToken, { date: S.scheduledStartAt.toISOString(), reason: "PT bận" });
+    const block = () => H.call("POST", "/availability/me/exceptions", c.ptToken, { date: S.scheduledStartAt.toISOString(), reason: "PT bận" });
+    const res = await block();
     assert.equal(res.status, 201, JSON.stringify(res.body));
-    const s = await sessionOf(S.id);
-    assert.deepEqual([s.status, s.sessionDeducted, s.cancelledBy, s.ptAtFault], ["CANCELLED", false, c.ptUserId, false]);
-    await assertNoQuotaNoMoney("P4b", c, S.id);
-    assert.deepEqual(await entitlement(c), FRESH);
-    assert.deepEqual(await totals(c), UNTOUCHED);
-    await H.invariant("P4b");
+    await assertBookedNoShow("P4b", c, S.id, false);
+    await assertStable("P4b", c, S.id, block, 201);
   });
 });
 

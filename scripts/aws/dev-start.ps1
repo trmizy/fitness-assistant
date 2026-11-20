@@ -355,7 +355,7 @@ if (-not $Execute) {
         Write-Host ""
         Write-Host "4) ECS reconnect - point the chat service at the NEW target group (desiredCount untouched):"
         Write-Host "   # aws ecs update-service --cluster $EcsCluster --service $EcsService --load-balancers `"containerName=$EcsContainerName,containerPort=$EcsContainerPort,targetGroupArn=<ChatTargetGroupArn output>`" --region $ExpectedRegion"
-        Write-Host "5) API Gateway reconnect, 6) Frontend runtime-config.json reconnect"
+        Write-Host "5) API Gateway reconnect, 6) Frontend runtime-config.json reconnect, 6c) user Lambda CHAT_SERVICE_URL -> the NEW chat ALB (node lib/set-lambda-env.cjs)"
     }
     if ($desired.Ai) {
         Write-Host ""
@@ -543,6 +543,19 @@ if ($enableChat -eq "true" -and $newTgArn) {
         }
     } catch {
         Write-Host "   WARNING: CloudFront chat origin was NOT synced: $($_.Exception.Message). Realtime chat on gymini.vn may return 502 until the distribution origin is pointed at $newAlbDns." -ForegroundColor Yellow
+    }
+
+    Write-Host ""
+    Write-Host "6c) user Lambda reconnect - CHAT_SERVICE_URL -> http://$newAlbDns..."
+    # user-service reaches chat over HTTP at CHAT_SERVICE_URL (push notifications, and /internal/contracts/connect on contract
+    # activation). The ALB DNS name changes on every start, so a value set once by hand would be stale from the next day. Warning-only:
+    # without it chat is merely not reached (both calls are best-effort and never block a payment or a contract activation).
+    # Counterpart: dev-stop.ps1 -Chat blanks it again. Recorded in docs/deployment/AWS_DEV_THAY_DOI_17-18-11-2026.md.
+    try {
+        node (Join-Path $PSScriptRoot "lib/set-lambda-env.cjs") "fitness-assistant-dev-user" "CHAT_SERVICE_URL" "http://$newAlbDns"
+        if ($LASTEXITCODE -ne 0) { throw "set-lambda-env exit $LASTEXITCODE" }
+    } catch {
+        Write-Host "   WARNING: user Lambda CHAT_SERVICE_URL was NOT updated: $($_.Exception.Message). Real-time push / auto-created contract chat will not reach chat until it points at http://$newAlbDns." -ForegroundColor Yellow
     }
 
     Write-Host ""

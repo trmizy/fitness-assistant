@@ -16,7 +16,15 @@ import { joinSessionState } from "./callState";
 export function JoinSessionButton({
   session,
 }: {
-  session: { id: string; sessionMode: string | null | undefined; status: string; startAt: string | null | undefined; endAt: string | null | undefined };
+  session: {
+    id: string;
+    sessionMode: string | null | undefined;
+    status: string;
+    startAt: string | null | undefined;
+    endAt: string | null | undefined;
+    joinOpensAt?: string | null;
+    joinClosesAt?: string | null;
+  };
 }) {
   const { startSessionPreview } = useCall();
   const toast = useToast();

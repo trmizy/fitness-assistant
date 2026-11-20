@@ -4,6 +4,7 @@ import { logger } from "@gym-coach/shared";
 import { authService } from "../services/auth.service";
 import { authRepository } from "../repositories/auth.repository";
 import { adminAccountGuard } from "../services/admin-account-guard";
+import { resolveSessionPlatform } from "../services/session-platform";
 import { sendPlainEmail } from "../services/email.service";
 import { resolveFrontendUrl } from "../config/frontend-url";
 import {
@@ -165,7 +166,7 @@ export const authController = {
   async verifyRegistration(req: Request, res: Response): Promise<void> {
     try {
       const body = registerVerifySchema.parse(req.body);
-      const result = await authService.verifyRegistration(body);
+      const result = await authService.verifyRegistration(body, resolveSessionPlatform(req.headers["x-gymini-client"]));
       await authRepository.createAuditLog({
         userId: result.user.id,
         action: "REGISTER",
@@ -250,7 +251,7 @@ export const authController = {
   async login(req: Request, res: Response): Promise<void> {
     try {
       const body = loginSchema.parse(req.body);
-      const result = await authService.login(body.email, body.password);
+      const result = await authService.login(body.email, body.password, resolveSessionPlatform(req.headers["x-gymini-client"]));
       await authRepository.createAuditLog({
         userId: result.user.id,
         action: "LOGIN",
@@ -276,7 +277,7 @@ export const authController = {
   async refresh(req: Request, res: Response): Promise<void> {
     try {
       const body = refreshSchema.parse(req.body);
-      const result = await authService.refresh(body.refreshToken);
+      const result = await authService.refresh(body.refreshToken, resolveSessionPlatform(req.headers["x-gymini-client"]));
       await authRepository.createAuditLog({
         userId: result.userId,
         action: "REFRESH_TOKEN",

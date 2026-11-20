@@ -306,6 +306,20 @@ describe("trainer detail — gợi ý mua gói hội viên (regression UI-03 ẩ
     });
   });
 
+  it("đang có hợp đồng với PT này (ACTIVE_CONTRACT_EXISTS): nói đúng lý do + nút 'Xem hợp đồng', không còn 'chưa có phòng gym nào'", async () => {
+    mocked.detail.mockResolvedValue(detail());
+    mocked.packages.mockResolvedValue([pkg({ sessionMode: "OFFLINE" })]);
+    mocked.gymOptions.mockResolvedValue({ requestBlockedReason: "ACTIVE_CONTRACT_EXISTS", gymsReason: "REQUEST_BLOCKED", gyms: [] });
+    const view = await renderScreen();
+    await openOffline(view);
+
+    expect(await view.findByTestId("gym-options-blocked")).toBeTruthy();
+    expect(view.getAllByText(/Bạn đang có hợp đồng với PT này/).length).toBeGreaterThan(0);
+    expect(view.queryByText(/chưa có phòng gym nào/)).toBeNull();
+    await press(view.getByText("Xem hợp đồng"));
+    expect(router.push).toHaveBeenCalledWith({ pathname: "/client/services", params: { tab: "contracts" } });
+  });
+
   it("lý do chặn khác (gói hội viên không đủ hạn) ở chi nhánh không phải nơi tập vẫn được ẩn — không có nút mua", async () => {
     mocked.detail.mockResolvedValue(detail());
     mocked.packages.mockResolvedValue([pkg({ sessionMode: "OFFLINE" })]);
@@ -318,5 +332,35 @@ describe("trainer detail — gợi ý mua gói hội viên (regression UI-03 ẩ
     expect(await view.findByText("Mekong Fitness Q1")).toBeTruthy();
     expect(view.queryByText("Mua gói hội viên")).toBeNull();
     expect(view.queryByText(/không đủ thời hạn/)).toBeNull();
+  });
+
+  it("gói hội viên hết hạn trước hợp đồng (quy tắc 19/11): chi nhánh vẫn chọn được, có cảnh báo và nút 'Gia hạn' mở gói của gym kèm gợi ý ngày hợp đồng", async () => {
+    mocked.detail.mockResolvedValue(detail());
+    mocked.packages.mockResolvedValue([pkg({ sessionMode: "OFFLINE" })]);
+    mocked.gymOptions.mockResolvedValue({
+      pt: { referralCode: "QGT7KPJW" },
+      gyms: [
+        branch({
+          isPtTrainingLocation: true,
+          membership: { hasActiveMembership: true, planName: "Gói 1 tháng", endDate: "2026-12-19T00:00:00.000Z" },
+          eligibility: {
+            canRequest: true,
+            reason: null,
+            coverage: { coversContract: false, membershipEndsAt: "2026-12-19T12:00:00.000Z", contractEndsAt: "2027-01-30T00:00:00.000Z" },
+          },
+        }),
+      ],
+    });
+    const view = await renderScreen();
+    await openOffline(view);
+
+    expect(await view.findByText("Mekong Fitness Q1")).toBeTruthy();
+    expect(view.getByText(/Gói hội viên hết hạn 19[/]12, cần gia hạn/)).toBeTruthy();
+    expect(view.queryByText("Mua gói hội viên")).toBeNull();
+    await press(view.getByText("Gia hạn"));
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: "/client/services/gyms/[id]",
+      params: { id: "mekong-1", referral: "QGT7KPJW", coverUntil: "2027-01-30T00:00:00.000Z" },
+    });
   });
 });

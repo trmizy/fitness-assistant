@@ -23,6 +23,8 @@ import {
   profilePatch,
   type ProfileForm,
 } from "../../../src/features/profile/profile";
+import { unitPreferencesFromProfile, weightLabel } from "../../../src/features/profile/unitPreferences";
+import { cmFromFeetInches, feetInchesFromCm, kgFromLb, lbFromKg } from "../../../src/utils/units";
 
 /**
  * CL-05 — "Chỉnh sửa hồ sơ": web's ProfilePage form (the design only drew the hub). Same fields,
@@ -30,8 +32,8 @@ import {
  * workout program/schedule queries are refreshed too, as on web — goal and experience feed plan
  * generation.
  *
- * Units: shown and edited in cm/kg, the canonical storage units. Web's imperial display toggle
- * lives in Settings and is not ported yet (MOBILE_MIGRATION_MANIFEST.md, CL-05 note).
+ * Units: stored in cm/kg (canonical); shown and typed in the account's unit system (Settings → Đơn vị đo,
+ * the same profile field web writes) — ft-in / lb when it is imperial.
  */
 export default function EditProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -47,6 +49,13 @@ export default function EditProfileScreen() {
     enabled: !!user?.id,
   });
   const profile: any = profileQuery.data;
+  const imperial = unitPreferencesFromProfile(profile).unitSystem === "imperial";
+  const unitSystem = imperial ? "imperial" : "metric";
+  // What the user is typing in ft / in / lb. Kept as text (not re-derived from the stored kg/cm on every key) so
+  // rounding the conversion never rewrites a half-typed number.
+  const [ftDraft, setFtDraft] = useState<string | null>(null);
+  const [inDraft, setInDraft] = useState<string | null>(null);
+  const [lbDraft, setLbDraft] = useState<string | null>(null);
 
   // Untouched fields follow the loaded profile; the first edit takes a private copy.
   const [edited, setEdited] = useState<ProfileForm | null>(null);
@@ -130,15 +139,15 @@ export default function EditProfileScreen() {
           <Card className="p-4">
             <Text className="mb-3 font-body-semibold text-sm text-foreground">Hành trình cân nặng</Text>
             <View className="flex-row flex-wrap">
-              <Journey label="Bắt đầu" value={`${start} kg`} />
-              <Journey label="Hiện tại" value={`${current} kg`} />
-              <Journey label="Mục tiêu" value={target != null ? `${target} kg` : "Chưa đặt"} />
+              <Journey label="Bắt đầu" value={weightLabel(start, unitSystem)} />
+              <Journey label="Hiện tại" value={weightLabel(current, unitSystem)} />
+              <Journey label="Mục tiêu" value={target != null ? weightLabel(target, unitSystem) : "Chưa đặt"} />
               <View className="w-1/2 py-1.5">
                 <Text className="font-body text-[11px] text-muted-foreground">Đã thay đổi</Text>
                 <View className="flex-row items-center gap-1">
                   {change != null && change > 0 ? <TrendingDown size={15} color={accent.primary} /> : change != null && change < 0 ? <TrendingUp size={15} color={designTokens.warning} /> : null}
                   <Text className={`font-display text-lg ${change != null && change > 0 ? "text-primary" : change != null && change < 0 ? "text-warning" : "text-foreground"}`}>
-                    {Math.abs(change ?? 0)} kg
+                    {weightLabel(Math.abs(change ?? 0), unitSystem)}
                   </Text>
                 </View>
               </View>
@@ -166,11 +175,52 @@ export default function EditProfileScreen() {
             </View>
           </View>
           <View className="flex-row gap-3">
+            {imperial ? (
+              <View className="flex-1 flex-row gap-2">
+                <View className="flex-1">
+                  <Input
+                    label="Cao (ft)"
+                    value={ftDraft ?? (form.heightCm ? String(feetInchesFromCm(parseFloat(form.heightCm)).feet) : "")}
+                    onChangeText={(t) => {
+                      setFtDraft(t);
+                      const inches = parseFloat(inDraft ?? (form.heightCm ? String(feetInchesFromCm(parseFloat(form.heightCm)).inches) : "0")) || 0;
+                      set("heightCm", t.trim() === "" && !inches ? "" : String(cmFromFeetInches(parseFloat(t) || 0, inches)));
+                    }}
+                    keyboardType="number-pad"
+                  />
+                </View>
+                <View className="flex-1">
+                  <Input
+                    label="(in)"
+                    value={inDraft ?? (form.heightCm ? String(feetInchesFromCm(parseFloat(form.heightCm)).inches) : "")}
+                    onChangeText={(t) => {
+                      setInDraft(t);
+                      const feet = parseFloat(ftDraft ?? (form.heightCm ? String(feetInchesFromCm(parseFloat(form.heightCm)).feet) : "0")) || 0;
+                      set("heightCm", t.trim() === "" && !feet ? "" : String(cmFromFeetInches(feet, parseFloat(t) || 0)));
+                    }}
+                    keyboardType="number-pad"
+                  />
+                </View>
+              </View>
+            ) : (
+              <View className="flex-1">
+                <Input label="Chiều cao (cm)" value={form.heightCm} onChangeText={(t) => set("heightCm", t)} keyboardType="decimal-pad" />
+              </View>
+            )}
             <View className="flex-1">
-              <Input label="Chiều cao (cm)" value={form.heightCm} onChangeText={(t) => set("heightCm", t)} keyboardType="decimal-pad" />
-            </View>
-            <View className="flex-1">
-              <Input label="Cân nặng (kg)" value={form.currentWeight} onChangeText={(t) => set("currentWeight", t)} keyboardType="decimal-pad" />
+              {imperial ? (
+                <Input
+                  label="Cân nặng (lb)"
+                  value={lbDraft ?? (form.currentWeight ? String(lbFromKg(parseFloat(form.currentWeight))) : "")}
+                  onChangeText={(t) => {
+                    setLbDraft(t);
+                    set("currentWeight", t.trim() === "" ? "" : String(kgFromLb(parseFloat(t) || 0)));
+                  }}
+                  keyboardType="decimal-pad"
+                />
+              ) : (
+                <Input label="Cân nặng (kg)" value={form.currentWeight} onChangeText={(t) => set("currentWeight", t)} keyboardType="decimal-pad" />
+              )}
             </View>
           </View>
         </Card>

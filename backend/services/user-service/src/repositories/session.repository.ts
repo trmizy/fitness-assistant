@@ -359,6 +359,36 @@ export const sessionRepository = {
       select: { scheduledStartAt: true, scheduledEndAt: true },
     }),
 
+  /** Start times of the client's LIVE sessions (any PT) starting in [from, to) - the rows the daily cap counts.
+   *  Live = REQUESTED / CONFIRMED / PENDING_CLIENT_CONFIRMATION / DISPUTED / PT_NO_SHOW_REPORTED (same set as the contract quota). */
+  findClientActiveStartsBetween: async (
+    clientUserId: string,
+    from: Date,
+    to: Date,
+    db: Db = prisma,
+    /** A session being moved: it must not count against its own target day. */
+    excludeSessionId?: string,
+  ): Promise<Date[]> => {
+    const rows = await db.session.findMany({
+      where: {
+        clientUserId,
+        ...(excludeSessionId ? { id: { not: excludeSessionId } } : {}),
+        status: {
+          in: [
+            SessionStatus.REQUESTED,
+            SessionStatus.CONFIRMED,
+            SessionStatus.PENDING_CLIENT_CONFIRMATION,
+            SessionStatus.DISPUTED,
+            SessionStatus.PT_NO_SHOW_REPORTED,
+          ],
+        },
+        scheduledStartAt: { gte: from, lt: to },
+      },
+      select: { scheduledStartAt: true },
+    });
+    return rows.map((r) => r.scheduledStartAt);
+  },
+
   /** Serialises schedule writes of ONE client across all of their PTs (the per-PT lock alone lets two bookings with
    *  two different PTs at the same hour both pass). Taken LAST, inside withPtScheduleLock, so the order is always
    *  PT lock -> (contract lock) -> client lock. */

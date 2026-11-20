@@ -14,6 +14,7 @@ import {
   initialCallState,
   isFinishedCallStatus,
   joinSessionState,
+  roomOpensLabel,
 } from "../call/callState";
 
 const info = {
@@ -67,17 +68,28 @@ test("callErrorMessage never leaks an English server string", () => {
   assert.equal(callErrorMessage(undefined), "Cuộc gọi gặp lỗi. Vui lòng thử lại.");
 });
 
-test("joinSessionState — web's 30-minute window, ONLINE + CONFIRMED only", () => {
+test("joinSessionState — the server's room window (opens 15 min before, closes at the end), ONLINE + CONFIRMED only", () => {
   const start = Date.parse("2026-10-01T10:00:00Z");
   const s = { sessionMode: "ONLINE", status: "CONFIRMED", startAt: "2026-10-01T10:00:00Z", endAt: "2026-10-01T11:00:00Z" };
   const min = 60_000;
-  assert.deepEqual(joinSessionState(s, start - 31 * min), { visible: true, enabled: false, reason: "Chưa đến giờ học" });
-  assert.deepEqual(joinSessionState(s, start - 30 * min), { visible: true, enabled: true });
-  assert.deepEqual(joinSessionState(s, start + 90 * min), { visible: true, enabled: true });
-  assert.deepEqual(joinSessionState(s, start + 91 * min), { visible: true, enabled: false, reason: "Buổi học đã kết thúc" });
+  const before = joinSessionState(s, start - 16 * min);
+  assert.equal(before.visible, true);
+  assert.equal(before.enabled, false);
+  assert.equal(before.reason, roomOpensLabel(start - 15 * min, start - 16 * min));
+  assert.match(before.reason!, /^Mở phòng lúc [0-9]{2}:[0-9]{2}$/);
+  assert.deepEqual(joinSessionState(s, start - 15 * min), { visible: true, enabled: true });
+  assert.deepEqual(joinSessionState(s, start + 59 * min), { visible: true, enabled: true });
+  assert.deepEqual(joinSessionState(s, start + 60 * min), { visible: true, enabled: false, reason: "Buổi học đã kết thúc" });
   assert.equal(joinSessionState({ ...s, sessionMode: "OFFLINE" }, start).visible, false);
   assert.equal(joinSessionState({ ...s, status: "PENDING" }, start).visible, false);
   assert.equal(joinSessionState({ ...s, startAt: null }, start).visible, false);
-  // No end time → the window closes 30 min after the start.
-  assert.equal(joinSessionState({ ...s, endAt: null }, start + 31 * min).enabled, false);
+  // No end time → the room closes at the start.
+  assert.equal(joinSessionState({ ...s, endAt: null }, start + 1 * min).enabled, false);
+  // The server's own window wins over the default rule (e.g. ROOM_OPEN_BEFORE_MINUTES=5).
+  const custom = { ...s, joinOpensAt: "2026-10-01T09:55:00Z", joinClosesAt: "2026-10-01T10:50:00Z" };
+  assert.equal(joinSessionState(custom, start - 6 * min).enabled, false);
+  assert.equal(joinSessionState(custom, start - 5 * min).enabled, true);
+  assert.equal(joinSessionState(custom, start + 50 * min).enabled, false);
+  // The label names the day when the room opens on another day.
+  assert.match(roomOpensLabel(start - 15 * min, start - 3 * 24 * 60 * min), /^Mở phòng lúc [0-9]{2}:[0-9]{2} [0-9]{2}[/][0-9]{2}$/);
 });

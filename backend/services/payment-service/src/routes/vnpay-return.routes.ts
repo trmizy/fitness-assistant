@@ -3,10 +3,17 @@ import { logger } from '@gym-coach/shared';
 import { buildSimulatedReturnQuery, isVnpaySimulateEnabled } from '../providers/vnpay.provider';
 import { transactionRepository } from '../repositories/transaction.repository';
 import { handleVnpayCallback } from '../services/vnpay-callback.service';
+import { randomBytes } from 'crypto';
+import {
+  buildResultRedirect,
+  uiStatusFromDbStatus,
+  renderMobileReturnPage,
+  MOBILE_DEEP_LINK_PREFIX,
+  type ReturnUiStatus,
+} from '../services/payment-return-redirect';
 
 const router = Router();
 
-const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
 // Single source of truth for "is the demo checkout on": VNPAY_SIMULATE=true AND not NODE_ENV=production
 // (see vnpay.provider.ts — in production the flag is ignored and logged as an error).
 const SIMULATE = isVnpaySimulateEnabled();
@@ -81,20 +88,41 @@ router.get('/vnpay/return', async (req: Request, res: Response) => {
   // the transaction at create time, since by now the original request is long gone), the web
   // result page otherwise. Never trust `uiStatus` here either way — both destinations re-ask
   // the server via POST /me/payments/:id/sync before showing anything.
-  const txn = await transactionRepository.findById(txnRef).catch(() => null);
-  const meta = txn?.metadata as Record<string, unknown> | null;
-  const platform = meta?.platform === 'mobile' ? 'mobile' : 'web';
-  // BUG FIX (2026-09-06): fell back to the static .env FRONTEND_URL unconditionally — the
-  // one hardcoded LAN IP/host that, unlike everything else in this file, was never wired to
-  // the payer's actual origin. Reproduced live: a real ZaloPay-class redirect ended up on a
-  // host the browser couldn't reach; VNPay's OWN return trip (this handler) had the identical
-  // exposure one hop further down its own two-hop chain. `returnBaseUrl` is now persisted on
-  // the transaction at checkout time (internal.routes.ts) for exactly this read-back — same
-  // pattern this file already used for `platform` above, just never extended to this value.
-  const webBase = typeof meta?.returnBaseUrl === 'string' ? meta.returnBaseUrl : FRONTEND_URL;
-  const target = platform === 'mobile'
-    ? `fitnessassistant://client/payments/result?txnId=${encodeURIComponent(txnRef)}&status=${uiStatus}`
-    : `${webBase}/client/payments/result?txnId=${encodeURIComponent(txnRef)}&status=${uiStatus}`;
+  // (BUG FIX 2026-09-06: the web base is the payer's real origin persisted on the transaction as
+  // `returnBaseUrl`, not the static .env FRONTEND_URL — see payment-return-redirect.ts.)
+  return res.redirect(302, await buildResultRedirect(txnRef, uiStatus));
+});
+
+// GET /payments/zalopay/return — ZaloPay's gateway page does NOT navigate to a custom scheme
+// (`fitnessassistant://`), so a mobile checkout stayed on "THANH TOÁN THÀNH CÔNG" forever. Like VNPay,
+// ZaloPay now returns to this https route, which 302s on to the app's deep link (mobile) or the web
+// result page. NOTHING is marked paid here: ZaloPay's appended query (status, apptransid, checksum...)
+// is unsigned from our side, money is only ever settled by the signed server-to-server callback /
+// sync. The status shown is derived from OUR stored transaction (pending until that lands) and the
+// result screen re-asks POST /me/payments/:id/sync anyway. Unknown/missing txnId never errors.
+router.get('/zalopay/return', async (req: Request, res: Response) => {
+  const txnId = typeof req.query.txnId === 'string' ? req.query.txnId : '';
+  let uiStatus: ReturnUiStatus = 'pending';
+  try {
+    const txn = txnId ? await transactionRepository.findById(txnId) : null;
+    uiStatus = uiStatusFromDbStatus(txn?.status);
+  } catch (err) {
+    logger.error({ error: '[ZaloPayReturn] processing failed', txnId, message: (err as Error).message });
+  }
+  const target = await buildResultRedirect(txnId, uiStatus);
+  if (target.startsWith(MOBILE_DEEP_LINK_PREFIX)) {
+    // Mobile: a 302 to the custom scheme is blocked by Chrome Custom Tabs when no user gesture precedes it
+    // (ZaloPay auto-redirects), leaving a white tab. Serve a tap-to-return page instead (REAL DEVICE 20/11).
+    const nonce = randomBytes(16).toString('base64');
+    return res
+      .status(200)
+      .set({
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'Content-Security-Policy': `default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; base-uri 'none'; form-action 'none'`,
+      })
+      .send(renderMobileReturnPage(txnId, uiStatus, nonce));
+  }
   return res.redirect(302, target);
 });
 

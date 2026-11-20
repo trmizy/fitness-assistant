@@ -172,6 +172,7 @@ const ERROR_TEXT: Record<string, string> = {
   MEMBER_EMAIL_UNAVAILABLE: "Hội viên chưa có e-mail để nhận mã. Dùng cách xác minh khác hoặc xin quản lý duyệt.",
   NOT_ACTIVE: "Gói của hội viên đã hết hạn hoặc đang tạm khoá nên không thể check-in.",
   VISIT_LIMIT_REACHED: "Hội viên đã dùng hết số buổi của gói.",
+  NOT_STARTED: "Gói gia hạn của hội viên chưa đến ngày bắt đầu nên chưa thể check-in.",
   TOO_SOON: "Hội viên vừa check-in cách đây chưa đến 1 phút.",
   GYM_NOT_ACTIVE: "Chi nhánh đang tạm đóng cửa hoặc chưa hoạt động.",
   NO_MEMBERSHIP: "Hội viên không có gói dùng được ở chi nhánh này.",

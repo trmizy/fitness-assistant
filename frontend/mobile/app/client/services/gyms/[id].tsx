@@ -56,7 +56,7 @@ import {
   isGymGone,
   isTemporarilyClosed,
   reopenLabel,
-  membershipStatusLabel,
+  membershipDisplayLabel,
   multiGymWarningText,
   normalizeGym,
   normalizeMemberships,
@@ -68,6 +68,15 @@ import {
   purchaseBlockedReason,
   type PlanRow,
 } from "../../../../src/features/services/gymDirectory";
+import {
+  PLAN_COVERS_CONTRACT_LABEL,
+  latestMembershipEnd,
+  planCoversContract,
+  projectRenewal,
+  renewalCaption,
+  renewalDate,
+  sortPlansCoveringFirst,
+} from "../../../../src/features/services/membershipRenewal";
 
 /**
  * CL-09 — a gym and its membership plans.
@@ -89,7 +98,14 @@ export default function GymDetailScreen() {
   const accent = useWorkspaceAccent();
   const insets = useSafeAreaInsets();
   const toast = useToast();
-  const { id, referral: referralParam } = useLocalSearchParams<{ id: string; referral?: string }>();
+  const { id, referral: referralParam, coverUntil: coverUntilParam } = useLocalSearchParams<{
+    id: string;
+    referral?: string;
+    /** From a PT contract screen: ISO last day of the contract. A hint for sorting/marking plans, never a requirement. */
+    coverUntil?: string;
+  }>();
+  const coverUntilRaw = String(Array.isArray(coverUntilParam) ? (coverUntilParam[0] ?? "") : (coverUntilParam ?? ""));
+  const coverUntil = coverUntilRaw && !Number.isNaN(new Date(coverUntilRaw).getTime()) ? new Date(coverUntilRaw) : null;
   const gymId = String(id ?? "");
 
   const [planId, setPlanId] = useState<string | null>(null);
@@ -161,9 +177,18 @@ export default function GymDetailScreen() {
     [membershipsQuery.data],
   );
   const selected = onSale.find((plan) => plan.id === planId) ?? null;
-  const mine = memberships.find(
-    (m) => m.gymId === gymId && (m.status === "ACTIVE" || m.status === "PENDING_PAYMENT"),
+  // The membership to show: the one running now, else the queued one, else an unpaid order.
+  const mine =
+    memberships.find((m) => m.gymId === gymId && m.status === "ACTIVE" && !m.isUpcoming) ??
+    memberships.find((m) => m.gymId === gymId && m.status === "ACTIVE") ??
+    memberships.find((m) => m.gymId === gymId && m.status === "PENDING_PAYMENT");
+  // Renewal (stacked): the new plan starts when the client's latest paid membership of the brand ends. Display only - the server decides.
+  const latestEnd = useMemo(
+    () => latestMembershipEnd(memberships, [gymId, ...(gym?.brandBranches ?? []).map((b) => b.id)]),
+    [memberships, gymId, gym],
   );
+  const orderedPlans = useMemo(() => sortPlansCoveringFirst(onSale, latestEnd, coverUntil), [onSale, latestEnd, coverUntilRaw]);
+  const selectedProjection = selected ? projectRenewal(latestEnd, selected.durationDays) : null;
   const baseBlocked = gym ? purchaseBlockedReason(gym, selected, memberships) : "Đang tải phòng gym...";
   const gymClosed = gym ? gymBlockedReason(gym) : null;
 
@@ -450,14 +475,17 @@ export default function GymDetailScreen() {
               <Card className="gap-1.5 p-4">
                 <View className="flex-row items-center justify-between">
                   <Text className="font-body-medium text-sm text-foreground">Gói của bạn tại đây</Text>
-                  <Badge tone={membershipStatusLabel(mine.status).tone}>
-                    {membershipStatusLabel(mine.status).label}
+                  <Badge tone={membershipDisplayLabel(mine).tone}>
+                    {membershipDisplayLabel(mine).label}
                   </Badge>
                 </View>
                 <Text className="font-body text-xs text-muted-foreground">
                   {formatVND(mine.price)}
-                  {mine.status === "ACTIVE" && daysRemaining(mine) != null
+                  {mine.status === "ACTIVE" && !mine.isUpcoming && daysRemaining(mine) != null
                     ? ` · còn ${daysRemaining(mine)} ngày`
+                    : ""}
+                  {mine.status === "ACTIVE" && mine.isUpcoming && mine.startDate
+                    ? ` · bắt đầu ${renewalDate(new Date(mine.startDate))}`
                     : ""}
                 </Text>
               </Card>
@@ -485,14 +513,25 @@ export default function GymDetailScreen() {
               </Card>
             ) : (
               <View className="gap-3">
-                {onSale.map((plan) => (
-                  <PlanCard
-                    key={plan.id}
-                    plan={plan}
-                    selected={plan.id === planId}
-                    onPress={() => setPlanId(plan.id)}
+                {latestEnd ? (
+                  <Notice
+                    tone="warning"
+                    text={`Gia hạn gói hội viên: gói hiện tại hết hạn ${renewalDate(latestEnd)}. Gói mới sẽ được cộng dồn, bắt đầu ngay sau ngày đó.`}
                   />
-                ))}
+                ) : null}
+                {orderedPlans.map((plan) => {
+                  const projection = projectRenewal(latestEnd, plan.durationDays);
+                  return (
+                    <PlanCard
+                      key={plan.id}
+                      plan={plan}
+                      selected={plan.id === planId}
+                      onPress={() => setPlanId(plan.id)}
+                      renewalLine={projection.isRenewal ? renewalCaption(projection) : null}
+                      coversContract={planCoversContract(projection, coverUntil)}
+                    />
+                  );
+                })}
               </View>
             )}
 
@@ -517,12 +556,14 @@ export default function GymDetailScreen() {
 
                 {sampleNotice ? <Notice tone="danger" text={sampleNotice} /> : null}
                 <Button full disabled={!!blocked || checkout.submitting || warningsQuery.isLoading} onPress={() => startPurchase(false)}>
-                  {checkout.submitting ? "Đang tạo giao dịch..." : "Mua gói hội viên"}
+                  {checkout.submitting ? "Đang tạo giao dịch..." : latestEnd ? "Gia hạn gói hội viên" : "Mua gói hội viên"}
                 </Button>
                 {sampleNotice ? null : (
                   <Text className="text-center font-body text-xs text-muted-foreground">
                     {blocked ??
-                      "Bạn chọn cổng thanh toán ở bước sau; gói chỉ kích hoạt khi cổng xác nhận đã thanh toán."}
+                      (selectedProjection?.isRenewal
+                        ? `${renewalCaption(selectedProjection)}. Bạn chọn cổng thanh toán ở bước sau.`
+                        : "Bạn chọn cổng thanh toán ở bước sau; gói chỉ kích hoạt khi cổng xác nhận đã thanh toán.")}
                   </Text>
                 )}
               </>
@@ -573,10 +614,16 @@ function PlanCard({
   plan,
   selected,
   onPress,
+  renewalLine,
+  coversContract,
 }: {
   plan: PlanRow;
   selected: boolean;
   onPress: () => void;
+  /** "Gia hạn: dùng tiếp từ ..., hết hạn ..." when the client already has a running membership at the brand. */
+  renewalLine?: string | null;
+  /** The plan keeps the membership running through the end of the PT contract this screen was opened for (a hint). */
+  coversContract?: boolean;
 }) {
   const accent = useWorkspaceAccent();
   return (
@@ -595,6 +642,12 @@ function PlanCard({
               <Text className="mt-1.5 font-body text-xs text-muted-foreground" numberOfLines={3}>
                 {plan.description}
               </Text>
+            ) : null}
+            {renewalLine ? <Text className="mt-1 font-body text-xs text-muted-foreground">{renewalLine}</Text> : null}
+            {coversContract ? (
+              <View className="mt-1.5 self-start">
+                <Badge tone="success">{PLAN_COVERS_CONTRACT_LABEL}</Badge>
+              </View>
             ) : null}
           </View>
           <View className="items-end">

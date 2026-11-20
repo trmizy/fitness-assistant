@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { CaretLeftIcon as ChevronLeft, ChatTextIcon as MessageSquare, CalendarIcon as Calendar, FileTextIcon as FileText, ClockIcon as Clock, CheckCircleIcon as CheckCircle, XCircleIcon as XCircle, WarningCircleIcon as AlertCircle, ClipboardTextIcon as ClipboardList, WarningIcon as AlertTriangle } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
-import { contractService, sessionService, ptCoachService } from "../../services/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { chatService, contractService, sessionService, ptCoachService } from "../../services/api";
+import { useApp } from "../../context/AppContext";
+import { fullName } from "../../utils/fullName";
 import { formatVND } from "../../utils/currency";
 import { noShowLabelForPt } from "../../utils/sessionRefund";
 import { ClientFitnessSummaryCard } from "./ClientFitnessSummaryCard";
@@ -194,6 +197,38 @@ export function PTClientDetail() {
   const [showAssignPlan, setShowAssignPlan] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
 
+  // "Nhắn tin" opens the 1-1 conversation WITH this client, creating it the first time (idempotent endpoint;
+  // chat-service re-checks the PT<->client contract server-side). It used to open the bare chat list.
+  // The PT's conversation list is read in parallel while the page loads (same cache key as the chat page), so when this client's
+  // thread already exists the button navigates at once instead of waiting for POST /direct and then the chat page's own list call.
+  const { user } = useApp();
+  const queryClient = useQueryClient();
+  const conversationsKey = ["conversations", user?.id ?? "guest"] as const;
+  useQuery({
+    queryKey: conversationsKey,
+    queryFn: chatService.listConversations,
+    enabled: !!user?.id,
+    staleTime: 60_000,
+  });
+  const knownConversationId = (): string | null => {
+    const list = queryClient.getQueryData<any[]>(conversationsKey);
+    const hit = Array.isArray(list) ? list.find((c: any) => c?.otherUser?.id === clientUserId) : null;
+    return hit?.id ?? null;
+  };
+  const openChatMutation = useMutation({
+    mutationFn: async () => {
+      const known = knownConversationId();
+      if (known) return { id: known };
+      return chatService.createDirectConversation(clientUserId!);
+    },
+    onSuccess: (conv: any) => {
+      const conversationId = conv?.id ?? conv?.data?.id ?? conv?.conversation?.id;
+      navigate(conversationId ? `/pt/chat?conversationId=${conversationId}` : "/pt/chat");
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.error?.message ?? err?.response?.data?.error ?? "Không thể mở đoạn chat."),
+  });
+
   const { data: contracts = [], isLoading: contractsLoading } = useQuery({
     queryKey: ["pt-contracts"],
     queryFn: () => contractService.getByPT(),
@@ -210,7 +245,8 @@ export function PTClientDetail() {
   const contract =
     clientContracts.find((c: any) => c.status === "ACTIVE") ??
     clientContracts[0];
-  const clientName = contract?.clientName ?? "Học viên";
+  // Display name from the client's profile (first + last name, placeholder dots dropped). Never the e-mail.
+  const clientName = fullName(contract?.clientProfile, contract?.clientName?.trim() || "Học viên");
 
   const { data: sessions = [], isLoading: sessionsLoading } = useQuery({
     queryKey: ["contract-sessions", contract?.id],
@@ -312,10 +348,11 @@ export function PTClientDetail() {
           </div>
           <div className="flex gap-2 flex-wrap sm:flex-nowrap">
             <button
-              onClick={() => navigate("/pt/chat")}
-              className="flex items-center gap-1.5 px-3 py-2 bg-zinc-800 border border-zinc-700/60 text-zinc-300 rounded-xl text-sm font-medium hover:bg-zinc-700 transition-colors"
+              onClick={() => clientUserId && openChatMutation.mutate()}
+              disabled={openChatMutation.isPending || !clientUserId}
+              className="flex min-h-10 items-center gap-1.5 px-3 py-2 bg-zinc-800 border border-zinc-700/60 text-zinc-300 rounded-xl text-sm font-medium hover:bg-zinc-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <MessageSquare className="w-4 h-4" /> Chat
+              <MessageSquare className="w-4 h-4" /> {openChatMutation.isPending ? "Đang mở..." : "Nhắn tin"}
             </button>
             <button
               onClick={() => navigate("/pt/schedule")}

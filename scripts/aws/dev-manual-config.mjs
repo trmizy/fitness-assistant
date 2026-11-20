@@ -45,6 +45,8 @@ export const DESIRED = {
    * getHours()/getDay() (PT availability, reschedule) is wrong on a UTC Lambda. REQUIRE_CONTRACT_ESIGN=false: e-sign is a settled
    * "off" decision; an unset value means ON (contract.service.ts), which strands every PT contract at PENDING_SIGNATURE.
    * *_LAMBDA_NAME: user-service reaches gym/payment by direct invoke (there is no internal HTTP on Lambda).
+   * NOT listed on purpose: CHAT_SERVICE_URL on `user`. The chat ALB is re-created by every `dev-start -Chat` (new DNS name), so that value is
+   * written by dev-start.ps1 (step 6c) and blanked by dev-stop.ps1 (step 2b-iii) via lib/set-lambda-env.cjs - pinning it here would go stale.
    */
   lambdaEnv: {
     user: {

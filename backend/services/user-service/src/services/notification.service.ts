@@ -7,9 +7,9 @@ import {
 import { notificationRepository } from "../repositories/notification.repository";
 import { pushDeviceRepository } from "../repositories/push-device.repository";
 import { pushService } from "./push.service";
+import { resolveChatServiceUrl } from "../utils/chat-service-url";
 
-const CHAT_SERVICE_URL =
-  process.env.CHAT_SERVICE_URL || "http://chat-service:3005";
+// Resolved per call (utils/chat-service-url.ts): null on Lambda when CHAT_SERVICE_URL is unset -> no realtime push attempted.
 // chat-service's /internal/push-notification validates against
 // INTERNAL_API_SECRET || INTERNAL_SERVICE_SECRET (see its app.ts) - mirror the
 // same precedence here so local dev (where the two are configured to
@@ -42,8 +42,10 @@ function pushToSocket(payload: {
     );
     return;
   }
+  const chatServiceUrl = resolveChatServiceUrl();
+  if (!chatServiceUrl) return;
   axios
-    .post(`${CHAT_SERVICE_URL}/internal/push-notification`, payload, {
+    .post(`${chatServiceUrl}/internal/push-notification`, payload, {
       timeout: 3000,
       headers: { "x-internal-secret": CHAT_INTERNAL_SECRET },
     })

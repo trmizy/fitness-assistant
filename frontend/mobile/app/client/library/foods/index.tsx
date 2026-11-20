@@ -10,6 +10,7 @@ import { Apple, ChevronLeft, ChevronRight, Search } from "lucide-react-native";
 import { Card, EmptyState, Input, Tappable, inputPlaceholderColor } from "../../../../src/components/ui";
 import { foodService } from "../../../../src/services/api";
 import { useWorkspaceAccent } from "../../../../src/theme/workspace";
+import { useUnitPreferences } from "../../../../src/features/profile/useUnitPreferences";
 import {
   FOOD_SORTS,
   MIN_FOOD_QUERY,
@@ -41,6 +42,7 @@ const PAGE_SIZE = 20;
  */
 export default function FoodLibraryScreen() {
   const accent = useWorkspaceAccent();
+  const { energyUnit } = useUnitPreferences();
   const insets = useSafeAreaInsets();
 
   const [searchInput, setSearchInput] = useState("");
@@ -230,7 +232,7 @@ export default function FoodLibraryScreen() {
                   {item.name}
                 </Text>
                 <Text className="mt-0.5 font-body text-xs text-muted-foreground">
-                  {caloriesLabel(item.calories)}
+                  {caloriesLabel(item.calories, energyUnit)}
                   {item.foodForm ? ` · ${item.foodForm}` : ""}
                 </Text>
                 <View className="mt-1.5 flex-row gap-3">

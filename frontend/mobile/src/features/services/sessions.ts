@@ -8,8 +8,10 @@
  *  - eight statuses, and **only COMPLETED consumes a session from the package quota**. A session
  *    sitting in REQUESTED, CONFIRMED, PENDING_CLIENT_CONFIRMATION, DISPUTED or PT_NO_SHOW_REPORTED
  *    has not been charged for yet, which is exactly what makes "còn lại" honest;
- *  - cancelling inside 24 hours is not free: the client loses the session and the trainer is
- *    compensated for it, so the sheet says so BEFORE the tap, not after;
+ *  - cancelling a CONFIRMED session is never free (owner decision 20/11/2026, no 24-hour grace any
+ *    more): the client loses the session and the trainer still earns it, so the sheet says so BEFORE
+ *    the tap, not after. Cancelling a REQUESTED one (nothing was agreed yet) stays free, and a
+ *    reschedule both sides agree to is free;
  *  - a PT no-show can only be reported once the session has actually started (plus a grace
  *    period) — reporting earlier is refused server-side;
  *  - a session the PT marked as delivered waits for the client, and auto-confirms if they say
@@ -18,7 +20,6 @@
  */
 
 /** Mirrors the backend's own constants (booking.service.ts). */
-export const CANCEL_WINDOW_HOURS = 24;
 export const NO_SHOW_GRACE_MINUTES = 15;
 export const AUTO_CONFIRM_DAYS = 3;
 
@@ -49,6 +50,9 @@ export type SessionRow = {
   sessionMode: string | null;
   startAt: string | null;
   endAt: string | null;
+  /** The server's own online-room window (ROOM_OPEN_BEFORE_MINUTES before the start .. the scheduled end). */
+  joinOpensAt?: string | null;
+  joinClosesAt?: string | null;
   location: string | null;
   notes: string | null;
   cancellationReason: string | null;
@@ -93,6 +97,8 @@ export function normalizeSession(raw: any): SessionRow {
     sessionMode: raw?.sessionMode ?? null,
     startAt: raw?.scheduledStartAt ?? null,
     endAt: raw?.scheduledEndAt ?? null,
+    joinOpensAt: raw?.joinOpensAt ?? null,
+    joinClosesAt: raw?.joinClosesAt ?? null,
     location: raw?.location ?? null,
     notes: raw?.notes ?? null,
     cancellationReason: raw?.cancellationReason ?? null,
@@ -252,16 +258,18 @@ export function hoursUntil(session: SessionRow, now: Date = new Date()): number 
   return (start - now.getTime()) / 3_600_000;
 }
 
-/** Inside the 24-hour window, cancelling costs the client the session. */
-export function cancelCostsSession(session: SessionRow, now: Date = new Date()): boolean {
-  const hours = hoursUntil(session, now);
-  return hours !== null && hours < CANCEL_WINDOW_HOURS;
+/** Cancelling a CONFIRMED session costs the client the session, at any notice (owner decision 20/11/2026). */
+export function cancelCostsSession(session: SessionRow, _now: Date = new Date()): boolean {
+  return session.status === "CONFIRMED";
 }
 
+export const CLIENT_CANCEL_CONFIRMED_NOTICE =
+  "Huỷ buổi đã xác nhận sẽ mất 1 buổi trong hợp đồng (PT vẫn được tính buổi). Nếu cần đổi giờ, hãy dùng Đổi lịch — miễn phí khi PT đồng ý.";
+
+export const CLIENT_CANCEL_REQUESTED_NOTICE = "Yêu cầu này chưa được huấn luyện viên xác nhận nên huỷ không bị trừ buổi.";
+
 export function cancelWarning(session: SessionRow, now: Date = new Date()): string {
-  return cancelCostsSession(session, now)
-    ? `Còn dưới ${CANCEL_WINDOW_HOURS} giờ nữa tới giờ tập: huỷ bây giờ sẽ TRỪ 1 buổi trong gói và huấn luyện viên vẫn được tính công buổi đó.`
-    : `Còn hơn ${CANCEL_WINDOW_HOURS} giờ nữa: huỷ bây giờ không bị trừ buổi, bạn đặt lại lúc khác được.`;
+  return cancelCostsSession(session, now) ? CLIENT_CANCEL_CONFIRMED_NOTICE : CLIENT_CANCEL_REQUESTED_NOTICE;
 }
 
 /** The PT can only be reported absent once the session has started and the grace period is up. */

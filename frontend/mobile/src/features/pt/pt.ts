@@ -15,6 +15,7 @@ import { CONTRACT_STATUS, type StatusTone } from "../services/contracts";
 import { canRespondAs, collabStatusFor } from "../collaboration/collaboration";
 import { noShowRefundLabel, SESSION_STATUS, type RefundFields, type SessionTone } from "../services/sessions";
 import { GOAL_OPTIONS } from "../profile/profile";
+import { fullName } from "../../lib/personName";
 
 // ── Naming a client ────────────────────────────────────────────────────────────────────────
 
@@ -25,22 +26,16 @@ export type ClientRef = {
 };
 
 export function clientName(ref: ClientRef | null | undefined, fallback = "Học viên"): string {
-  const p = ref?.clientProfile;
-  if (p) {
-    const name = `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim();
-    if (name) return name;
-  }
+  // firstName + lastName, a lone "." placeholder dropped; never the e-mail.
+  const name = fullName(ref?.clientProfile);
+  if (name) return name;
   return ref?.clientName?.trim() || fallback;
 }
 
 /** Initials for the avatar. Never renders an id — "?" is better than a uuid fragment. */
 export function clientInitials(ref: ClientRef | null | undefined): string {
-  const p = ref?.clientProfile;
-  if (p) {
-    const i = `${p.firstName?.[0] ?? ""}${p.lastName?.[0] ?? ""}`.trim();
-    if (i) return i.toUpperCase();
-  }
-  const name = ref?.clientName?.trim();
+  const profileName = fullName(ref?.clientProfile);
+  const name = profileName || ref?.clientName?.trim();
   if (!name) return "?";
   const parts = name.split(/\s+/);
   return (parts.length >= 2 ? `${parts[0][0]}${parts[parts.length - 1][0]}` : parts[0].slice(0, 2)).toUpperCase();
@@ -640,6 +635,34 @@ export type SessionAction = "confirm" | "complete" | "noShow" | "cancel";
  * surfaced rather than assumed impossible.
  */
 export const NO_SHOW_GRACE_MINUTES = 15;
+
+/**
+ * Owner decision 20/11/2026: no 24-hour grace. A PT cancelling a CONFIRMED session - or blocking a whole day that holds one -
+ * compensates the client one session in cash, charged to the PT's earnings, at ANY notice. A REQUESTED one (never confirmed) is free.
+ */
+export const PT_CANCEL_CONFIRMED_NOTICE =
+  "Huỷ buổi đã xác nhận (kể cả chặn ngày nghỉ) sẽ bồi thường cho học viên 1 buổi bằng tiền, trừ vào thu nhập của bạn. Nên dùng Đổi lịch nếu học viên đồng ý.";
+
+/** What the PT is told before cancelling this session (a session they have not confirmed yet costs nothing). */
+export function ptCancelNotice(status: string, name: string): string {
+  return status === "CONFIRMED"
+    ? `${PT_CANCEL_CONFIRMED_NOTICE}
+
+Buổi với ${name} sẽ bị huỷ và học viên sẽ nhận được thông báo.`
+    : `Buổi với ${name} sẽ bị huỷ. Học viên sẽ nhận được thông báo.`;
+}
+
+/** How many CONFIRMED sessions sit on `dateStr` (`YYYY-MM-DD`, local day - the server blocks by the local day too). */
+export function confirmedSessionsOnDate(sessions: PtSession[], dateStr: string): number {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((dateStr ?? "").trim());
+  if (!m) return 0;
+  return sessionsOnDay(sessions, Number(m[1]), Number(m[2]) - 1, Number(m[3])).filter((s) => s.status === "CONFIRMED").length;
+}
+
+/** Body of the "block this day" confirm - asked only when the day holds CONFIRMED sessions (each one costs the PT a compensation). */
+export function ptBlockDayNotice(confirmedCount: number): string {
+  return `Ngày này có ${confirmedCount} buổi đã xác nhận.\n\n${PT_CANCEL_CONFIRMED_NOTICE}`;
+}
 
 export function sessionActions(session: PtSession, now: Date = new Date()): SessionAction[] {
   const t = now.getTime();

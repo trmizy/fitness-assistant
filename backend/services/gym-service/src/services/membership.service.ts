@@ -15,6 +15,7 @@ import { isPlanOnSale } from './plan.service';
 import { partnerGuard } from './partner-guard.service';
 import { commissionRateService } from './commission-rate.service';
 import { assertNotSynthetic, isSynthetic, originOf } from './synthetic-guard';
+import { stackedPeriod } from './membership-stacking';
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -121,6 +122,11 @@ export function membershipOrderInfo(planName: string | null | undefined, gymName
   return (rest.length > 0 ? `${head} ${rest.join(' - ')}` : head).slice(0, 100);
 }
 
+/** A paid (ACTIVE) stacked renewal whose period has not begun: show it as "Sắp bắt đầu", never as a usable membership yet. */
+function isUpcomingRow(row: { status: string; startDate: Date | null }): boolean {
+  return row.status === 'ACTIVE' && row.startDate != null && row.startDate > new Date();
+}
+
 export const membershipService = {
   /**
    * First purchase at a gym. `referralCode`, when present, credits a PT for bringing this
@@ -168,18 +174,16 @@ export const membershipService = {
     // marketing window closed. Never trust that what the browser is showing is still true.
     if (!isPlanOnSale(plan)) throw err('Gói này hiện không còn trong thời gian mở bán', 409);
 
-    const existingOpen = await membershipRepository.findOpenByClientAndGym(clientId, gymId);
-    if (existingOpen) {
-      await membershipRepository.expireIfPastEndDate(existingOpen);
-      const recheck = await membershipRepository.findOpenByClientAndGym(clientId, gymId);
-      if (recheck) {
-        if (recheck.status === 'PENDING_PAYMENT') {
-          const e = err('ALREADY_HAS_PENDING_MEMBERSHIP', 409);
-          throw Object.assign(e, { membershipId: recheck.id });
-        }
-        throw err('ALREADY_HAS_OPEN_MEMBERSHIP', 409);
-      }
+    // Stacked renewal (owner rule 19/11/2026): an ACTIVE (or queued) membership no longer blocks a new purchase - the new
+    // one starts when the latest existing one ends (membership-stacking.ts, decided at payment time). Only an UNPAID order
+    // at this gym still blocks (one checkout at a time; the DB's partial unique index guards the race below).
+    const pending = await membershipRepository.findPendingByClientAndGym(clientId, gymId);
+    if (pending) {
+      const e = err('ALREADY_HAS_PENDING_MEMBERSHIP', 409);
+      throw Object.assign(e, { membershipId: pending.id });
     }
+    const latestEnd = await membershipRepository.latestActiveEndForBrand(clientId, gym.brandId);
+    const renewal = stackedPeriod(new Date(), latestEnd, plan.durationDays);
 
     const referral = referralCode ? await this.resolveReferral(referralCode, gymId, clientId) : null;
 
@@ -201,9 +205,9 @@ export const membershipService = {
         multiGymWarned,
       });
     } catch {
-      // Unique-index race — the DB constraint is the real guard against two concurrent
-      // purchase requests both slipping past the app-level pre-check above.
-      throw err('ALREADY_HAS_OPEN_MEMBERSHIP', 409);
+      // Unique-index race — the DB constraint (one PENDING_PAYMENT per client+gym) is the real guard against two
+      // concurrent purchase requests both slipping past the app-level pre-check above.
+      throw err('ALREADY_HAS_PENDING_MEMBERSHIP', 409);
     }
 
     if (referral) {
@@ -217,7 +221,9 @@ export const membershipService = {
       });
     }
 
-    return attemptPayment(contract, clientId, provider, platform, returnBaseUrl);
+    const started = await attemptPayment(contract, clientId, provider, platform, returnBaseUrl);
+    // Projection shown to the buyer ("Gia hạn: bắt đầu <ngày>, hết hạn <ngày>"); the binding dates are set when payment lands.
+    return { ...started, renewal: { isRenewal: renewal.isRenewal, startsAt: renewal.startDate.toISOString(), endsAt: renewal.endDate.toISOString() } };
   },
 
   /**
@@ -292,7 +298,9 @@ export const membershipService = {
     const now = at.getTime();
     const totalMs = contract.durationDaysSnapshot * 24 * 60 * 60 * 1000;
     const end = contract.endDate ? contract.endDate.getTime() : now;
-    const remainingMs = Math.max(0, end - now);
+    // Unused time never exceeds the membership's own length: a stacked renewal that has not begun yet (startDate in the future)
+    // has its WHOLE term unused -> full price back, not "term + the wait behind the current membership".
+    const remainingMs = Math.min(totalMs, Math.max(0, end - now));
     const fraction = totalMs > 0 ? Math.min(1, remainingMs / totalMs) : 0;
     // Same rule as unusedValueAt (complaint-case/rules.ts): rounded DOWN to the nearest 1,000 VND, full price when the whole term is unused.
     const refundAmount = proratedRefundAmount(Number(contract.priceAtPurchase), fraction);
@@ -321,6 +329,15 @@ export const membershipService = {
       throw err('Membership has already expired', 409);
     }
     if (contract.status !== 'ACTIVE') throw err(`Cannot cancel a membership in ${contract.status} status`, 409);
+    // Stacked renewal not started yet: a client self-cancel forfeits money (no refund) and would release the whole price to the
+    // gym for a period that never began - refused whatever the flag below says. The only way out is the admin refund
+    // (refundByAdmin, full price because nothing was used) via support.
+    if (contract.startDate && contract.startDate > new Date()) {
+      throw Object.assign(
+        new Error('Gói gia hạn chưa bắt đầu nên không thể tự huỷ. Nếu cần hỗ trợ hãy liên hệ Gymini.'),
+        { status: 409, code: 'MEMBERSHIP_UPCOMING_CANCEL_DISABLED' },
+      );
+    }
     // B47 (Ngài chốt): for now a client may NOT cancel an ACTIVE membership - the unused part would be forfeited with no
     // preview of the loss. Cancelling a PENDING_PAYMENT purchase (POST /me/gym-memberships/:id/cancel) is unaffected.
     // GYM_CLIENT_CANCEL_ACTIVE_ENABLED=true restores the old forfeit-on-cancel behaviour without a code change.
@@ -450,6 +467,7 @@ export const membershipService = {
       result.push({
         ...row,
         gymName: gym.approvedName ?? gym.name,
+        isUpcoming: isUpcomingRow(row),
       });
     }
     return result;
@@ -464,6 +482,7 @@ export const membershipService = {
     return {
       ...row,
       gymName: gym.approvedName ?? gym.name,
+      isUpcoming: isUpcomingRow(row),
     };
   },
 

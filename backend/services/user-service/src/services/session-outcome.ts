@@ -1,18 +1,25 @@
 import { SessionStatus } from "../generated/prisma";
 
 /**
- * Money-flow redesign plan 3.1 — "hợp nhất hậu quả khi PT nghỉ".
+ * Money-flow redesign plan 3.1 - the single source of truth for matrix 0.1: what happens to a
+ * session's status, the client's quota, and who owes whom, for every actor/event combination.
  *
- * The single source of truth for matrix 0.1: what happens to a session's status, the client's
- * quota, and who owes whom, for every actor/event/notice combination. Before this, the SAME
- * real-world event — a PT cancelling on short notice — produced two different financial
- * outcomes depending on which code path handled it: `availability.service.ts#addException`
- * (blocking a date) always compensated the client, while `booking.service.ts#cancelSession`
- * (a PT cancelling one session directly) never did. A PT choosing between the two had an
- * incentive to always pick the path that cost them nothing.
+ * `addException`, `cancelSession`, `markNoShow` and the PT-restriction administrative cancel must all call
+ * this instead of deciding independently, so the SAME real-world event never produces two financial outcomes.
  *
- * `addException`, `cancelSession`, and `markNoShow` must all call this instead of deciding
- * independently — see money-flow.md §0.1 for the policy table this encodes.
+ * OWNER DECISION 20/11/2026 - the 24-hour grace is REMOVED. Cancelling a CONFIRMED session costs the
+ * canceller at ANY time; the notice period no longer matters (the old SESSION_LATE_CANCEL_HOURS threshold and
+ * rows 1/3 of the earlier matrix are gone). Matrix now:
+ *
+ *   actor          event     result
+ *   CLIENT         CANCEL    client loses the session (DEDUCT), PT earns the full session (ptPayout)
+ *   PT             CANCEL    client compensated one session in cash, charged to the PT; the session is consumed
+ *                            (compensatedSessions + 1, status NO_SHOW); PT gets no payout
+ *   PT             NO_SHOW   same as PT CANCEL
+ *   FORCE_MAJEURE  CANCEL    nobody is penalised, session returned to the client (unchanged)
+ *
+ * Not decided here: cancelling a REQUESTED (not yet confirmed) session - cancelSession handles that branch itself
+ * with no money and no quota; and rescheduling (a move both sides agree to) stays free and never reaches this file.
  */
 
 export type SessionOutcomeActor = "CLIENT" | "PT" | "FORCE_MAJEURE";
@@ -21,8 +28,11 @@ export type SessionOutcomeEvent = "CANCEL" | "NO_SHOW";
 export interface SessionOutcomeInput {
   actor: SessionOutcomeActor;
   event: SessionOutcomeEvent;
-  /** Hours between now and the session's scheduled start. Negative if already past start. */
-  hoursBeforeStart: number;
+  /**
+   * Hours between now and the scheduled start. Informational only - since the owner decision of 20/11/2026 the
+   * outcome no longer depends on the notice period. Callers need not pass it.
+   */
+  hoursBeforeStart?: number;
 }
 
 export interface SessionOutcome {
@@ -35,44 +45,20 @@ export interface SessionOutcome {
   ptPayout: boolean;
 }
 
-/** money-flow.md §0.1 — "Mốc 24 giờ đặt thành hằng số cấu hình SESSION_LATE_CANCEL_HOURS,
- * mặc định 24." Read once at module load, matching how other tunables in this codebase are
- * configured (e.g. PLATFORM_COMMISSION_RATE in payment-service). */
-export const SESSION_LATE_CANCEL_HOURS = Number(process.env.SESSION_LATE_CANCEL_HOURS ?? 24);
-
 export function resolveSessionOutcome(input: SessionOutcomeInput): SessionOutcome {
-  const isLate = input.hoursBeforeStart < SESSION_LATE_CANCEL_HOURS;
-
-  // Bất khả kháng — đặt lại, không phạt ai (matrix row 6).
+  // Bất khả kháng - đặt lại, không phạt ai.
   if (input.actor === "FORCE_MAJEURE") {
     return { sessionStatus: SessionStatus.CANCELLED, clientQuotaEffect: "KEEP", clientCompensation: false, ptPayout: false };
   }
 
   if (input.actor === "CLIENT") {
-    // The client only ever cancels — they cannot "no-show" themselves.
-    if (isLate) {
-      // Row 2: khách huỷ <24h — mất 1 quota, PT hưởng trọn buổi.
-      return { sessionStatus: SessionStatus.CANCELLED, clientQuotaEffect: "DEDUCT", clientCompensation: false, ptPayout: true };
-    }
-    // Row 1: khách huỷ ≥24h — buổi trả về, đặt lại, không ai bị phạt.
-    return { sessionStatus: SessionStatus.CANCELLED, clientQuotaEffect: "KEEP", clientCompensation: false, ptPayout: false };
+    // Chủ sở hữu quyết định 20/11/2026: khách huỷ buổi đã xác nhận, lúc nào cũng vậy - mất 1 buổi, PT hưởng trọn buổi.
+    // (The client only ever cancels - they cannot "no-show" themselves.)
+    return { sessionStatus: SessionStatus.CANCELLED, clientQuotaEffect: "DEDUCT", clientCompensation: false, ptPayout: true };
   }
 
-  // actor === "PT"
-  if (input.event === "NO_SHOW") {
-    // Row 5: PT vắng mặt — luôn bồi thường, bất kể báo trước hay không (không có khái niệm
-    // "báo trước" cho một buổi đã trôi qua mà PT không tới).
-    return { sessionStatus: SessionStatus.NO_SHOW, clientQuotaEffect: "KEEP", clientCompensation: true, ptPayout: false };
-  }
-  if (isLate) {
-    // Row 4: PT huỷ/chặn ngày <24h — bồi thường, PT chịu. Financially identical to a no-show
-    // (matrix 0.1 gives both the same outcome), tagged NO_SHOW for the same reason the
-    // pre-existing addException code already did: the client experiences it the same way —
-    // a session they expected did not happen, on short notice.
-    return { sessionStatus: SessionStatus.NO_SHOW, clientQuotaEffect: "KEEP", clientCompensation: true, ptPayout: false };
-  }
-  // Row 3: PT huỷ/chặn ngày ≥24h — CHUYỂN SANG ĐẶT LẠI, KHÔNG bồi thường tiền. This is the
-  // exact case the plan calls out as currently wrong: a PT blocking a date well in advance
-  // must not cost them anything, only force a reschedule.
-  return { sessionStatus: SessionStatus.CANCELLED, clientQuotaEffect: "KEEP", clientCompensation: false, ptPayout: false };
+  // actor === "PT": huỷ / chặn ngày / vắng mặt - luôn bồi thường cho khách, PT chịu, PT không nhận tiền buổi đó.
+  // Tagged NO_SHOW (financially identical to a no-show): the client experiences it the same way - a session they
+  // expected did not happen - and the session is consumed (compensatedSessions + 1) via recordNoShowIntent.
+  return { sessionStatus: SessionStatus.NO_SHOW, clientQuotaEffect: "KEEP", clientCompensation: true, ptPayout: false };
 }

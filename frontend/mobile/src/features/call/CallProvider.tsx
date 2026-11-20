@@ -10,6 +10,8 @@ import type { CallType } from "../../types";
 import { callErrorMessage, callReducer, initialCallState, isFinishedCallStatus, type CallState } from "./callState";
 import { AppState } from "react-native";
 import { useRNWebRTC } from "./useRNWebRTC";
+import { requestCallPermissions } from "./callPermissions";
+import { acquireWithPermissionRetry } from "./mediaPermission";
 import { dismissCallPush, dismissStaleCallPushes } from "../push/pushDevice";
 import { mergeMessage, normalizeMessage, type ChatMessage } from "../chat/chat";
 import { conversationsKey, messagesKey } from "../chat/useRealtimeChat";
@@ -135,6 +137,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     const endedId = stateRef.current.callInfo?.callSessionId;
     if (endedId) void dismissCallPush(endedId);
     webrtcRef.current.cleanup();
+    acceptSentForRef.current = null;
     if (durationRef.current) {
       clearInterval(durationRef.current);
       durationRef.current = null;
@@ -377,11 +380,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
   // be missed, cancelled or signed out of meanwhile. One acquisition at a time, and every caller
   // re-checks the call is still the one it was for before signaling (else the media is released).
   const acquiringRef = useRef(false);
+  const acceptSentForRef = useRef<string | null>(null);
   const acquire = useCallback(async (callType: CallType) => {
     if (acquiringRef.current) return false;
     acquiringRef.current = true;
     try {
-      const stream = await webrtcRef.current.acquireMedia(callType);
+      await requestCallPermissions(callType);
+      const stream = await acquireWithPermissionRetry(() => webrtcRef.current.acquireMedia(callType));
       if (callType === "VIDEO" && stream.getVideoTracks().length === 0) {
         toastRef.current.show("Không mở được camera — đã vào cuộc gọi chỉ với âm thanh.");
       }
@@ -466,6 +471,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const acceptCall = useCallback(async () => {
     const info = stateRef.current.callInfo;
     if (!info?.callSessionId || acquiringRef.current) return; // second tap while the first is pending
+    // Second tap AFTER the first one finished (call:accept already sent, state still "incoming" until the offer
+    // arrives): a second accept would lose the server's first-accept-wins race against ourselves.
+    if (acceptSentForRef.current === info.callSessionId) return;
     if (!enabled) return doCleanup();
     const socket = connectSocket();
     const got = await acquire(info.callType || "VOICE");
@@ -484,6 +492,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       return;
     }
     isCallerRef.current = false;
+    acceptSentForRef.current = info.callSessionId;
     socket.emit("call:accept", { callSessionId: info.callSessionId });
     void dismissCallPush(info.callSessionId);
   }, [enabled, acquire, doCleanup]);

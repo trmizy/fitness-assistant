@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { MagnifyingGlassIcon as Search, TrendDownIcon as TrendingDown, TrendUpIcon as TrendingUp, CaretRightIcon as ChevronRight, WarningCircleIcon as AlertCircle } from "@phosphor-icons/react";
 import { contractService } from "../../services/api";
 import { GOAL_VI } from "../../utils/labels.vi";
+import { fullName } from "../../utils/fullName";
 
 type Contract = {
   id: string;
@@ -27,10 +28,15 @@ type Contract = {
   } | null;
 };
 
-function initials(firstName?: string, lastName?: string): string {
-  const f = firstName?.[0] ?? "";
-  const l = lastName?.[0] ?? "";
-  return (f + l).toUpperCase() || "?";
+/** The client's display name from the profile (placeholder "." dropped). Never the e-mail or an id. */
+function clientDisplayName(profile: Contract["clientProfile"]): string {
+  return fullName(profile, "Học viên");
+}
+
+function initials(profile: Contract["clientProfile"]): string {
+  const words = fullName(profile).split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "?";
+  return (words.length >= 2 ? `${words[0][0]}${words[words.length - 1][0]}` : words[0].slice(0, 2)).toUpperCase();
 }
 
 // N11D1-02: PENDING_PAYMENT / PENDING_SIGNATURE / REJECTED từng hiện nguyên mã.
@@ -73,8 +79,7 @@ export function PTClientList() {
   });
 
   const filtered = contracts.filter((c) => {
-    const name =
-      `${c.clientProfile?.firstName ?? ""} ${c.clientProfile?.lastName ?? ""}`.toLowerCase();
+    const name = fullName(c.clientProfile).toLowerCase();
     const matchSearch =
       !search ||
       name.includes(search.toLowerCase()) ||
@@ -198,24 +203,12 @@ export function PTClientList() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 bg-green-500/15 border border-green-500/20 rounded-full flex items-center justify-center text-xs font-bold text-green-400">
-                            {initials(
-                              c.clientProfile?.firstName,
-                              c.clientProfile?.lastName,
-                            )}
+                            {initials(c.clientProfile)}
                           </div>
                           <div>
                             <div className="text-sm font-semibold text-zinc-200">
-                              {c.clientProfile?.firstName &&
-                              c.clientProfile?.lastName
-                                ? `${c.clientProfile.firstName} ${c.clientProfile.lastName}`
-                                : (c.clientProfile?.email ??
-                                  c.clientUserId.slice(0, 8))}
+                              {clientDisplayName(c.clientProfile)}
                             </div>
-                            {c.clientProfile?.email && (
-                              <div className="text-xs text-zinc-600">
-                                {c.clientProfile.email}
-                              </div>
-                            )}
                           </div>
                         </div>
                       </td>
@@ -315,17 +308,11 @@ export function PTClientList() {
                 >
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 bg-green-500/15 border border-green-500/20 rounded-full flex items-center justify-center font-bold text-green-400">
-                      {initials(
-                        c.clientProfile?.firstName,
-                        c.clientProfile?.lastName,
-                      )}
+                      {initials(c.clientProfile)}
                     </div>
                     <div>
                       <div className="text-sm font-bold text-zinc-200">
-                        {c.clientProfile?.firstName && c.clientProfile?.lastName
-                          ? `${c.clientProfile.firstName} ${c.clientProfile.lastName}`
-                          : (c.clientProfile?.email ??
-                            c.clientUserId.slice(0, 8))}
+                        {clientDisplayName(c.clientProfile)}
                       </div>
                       <div className="text-xs text-zinc-500">
                         {goalLabel(c.clientProfile?.goal)}

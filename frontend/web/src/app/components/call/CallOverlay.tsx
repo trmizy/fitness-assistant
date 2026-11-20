@@ -89,6 +89,8 @@ function formatDuration(seconds: number) {
 function IncomingCallUI() {
   const { state, acceptCall, rejectCall } = useCall();
   const info = state.callInfo;
+  // One click on accept is enough: the button is disabled from then on (CallContext ignores a repeat as well).
+  const [accepting, setAccepting] = useState(false);
   if (!info) return null;
 
   return (
@@ -111,8 +113,13 @@ function IncomingCallUI() {
             <PhoneOff className="w-6 h-6 text-red-400" />
           </button>
           <button
-            onClick={acceptCall}
-            className="w-14 h-14 bg-green-500/20 hover:bg-green-500/30 border border-green-500/30 rounded-full flex items-center justify-center transition-colors animate-pulse"
+            onClick={() => {
+              if (accepting) return;
+              setAccepting(true);
+              acceptCall();
+            }}
+            disabled={accepting}
+            className="w-14 h-14 bg-green-500/20 hover:bg-green-500/30 border border-green-500/30 rounded-full flex items-center justify-center transition-colors animate-pulse disabled:opacity-50 disabled:animate-none"
           >
             <Phone className="w-6 h-6 text-green-400" />
           </button>
@@ -132,7 +139,10 @@ function OutgoingCallUI() {
         <div className="w-16 h-16 bg-blue-500/15 border border-blue-500/20 rounded-full flex items-center justify-center text-2xl font-bold text-blue-400 mx-auto mb-4">
           <Phone className="w-7 h-7 animate-bounce" />
         </div>
-        <h3 className="text-zinc-100 font-bold text-lg mb-1">Đang gọi...</h3>
+        {state.callInfo?.calleeName ? (
+          <h3 className="text-zinc-100 font-bold text-lg mb-1">{state.callInfo.calleeName}</h3>
+        ) : null}
+        <p className="text-zinc-300 text-sm font-medium mb-1">Đang gọi...</p>
         <p className="text-zinc-400 text-sm mb-6">
           Cuộc gọi {state.callInfo?.callType === "VIDEO" ? "video" : "thoại"} — đang chờ đối phương trả lời
         </p>
@@ -187,6 +197,8 @@ function PreviewUI() {
         <div className="flex items-center justify-center gap-4 mb-6">
           <button
             onClick={toggleMute}
+            title={state.isMuted ? "Bật micro" : "Tắt micro"}
+            aria-label={state.isMuted ? "Bật micro" : "Tắt micro"}
             className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
               state.isMuted
                 ? "bg-red-500/20 border border-red-500/30"
@@ -350,16 +362,16 @@ function ActiveCallUI() {
         /* Voice call — centered avatar */
         <div className="flex-1 flex flex-col items-center justify-center">
           <div className="w-24 h-24 bg-emerald-500/15 border-2 border-emerald-500/20 rounded-full flex items-center justify-center text-4xl font-bold text-emerald-400 mb-4">
-            {state.callInfo?.callerName?.charAt(0) || "U"}
+            {(state.callInfo?.calleeName || state.callInfo?.callerName)?.charAt(0).toLocaleUpperCase("vi-VN") || "U"}
           </div>
           <h3 className="text-zinc-100 font-bold text-xl mb-1">
-            {state.callInfo?.callerName || "Đang trong cuộc gọi"}
+            {state.callInfo?.calleeName || state.callInfo?.callerName || "Đang trong cuộc gọi"}
           </h3>
           <p className="text-green-400 text-sm font-medium mb-2">
             {formatDuration(state.callDuration)}
           </p>
           {state.remoteMuted && (
-            <p className="text-zinc-500 text-xs">Đối phương đã tắt micro</p>
+            <p className="text-zinc-500 text-xs">Đối phương đang tắt micro</p>
           )}
           {/* Hidden audio element for voice calls */}
           <audio ref={remoteVideoRef as any} autoPlay />
@@ -380,6 +392,8 @@ function ActiveCallUI() {
         )}
         <button
           onClick={toggleMute}
+          title={state.isMuted ? "Bật micro" : "Tắt micro"}
+          aria-label={state.isMuted ? "Bật micro" : "Tắt micro"}
           className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
             state.isMuted
               ? "bg-red-500/20 border border-red-500/30"

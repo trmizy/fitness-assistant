@@ -1,9 +1,10 @@
 import { Response } from "express";
 import { logger } from "@gym-coach/shared";
 import { clientErrorMessage } from "../utils/db-error.util";
-import { errorCodeBody } from "../utils/error-code.util";
+import { errorCodeBody, errorDetailsBody } from "../utils/error-code.util";
 import { redactContractSplit } from "../services/contract-dto";
 import { bookingService } from "../services/booking.service";
+import { withJoinWindow } from "../services/session-join-window";
 
 export const bookingController = {
   // Client books a session
@@ -21,7 +22,27 @@ export const bookingController = {
       logger.error(error, "Book session error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Không đặt được buổi tập", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không đặt được buổi tập", ...errorCodeBody(error), ...errorDetailsBody(error) });
+    }
+  },
+
+  // Client books several sessions of one contract in one all-or-nothing request (POST /sessions/batch).
+  // Body: { contractId, slots: [{ scheduledDate, scheduledTime }], sessionMode?, location?, notes? }.
+  // 201 -> { sessions: [...] }; refusal -> status + { error, code, slotErrors: [{ index, scheduledDate, scheduledTime, error, code? }] }.
+  async bookSessionsBatch(req: any, res: Response) {
+    try {
+      const clientUserId = req.headers["x-user-id"] as string;
+      const { contractId, ...data } = req.body ?? {};
+      const sessions = await bookingService.bookSessionsBatch(clientUserId, contractId, data as any);
+      res.status(201).json({ sessions });
+    } catch (error: any) {
+      logger.error(error, "Book sessions batch error");
+      const slotErrors = Array.isArray(error?.slotErrors)
+        ? error.slotErrors.map(({ message, ...rest }: any) => ({ ...rest, error: message }))
+        : undefined;
+      res
+        .status(error.status || 500)
+        .json({ error: error.message || "Không đặt được các buổi tập", ...errorCodeBody(error), ...errorDetailsBody(error), ...(slotErrors ? { slotErrors } : {}) });
     }
   },
 
@@ -34,7 +55,7 @@ export const bookingController = {
         req.params.id,
         userId,
       );
-      res.json(session);
+      res.json(withJoinWindow(session));
     } catch (error: any) {
       res
         .status(error.status || 500)
@@ -50,7 +71,7 @@ export const bookingController = {
         req.params.contractId,
         userId,
       );
-      res.json(sessions);
+      res.json(withJoinWindow(sessions));
     } catch (error: any) {
       logger.error(error, "Get contract sessions error");
       res
@@ -65,7 +86,7 @@ export const bookingController = {
       const userId = req.headers["x-user-id"] as string;
       const sessions = await bookingService.getMyUpcoming(userId);
       // Sessions embed their contract row: the client must not receive the PT's revenue split with it.
-      res.json(redactContractSplit(sessions, { userId, role: req.headers["x-user-role"] as string | undefined }));
+      res.json(withJoinWindow(redactContractSplit(sessions, { userId, role: req.headers["x-user-role"] as string | undefined })));
     } catch (error: any) {
       logger.error(error, "Get upcoming sessions error");
       res.status(500).json({ error: "Không tải được các buổi tập sắp tới" });
@@ -358,7 +379,7 @@ export const bookingController = {
       logger.error(error, "Request reschedule error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Không gửi được yêu cầu đổi lịch", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không gửi được yêu cầu đổi lịch", ...errorCodeBody(error), ...errorDetailsBody(error) });
     }
   },
 
@@ -401,7 +422,7 @@ export const bookingController = {
       logger.error(error, "Respond to reschedule error");
       res
         .status(error.status || 500)
-        .json({ error: error.message || "Không phản hồi được yêu cầu đổi lịch", ...errorCodeBody(error) });
+        .json({ error: error.message || "Không phản hồi được yêu cầu đổi lịch", ...errorCodeBody(error), ...errorDetailsBody(error) });
     }
   },
 };

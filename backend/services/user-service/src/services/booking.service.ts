@@ -49,6 +49,17 @@ import { assertContractAcceptsClientAction, assertPtMayActOnContract, getBlockin
 import { BOOKING_LEAD_TIME_MS } from "./booking-policy";
 import { enrichProfilesWithAuthNames, signOtherUserPhotosInMap } from "./profile.service";
 import { assertNotSynthetic } from "./synthetic-guard.util";
+import { assertGymMembershipCoversSession } from "./session-membership-guard";
+import {
+  BATCH_BOOKING_REJECTED,
+  MAX_BATCH_SESSIONS,
+  batchInternalProblems,
+  batchStatus,
+  localDayBounds,
+  overCapSlots,
+  type BatchSlotError,
+  type SlotProblem,
+} from "./session-booking-rules";
 
 /**
  * An online session that is no longer CONFIRMED has no room any more — end the call row its
@@ -298,6 +309,137 @@ async function assertClientSlotFree(
       409,
       CLIENT_SCHEDULE_CONFLICT,
     );
+  }
+}
+
+/**
+ * Daily cap (session-booking-rules.ts): the client may hold at most MAX_CLIENT_SESSIONS_PER_DAY live sessions
+ * (REQUESTED counts like CONFIRMED) starting on the same local day, over all their PTs. Must run inside the booking
+ * transaction: the client's schedule lock is taken here (re-entrant if assertClientSlotFree already took it) so two
+ * concurrent bookings - even with two different PTs, which hold two different PT locks - count one after the other.
+ * Rescheduling applies the same cap to the target day (owner rule 19/11/2026): `excludeSessionId` is the session being moved,
+ * which never counts against its own target day. Without `tx` (the request-time check) nothing is locked; the accept-time
+ * check runs under the lock and is the authoritative one.
+ */
+async function assertClientDailyCap(
+  clientUserId: string,
+  startAt: Date,
+  tx?: Prisma.TransactionClient,
+  excludeSessionId?: string,
+): Promise<void> {
+  if (tx) await sessionRepository.lockClientSchedule(tx, clientUserId);
+  const { from, to } = localDayBounds(startAt);
+  const existing = await sessionRepository.findClientActiveStartsBetween(clientUserId, from, to, tx, excludeSessionId);
+  const problem = overCapSlots(existing, [startAt]).get(0);
+  if (problem) throw codedError(problem.message, problem.status, problem.code!);
+}
+
+/**
+ * Everything about a booking that does not depend on a particular slot: contract ownership / state / session mode.
+ * Shared by bookSession and bookSessionsBatch so the two cannot drift. Returns the contract; `data.sessionMode` is
+ * filled from the contract when the caller left it out (BR-28).
+ */
+async function loadContractForBooking(
+  clientUserId: string,
+  contractId: string,
+  data: { sessionMode?: string },
+) {
+  const contract = await contractRepository.findById(contractId);
+  if (!contract) throw err("Không tìm thấy hợp đồng", 404);
+
+  // Must be the client of this contract
+  if (contract.clientUserId !== clientUserId) {
+    throw err("Bạn không có quyền thực hiện thao tác này", 403);
+  }
+  assertNotSynthetic(contract);
+
+  // A restricted PT (temporarily suspended, or banned) takes no new sessions: the contract stays
+  // ACTIVE but is PAUSED_BY_ADMIN. Machine-readable refusal; re-checked under the PT's lock below.
+  // Also refused while THIS contract has its own restriction (scope CONTRACT): other contracts of the PT are unaffected.
+  await assertContractAcceptsClientAction(contract, "BOOK_SESSION");
+
+  // Contract must be ACTIVE
+  if (contract.status !== ContractStatus.ACTIVE) {
+    throw err("Hợp đồng chưa có hiệu lực hoặc đã kết thúc", 400);
+  }
+
+  // BR-28: session mode must match contract mode
+  if (contract.sessionMode) {
+    if (!data.sessionMode) {
+      data.sessionMode = contract.sessionMode as string;
+    } else if (data.sessionMode !== contract.sessionMode) {
+      throw codedError(
+        `Hình thức buổi tập phải khớp với hợp đồng (hợp đồng này là buổi ${
+          contract.sessionMode === "ONLINE" ? "trực tuyến" : "trực tiếp"
+        })`,
+        400,
+        "SESSION_MODE_MISMATCH",
+      );
+    }
+  }
+  return contract;
+}
+
+/**
+ * The per-slot checks of a booking that need no lock (static / slow-changing data): the slot is in the future, at
+ * least 24 h away, inside the contract's validity, inside the PT's published hours and not on a blocked day.
+ * Throws on the first failure. `ptAvailability` is the PT's weekly rows, read once by the caller.
+ */
+async function assertSlotAllowedForBooking(
+  contract: { ptUserId: string; endDate?: Date | null; gymId?: string | null; clientUserId?: string },
+  ptAvailability: Array<{ dayOfWeek: DayOfWeek; isActive: boolean; startTime: string; endTime: string }>,
+  startAt: Date,
+  endAt: Date,
+  sessionMode?: string | null,
+): Promise<void> {
+  // Must be in the future
+  if (startAt <= new Date()) {
+    throw err("Không thể đặt buổi tập trong quá khứ", 400);
+  }
+
+  // BR-30: must be booked at least 24 hours in advance
+  assertBookingLeadTime(startAt, Date.now(), "Buổi tập cần được đặt trước ít nhất 24 giờ");
+
+  // Check contract date range
+  if (contract.endDate && startAt > contract.endDate) {
+    throw err("Ngày buổi tập vượt quá ngày kết thúc hợp đồng", 400);
+  }
+
+  // Check PT availability. Money-flow plan 3.5: a PT who never published a weekly schedule
+  // used to be treated as bookable at ANY hour ("no published hours = no constraint") — the
+  // exact opposite of what an empty schedule should mean. Inverted: no published hours now
+  // blocks booking entirely, with a clear message telling the client why.
+  if (ptAvailability.length === 0) {
+    throw err("Huấn luyện viên chưa công bố lịch rảnh — chưa thể đặt lịch", 400);
+  }
+  const dayOfWeek = DAY_MAP[startAt.getDay()];
+  const timeStr = `${String(startAt.getHours()).padStart(2, "0")}:${String(startAt.getMinutes()).padStart(2, "0")}`;
+  const endTimeStr = `${String(endAt.getHours()).padStart(2, "0")}:${String(endAt.getMinutes()).padStart(2, "0")}`;
+
+  const matchingSlot = ptAvailability.find(
+    (a) =>
+      a.dayOfWeek === dayOfWeek &&
+      a.isActive &&
+      a.startTime <= timeStr &&
+      a.endTime >= endTimeStr,
+  );
+  if (!matchingSlot) {
+    throw err("Thời gian này nằm ngoài khung giờ rảnh của huấn luyện viên", 400);
+  }
+
+  // Check blocked dates
+  const dayStart = new Date(startAt);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(startAt);
+  dayEnd.setHours(23, 59, 59, 999);
+  const exceptions = await availabilityRepository.findExceptions(contract.ptUserId, dayStart, dayEnd);
+  if (exceptions.length > 0) {
+    throw err("Huấn luyện viên không có lịch trống vào ngày này", 400);
+  }
+
+  // Owner rule 19/11/2026: a session at a gym branch needs the client's membership (active or queued renewal) on that date.
+  if (contract.gymId && contract.clientUserId) {
+    await assertGymMembershipCoversSession({ gymId: contract.gymId, clientUserId: contract.clientUserId }, startAt, sessionMode);
   }
 }
 
@@ -553,39 +695,7 @@ export const bookingService = {
       notes?: string;
     },
   ) {
-    const contract = await contractRepository.findById(contractId);
-    if (!contract) throw err("Không tìm thấy hợp đồng", 404);
-
-    // Must be the client of this contract
-    if (contract.clientUserId !== clientUserId) {
-      throw err("Bạn không có quyền thực hiện thao tác này", 403);
-    }
-    assertNotSynthetic(contract);
-
-    // A restricted PT (temporarily suspended, or banned) takes no new sessions: the contract stays
-    // ACTIVE but is PAUSED_BY_ADMIN. Machine-readable refusal; re-checked under the PT's lock below.
-    // Also refused while THIS contract has its own restriction (scope CONTRACT): other contracts of the PT are unaffected.
-    await assertContractAcceptsClientAction(contract, "BOOK_SESSION");
-
-    // Contract must be ACTIVE
-    if (contract.status !== ContractStatus.ACTIVE) {
-      throw err("Hợp đồng chưa có hiệu lực hoặc đã kết thúc", 400);
-    }
-
-    // BR-28: session mode must match contract mode
-    if (contract.sessionMode) {
-      if (!data.sessionMode) {
-        data.sessionMode = contract.sessionMode as string;
-      } else if (data.sessionMode !== contract.sessionMode) {
-        throw codedError(
-          `Hình thức buổi tập phải khớp với hợp đồng (hợp đồng này là buổi ${
-            contract.sessionMode === "ONLINE" ? "trực tuyến" : "trực tiếp"
-          })`,
-          400,
-          "SESSION_MODE_MISMATCH",
-        );
-      }
-    }
+    const contract = await loadContractForBooking(clientUserId, contractId, data);
 
     // Parse datetime. Money-flow plan 3.4: duration comes ONLY from the contract's own
     // frozen snapshot, never the request body — a client calling the API directly used to be
@@ -597,59 +707,9 @@ export const bookingService = {
     }
     const endAt = new Date(startAt.getTime() + durationMin * 60 * 1000);
 
-    // Must be in the future
-    if (startAt <= new Date()) {
-      throw err("Không thể đặt buổi tập trong quá khứ", 400);
-    }
-
-    // BR-30: must be booked at least 24 hours in advance
-    assertBookingLeadTime(startAt, Date.now(), "Buổi tập cần được đặt trước ít nhất 24 giờ");
-
-    // Check contract date range
-    if (contract.endDate && startAt > contract.endDate) {
-      throw err("Ngày buổi tập vượt quá ngày kết thúc hợp đồng", 400);
-    }
-
-    // Check PT availability. Money-flow plan 3.5: a PT who never published a weekly schedule
-    // used to be treated as bookable at ANY hour ("no published hours = no constraint") — the
-    // exact opposite of what an empty schedule should mean. Inverted: no published hours now
-    // blocks booking entirely, with a clear message telling the client why.
-    const ptAvailability = await availabilityRepository.findByPT(
-      contract.ptUserId,
-    );
-    if (ptAvailability.length === 0) {
-      throw err("Huấn luyện viên chưa công bố lịch rảnh — chưa thể đặt lịch", 400);
-    }
-    {
-      const dayOfWeek = DAY_MAP[startAt.getDay()];
-      const timeStr = `${String(startAt.getHours()).padStart(2, "0")}:${String(startAt.getMinutes()).padStart(2, "0")}`;
-      const endTimeStr = `${String(endAt.getHours()).padStart(2, "0")}:${String(endAt.getMinutes()).padStart(2, "0")}`;
-
-      const matchingSlot = ptAvailability.find(
-        (a) =>
-          a.dayOfWeek === dayOfWeek &&
-          a.isActive &&
-          a.startTime <= timeStr &&
-          a.endTime >= endTimeStr,
-      );
-      if (!matchingSlot) {
-        throw err("Thời gian này nằm ngoài khung giờ rảnh của huấn luyện viên", 400);
-      }
-
-      // Check blocked dates
-      const dayStart = new Date(startAt);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(startAt);
-      dayEnd.setHours(23, 59, 59, 999);
-      const exceptions = await availabilityRepository.findExceptions(
-        contract.ptUserId,
-        dayStart,
-        dayEnd,
-      );
-      if (exceptions.length > 0) {
-        throw err("Huấn luyện viên không có lịch trống vào ngày này", 400);
-      }
-    }
+    // Per-slot checks that need no lock: future, 24 h notice, contract validity, PT hours, blocked days.
+    const ptAvailability = await availabilityRepository.findByPT(contract.ptUserId);
+    await assertSlotAllowedForBooking(contract, ptAvailability, startAt, endAt, data.sessionMode);
 
     // P0 cluster B1 + B2: the session-limit check and the PT time-conflict check both have to
     // run again right here, inside the same lock as the create — everything validated above
@@ -695,6 +755,8 @@ export const bookingService = {
         throw err("Khung giờ này trùng với một buổi tập khác", 409);
       }
       await assertClientSlotFree(clientUserId, startAt, endAt, "CLIENT", undefined, tx);
+      // Daily cap: REQUESTED + CONFIRMED (+ other live) sessions of the client on this day, under the client lock.
+      await assertClientDailyCap(clientUserId, startAt, tx);
 
       return sessionRepository.create(
         {
@@ -725,6 +787,181 @@ export const bookingService = {
       .catch(() => {});
 
     return session;
+  },
+
+  // ── Client books several sessions at once (all-or-nothing) ──────
+  /**
+   * POST /sessions/batch. Every slot is held to exactly the rules of a single booking (24 h notice, contract
+   * validity, PT hours / blocked days, PT overlap, the client's overlap with their OTHER PTs, the daily cap -
+   * counted together with the other slots of the batch) plus: no duplicate / overlapping slots inside the batch,
+   * and the batch must fit in the contract's remaining sessions. ONE transaction under the same locks as bookSession:
+   * either every session is created or none is; a refusal lists the reason per slot (`slotErrors`).
+   * The PT gets ONE summary notification, not one per session.
+   */
+  async bookSessionsBatch(
+    clientUserId: string,
+    contractId: string,
+    data: {
+      slots: Array<{ scheduledDate: string; scheduledTime: string }>;
+      sessionMode?: string;
+      location?: string;
+      notes?: string;
+    },
+  ) {
+    const slots = Array.isArray(data?.slots) ? data.slots : [];
+    if (slots.length === 0) {
+      throw codedError("Hãy chọn ít nhất một khung giờ để đặt", 400, "BATCH_EMPTY");
+    }
+    if (slots.length > MAX_BATCH_SESSIONS) {
+      throw codedError(`Mỗi lần chỉ đặt được tối đa ${MAX_BATCH_SESSIONS} buổi`, 400, "BATCH_TOO_LARGE");
+    }
+
+    const contract = await loadContractForBooking(clientUserId, contractId, data);
+    const durationMin = contract.sessionDurationMinutes ?? 60;
+
+    const rows = slots.map((slot, index) => {
+      const scheduledDate = String(slot?.scheduledDate ?? "");
+      const scheduledTime = String(slot?.scheduledTime ?? "");
+      const valid = /^\d{4}-\d{2}-\d{2}$/.test(scheduledDate) && /^\d{2}:\d{2}$/.test(scheduledTime);
+      const startAt = valid ? new Date(`${scheduledDate}T${scheduledTime}:00`) : new Date(NaN);
+      const endAt = new Date(startAt.getTime() + durationMin * 60 * 1000);
+      return { index, scheduledDate, scheduledTime, startAt, endAt };
+    });
+
+    // Problems found per slot index; the first one found for a slot is the one reported.
+    const problems = new Map<number, SlotProblem>();
+    const flag = (index: number, problem: SlotProblem) => {
+      if (!problems.has(index)) problems.set(index, problem);
+    };
+    const buildRejection = () => {
+      const slotErrors: BatchSlotError[] = [...problems.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([index, p]) => ({
+          index,
+          scheduledDate: rows[index].scheduledDate,
+          scheduledTime: rows[index].scheduledTime,
+          ...p,
+        }));
+      return Object.assign(
+        codedError(
+          `Chưa đặt được: ${slotErrors.length}/${rows.length} khung giờ không hợp lệ. Chưa có buổi nào được tạo — hãy bỏ hoặc đổi các khung giờ báo lỗi rồi đặt lại.`,
+          batchStatus(slotErrors),
+          BATCH_BOOKING_REJECTED,
+        ),
+        { slotErrors },
+      );
+    };
+
+    // 1. Slots that are not even a real date/time, then repeated / overlapping picks inside the batch.
+    for (const r of rows) {
+      if (isNaN(r.startAt.getTime())) flag(r.index, { status: 400, message: "Ngày giờ không hợp lệ" });
+    }
+    const wellFormed = rows.filter((r) => !isNaN(r.startAt.getTime()));
+    const internal = batchInternalProblems(wellFormed.map((r) => r.startAt), durationMin);
+    internal.forEach((p, i) => flag(wellFormed[i].index, p));
+
+    // 2. The lock-free per-slot rules, identical to bookSession's.
+    const ptAvailability = await availabilityRepository.findByPT(contract.ptUserId);
+    for (const r of wellFormed) {
+      try {
+        await assertSlotAllowedForBooking(contract, ptAvailability, r.startAt, r.endAt, data.sessionMode);
+      } catch (e: any) {
+        flag(r.index, { status: e?.status ?? 400, code: e?.code, message: e?.message ?? "Khung giờ không hợp lệ", ...(e?.details ? { details: e.details } : {}) });
+      }
+    }
+
+    // 3. The racy rules, under the same locks as bookSession, all in ONE transaction.
+    const created = await withPtScheduleLock(contract.ptUserId, contractId, async (tx) => {
+      const freshContract = await contractRepository.findById(contractId, tx);
+      if (!freshContract) throw err("Không tìm thấy hợp đồng", 404);
+      if (freshContract.status !== ContractStatus.ACTIVE) throw contractEndedError();
+      await assertNotEnding(contractId, tx);
+      await assertContractAcceptsClientAction(contract, "BOOK_SESSION", tx);
+
+      // Quota (same read order as bookSession): live sessions first, then the entitlement.
+      const activeSessionCount = await sessionRepository.countActiveByContract(contractId, tx);
+      const entitled = (await contractRepository.findById(contractId, tx)) ?? freshContract;
+      const remaining = getRemainingEntitlements(entitled) - activeSessionCount;
+      if (remaining <= 0) throw err("Hợp đồng đã dùng hết số buổi", 400);
+
+      // Client lock before any client-side read: PT lock -> contract lock -> client lock, the one global order.
+      await sessionRepository.lockClientSchedule(tx, clientUserId);
+
+      const candidates = wellFormed.filter((r) => !problems.has(r.index));
+      // The batch (together with what the contract already holds) may not exceed the remaining sessions.
+      candidates.forEach((r, i) => {
+        if (i >= remaining) {
+          flag(r.index, {
+            status: 400,
+            message: `Hợp đồng chỉ còn ${remaining} buổi có thể đặt — hãy bỏ bớt ${candidates.length - remaining} khung giờ.`,
+          });
+        }
+      });
+
+      for (const r of candidates) {
+        if (problems.has(r.index)) continue;
+        if (await sessionRepository.findConflict(contract.ptUserId, r.startAt, r.endAt, undefined, undefined, tx)) {
+          flag(r.index, { status: 409, message: "Khung giờ này trùng với một buổi tập khác" });
+          continue;
+        }
+        if (await sessionRepository.findClientConflict(clientUserId, r.startAt, r.endAt, undefined, tx)) {
+          flag(r.index, {
+            status: 409,
+            code: CLIENT_SCHEDULE_CONFLICT,
+            message: "Bạn đã có một buổi tập khác (đang chờ duyệt hoặc đã xác nhận) trùng khung giờ này",
+          });
+        }
+      }
+
+      // Daily cap including the batch itself: the client's live sessions on each of these days, plus the batch's own.
+      const stillOk = candidates.filter((r) => !problems.has(r.index));
+      if (stillOk.length > 0) {
+        const times = stillOk.map((r) => r.startAt.getTime());
+        const from = localDayBounds(new Date(Math.min(...times))).from;
+        const to = localDayBounds(new Date(Math.max(...times))).to;
+        const existing = await sessionRepository.findClientActiveStartsBetween(clientUserId, from, to, tx);
+        overCapSlots(existing, stillOk.map((r) => r.startAt)).forEach((p, i) => flag(stillOk[i].index, p));
+      }
+
+      if (problems.size > 0) throw buildRejection();
+
+      const out = [];
+      for (const r of wellFormed) {
+        out.push(
+          await sessionRepository.create(
+            {
+              contractId,
+              clientUserId,
+              ptUserId: contract.ptUserId,
+              sessionMode: (data.sessionMode as SessionMode) || SessionMode.OFFLINE,
+              scheduledStartAt: r.startAt,
+              scheduledEndAt: r.endAt,
+              location: data.location,
+              notes: data.notes,
+            },
+            tx,
+          ),
+        );
+      }
+      return out;
+    });
+
+    // Notify the PT once for the whole batch.
+    await notificationService
+      .create({
+        userId: contract.ptUserId,
+        text:
+          created.length === 1
+            ? "Học viên vừa gửi yêu cầu đặt buổi tập"
+            : `Học viên vừa gửi yêu cầu đặt ${created.length} buổi tập`,
+        eventType: "SESSION_BOOKED",
+        entityType: "SESSION",
+        entityId: created[0].id,
+        link: "/pt/schedule",
+      })
+      .catch(() => {});
+
+    return created;
   },
 
   // ── PT confirms a session ───────────────────────────────────────
@@ -1073,11 +1310,10 @@ export const bookingService = {
     // short transaction (all on `tx`); the lock is released BEFORE payment-service is called. The money step then runs
     // idempotently on the intent's key; a crash in between leaves the durable intent for the sweep / the ending to repeat.
     const outcome = await withRunningContract(session.contractId, async (tx) => {
-      const hoursBeforeStart = (session.scheduledStartAt.getTime() - Date.now()) / (60 * 60 * 1000);
+      // Owner decision 20/11/2026: no 24 h grace - the outcome no longer depends on how far away the session is.
       const decided = resolveSessionOutcome({
         actor: isClient ? (ptRestricted ? "FORCE_MAJEURE" : "CLIENT") : "PT",
         event: "CANCEL",
-        hoursBeforeStart,
       });
       const won = await sessionRepository.transitionStatus(
         sessionId,
@@ -1119,10 +1355,10 @@ export const bookingService = {
           ? outcome.ptPayout
             ? // B32: the late cancel by the client still pays the trainer for the session. The amount is not known at
               // this point (releaseSessionMoney reports nothing back, and a holdback can make the first one 0), so no number.
-              "Khách đã huỷ buổi tập sát giờ (dưới 24 giờ trước giờ bắt đầu). Buổi tập này vẫn được tính và bạn vẫn được thanh toán cho buổi tập."
+              "Khách đã huỷ một buổi tập đã xác nhận. Buổi tập này vẫn được tính và bạn vẫn được thanh toán cho buổi tập."
             : "Khách đã huỷ một buổi tập."
           : outcome.clientCompensation
-            ? ptFaultClientMessage("Huấn luyện viên đã huỷ buổi tập sát giờ.", readPtFaultMoney(cancelMoneyAnswer))
+            ? ptFaultClientMessage("Huấn luyện viên đã huỷ buổi tập đã xác nhận của bạn.", readPtFaultMoney(cancelMoneyAnswer))
             : "Huấn luyện viên đã huỷ một buổi tập.",
         eventType: "SESSION_CANCELLED",
         entityType: "SESSION",
@@ -1182,7 +1418,7 @@ export const bookingService = {
     // but this call site must still go through the SAME function as addException/cancelSession
     // rather than hardcoding the same values independently.
     if (!isClientNoShow) {
-      const outcome = resolveSessionOutcome({ actor: "PT", event: "NO_SHOW", hoursBeforeStart: 0 });
+      const outcome = resolveSessionOutcome({ actor: "PT", event: "NO_SHOW" });
 
       // F4 / D56: the CAS on the status that was read, the compensation and its counters are ONE critical section on
       // the contract (see cancelSession). A session called off / settled meanwhile is never overwritten (409
@@ -1677,8 +1913,12 @@ export const bookingService = {
       proposedEnd,
       sessionId,
     );
+    // Owner rule 19/11/2026: the new date must also be covered by the client's gym membership (active or queued renewal).
+    await assertGymMembershipCoversSession(contract, proposedStart, session.sessionMode);
     // ...and the client must be free then too (re-checked under lock on accept).
     await assertClientSlotFree(session.clientUserId, proposedStart, proposedEnd, isClient ? "CLIENT" : "PT", sessionId);
+    // Daily cap on the target day (same 409 CLIENT_DAILY_SESSION_LIMIT as booking; the moved session is not counted).
+    await assertClientDailyCap(session.clientUserId, proposedStart, undefined, sessionId);
 
     const request = await sessionRepository.createRescheduleRequest({
       sessionId,
@@ -1823,6 +2063,9 @@ export const bookingService = {
       // both pass the conflict check before either commits. Runs inside the same per-PT
       // advisory lock bookSession uses: the conflict re-check and both writes below are now
       // one atomic unit, not three separate statements a concurrent call can interleave with.
+      // Membership on the proposed date, re-asked at acceptance (outside the lock: it is a call to gym-service, and a refusal changes nothing).
+      const membershipContract = await contractRepository.findById(session.contractId);
+      if (membershipContract) await assertGymMembershipCoversSession(membershipContract, request.proposedStartAt, session.sessionMode);
       await withPtScheduleLock(session.ptUserId, null, async (tx) => {
         // B27: time has passed since the proposal - the 24 h lead time and the contract window are re-checked
         // at the moment of acceptance, on the contract as it is now.
@@ -1855,6 +2098,8 @@ export const bookingService = {
           session.id,
           tx,
         );
+        // Daily cap re-checked at accept time under the client lock: a booking made since the proposal may have filled the day.
+        await assertClientDailyCap(session.clientUserId, request.proposedStartAt, tx, session.id);
 
         await sessionRepository.updateRescheduleRequestStatus(
           requestId,

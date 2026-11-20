@@ -16,6 +16,76 @@ export function normalizeAgentText(text: string): string {
   return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/gi, "d").toLowerCase();
 }
 
+const MONEY_MIN_VND = 10_000, MONEY_MAX_VND = 100_000_000;
+const MONEY_PREFIX = "(?:duoi|toi da|ngan sach|budget|under|khoang|max)";
+const MONEY_UNIT_MULTIPLIER = (unit: string | undefined): number => /^(trieu|tr|m|million)$/.test(unit ?? "") ? 1e6 : /^(k|nghin|ngan)$/.test(unit ?? "") ? 1000 : 1;
+
+function moneyVnd(amount: string, unit: string | undefined): number | undefined {
+  // "1.500.000" is Vietnamese thousands grouping, never a decimal.
+  const grouped = /^\d{1,3}(?:[.,]\d{3}){2,}$/.test(amount);
+  const value = Number(grouped ? amount.replace(/[.,]/g, "") : amount.replace(",", "."));
+  if (!Number.isFinite(value)) return undefined;
+  const vnd = Math.round(value * MONEY_UNIT_MULTIPLIER(unit));
+  // A bare small number ("khoang 60" of "khoang 60 phut") is never a budget.
+  return vnd >= MONEY_MIN_VND && vnd <= MONEY_MAX_VND ? vnd : undefined;
+}
+
+/** VND budget from an already-normalized (accent-free, lowercase) sentence. Accepts "duoi 2 trieu" / "ngan sach 1.5tr"
+ * (prefix form) AND a bare amount with an explicit money unit: "5 trieu", "5tr", "2,5 trieu", "500k", "500 nghin", "1.5m",
+ * "1tr5". Never "70 kg", "60 phut", "5 buoi" (no money unit). */
+export function parseBudgetFromText(s: string): number | undefined {
+  // "1tr5" = 1.5 trieu, "1tr500" = 1.5 trieu
+  const shorthand = s.match(/(?<![\d.,])(\d+)\s*(?:tr|trieu)\s*(\d{1,3})\b/);
+  if (shorthand) {
+    const extra = shorthand[2].length === 1 ? Number(shorthand[2]) * 100_000 : Number(shorthand[2]) * 1_000;
+    return moneyVnd(String(Number(shorthand[1]) * 1_000_000 + extra), undefined);
+  }
+  const prefixed = s.match(new RegExp(MONEY_PREFIX + String.raw`\s*(?:la\s*)?(\d+(?:[.,]\d+)*)\s*(trieu|tr|million|nghin|ngan|k|m)?\b`));
+  if (prefixed) { const v = moneyVnd(prefixed[1], prefixed[2]); if (v !== undefined) return v; }
+  const spaced = s.match(/(?<![\d.,])(\d+(?:[.,]\d+)?)\s*(trieu|tr|million|nghin|k)\b/);
+  if (spaced) return moneyVnd(spaced[1], spaced[2]);
+  // "1.5m" ("1m70" is a height: no word boundary after the m)
+  const attachedM = s.match(/(?<![\d.,])(\d+(?:[.,]\d+)?)(m)\b/);
+  if (attachedM) return moneyVnd(attachedM[1], attachedM[2]);
+  return undefined;
+}
+
+const PLACE_TRIGGER = new Set(["o", "gan", "tai", "quanh"]);
+const PLACE_FIRST_REJECT = new Set(["gym", "nha", "phong", "day", "do", "dau", "kia", "toi", "minh", "em", "anh", "chi", "ban", "sao", "vi", "the", "nay",
+  "trung", "cac", "may", "mot", "nhieu", "online", "offline", "truc", "pt", "cho", "san"]);
+const PLACE_STOP = new Set(["voi", "de", "cho", "ma", "va", "nhe", "nha", "nhi", "khong", "gia", "ngan", "duoi", "khoang", "tu", "vao", "giam", "tang", "tap",
+  "pt", "huan", "online", "offline", "truc", "buoi", "phut", "trieu", "tr", "k", "nghin", "luc", "sang", "chieu", "toi", "thi", "la", "can", "muon", "tim", "budget",
+  "under", "hoac", "hay", "duoc", "co", "nao", "gym", "phong", "tuan", "ngay", "gio", "thang", "cn", "t2", "t3", "t4", "t5", "t6", "t7"]);
+const PLACE_ALIAS: Record<string, string> = { hcm: "ho chi minh", tphcm: "ho chi minh", "tp hcm": "ho chi minh", "sai gon": "ho chi minh", sg: "ho chi minh", hn: "ha noi", dn: "da nang" };
+
+/** A place the client named in a PT search ("tìm PT ở Gò Vấp", "gần Thủ Đức", "ở quận 7") — returned accent-free, never a guess:
+ * generic words ("ở gym", "gần nhà", "tại phòng gym") are NOT places. user-service resolves it against the admin ward table and
+ * ignores a phrase it cannot resolve. Call it only for a PT search (a free-text "ở …" in other chat is not a location). */
+export function parsePlacePhrase(text: string): string | undefined {
+  const tokens = normalizeAgentText(text).replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter(Boolean);
+  for (let i = 0; i < tokens.length - 1; i++) {
+    if (!PLACE_TRIGGER.has(tokens[i])) continue;
+    let start = i + 1;
+    if (tokens[start] === "khu" && tokens[start + 1] === "vuc") start += 2;
+    else if (tokens[start] === "khu") start += 1;
+    const first = tokens[start];
+    if (!first || PLACE_FIRST_REJECT.has(first)) continue;
+    const taken: string[] = [];
+    for (let j = start; j < tokens.length && taken.length < 4; j++) {
+      const t = tokens[j];
+      if (PLACE_STOP.has(t) || (t === "thu" && /^(?:[2-7]|hai|ba|tu|nam|sau|bay)$/.test(tokens[j + 1] ?? ""))) break;
+      if (/^[0-9]+$/.test(t)) { if (/^(?:quan|q|phuong|p)$/.test(taken[taken.length - 1] ?? "")) taken.push(t); break; }
+      taken.push(t);
+    }
+    while (taken.length && /^(?:quan|q|phuong|p|huyen)$/.test(taken[taken.length - 1])) taken.pop(); // a dangling "quan"
+    if (!taken.length) continue;
+    const place = taken.join(" ");
+    const aliased = PLACE_ALIAS[place] ?? place;
+    if (aliased.length >= 2 && aliased.length <= 60) return aliased;
+  }
+  return undefined;
+}
+
 /** Only explicit user constraints are extracted (goal/days/sessionMinutes/budgetVnd/mode). Missing
  * fields stay missing — never inferred/guessed. Factored out of parseFitnessAgentIntent (Phase 3
  * Batch 4) so the new revision module (services/revision/*) can extract a budget/day refinement from
@@ -32,10 +102,10 @@ export function parseConstraintPhrase(text: string): Partial<AgentPreferences> {
   if (days.length) preferences.days = [...new Set(days)];
   const minutes = s.match(/\b(\d{2,3})\s*(?:phut|minutes|min)\b/);
   if (minutes) preferences.sessionMinutes = Number(minutes[1]);
-  const budget = s.match(/(?:duoi|toi da|ngan sach|budget|under|khoang)\s*(\d+(?:[.,]\d+)?)\s*(trieu|tr|m|million|k|nghin)?\b/);
-  if (budget) preferences.budgetVnd = Math.round(Number(budget[1].replace(",", ".")) * (/^(trieu|tr|m|million)$/.test(budget[2] ?? "") ? 1e6 : /^(k|nghin)$/.test(budget[2] ?? "") ? 1000 : 1));
+  const budgetVnd = parseBudgetFromText(s);
+  if (budgetVnd !== undefined) preferences.budgetVnd = budgetVnd;
   if (/online|truc tuyen/.test(s)) preferences.mode = "ONLINE";
-  else if (/offline|truc tiep/.test(s)) preferences.mode = "OFFLINE";
+  else if (/offline|truc tiep|\btai phong (?:gym|tap)\b|\bo (?:phong )?gym\b|\btai gym\b|\bgan nha\b|\bgan toi\b/.test(s)) preferences.mode = "OFFLINE";
   return preferences;
 }
 
@@ -251,6 +321,11 @@ function parseFitnessAgentIntentUngated(text: string): FitnessAgentIntent {
     : /\b(tim|kiem|de xuat|giai thieu|find|suggest)\b.*\b(chuong trinh tap|giao an|program)\b|^\s*co (chuong trinh tap|giao an)\b.*\b(nao|khong)\b/.test(s) ? "PROGRAM"
     : null;
   // Validate extracted values rather than accepting impossible durations/budgets.
+  // Only a PT search carries a named place; it is resolved server-side (user-service) and never guessed here.
+  if (kind === "PT") {
+    const placeText = parsePlacePhrase(text);
+    if (placeText) preferences.placeText = placeText;
+  }
   const valid = AgentPreferencesSchema.partial().safeParse(preferences);
   const numbered = s.match(/(?:so|thu|#)\s*(\d+)/);
   return { kind, preferences: valid.success ? valid.data : {}, candidateNumber: numbered ? Number(numbered[1]) : /dau tien|first/.test(s) ? 1 : undefined };

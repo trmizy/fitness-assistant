@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CalendarIcon as Calendar, ClockIcon as Clock, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, CheckCircleIcon as CheckCircle, WarningCircleIcon as AlertCircle, XCircleIcon as XCircle, CircleNotchIcon as Loader2, StarIcon as Star, MapPinIcon as MapPin, ChatTextIcon as MessageSquare, FileTextIcon as FileText, ArrowsClockwiseIcon as RefreshCw } from "@phosphor-icons/react";
+import { CalendarIcon as Calendar, ClockIcon as Clock, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, CheckCircleIcon as CheckCircle, WarningCircleIcon as AlertCircle, XCircleIcon as XCircle, CircleNotchIcon as Loader2, StarIcon as Star, MapPinIcon as MapPin, ChatTextIcon as MessageSquare, FileTextIcon as FileText, ArrowsClockwiseIcon as RefreshCw, XIcon as X } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   contractService,
@@ -15,6 +15,19 @@ import type { Contract, Session, SessionStatus } from "../../types";
 import { Modal, ModalTitle, ModalClose } from "../../components/ui/Modal";
 import { bookableSessionsLeft, formatViDateTime, remainingEntitlements } from "../../utils/contractQuota";
 import { DateSlotPicker, type DateSlotValue } from "../../components/booking/DateSlotPicker";
+import { latestEndByWeekday, isWorkingDay } from "../../utils/ptWeeklyHours";
+import {
+  buildBatchPayload,
+  fullSessionDays,
+  readBatchRejection,
+  removeSlot,
+  slotKey,
+  slotLabel,
+  toggleSlot,
+  type PickedSlot,
+} from "../../utils/batchBooking";
+import { readMembershipNotCovered, type MembershipNotCovered } from "../../utils/membershipRenewal";
+import { MembershipNotCoveredNotice } from "../../components/gym/MembershipNotCoveredNotice";
 
 const DAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const MONTHS = [
@@ -131,7 +144,12 @@ export function BookingPage() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  // Slots lined up for one booking request (possibly on different days) + the server's reason per refused slot.
+  const [pickedSlots, setPickedSlots] = useState<PickedSlot[]>([]);
+  const [slotErrors, setSlotErrors] = useState<Record<string, string>>({});
+  const [pickError, setPickError] = useState<string | null>(null);
+  // 422 SESSION_NOT_COVERED_BY_MEMBERSHIP on a booking: the reason + a "Gia hạn gói hội viên" shortcut to that gym's plans.
+  const [bookingMembershipRefusal, setBookingMembershipRefusal] = useState<MembershipNotCovered | null>(null);
   const [selectedContractId, setSelectedContractId] = useState<string | null>(
     null,
   );
@@ -228,16 +246,8 @@ export function BookingPage() {
     enabled: !!selectedContract?.ptUserId,
     staleTime: 60_000,
   });
-  // weekday (0 = Sunday) -> the latest minute-of-day a PT's working window ends
-  const ptLatestEndByWeekday = new Map<number, number>();
-  for (const s of (Array.isArray(ptWeeklyHours) ? ptWeeklyHours : []) as Array<{ dayOfWeek?: string; endTime?: string; isActive?: boolean }>) {
-    if (s.isActive === false) continue;
-    const wd = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"].indexOf(String(s.dayOfWeek).toUpperCase());
-    const [hh, mm] = String(s.endTime ?? "").split(":").map(Number);
-    if (wd < 0 || !Number.isFinite(hh)) continue;
-    const endMin = hh * 60 + (Number.isFinite(mm) ? mm : 0);
-    ptLatestEndByWeekday.set(wd, Math.max(ptLatestEndByWeekday.get(wd) ?? 0, endMin));
-  }
+  // weekday (0 = Sunday) -> the latest minute-of-day a PT's working window ends (shared with the reschedule picker)
+  const ptLatestEndByWeekday = latestEndByWeekday(ptWeeklyHours);
 
   // Fetch upcoming sessions
   const { data: upcomingSessions = [], isLoading: loadingUpcoming } = useQuery({
@@ -323,34 +333,62 @@ export function BookingPage() {
         ? []
         : FALLBACK_SLOTS;
 
-  // Book mutation
+  // Remove one picked slot (also drops its refusal reason).
+  const removePicked = (p: PickedSlot) => {
+    setPickedSlots((list) => removeSlot(list, p));
+    setSlotErrors((prev) => {
+      const { [slotKey(p)]: _gone, ...rest } = prev;
+      return rest;
+    });
+  };
+
+  // Book mutation: one slot -> the single booking; several -> one all-or-nothing batch request.
   const bookMutation = useMutation({
-    mutationFn: () => {
-      if (!selectedContractId || !selectedDate || !selectedSlot)
-        throw new Error("Missing data");
-      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(selectedDate).padStart(2, "0")}`;
-      return sessionService.bookSession(selectedContractId, {
-        scheduledDate: dateStr,
-        scheduledTime: selectedSlot,
-        durationMin: 60,
-        sessionMode,
-        notes: bookingNotes || undefined,
-      });
+    onMutate: () => setBookingMembershipRefusal(null),
+    mutationFn: async () => {
+      if (!selectedContractId || pickedSlots.length === 0) throw new Error("Missing data");
+      if (pickedSlots.length === 1) {
+        const only = pickedSlots[0];
+        await sessionService.bookSession(selectedContractId, {
+          scheduledDate: only.dateStr,
+          scheduledTime: only.slot,
+          durationMin: 60,
+          sessionMode,
+          notes: bookingNotes || undefined,
+        });
+        return 1;
+      }
+      await sessionService.bookSessionsBatch(
+        selectedContractId,
+        buildBatchPayload({ slots: pickedSlots, sessionMode, notes: bookingNotes }),
+      );
+      return pickedSlots.length;
     },
-    onSuccess: () => {
-      toast.success("Đặt lịch thành công! Huấn luyện viên sẽ được thông báo.");
+    onSuccess: (count: number) => {
+      toast.success(
+        count > 1
+          ? `Đã gửi yêu cầu đặt ${count} buổi! Huấn luyện viên sẽ được thông báo.`
+          : "Đặt lịch thành công! Huấn luyện viên sẽ được thông báo.",
+      );
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
       queryClient.invalidateQueries({ queryKey: ["contract-sessions"] });
       queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
       // The new session also blocks this client's slots with their OTHER PT(s).
       queryClient.invalidateQueries({ queryKey: ["available-slots"] });
       setSelectedDate(null);
-      setSelectedSlot(null);
+      setPickedSlots([]);
+      setSlotErrors({});
+      setPickError(null);
+      setBookingMembershipRefusal(null);
       setBookingNotes("");
       setTab("upcoming");
     },
-    onError: (err: any) =>
-      toast.error(err?.response?.data?.error || "Không thể đặt lịch"),
+    onError: (err: any) => {
+      const { bySlot, headline } = readBatchRejection(err);
+      setSlotErrors(bySlot);
+      setBookingMembershipRefusal(readMembershipNotCovered(err));
+      toast.error(headline || "Không thể đặt lịch");
+    },
   });
 
   // Cancel mutation
@@ -433,6 +471,9 @@ export function BookingPage() {
 
   const [rescheduleTarget, setRescheduleTarget] = useState<Session | null>(null);
   const rescheduleId = rescheduleTarget?.id ?? null;
+  const [rescheduleMembershipRefusal, setRescheduleMembershipRefusal] = useState<MembershipNotCovered | null>(null);
+  // Client accepting the PT's proposed move can hit the same membership guard (re-checked when the move is accepted).
+  const [acceptMembershipRefusal, setAcceptMembershipRefusal] = useState<{ requestId: string; refusal: MembershipNotCovered } | null>(null);
   const [rescheduleSlot, setRescheduleSlot] = useState<DateSlotValue | null>(null);
   const [rescheduleReason, setRescheduleReason] = useState<string>("");
 
@@ -454,16 +495,32 @@ export function BookingPage() {
         proposedEndAt,
         reason
       ),
+    onMutate: () => setRescheduleMembershipRefusal(null),
     onSuccess: () => {
       toast.success("Đã gửi yêu cầu dời lịch!");
+      setRescheduleMembershipRefusal(null);
       setRescheduleTarget(null);
       setRescheduleSlot(null);
       setRescheduleReason("");
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
     },
-    onError: (err: any) =>
-      toast.error(err?.response?.data?.error || "Không thể yêu cầu dời lịch"),
+    onError: (err: any) => {
+      setRescheduleMembershipRefusal(readMembershipNotCovered(err));
+      toast.error(err?.response?.data?.error || "Không thể yêu cầu dời lịch");
+    },
   });
+
+  const isPicked = (slot: string) =>
+    !!selectedDateStr && pickedSlots.some((p) => p.dateStr === selectedDateStr && p.slot === slot);
+  const toggleSlotAt = (slot: string) => {
+    if (!selectedDateStr) return;
+    const result = toggleSlot(pickedSlots, { dateStr: selectedDateStr, slot }, { sessionsLeft: remainingSessions });
+    setPickError(result.error);
+    if (!result.error) {
+      setPickedSlots(result.list);
+      setSlotErrors({});
+    }
+  };
 
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDay(year, month);
@@ -619,7 +676,9 @@ export function BookingPage() {
                       onClick={() => {
                         setSelectedContractId(c.id);
                         setSelectedDate(null);
-                        setSelectedSlot(null);
+                        setPickedSlots([]);
+                        setSlotErrors({});
+                        setPickError(null);
                       }}
                       className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
                         selectedContractId === c.id
@@ -691,18 +750,13 @@ export function BookingPage() {
                       // their working window is at least 24h from now (the booking lead rule),
                       // so a highlighted day always has hours to pick; the slot list then shows
                       // which of them are actually still free.
-                      const latestEnd = ptLatestEndByWeekday.get(dateObj.getDay());
-                      const isBookable =
-                        !disabled &&
-                        latestEnd !== undefined &&
-                        dateObj.getTime() + (latestEnd - 60) * 60_000 >= Date.now() + 24 * 60 * 60 * 1000;
+                      const isBookable = !disabled && isWorkingDay(dateObj, ptLatestEndByWeekday);
                       return (
                         <button
                           key={day}
                           disabled={disabled}
                           onClick={() => {
                             setSelectedDate(day);
-                            setSelectedSlot(null);
                           }}
                           title={hasSession ? "Đã có buổi tập trong ngày này" : undefined}
                           className={`relative aspect-square flex flex-col items-center justify-center rounded-xl text-xs transition-all font-medium ${
@@ -756,7 +810,7 @@ export function BookingPage() {
                         Khung giờ trống – ngày {selectedDate} {MONTHS[month].toLowerCase()}
                       </h4>
                       <p className="text-xs text-zinc-500 mb-3">
-                        Chọn giờ cho buổi tập của bạn
+                        Chọn một hoặc nhiều giờ (có thể ở nhiều ngày khác nhau)
                       </p>
                       {loadingSlots ? (
                         <div className="flex justify-center py-6">
@@ -778,9 +832,10 @@ export function BookingPage() {
                           {timeSlots.map((slot) => (
                             <button
                               key={slot}
-                              onClick={() => setSelectedSlot(slot)}
-                              className={`flex items-center justify-center gap-1.5 px-2 py-2.5 border-2 rounded-xl text-sm transition-all font-medium ${
-                                selectedSlot === slot
+                              aria-pressed={isPicked(slot)}
+                              onClick={() => toggleSlotAt(slot)}
+                              className={`flex items-center justify-center gap-1.5 px-2 py-2.5 min-h-10 border-2 rounded-xl text-sm transition-all font-medium ${
+                                isPicked(slot)
                                   ? "border-green-500 bg-green-500/10 text-green-400 shadow-lg shadow-green-500/15"
                                   : "border-zinc-700/60 hover:border-green-500/50 text-zinc-400 hover:text-zinc-200"
                               }`}
@@ -792,94 +847,7 @@ export function BookingPage() {
                         </div>
                       )}
 
-                      {selectedSlot && (
-                        <div className="mt-4 space-y-3">
-                          {/* Session mode */}
-                          <div>
-                            <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">
-                              Hình thức
-                              {selectedContract?.sessionMode &&
-                                selectedContract.sessionMode !== "HYBRID" && (
-                                  <span className="ml-1.5 text-zinc-600 font-normal">
-                                    (theo gói)
-                                  </span>
-                                )}
-                            </label>
-                            <div className="flex gap-2">
-                              {(["OFFLINE", "ONLINE"] as const).map((mode) => {
-                                const contractMode =
-                                  selectedContract?.sessionMode;
-                                const isLocked =
-                                  contractMode === "ONLINE" ||
-                                  contractMode === "OFFLINE";
-                                const isDisabled =
-                                  isLocked && contractMode !== mode;
-                                return (
-                                  <button
-                                    key={mode}
-                                    onClick={() =>
-                                      !isDisabled && setSessionMode(mode)
-                                    }
-                                    disabled={isDisabled}
-                                    className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all border ${
-                                      sessionMode === mode
-                                        ? "bg-green-500/10 border-green-500/30 text-green-400"
-                                        : isDisabled
-                                          ? "border-zinc-800 text-zinc-700 cursor-not-allowed"
-                                          : "border-zinc-700/60 text-zinc-500 hover:text-zinc-300"
-                                    }`}
-                                  >
-                                    {mode === "OFFLINE"
-                                      ? "Trực tiếp"
-                                      : "Trực tuyến"}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          {/* Notes */}
-                          <div>
-                            <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">
-                              Ghi chú (không bắt buộc)
-                            </label>
-                            <textarea
-                              value={bookingNotes}
-                              onChange={(e) => setBookingNotes(e.target.value)}
-                              rows={2}
-                              placeholder="Ghi chú cho huấn luyện viên..."
-                              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50 resize-none"
-                            />
-                          </div>
-
-                          {/* Confirm */}
-                          <div className="p-3 bg-green-500/8 border border-green-500/20 rounded-xl">
-                            <div className="flex items-center gap-2 mb-2 text-green-400">
-                              <CheckCircle className="w-4 h-4" />
-                              <span className="text-sm font-bold">
-                                Sẵn sàng đặt lịch
-                              </span>
-                            </div>
-                            <p className="text-xs text-zinc-400 mb-3">
-                              {MONTHS[month]} {selectedDate}, {year} lúc{" "}
-                              {formatTime(selectedSlot)} ·{" "}
-                              {sessionMode === "ONLINE"
-                                ? "Trực tuyến"
-                                : "Trực tiếp"}
-                            </p>
-                            <button
-                              onClick={() => bookMutation.mutate()}
-                              disabled={bookMutation.isPending}
-                              className="w-full py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
-                            >
-                              {bookMutation.isPending && (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              )}
-                              Xác nhận đặt lịch
-                            </button>
-                          </div>
-                        </div>
-                      )}
+                      {pickError && pickedSlots.length === 0 && <p className="mt-3 text-xs text-red-400">{pickError}</p>}
                     </div>
                   ) : (
                     <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-10 text-center flex flex-col items-center justify-center h-full">
@@ -887,6 +855,131 @@ export function BookingPage() {
                       <p className="text-sm text-zinc-500">
                         Chọn ngày để xem khung giờ trống
                       </p>
+                    </div>
+                  )}
+
+                  {/* Picked slots (possibly on different days): summary, then one confirm. */}
+                  {pickedSlots.length > 0 && (
+                    <div
+                      data-testid="booking-picked-panel"
+                      className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 shadow-xl space-y-3"
+                    >
+                      <h4 className="text-sm font-bold text-zinc-200">
+                        Đã chọn {pickedSlots.length} khung giờ
+                      </h4>
+                      <ul className="space-y-1.5">
+                        {pickedSlots.map((p) => {
+                          const key = slotKey(p);
+                          const error = slotErrors[key];
+                          return (
+                            <li
+                              key={key}
+                              data-testid={`picked-slot-${key}`}
+                              className={`rounded-lg border px-3 py-1 ${error ? "border-red-500/40 bg-red-500/5" : "border-zinc-700/60 bg-zinc-800/40"}`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm font-medium text-zinc-200">{slotLabel(p)}</span>
+                                <button
+                                  type="button"
+                                  aria-label={`Bỏ khung giờ ${slotLabel(p)}`}
+                                  onClick={() => removePicked(p)}
+                                  disabled={bookMutation.isPending}
+                                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-700/60 hover:text-zinc-200 disabled:opacity-50"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                              {error && <p className="pb-2 text-xs text-red-400">{error}</p>}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      {pickError && <p className="text-xs text-red-400">{pickError}</p>}
+                      {bookingMembershipRefusal && (
+                        <MembershipNotCoveredNotice refusal={bookingMembershipRefusal} coverUntil={selectedContract?.endDate ?? null} />
+                      )}
+                      {Object.keys(slotErrors).length > 0 && (
+                        <p className="text-xs text-red-400">
+                          Chưa có buổi nào được tạo. Bỏ các khung giờ báo lỗi (hoặc chọn giờ khác) rồi đặt lại.
+                        </p>
+                      )}
+
+                      {/* Session mode */}
+                      <div>
+                        <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">
+                          Hình thức
+                          {selectedContract?.sessionMode &&
+                            selectedContract.sessionMode !== "HYBRID" && (
+                              <span className="ml-1.5 text-zinc-600 font-normal">
+                                (theo gói)
+                              </span>
+                            )}
+                        </label>
+                        <div className="flex gap-2">
+                          {(["OFFLINE", "ONLINE"] as const).map((mode) => {
+                            const contractMode = selectedContract?.sessionMode;
+                            const isLocked =
+                              contractMode === "ONLINE" ||
+                              contractMode === "OFFLINE";
+                            const isDisabled = isLocked && contractMode !== mode;
+                            return (
+                              <button
+                                key={mode}
+                                onClick={() => !isDisabled && setSessionMode(mode)}
+                                disabled={isDisabled}
+                                className={`flex-1 min-h-10 py-2 rounded-lg text-xs font-semibold transition-all border ${
+                                  sessionMode === mode
+                                    ? "bg-green-500/10 border-green-500/30 text-green-400"
+                                    : isDisabled
+                                      ? "border-zinc-800 text-zinc-700 cursor-not-allowed"
+                                      : "border-zinc-700/60 text-zinc-500 hover:text-zinc-300"
+                                }`}
+                              >
+                                {mode === "OFFLINE" ? "Trực tiếp" : "Trực tuyến"}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Notes */}
+                      <div>
+                        <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">
+                          Ghi chú (không bắt buộc)
+                        </label>
+                        <textarea
+                          value={bookingNotes}
+                          onChange={(e) => setBookingNotes(e.target.value)}
+                          rows={2}
+                          placeholder="Ghi chú cho huấn luyện viên..."
+                          className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50 resize-none"
+                        />
+                      </div>
+
+                      {/* Confirm */}
+                      <div className="p-3 bg-green-500/8 border border-green-500/20 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2 text-green-400">
+                          <CheckCircle className="w-4 h-4" />
+                          <span className="text-sm font-bold">
+                            {pickedSlots.length === 1 ? "Sẵn sàng đặt lịch" : `Sẵn sàng đặt ${pickedSlots.length} buổi`}
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-400 mb-3">
+                          {pickedSlots.length === 1
+                            ? `${slotLabel(pickedSlots[0])} · ${sessionMode === "ONLINE" ? "Trực tuyến" : "Trực tiếp"}`
+                            : "Các buổi được gửi cùng lúc: nếu một khung giờ không đặt được thì chưa buổi nào được tạo. Huấn luyện viên nhận một thông báo chung."}
+                        </p>
+                        <button
+                          onClick={() => bookMutation.mutate()}
+                          disabled={bookMutation.isPending}
+                          className="w-full min-h-10 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                        >
+                          {bookMutation.isPending && (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          )}
+                          {pickedSlots.length === 1 ? "Xác nhận đặt lịch" : `Xác nhận đặt ${pickedSlots.length} buổi`}
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -901,8 +994,11 @@ export function BookingPage() {
                         <p className="text-xs text-zinc-500 leading-relaxed">
                           • Lịch tập phải được đặt trước ít nhất 24 giờ.
                           <br />
-                          • Hủy lịch trong vòng 24 giờ sẽ tính là 1 buổi đã
-                          dùng.
+                          • Mỗi ngày đặt tối đa 2 buổi (tính cả buổi đang chờ PT xác nhận).
+                          <br />
+                          • Hủy buổi đã xác nhận sẽ mất 1 buổi trong hợp đồng
+                          (PT vẫn được tính buổi). Nếu cần đổi giờ, hãy dùng
+                          Đổi lịch — miễn phí khi PT đồng ý.
                           <br />• Vắng mặt cũng sẽ tính là 1 buổi đã dùng.
                         </p>
                       </div>
@@ -1028,9 +1124,10 @@ export function BookingPage() {
                         </div>
                       </div>
                     </div>
-                    {hoursUntil < 24 && hoursUntil > 0 && (
+                    {/* Owner decision 20/11/2026: no 24h grace - cancelling a CONFIRMED session always costs the client the session. */}
+                    {s.status === "CONFIRMED" && hoursUntil > 0 && (
                       <div className="mt-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1.5">
-                        Hủy lúc này sẽ tính là 1 buổi đã dùng (còn dưới 24 giờ)
+                        Huỷ buổi đã xác nhận sẽ mất 1 buổi trong hợp đồng (PT vẫn được tính buổi). Nếu cần đổi giờ, hãy dùng Đổi lịch — miễn phí khi PT đồng ý.
                       </div>
                     )}
                     {/* Money-flow plan 3.3: gate on the actual pending-request list, not the
@@ -1051,7 +1148,18 @@ export function BookingPage() {
                             )}
                             <div className="flex gap-2">
                               <button
-                                onClick={() => sessionService.respondToReschedule(s.rescheduleRequests![0].id, "ACCEPT").then(() => queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] }))}
+                                onClick={() => {
+                                  const requestId = s.rescheduleRequests![0].id;
+                                  setAcceptMembershipRefusal(null);
+                                  sessionService
+                                    .respondToReschedule(requestId, "ACCEPT")
+                                    .then(() => queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] }))
+                                    .catch((err: any) => {
+                                      const refusal = readMembershipNotCovered(err);
+                                      if (refusal) setAcceptMembershipRefusal({ requestId, refusal });
+                                      toast.error(err?.response?.data?.error || "Không thể đồng ý dời lịch");
+                                    });
+                                }}
                                 className="px-3 py-1.5 bg-green-500 hover:bg-green-400 text-black text-xs font-bold rounded-lg transition-colors"
                               >
                                 Đồng ý
@@ -1063,6 +1171,9 @@ export function BookingPage() {
                                 Từ chối
                               </button>
                             </div>
+                            {acceptMembershipRefusal?.requestId === s.rescheduleRequests[0].id && (
+                              <MembershipNotCoveredNotice refusal={acceptMembershipRefusal.refusal} />
+                            )}
                           </div>
                         )}
                       </div>
@@ -1382,6 +1493,11 @@ export function BookingPage() {
               <p className="text-sm text-zinc-400">
                 Vui lòng cho biết lý do hủy lịch tập này.
               </p>
+              {(upcomingSessions as Session[]).find((x) => x.id === cancelId)?.status === "CONFIRMED" && (
+                <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1.5">
+                  Huỷ buổi đã xác nhận sẽ mất 1 buổi trong hợp đồng (PT vẫn được tính buổi). Nếu cần đổi giờ, hãy dùng Đổi lịch — miễn phí khi PT đồng ý.
+                </p>
+              )}
               <textarea
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
@@ -1484,6 +1600,7 @@ export function BookingPage() {
           setRescheduleTarget(null);
           setRescheduleSlot(null);
           setRescheduleReason("");
+          setRescheduleMembershipRefusal(null);
         }}
         closeOnBackdrop={false}
         placement="sheet"
@@ -1505,6 +1622,10 @@ export function BookingPage() {
                 ptUserId={rescheduleTarget.ptUserId}
                 value={rescheduleSlot}
                 onChange={setRescheduleSlot}
+                fullDays={fullSessionDays(
+                  [...(upcomingSessions as Session[]), ...(contractSessions as Session[])],
+                  rescheduleTarget.id,
+                )}
               />
               <div>
                 <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Lý do dời lịch</label>
@@ -1516,6 +1637,9 @@ export function BookingPage() {
                   className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50 resize-none"
                 />
               </div>
+              {rescheduleMembershipRefusal && (
+                <MembershipNotCoveredNotice refusal={rescheduleMembershipRefusal} />
+              )}
             </div>
             <div className="p-5 border-t border-white/10 flex gap-3 shrink-0 bg-white/5 backdrop-blur-md">
               <button
@@ -1524,6 +1648,7 @@ export function BookingPage() {
                   setRescheduleTarget(null);
                   setRescheduleSlot(null);
                   setRescheduleReason("");
+                  setRescheduleMembershipRefusal(null);
                 }}
                 className="min-h-10 flex-1 py-2.5 border border-white/10 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors"
               >

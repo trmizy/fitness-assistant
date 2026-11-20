@@ -31,6 +31,32 @@ export const chatRepository = {
     });
   },
 
+  /**
+   * Get-or-create the DIRECT conversation of two users, safe against two callers racing (a PT's "Nhắn tin" tap
+   * and the contract-activation hook, a double click, a webhook replay): a transaction-scoped advisory lock keyed on
+   * the sorted pair serialises them, so only one creates the row.
+   */
+  findOrCreateDirectConversation: async (userAId: string, userBId: string) => {
+    const [a, b] = [userAId, userBId].sort();
+    return prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`direct-conversation:${a}:${b}`}))`;
+      const existing = await tx.conversation.findFirst({
+        where: {
+          type: "DIRECT",
+          participants: { some: { userId: userAId } },
+          AND: [{ participants: { some: { userId: userBId } } }],
+        },
+        include: { participants: true, messages: { take: 1, orderBy: { createdAt: "desc" } } },
+      });
+      if (existing) return { conversation: existing, created: false };
+      const conversation = await tx.conversation.create({
+        data: { type: "DIRECT", participants: { create: [{ userId: userAId }, { userId: userBId }] } },
+        include: { participants: true, messages: { take: 1, orderBy: { createdAt: "desc" } } },
+      });
+      return { conversation, created: true };
+    });
+  },
+
   findConversationsByUserId: async (userId: string) => {
     return prisma.conversation.findMany({
       where: {
@@ -106,6 +132,23 @@ export const chatRepository = {
       }),
     ]);
     return message;
+  },
+
+  /**
+   * Posts a message under a CALLER-CHOSEN id, once: a second call with the same id stores nothing and returns null
+   * (primary-key conflict). Used for system lines that must not repeat on retries / webhook replays.
+   */
+  createMessageOnce: async (id: string, conversationId: string, senderId: string, content: string) => {
+    try {
+      const [message] = await prisma.$transaction([
+        prisma.message.create({ data: { id, conversationId, senderId, content } }),
+        prisma.conversation.update({ where: { id: conversationId }, data: { lastMessageAt: new Date() } }),
+      ]);
+      return message;
+    } catch (err: any) {
+      if (err?.code === "P2002") return null;
+      throw err;
+    }
   },
 
   isUserParticipant: async (conversationId: string, userId: string) => {

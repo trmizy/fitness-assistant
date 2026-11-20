@@ -16,6 +16,7 @@ import { authServiceClient, AuthServiceUnavailableError } from "../clients/auth-
 import { profileRepository, prisma } from "../repositories/profile.repository";
 import { enrichProfilesWithAuthNames, signOtherUserPhotosInMap } from "./profile.service";
 import { notificationService } from "./notification.service";
+import { connectContractPartiesInChat } from "./chat-connect.service";
 import { eSignService } from "./esign.service";
 import { generateContractPdf } from "./contractPdf.service";
 import { ptServicePackageRepository, type LockedPackageRow } from "../repositories/pt_service_package.repository";
@@ -2075,6 +2076,11 @@ export const contractService = {
       );
     }
     const activated = current;
+
+    // Connect the PT and the client in chat (conversation + one system line). Best-effort and idempotent: never throws,
+    // never affects the activation, and runs on a webhook replay too so a chat-service that was OFF the first time is
+    // caught up (the system line is keyed by contract id, so nothing is posted twice).
+    await connectContractPartiesInChat(activated);
 
     // Payment confirmation is where the two parties currently have the least confirmation
     // they've actually got a deal — send the notice here rather than at signing, since

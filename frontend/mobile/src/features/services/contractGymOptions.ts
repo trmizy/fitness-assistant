@@ -4,8 +4,9 @@
  *
  * The server is the authority for everything here:
  *  - `GET /contracts/gym-options?ptUserId=&packageId=` lists the branches and, per branch, FACTS
- *    about the client's membership. It may also carry `eligibility: { canRequest, reason }` per
- *    branch (P3.3). That field is OPTIONAL — absent means "no information", never "not allowed" —
+ *    about the client's membership. It may also carry `eligibility: { canRequest, reason, coverage }` per
+ *    branch (P3.3). `coverage.coversContract === false` (owner rule 19/11/2026) is a WARNING on a branch that is still
+ *    pickable: the membership ends before the contract would, so the client renews later. That field is OPTIONAL — absent means "no information", never "not allowed" —
  *    so this keeps working against a backend that does not send it yet.
  *  - `POST /contracts/request` answers 422 with the same two reason codes when the rule is
  *    enforced; that answer wins over anything shown earlier.
@@ -70,6 +71,15 @@ export type GymMembershipFact = {
   endDate: string | null;
 };
 
+/** From `eligibility.coverage`: does the membership last through the whole PT contract? */
+export type GymCoverage = {
+  coversContract: boolean;
+  /** ISO end of the membership's continuous coverage; null = never ends. */
+  membershipEndsAt: string | null;
+  /** ISO projected end of the PT contract if it started now. */
+  contractEndsAt: string | null;
+};
+
 export type GymEligibility = {
   /** False when the backend did not send `eligibility` (or sent something unreadable): no information. */
   known: boolean;
@@ -77,6 +87,8 @@ export type GymEligibility = {
   canRequest: boolean;
   /** The code as sent when it is one this app knows, else null. */
   reason: EligibilityReason | null;
+  /** Only when pickable and the backend said how far the membership reaches. */
+  coverage?: GymCoverage;
 };
 
 export type GymOption = {
@@ -94,6 +106,12 @@ export type GymOption = {
   blockedCopy: string | null;
   /** The reason is "buy a membership first" — the screen offers the purchase screen. */
   offersMembershipPurchase: boolean;
+  /** Pickable, but the membership ends before the contract would: "Gói hội viên hết hạn dd/MM, cần gia hạn ..." (null otherwise). */
+  coverageWarning: string | null;
+  /** The screen offers "Gia hạn" (same condition as `coverageWarning`). */
+  offersRenewal: boolean;
+  /** ISO end of the PT contract this option was evaluated for (to mark plans that are enough for it); null when unknown. */
+  contractEndsAt: string | null;
 };
 
 export type GymOptionsView = {
@@ -116,7 +134,9 @@ const REQUEST_BLOCKED_COPY: Record<string, string> = {
   PT_ACCOUNT_LOCKED: "Huấn luyện viên này hiện không nhận khách mới.",
   PT_NOT_ACCEPTING_CLIENTS: "Huấn luyện viên hiện không nhận khách mới.",
   ACTIVE_CONTRACT_EXISTS:
-    "Bạn đang có hợp đồng với huấn luyện viên này. Hãy kết thúc hợp đồng cũ trước khi gửi yêu cầu mới.",
+    "Bạn đang có hợp đồng với PT này. Hãy kết thúc hợp đồng cũ trước khi gửi yêu cầu mới.",
+  CONTRACT_PAUSED_BY_ADMIN:
+    "Hợp đồng với huấn luyện viên này đang tạm dừng nên chưa thể gửi yêu cầu mới.",
   CLIENT_PT_LIMIT_REACHED:
     "Bạn đang tập cùng lúc với 2 huấn luyện viên (tính cả yêu cầu đang chờ). Hãy kết thúc hoặc hủy một hợp đồng trước khi đăng ký thêm.",
 };
@@ -143,6 +163,29 @@ export function membershipLabel(m: GymMembershipFact): string {
   return until ? `Đang có gói hội viên · hết hạn ${until}` : "Đang có gói hội viên";
 }
 
+/** "19/12" - the short date used inside the renewal warning. */
+function shortDateVi(iso: string | null | undefined): string {
+  const full = formatDateVi(iso);
+  return full ? full.slice(0, 5) : "";
+}
+
+/** The warning line for a pickable branch whose membership ends before the contract. */
+export function coverageWarningCopy(membershipEndsAt: string | null | undefined): string {
+  const d = shortDateVi(membershipEndsAt);
+  return d
+    ? `Gói hội viên hết hạn ${d}, cần gia hạn để tập các buổi sau ngày này`
+    : "Gói hội viên sắp hết hạn, cần gia hạn để tập các buổi sau này";
+}
+
+function readCoverage(raw: any): GymCoverage | null {
+  if (!raw || typeof raw !== "object" || typeof raw.coversContract !== "boolean") return null;
+  return {
+    coversContract: raw.coversContract,
+    membershipEndsAt: typeof raw.membershipEndsAt === "string" ? raw.membershipEndsAt : null,
+    contractEndsAt: typeof raw.contractEndsAt === "string" ? raw.contractEndsAt : null,
+  };
+}
+
 /** Reads the OPTIONAL per-branch `eligibility`. Anything unreadable counts as "no information". */
 export function readEligibility(raw: any): GymEligibility {
   const e = raw?.eligibility;
@@ -155,7 +198,8 @@ export function readEligibility(raw: any): GymEligibility {
   if (e.canRequest === false || (reason !== null && e.canRequest !== true)) {
     return { known: true, canRequest: false, reason };
   }
-  return { known: hasFlag || reason !== null, canRequest: true, reason: null };
+  const coverage = readCoverage(e.coverage);
+  return { known: hasFlag || reason !== null, canRequest: true, reason: null, ...(coverage ? { coverage } : {}) };
 }
 
 function normalizeGymOption(raw: any): GymOption | null {
@@ -171,6 +215,7 @@ function normalizeGymOption(raw: any): GymOption | null {
   const blockedCopy = eligibility.canRequest
     ? null
     : (eligibilityCopy(eligibility.reason) ?? ELIGIBILITY_UNKNOWN_BLOCK_COPY);
+  const needsRenewal = eligibility.canRequest && eligibility.coverage?.coversContract === false;
   return {
     gymId,
     name: String(raw?.name ?? "Phòng gym"),
@@ -182,6 +227,9 @@ function normalizeGymOption(raw: any): GymOption | null {
     membershipLabel: membershipLabel(membership),
     blockedCopy,
     offersMembershipPurchase: eligibility.reason === "MEMBERSHIP_REQUIRED",
+    coverageWarning: needsRenewal ? coverageWarningCopy(eligibility.coverage?.membershipEndsAt) : null,
+    offersRenewal: needsRenewal,
+    contractEndsAt: eligibility.coverage?.contractEndsAt ?? null,
   };
 }
 

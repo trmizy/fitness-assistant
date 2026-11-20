@@ -3,7 +3,7 @@ import { Alert, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
 import Constants from "expo-constants";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Bell,
   BookOpen,
@@ -14,6 +14,7 @@ import {
   KeyRound,
   Link2,
   LogOut,
+  Ruler,
   Salad,
   ShieldAlert,
   ShieldCheck,
@@ -29,6 +30,8 @@ import { authService, profileService } from "../../../src/services/api";
 import { useApp } from "../../../src/context/AppContext";
 import { darkColors, designTokens } from "../../../src/theme/colors";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
+import { Chip } from "../../../src/features/plans/PlanWidgets";
+import { useUnitPreferences } from "../../../src/features/profile/useUnitPreferences";
 
 // Web's ConnectionsSection — deliberately non-interactive: none of these integrations exist.
 const CONNECTIONS = [
@@ -44,9 +47,12 @@ const CONNECTIONS = [
  * nutrition preferences (WB-14's home), notification and equipment links, the AI Coach guarantee,
  * privacy & data (export, import, scoped profile-data deletion), connections ("sắp có"), help.
  *
+ * Units (hệ đo lường, kcal/kJ) are account settings: the same `UserProfile.unitSystem/energyUnit` fields web's
+ * Settings writes, so a change on either device shows on the other. Notification preferences are server-side too
+ * (user-service NotificationPreference), honoured when a notification is created — i.e. for in-app AND phone push.
+ *
  * Not carried over, on purpose (a switch that does nothing is worse than none):
- *  - Appearance: the app ships the design's single dark theme and Vietnamese UI.
- *  - Units: mobile screens show cm/kg/kcal only; a metric/imperial toggle would not change them.
+ *  - Appearance: the app ships the design's single dark theme and Vietnamese UI (device-local on web).
  *  - Workout toggles (RPE/RIR, smart prefill, rest timer sound/vibration, wake lock): web's
  *    workout logger reads them; the mobile logger has no such behaviours yet.
  * Recorded in MOBILE_MIGRATION_MANIFEST.md (SH-08).
@@ -55,6 +61,16 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const { user, updateUser, logout } = useApp();
+  const queryClient = useQueryClient();
+  const { unitSystem, energyUnit } = useUnitPreferences();
+  const unitsMutation = useMutation({
+    mutationFn: (patch: { unitSystem?: "metric" | "imperial"; energyUnit?: "kcal" | "kj" }) => profileService.updateProfile(patch),
+    onSuccess: (res) => {
+      if (res?.profile) queryClient.setQueryData(["profile", user?.id ?? "guest"], res.profile);
+      toast.show("Đã cập nhật đơn vị hiển thị", "success");
+    },
+    onError: () => toast.show("Không thể cập nhật — thử lại sau", "danger"),
+  });
 
   // Follow the account's name until the user edits the field.
   const [firstNameEdit, setFirstName] = useState<string | null>(null);
@@ -156,6 +172,19 @@ export default function SettingsScreen() {
           </Tappable>
         </Section>
 
+        <Section icon={Ruler} title="Đơn vị đo" description="Chiều cao, cân nặng và năng lượng — dữ liệu gốc luôn lưu ở hệ mét, chỉ đổi cách hiển thị (đồng bộ với web)">
+          <Text className="font-body text-xs text-muted-foreground">Hệ đo lường</Text>
+          <View className="flex-row flex-wrap gap-2">
+            <Chip label="Mét (cm / kg)" active={unitSystem === "metric"} onPress={() => unitsMutation.mutate({ unitSystem: "metric" })} />
+            <Chip label="Anh-Mỹ (ft-in / lb)" active={unitSystem === "imperial"} onPress={() => unitsMutation.mutate({ unitSystem: "imperial" })} />
+          </View>
+          <Text className="font-body text-xs text-muted-foreground">Năng lượng</Text>
+          <View className="flex-row flex-wrap gap-2">
+            <Chip label="kcal" active={energyUnit === "kcal"} onPress={() => unitsMutation.mutate({ energyUnit: "kcal" })} />
+            <Chip label="kJ" active={energyUnit === "kj"} onPress={() => unitsMutation.mutate({ energyUnit: "kj" })} />
+          </View>
+        </Section>
+
         <Section icon={Salad} title="Dinh dưỡng" description="Ngân sách thực phẩm và vùng miền cho gợi ý món ăn">
           <NutritionPrefsForm />
         </Section>
@@ -164,7 +193,7 @@ export default function SettingsScreen() {
           <LinkRow icon={Dumbbell} label="Thiết bị tập luyện" href="/client/profile/equipment" />
         </Section>
 
-        <Section icon={Bell} title="Thông báo" description="Bật/tắt từng loại thông báo">
+        <Section icon={Bell} title="Thông báo" description="Bật/tắt từng loại thông báo — áp dụng cho cả web và điện thoại của bạn">
           <LinkRow icon={Bell} label="Cài đặt thông báo" href="/client/profile/notification-prefs" />
         </Section>
 

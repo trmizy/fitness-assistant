@@ -32,6 +32,20 @@ import { useWorkspaceAccent } from "../../../src/theme/workspace";
 import { JoinSessionButton } from "../../../src/features/call/JoinSessionButton";
 import { normalizeContracts, sessionsLeft } from "../../../src/features/services/contracts";
 import { SlotCalendarPicker } from "../../../src/features/services/SlotCalendarPicker";
+import { BatchSlotList } from "../../../src/features/services/BatchSlotList";
+import { MembershipNotCoveredNotice } from "../../../src/features/services/MembershipNotCoveredNotice";
+import { readMembershipNotCovered, type MembershipNotCovered } from "../../../src/features/services/membershipRenewal";
+import {
+  MAX_BATCH_SESSIONS,
+  addSlot,
+  batchBlockedReason,
+  buildBatchPayload,
+  fullSessionDays,
+  readBatchRejection,
+  removeSlot,
+  slotKey,
+  type PickedSlot,
+} from "../../../src/features/services/batchBooking";
 import {
   BOOKING_LEAD_HOURS,
   RESCHEDULE_LEAD_HOURS,
@@ -407,6 +421,7 @@ export default function BookingScreen() {
         session={detail}
         contractEnd={contracts.find((c) => c.id === detail?.contractId)?.endDate}
         contractStart={contracts.find((c) => c.id === detail?.contractId)?.startDate}
+        sessions={sessions}
         onClose={() => setAction(null)}
         onDone={() => {
           setAction(null);
@@ -507,10 +522,15 @@ export default function BookingScreen() {
         open={booking}
         contracts={activeContracts}
         onClose={() => setBooking(false)}
-        onBooked={() => {
+        onBooked={(count) => {
           setBooking(false);
           refreshSessions();
-          toast.show("Đã gửi yêu cầu đặt buổi — chờ huấn luyện viên xác nhận.", "success");
+          toast.show(
+            count > 1
+              ? `Đã gửi yêu cầu đặt ${count} buổi — chờ huấn luyện viên xác nhận.`
+              : "Đã gửi yêu cầu đặt buổi — chờ huấn luyện viên xác nhận.",
+            "success",
+          );
         }}
       />
     </View>
@@ -582,13 +602,17 @@ function AnswerRescheduleSheet({
 }) {
   const toast = useToast();
   const [note, setNote] = useState("");
+  // Accepting a PT's proposed move is re-checked against the client's gym membership on the new date.
+  const [membershipRefusal, setMembershipRefusal] = useState<MembershipNotCovered | null>(null);
   const request = session ? incomingReschedule(session) : null;
 
   const mutation = useMutation({
     mutationFn: (choice: "ACCEPT" | "REJECT") =>
       sessionService.respondToReschedule(request!.id, choice, note.trim() || undefined),
+    onMutate: () => setMembershipRefusal(null),
     onSuccess: (_data, choice) => onDone(choice === "ACCEPT"),
     onError: (error: any) => {
+      setMembershipRefusal(readMembershipNotCovered(error));
       toast.show(
         error?.response?.data?.error ?? error?.response?.data?.message ?? "Không gửi được trả lời",
         "danger",
@@ -629,6 +653,8 @@ function AnswerRescheduleSheet({
               icon={MessageSquare}
             />
 
+            {membershipRefusal ? <MembershipNotCoveredNotice refusal={membershipRefusal} onBeforeNavigate={onClose} /> : null}
+
             <View className="flex-row gap-2">
               <Button
                 variant="secondary"
@@ -666,6 +692,7 @@ function RescheduleSheet({
   session,
   contractEnd,
   contractStart,
+  sessions = [],
   onClose,
   onDone,
 }: {
@@ -674,6 +701,8 @@ function RescheduleSheet({
   /** The session's contract window — a move may not leave it (the server re-checks). */
   contractEnd?: string | null;
   contractStart?: string | null;
+  /** The client's own sessions already loaded on this screen, to grey out days that already hold the daily maximum. */
+  sessions?: SessionRow[];
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -682,8 +711,12 @@ function RescheduleSheet({
   const [date, setDate] = useState<string | null>(null);
   const [time, setTime] = useState<string | null>(null);
   const [reason, setReason] = useState("");
+  // 422 SESSION_NOT_COVERED_BY_MEMBERSHIP: the new date is outside the client's gym membership -> offer "Gia hạn gói hội viên".
+  const [membershipRefusal, setMembershipRefusal] = useState<MembershipNotCovered | null>(null);
 
   const payload = session && date && time ? buildReschedulePayload(session, date, time) : null;
+  // Days with 2 live sessions (excluding the one being moved): a client-side hint only, the server re-checks.
+  const fullDays = useMemo(() => fullSessionDays(sessions, session?.id), [sessions, session?.id]);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -693,8 +726,10 @@ function RescheduleSheet({
         payload!.proposedEndAt,
         reason.trim(),
       ),
+    onMutate: () => setMembershipRefusal(null),
     onSuccess: onDone,
     onError: (error: any) => {
+      setMembershipRefusal(readMembershipNotCovered(error));
       toast.show(
         error?.response?.data?.error ?? error?.response?.data?.message ?? "Không gửi được đề nghị",
         "danger",
@@ -717,6 +752,7 @@ function RescheduleSheet({
             leadHours={RESCHEDULE_LEAD_HOURS}
             contractEnd={contractEnd}
             contractStart={contractStart}
+            fullDays={fullDays}
             date={date}
             time={time}
             onChange={(nextDate, nextTime) => {
@@ -734,6 +770,8 @@ function RescheduleSheet({
             numberOfLines={2}
             icon={MessageSquare}
           />
+
+          {membershipRefusal ? <MembershipNotCoveredNotice refusal={membershipRefusal} onBeforeNavigate={onClose} /> : null}
 
           <View className="flex-row gap-2">
             <Button variant="secondary" className="flex-1" onPress={onClose}>
@@ -840,7 +878,11 @@ function ReviewSheet({
   );
 }
 
-/** The booking flow: which contract, which day, which of the trainer's free slots. */
+/**
+ * The booking flow: which contract, which day, which of the trainer's free slots.
+ * One slot -> the old single booking. "Thêm vào danh sách" lines up several slots (possibly on different days); a
+ * summary step lists them before one all-or-nothing request (`POST /sessions/batch`) that answers per slot if refused.
+ */
 function BookingSheet({
   open,
   contracts,
@@ -850,7 +892,7 @@ function BookingSheet({
   open: boolean;
   contracts: ReturnType<typeof normalizeContracts>;
   onClose: () => void;
-  onBooked: () => void;
+  onBooked: (count: number) => void;
 }) {
   const toast = useToast();
 
@@ -859,15 +901,38 @@ function BookingSheet({
   const [time, setTime] = useState<string | null>(null);
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
+  // Several-slot booking: the list, the summary step, and the server's reason per refused slot.
+  const [picked, setPicked] = useState<PickedSlot[]>([]);
+  const [step, setStep] = useState<"pick" | "review">("pick");
+  const [slotErrors, setSlotErrors] = useState<Record<string, string>>({});
+  const [pickError, setPickError] = useState<string | null>(null);
+  // 422 SESSION_NOT_COVERED_BY_MEMBERSHIP (single or one batch slot): the reason + "Gia hạn gói hội viên" for that gym.
+  const [membershipRefusal, setMembershipRefusal] = useState<MembershipNotCovered | null>(null);
 
   const contract = contracts.find((c) => c.id === contractId) ?? contracts[0] ?? null;
+  const left = contract ? sessionsLeft(contract) : 0;
+  const current: PickedSlot | null = date && time ? { date, time } : null;
 
   const blocked = contract
     ? bookingBlockedReason({
         contractStatus: contract.status,
-        sessionsLeft: sessionsLeft(contract),
+        sessionsLeft: left,
         date,
         time,
+      })
+    : "Bạn chưa có hợp đồng đang hiệu lực.";
+  // The chosen-but-not-yet-added slot: would the list take it? When it would not (e.g. 2 sessions already on that day) it does NOT count
+  // towards the CTA and its reason stays on screen, so "Xem lại và đặt N buổi" keeps working for the slots that are fine.
+  const currentIsNew = !!current && !picked.some((s) => slotKey(s) === slotKey(current));
+  const currentRefusal = current && currentIsNew ? addSlot(picked, current, { sessionsLeft: left }).error : null;
+  const currentAddable = currentIsNew && !currentRefusal;
+  const shownPickError = pickError ?? currentRefusal;
+  const batchCount = picked.length + (currentAddable ? 1 : 0);
+  const batchBlocked = contract
+    ? batchBlockedReason({
+        contractStatus: contract.status,
+        sessionsLeft: left,
+        count: batchCount,
       })
     : "Bạn chưa có hợp đồng đang hiệu lực.";
 
@@ -883,8 +948,10 @@ function BookingSheet({
           notes,
         }),
       ),
-    onSuccess: onBooked,
+    onMutate: () => setMembershipRefusal(null),
+    onSuccess: () => onBooked(1),
     onError: (error: any) => {
+      setMembershipRefusal(readMembershipNotCovered(error, contract?.gymId));
       toast.show(
         error?.response?.data?.error ?? error?.response?.data?.message ?? "Không đặt được buổi",
         "danger",
@@ -892,83 +959,234 @@ function BookingSheet({
     },
   });
 
+  const batchMutation = useMutation({
+    mutationFn: () =>
+      sessionService.bookSessionsBatch(
+        contract!.id,
+        buildBatchPayload({ slots: picked, sessionMode: contract!.sessionMode, location, notes }),
+      ),
+    onMutate: () => setMembershipRefusal(null),
+    onSuccess: () => onBooked(picked.length),
+    onError: (error: any) => {
+      const { bySlot, headline } = readBatchRejection(error);
+      setSlotErrors(bySlot);
+      setMembershipRefusal(readMembershipNotCovered(error, contract?.gymId));
+      toast.show(headline ?? error?.response?.data?.message ?? "Không đặt được các buổi", "danger");
+    },
+  });
+
+  const resetPicks = () => {
+    setMembershipRefusal(null);
+    setPicked([]);
+    setSlotErrors({});
+    setPickError(null);
+    setStep("pick");
+  };
+
+  /** Move the chosen day + time into the list; false when the list refused it (reason in pickError). */
+  const addCurrent = (): boolean => {
+    if (!current) return true;
+    if (picked.some((s) => slotKey(s) === slotKey(current))) return true;
+    const result = addSlot(picked, current, { sessionsLeft: left });
+    setPickError(result.error);
+    if (result.error) return false;
+    setPicked(result.list);
+    setSlotErrors({});
+    setTime(null);
+    return true;
+  };
+
+  const removePicked = (slot: PickedSlot) => {
+    const next = removeSlot(picked, slot);
+    setPicked(next);
+    setSlotErrors((prev) => {
+      const { [slotKey(slot)]: _gone, ...rest } = prev;
+      return rest;
+    });
+    if (next.length === 0) setStep("pick");
+  };
+
+  const sheetTitle = step === "review" ? "Xác nhận đặt nhiều buổi" : "Đặt buổi tập";
+
   return (
-    <BottomSheet open={open} onClose={onClose} title="Đặt buổi tập">
+    <BottomSheet open={open} onClose={onClose} title={sheetTitle}>
       <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false}>
-        <View className="gap-4 pb-2">
-          {contracts.length > 1 ? (
-            <View className="gap-2">
-              <Text className="font-body-medium text-xs text-muted-foreground">Hợp đồng</Text>
-              {contracts.map((item) => {
-                const active = item.id === contractId;
-                return (
-                  <Tappable
-                    key={item.id}
-                    className={`rounded-xl border p-3 ${
-                      active ? "border-primary bg-primary/10" : "border-border bg-panel"
-                    }`}
-                    onPress={() => {
-                      setContractId(item.id);
-                      setDate(null);
-                      setTime(null);
-                    }}
-                  >
-                    <Text className="font-body-medium text-sm text-foreground" numberOfLines={1}>
-                      {item.packageName}
-                    </Text>
-                    <Text className="font-body text-xs text-muted-foreground">
-                      {`${item.ptName} · còn ${sessionsLeft(item)} buổi`}
-                    </Text>
-                  </Tappable>
-                );
-              })}
-            </View>
-          ) : contract ? (
-            <Text className="font-body text-xs text-muted-foreground">
-              {`${contract.packageName} · ${contract.ptName} · còn ${sessionsLeft(contract)} buổi`}
+        {step === "review" ? (
+          <View className="gap-4 pb-2">
+            {contract ? (
+              <Text className="font-body text-xs text-muted-foreground">
+                {`${contract.packageName} · ${contract.ptName} · còn ${left} buổi`}
+              </Text>
+            ) : null}
+            <Text className="font-body-medium text-sm text-foreground">
+              {`Bạn sắp gửi ${picked.length} yêu cầu đặt buổi:`}
             </Text>
-          ) : null}
-
-          <SlotCalendarPicker
-            key={contract?.id ?? "none"}
-            ptUserId={contract?.ptUserId}
-            leadHours={BOOKING_LEAD_HOURS}
-            contractEnd={contract?.endDate}
-            date={date}
-            time={time}
-            onChange={(nextDate, nextTime) => {
-              setDate(nextDate);
-              setTime(nextTime);
-            }}
-            emptyDayText={`Không còn khung giờ đặt được trong ngày này. Buổi tập cần đặt trước ít nhất ${BOOKING_LEAD_HOURS} giờ.`}
-          />
-
-          {contract?.sessionMode === "OFFLINE" ? (
-            <Input
-              value={location}
-              onChangeText={setLocation}
-              placeholder="Địa điểm (tuỳ chọn)"
-              icon={MapPin}
+            <BatchSlotList
+              slots={picked}
+              errors={slotErrors}
+              onRemove={removePicked}
+              disabled={batchMutation.isPending}
             />
-          ) : null}
-          <Input
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="Ghi chú cho huấn luyện viên (tuỳ chọn)"
-            icon={MessageSquare}
-          />
+            {membershipRefusal ? (
+              <MembershipNotCoveredNotice refusal={membershipRefusal} coverUntil={contract?.endDate} onBeforeNavigate={onClose} />
+            ) : null}
+            {Object.keys(slotErrors).length > 0 ? (
+              <Text className="font-body text-xs text-destructive">
+                Chưa có buổi nào được tạo. Bỏ các khung giờ báo lỗi (hoặc quay lại chọn giờ khác) rồi đặt lại.
+              </Text>
+            ) : (
+              <Text className="font-body text-xs text-muted-foreground">
+                Tất cả các buổi được gửi cùng lúc: nếu có một khung giờ không đặt được thì chưa buổi nào được tạo.
+                Huấn luyện viên nhận một thông báo chung.
+              </Text>
+            )}
+            <View className="flex-row gap-2">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                disabled={batchMutation.isPending}
+                onPress={() => setStep("pick")}
+              >
+                Quay lại
+              </Button>
+              <Button
+                className="flex-1"
+                disabled={picked.length === 0 || batchMutation.isPending}
+                onPress={() => batchMutation.mutate()}
+              >
+                {batchMutation.isPending ? "Đang đặt..." : `Đặt ${picked.length} buổi`}
+              </Button>
+            </View>
+          </View>
+        ) : (
+          <View className="gap-4 pb-2">
+            {contracts.length > 1 ? (
+              <View className="gap-2">
+                <Text className="font-body-medium text-xs text-muted-foreground">Hợp đồng</Text>
+                {contracts.map((item) => {
+                  const active = item.id === contractId;
+                  return (
+                    <Tappable
+                      key={item.id}
+                      className={`rounded-xl border p-3 ${
+                        active ? "border-primary bg-primary/10" : "border-border bg-panel"
+                      }`}
+                      onPress={() => {
+                        setContractId(item.id);
+                        setDate(null);
+                        setTime(null);
+                        resetPicks();
+                      }}
+                    >
+                      <Text className="font-body-medium text-sm text-foreground" numberOfLines={1}>
+                        {item.packageName}
+                      </Text>
+                      <Text className="font-body text-xs text-muted-foreground">
+                        {`${item.ptName} · còn ${sessionsLeft(item)} buổi`}
+                      </Text>
+                    </Tappable>
+                  );
+                })}
+              </View>
+            ) : contract ? (
+              <Text className="font-body text-xs text-muted-foreground">
+                {`${contract.packageName} · ${contract.ptName} · còn ${left} buổi`}
+              </Text>
+            ) : null}
 
-          <Button full disabled={!!blocked || bookMutation.isPending} onPress={() => bookMutation.mutate()}>
-            {bookMutation.isPending ? "Đang đặt..." : "Đặt buổi tập"}
-          </Button>
-          {blocked ? (
-            <Text className="text-center font-body text-xs text-muted-foreground">{blocked}</Text>
-          ) : (
-            <Text className="text-center font-body text-xs text-muted-foreground">
-              Buổi tập chỉ được tính vào gói sau khi hoàn thành và được xác nhận.
-            </Text>
-          )}
-        </View>
+            <SlotCalendarPicker
+              key={contract?.id ?? "none"}
+              ptUserId={contract?.ptUserId}
+              leadHours={BOOKING_LEAD_HOURS}
+              contractEnd={contract?.endDate}
+              date={date}
+              time={time}
+              onChange={(nextDate, nextTime) => {
+                setDate(nextDate);
+                setTime(nextTime);
+                setPickError(null);
+              }}
+              emptyDayText={`Không còn khung giờ đặt được trong ngày này. Buổi tập cần đặt trước ít nhất ${BOOKING_LEAD_HOURS} giờ.`}
+            />
+
+            {picked.length > 0 ? (
+              <View className="gap-2">
+                <Text className="font-body-medium text-xs text-muted-foreground">
+                  {`Đã chọn ${picked.length} khung giờ`}
+                </Text>
+                <BatchSlotList slots={picked} onRemove={removePicked} />
+              </View>
+            ) : null}
+            {shownPickError ? <Text className="font-body text-xs text-destructive" testID="batch-pick-error">{shownPickError}</Text> : null}
+            {membershipRefusal ? (
+              <MembershipNotCoveredNotice refusal={membershipRefusal} coverUntil={contract?.endDate} onBeforeNavigate={onClose} />
+            ) : null}
+            <Button
+              full
+              variant="secondary"
+              disabled={!current || picked.length >= MAX_BATCH_SESSIONS}
+              onPress={() => {
+                addCurrent();
+              }}
+            >
+              {`Thêm vào danh sách (${picked.length}/${MAX_BATCH_SESSIONS})`}
+            </Button>
+
+            {contract?.sessionMode === "OFFLINE" ? (
+              <Input
+                value={location}
+                onChangeText={setLocation}
+                placeholder="Địa điểm (tuỳ chọn)"
+                icon={MapPin}
+              />
+            ) : null}
+            <Input
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="Ghi chú cho huấn luyện viên (tuỳ chọn)"
+              icon={MessageSquare}
+            />
+
+            {picked.length === 0 ? (
+              <>
+                <Button full disabled={!!blocked || bookMutation.isPending} onPress={() => bookMutation.mutate()}>
+                  {bookMutation.isPending ? "Đang đặt..." : "Đặt buổi tập"}
+                </Button>
+                {blocked ? (
+                  <Text className="text-center font-body text-xs text-muted-foreground">{blocked}</Text>
+                ) : (
+                  <Text className="text-center font-body text-xs text-muted-foreground">
+                    Buổi tập chỉ được tính vào gói sau khi hoàn thành và được xác nhận.
+                  </Text>
+                )}
+              </>
+            ) : (
+              <>
+                <Button
+                  full
+                  disabled={!!batchBlocked}
+                  onPress={() => {
+                    if (currentRefusal) {
+                      // The refused slot is dropped (its reason stays above); the slots already on the list go on to the summary.
+                      setTime(null);
+                      setStep("review");
+                    } else if (addCurrent()) setStep("review");
+                  }}
+                >
+                  {`Xem lại và đặt ${batchCount} buổi`}
+                </Button>
+                {currentRefusal ? (
+                  <Text className="text-center font-body text-xs text-destructive">
+                    {`Khung giờ vừa chọn không được thêm: ${currentRefusal}`}
+                  </Text>
+                ) : null}
+                {batchBlocked ? (
+                  <Text className="text-center font-body text-xs text-muted-foreground">{batchBlocked}</Text>
+                ) : null}
+              </>
+            )}
+          </View>
+        )}
       </ScrollView>
     </BottomSheet>
   );
