@@ -740,6 +740,7 @@ export function PTSchedulePage() {
                           <button
                             onClick={() => cancelSessionMut.mutate(s.id)}
                             disabled={cancelSessionMut.isPending}
+                            title="Huỷ buổi đã xác nhận (kể cả chặn ngày nghỉ) sẽ bồi thường cho học viên 1 buổi bằng tiền, trừ vào thu nhập của bạn. Nên dùng Đổi lịch nếu học viên đồng ý."
                             className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
                           >
                             <X className="w-3 h-3" /> Hủy buổi
@@ -949,6 +950,9 @@ export function PTSchedulePage() {
             <h3 className="text-sm font-bold text-zinc-200">Ngày nghỉ</h3>
             <p className="text-xs text-zinc-500">
               Chặn những ngày bạn không nhận lịch (nghỉ phép, lễ, v.v.)
+            </p>
+            <p className="text-xs text-amber-400">
+              Huỷ buổi đã xác nhận (kể cả chặn ngày nghỉ) sẽ bồi thường cho học viên 1 buổi bằng tiền, trừ vào thu nhập của bạn. Nên dùng Đổi lịch nếu học viên đồng ý.
             </p>
 
             <div className="flex gap-2">

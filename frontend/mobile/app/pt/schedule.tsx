@@ -53,6 +53,8 @@ import {
   ptSessionStatus,
   relativeDayLabel,
   sessionActions,
+  ptCancelNotice,
+  PT_CANCEL_CONFIRMED_NOTICE,
   sessionDayOf,
   sessionDaysIn,
   sessionTimeLabel,
@@ -221,8 +223,8 @@ export default function PtScheduleScreen() {
       ],
     );
 
-  const askCancel = (id: string, name: string) =>
-    Alert.alert("Huỷ buổi tập?", `Buổi với ${name} sẽ bị huỷ. Học viên sẽ nhận được thông báo.`, [
+  const askCancel = (id: string, name: string, status: string) =>
+    Alert.alert("Huỷ buổi tập?", ptCancelNotice(status, name), [
       { text: "Không", style: "cancel" },
       { text: "Huỷ buổi", style: "destructive", onPress: () => cancel.mutate(id) },
     ]);
@@ -480,7 +482,7 @@ export default function PtScheduleScreen() {
                           </Button>
                         ) : null}
                         {actions.includes("cancel") ? (
-                          <Button size="sm" variant="ghost" icon={CalendarOff} disabled={busy} onPress={() => askCancel(s.id, name)}>
+                          <Button size="sm" variant="ghost" icon={CalendarOff} disabled={busy} onPress={() => askCancel(s.id, name, s.status)}>
                             Huỷ buổi
                           </Button>
                         ) : null}
@@ -737,7 +739,7 @@ function AvailabilityTab({
           <Input label="Lý do (tuỳ chọn)" value={blockReason} onChangeText={setBlockReason} placeholder="Nghỉ cá nhân" />
           {dateError ? <Text className="font-body text-xs text-destructive">{dateError}</Text> : null}
           <Text className="font-body text-xs text-muted-foreground">
-            Buổi tập đã đặt trong ngày này không tự huỷ — hệ thống sẽ xử lý theo chính sách huỷ của buổi đó.
+            {PT_CANCEL_CONFIRMED_NOTICE}
           </Text>
           <Button
             full

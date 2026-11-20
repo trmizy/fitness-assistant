@@ -35,6 +35,8 @@ import {
   planSchedule,
   planTitle,
   ptAlerts,
+  ptCancelNotice,
+  PT_CANCEL_CONFIRMED_NOTICE,
   ptContractStatus,
   ptIncomingReschedule,
   ptOutgoingReschedule,
@@ -508,5 +510,25 @@ describe("N15M-11 - PT deep links", () => {
     assert.equal(sessionDayOf(list, "s2"), null);
     assert.equal(sessionDayOf(list, "nope"), null);
     assert.equal(sessionDayOf(list, undefined), null);
+  });
+});
+
+describe("PT cancel / block-day notice (owner decision 20/11/2026: no 24-hour grace)", () => {
+  it("warns about the cash compensation for a CONFIRMED session, at any notice", () => {
+    const text = ptCancelNotice("CONFIRMED", "An");
+    assert.match(text, /bồi thường cho học viên 1 buổi bằng tiền/);
+    assert.match(text, /Đổi lịch/);
+    assert.match(text, /Buổi với An/);
+    assert.doesNotMatch(text, /24/);
+  });
+
+  it("says nothing about compensation for a request that was never confirmed", () => {
+    const text = ptCancelNotice("REQUESTED", "An");
+    assert.doesNotMatch(text, /bồi thường/);
+    assert.match(text, /Buổi với An/);
+  });
+
+  it("uses the same wording for the block-day sheet", () => {
+    assert.match(PT_CANCEL_CONFIRMED_NOTICE, /kể cả chặn ngày nghỉ/);
   });
 });

@@ -19,11 +19,9 @@ stubSessionSettlements();
 /**
  * Money-flow redesign plan item 3.1 — the `cancelSession` half of unifying PT-side outcomes.
  *
- * Before this fix, `cancelSession` NEVER compensated the client for a PT cancellation,
- * regardless of notice — the exact incentive problem the plan describes: a PT choosing between
- * `PATCH /:id/cancel` (this function, no cost) and blocking their whole date via
- * `addException` (which DID compensate, before 3.1's addException fix) would always prefer the
- * free option. Now both route through the same `resolveSessionOutcome`.
+ * `cancelSession` and `addException` route through the same `resolveSessionOutcome`, so a PT cancelling directly and a PT
+ * blocking the whole date cost the same. Since the owner decision of 20/11/2026 that cost is a cash compensation to the
+ * client at ANY notice (no 24h grace) for a CONFIRMED session; a REQUESTED one stays free.
  */
 
 function patch<T extends object, K extends keyof T>(obj: T, key: K, impl: unknown): () => void {
@@ -53,7 +51,9 @@ function contractFixture(id: string) {
   };
 }
 
-test("a PT cancelling < 24h out compensates the client and marks the session NO_SHOW", async () => {
+// OWNER DECISION 20/11/2026: no 24h grace - a PT cancelling a CONFIRMED session compensates the client at ANY notice.
+for (const [label, hours] of [["3h", 3], ["exactly 24h", 24], ["72h", 72]] as const) {
+test(`a PT cancelling a CONFIRMED session ${label} out compensates the client and marks the session NO_SHOW`, async () => {
   const contractId = randomUUID();
   const sessionId = randomUUID();
   const contract = contractFixture(contractId);
@@ -63,7 +63,7 @@ test("a PT cancelling < 24h out compensates the client and marks the session NO_
     clientUserId: "client-1",
     ptUserId: "pt-1",
     status: SessionStatus.CONFIRMED,
-    scheduledStartAt: new Date(Date.now() + 3 * 60 * 60 * 1000), // 3h out — late
+    scheduledStartAt: new Date(Date.now() + hours * 60 * 60 * 1000),
   };
   const calls: string[] = [];
 
@@ -119,8 +119,9 @@ test("a PT cancelling < 24h out compensates the client and marks the session NO_
   assert.ok(!calls.includes("incrementSession"), "the client's quota is NOT deducted for a PT-caused cancellation");
   assert.ok(!calls.includes("paymentClient.releaseSession"), "the PT does not additionally get paid for a session compensated as a no-show");
 });
+}
 
-test("a PT cancelling ≥ 24h out still costs nothing — unchanged from before 3.1", async () => {
+test("a PT cancelling a REQUESTED (not yet confirmed) session still costs nothing - unchanged", async () => {
   const contractId = randomUUID();
   const sessionId = randomUUID();
   const session = {
@@ -128,7 +129,7 @@ test("a PT cancelling ≥ 24h out still costs nothing — unchanged from before 
     contractId,
     clientUserId: "client-1",
     ptUserId: "pt-1",
-    status: SessionStatus.CONFIRMED,
+    status: SessionStatus.REQUESTED,
     scheduledStartAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
   };
   const calls: string[] = [];
@@ -136,7 +137,6 @@ test("a PT cancelling ≥ 24h out still costs nothing — unchanged from before 
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
     patch(contractRepository, "findById", async () => contractFixture(contractId) as any),
-    // Vòng 4 / Phase A1: same swap as above — REQUESTED-branch cancel also CASes now.
     patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus) => {
       calls.push(`updateStatus:${status}`);
       return true;

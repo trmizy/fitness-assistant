@@ -170,14 +170,23 @@ describe("grouping", () => {
   });
 });
 
-describe("the 24-hour cancellation window", () => {
-  it("is free outside the window and costs a session inside it", () => {
+describe("cancelling a confirmed session (owner decision 20/11/2026: no 24-hour grace)", () => {
+  it("costs the session at any notice, early or late", () => {
     const early = new Date("2026-09-16T10:00:00.000Z"); // 29 hours before
     const late = new Date("2026-09-17T09:00:00.000Z"); // 6 hours before
-    assert.equal(cancelCostsSession(at("CONFIRMED"), early), false);
+    assert.equal(cancelCostsSession(at("CONFIRMED"), early), true);
     assert.equal(cancelCostsSession(at("CONFIRMED"), late), true);
-    assert.match(cancelWarning(at("CONFIRMED"), late), /TRỪ 1 buổi/);
-    assert.match(cancelWarning(at("CONFIRMED"), early), /không bị trừ buổi/);
+    for (const now of [early, late]) {
+      assert.match(cancelWarning(at("CONFIRMED"), now), /mất 1 buổi trong hợp đồng/);
+      assert.match(cancelWarning(at("CONFIRMED"), now), /Đổi lịch/);
+      assert.doesNotMatch(cancelWarning(at("CONFIRMED"), now), /24/);
+    }
+  });
+
+  it("stays free for a request the trainer has not confirmed yet", () => {
+    const early = new Date("2026-09-16T10:00:00.000Z");
+    assert.equal(cancelCostsSession(at("REQUESTED"), early), false);
+    assert.match(cancelWarning(at("REQUESTED"), early), /không bị trừ buổi/);
   });
 
   it("measures the hours from the session's own start time", () => {

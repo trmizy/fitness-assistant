@@ -19,12 +19,9 @@ stubSessionSettlements();
 /**
  * Money-flow redesign plan item 3.1 — "hợp nhất hậu quả khi PT nghỉ", the `addException` half.
  *
- * Before this fix, `addException` compensated EVERY confirmed session it hit, regardless of
- * how much notice the PT gave — the exact bug the plan calls out: "PT báo nghỉ sớm không phải
- * bồi thường tiền — chỉ cần đặt lại buổi. Hiện code đang biến mọi lần PT chặn ngày thành vắng
- * mặt có bồi thường, đó là sai." Now routed through the shared `resolveSessionOutcome`
- * (session-outcome.test.ts already covers its six-row matrix in isolation) — this file only
- * has to prove `addException` actually calls it correctly for the two cases that matter here.
+ * `addException` is routed through the shared `resolveSessionOutcome` (session-outcome.test.ts covers the
+ * matrix in isolation) — this file only proves `addException` calls it correctly. Since the owner decision of
+ * 20/11/2026 (no 24h grace) a PT block ALWAYS compensates a CONFIRMED session, whatever the notice.
  *
  * `compensateNoShowMoney` is a plain function export (not an object method), so it cannot be
  * monkey-patched directly the same way contractRepository/paymentClient can — this instead
@@ -59,85 +56,53 @@ function contractFixture(id: string) {
   };
 }
 
-test("blocking a date ≥24h ahead cancels the confirmed session WITHOUT compensation", async () => {
-  const contractId = randomUUID();
-  const sessionId = randomUUID();
-  const contract = contractFixture(contractId);
-  const farFutureStart = new Date(Date.now() + 72 * 60 * 60 * 1000);
-  const session = { id: sessionId, contractId, clientUserId: "client-1", status: SessionStatus.CONFIRMED, scheduledStartAt: farFutureStart };
-  const calls: string[] = [];
+// OWNER DECISION 20/11/2026: no 24h grace. A PT blocking a day that holds a CONFIRMED session ALWAYS compensates the client
+// (one session's cash value, charged to the PT) and the session is consumed - however far away it is.
+for (const [label, hours] of [["≥24h ahead (72h)", 72], ["exactly 24h ahead", 24], ["<24h ahead (3h)", 3]] as const) {
+  test(`blocking a date ${label} compensates the client and marks the session NO_SHOW`, async () => {
+    const contractId = randomUUID();
+    const sessionId = randomUUID();
+    const contract = contractFixture(contractId);
+    const start = new Date(Date.now() + hours * 60 * 60 * 1000);
+    const session = { id: sessionId, contractId, clientUserId: "client-1", status: SessionStatus.CONFIRMED, scheduledStartAt: start };
+    const calls: string[] = [];
 
-  const restores = [
-    patch(availabilityRepository, "addException", async () => ({ id: "exc-1" }) as any),
-    patch(sessionRepository, "findConflictsByDate", async () => [session] as any),
-    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus) => {
-      calls.push(`updateStatus:${status}`);
-      return true;
-    }),
-    patch(contractRepository, "findById", async () => contract as any),
-    patch(paymentClient, "noShow", async () => {
-      calls.push("paymentClient.noShow");
-      return {} as any;
-    }),
-    patch(notificationService, "create", async (params: any) => {
-      calls.push(`notify:${params.eventType}`);
-      return {} as any;
-    }),
-  ];
+    const restores = [
+      patch(availabilityRepository, "addException", async () => ({ id: "exc-1" }) as any),
+      patch(sessionRepository, "findConflictsByDate", async () => [session] as any),
+      patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus) => {
+        calls.push(`updateStatus:${status}`);
+        return true;
+      }),
+      patch(contractRepository, "findById", async () => contract as any),
+      patch(sessionRepository, "claimNoShowQuota", async () => true), // QUOTA A+: the entitlement mark is a compare-and-set in the decision's transaction (no DB in this unit test)
+      patch(contractRepository, "incrementCompensatedSessions", async () => ({}) as any),
+      patch(paymentClient, "noShow", async () => {
+        calls.push("paymentClient.noShow");
+        return { compensation: "100000.00", pt: "90000.00", gym: "0.00", platform: "10000.00", shortfall: "0.00" };
+      }),
+      patch(notificationService, "create", async (params: any) => {
+        calls.push(`notify:${params.eventType}`);
+        return {} as any;
+      }),
+    ];
 
-  try {
-    await availabilityService.addException("pt-1", farFutureStart.toISOString().slice(0, 10), "Nghỉ phép");
-  } finally {
-    restores.forEach((r) => r());
-  }
+    try {
+      await availabilityService.addException("pt-1", start.toISOString().slice(0, 10), "Nghỉ phép");
+    } finally {
+      restores.forEach((r) => r());
+    }
 
-  assert.ok(!calls.includes("paymentClient.noShow"), "no compensation call for a ≥24h block — the plan's headline fix");
-  assert.deepEqual(calls, [`updateStatus:${SessionStatus.CANCELLED}`, "notify:SESSION_CANCELLED"]);
-});
-
-test("blocking a date <24h ahead compensates the client and marks the session NO_SHOW", async () => {
-  const contractId = randomUUID();
-  const sessionId = randomUUID();
-  const contract = contractFixture(contractId);
-  const soonStart = new Date(Date.now() + 3 * 60 * 60 * 1000);
-  const session = { id: sessionId, contractId, clientUserId: "client-1", status: SessionStatus.CONFIRMED, scheduledStartAt: soonStart };
-  const calls: string[] = [];
-
-  const restores = [
-    patch(availabilityRepository, "addException", async () => ({ id: "exc-1" }) as any),
-    patch(sessionRepository, "findConflictsByDate", async () => [session] as any),
-    patch(sessionRepository, "transitionStatus", async (_id: string, _expected: SessionStatus[], status: SessionStatus) => {
-      calls.push(`updateStatus:${status}`);
-      return true;
-    }),
-    patch(contractRepository, "findById", async () => contract as any),
-    patch(sessionRepository, "claimNoShowQuota", async () => true), // QUOTA A+: the entitlement mark is a compare-and-set in the decision's transaction (no DB in this unit test)
-    patch(contractRepository, "incrementCompensatedSessions", async () => ({}) as any),
-    patch(paymentClient, "noShow", async () => {
-      calls.push("paymentClient.noShow");
-      return { compensation: "100000.00", pt: "90000.00", gym: "0.00", platform: "10000.00", shortfall: "0.00" };
-    }),
-    patch(notificationService, "create", async (params: any) => {
-      calls.push(`notify:${params.eventType}`);
-      return {} as any;
-    }),
-  ];
-
-  try {
-    await availabilityService.addException("pt-1", soonStart.toISOString().slice(0, 10), "Nghỉ đột xuất");
-  } finally {
-    restores.forEach((r) => r());
-  }
-
-  assert.deepEqual(calls, [`updateStatus:${SessionStatus.NO_SHOW}`, "paymentClient.noShow", "notify:SESSION_NO_SHOW_PT"]);
-});
+    assert.deepEqual(calls, [`updateStatus:${SessionStatus.NO_SHOW}`, "paymentClient.noShow", "notify:SESSION_NO_SHOW_PT"]);
+  });
+}
 
 /**
  * The idle-holdback clock (contractRepository.findIdleHoldbackCandidates) counts a session the PT
  * cancelled as activity, and tells it from a client cancel by `cancelledBy` = the PT's own id.
  * addException is a PT-initiated cancel path that used to leave cancelledBy empty.
  */
-test("a PT block that CANCELS a session records the PT as the canceller; the <24h NO_SHOW path does not touch cancelledBy", async () => {
+test("a PT block of a REQUESTED session records the PT as the canceller; a CONFIRMED one is a NO_SHOW (any notice) and does not touch cancelledBy", async () => {
   const run = async (status: SessionStatus, startInMs: number) => {
     const contractId = randomUUID();
     const start = new Date(Date.now() + startInMs);
@@ -164,7 +129,7 @@ test("a PT block that CANCELS a session records the PT as the canceller; the <24
     return extras[0];
   };
 
-  assert.equal((await run(SessionStatus.CONFIRMED, 72 * 3600 * 1000)).cancelledBy, "pt-1", "CONFIRMED, >=24h -> CANCELLED by the PT");
   assert.equal((await run(SessionStatus.REQUESTED, 72 * 3600 * 1000)).cancelledBy, "pt-1", "REQUESTED -> CANCELLED by the PT");
-  assert.equal("cancelledBy" in (await run(SessionStatus.CONFIRMED, 3 * 3600 * 1000)), false, "<24h is a NO_SHOW, not a cancel");
+  assert.equal("cancelledBy" in (await run(SessionStatus.CONFIRMED, 72 * 3600 * 1000)), false, "CONFIRMED >=24h is now a NO_SHOW, not a cancel");
+  assert.equal("cancelledBy" in (await run(SessionStatus.CONFIRMED, 3 * 3600 * 1000)), false, "CONFIRMED <24h is a NO_SHOW, not a cancel");
 });
