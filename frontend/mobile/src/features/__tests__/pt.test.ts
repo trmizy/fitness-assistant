@@ -519,7 +519,7 @@ describe("PT cancel / block-day notice (owner decision 20/11/2026: no 24-hour gr
   it("warns about the cash compensation for a CONFIRMED session, at any notice", () => {
     const text = ptCancelNotice("CONFIRMED", "An");
     assert.match(text, /bồi thường cho học viên 1 buổi bằng tiền/);
-    assert.match(text, /Đổi lịch/);
+    assert.match(text, /dời lịch/);
     assert.match(text, /Buổi với An/);
     assert.doesNotMatch(text, /24/);
   });

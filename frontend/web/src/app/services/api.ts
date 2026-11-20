@@ -3367,6 +3367,9 @@ function extractLlmHealth(payload: unknown): LlmHealthStatus {
   };
 }
 
+/** A fresh Idempotency-Key (accepted charset/length: [A-Za-z0-9._:-]{8,128}). */
+export const newIdempotencyKey = (): string => `w-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}${Math.random().toString(36).slice(2, 8)}`;
+
 export const planService = {
   getLlmHealth: async (): Promise<LlmHealthStatus> => {
     const { data } = await api.get("/plans/llm-health", {
@@ -3496,6 +3499,10 @@ export const planService = {
     cancelledScheduleCount?: number;
     skippedDuplicateCount: number;
     alreadyExists?: boolean;
+    /** Present only when an EXISTING program was re-saved: did the save change the program's content? */
+    contentSynced?: boolean;
+    previousAiPlanVersion?: number | null;
+    programVersion?: number | null;
     mode?: string;
     message?: string;
     selectedWeekdays?: number[];
@@ -3533,6 +3540,20 @@ export const planService = {
           typeof unwrapped.alreadyExists === "boolean"
             ? unwrapped.alreadyExists
             : undefined,
+        contentSynced:
+          typeof unwrapped.contentSynced === "boolean"
+            ? unwrapped.contentSynced
+            : undefined,
+        previousAiPlanVersion:
+          typeof unwrapped.previousAiPlanVersion === "number"
+            ? unwrapped.previousAiPlanVersion
+            : unwrapped.previousAiPlanVersion === null
+              ? null
+              : undefined,
+        programVersion:
+          typeof unwrapped.programVersion === "number"
+            ? unwrapped.programVersion
+            : undefined,
         mode: typeof unwrapped.mode === "string" ? unwrapped.mode : undefined,
         message:
           typeof unwrapped.message === "string" ? unwrapped.message : undefined,
@@ -3557,12 +3578,14 @@ export const planService = {
     adjustments: string,
     daysPerWeek?: number,
     exercisesPerDay?: number,
+    options?: { idempotencyKey?: string; expectedVersion?: number },
   ): Promise<PlanJobResponse> => {
     const body: {
       planId: string;
       adjustments: string;
       daysPerWeek?: number;
       exercisesPerDay?: number;
+      expectedVersion?: number;
     } = {
       planId,
       adjustments,
@@ -3573,7 +3596,11 @@ export const planService = {
     if (typeof exercisesPerDay === "number") {
       body.exercisesPerDay = exercisesPerDay;
     }
-    const { data } = await api.post("/plans/adjust", body);
+    if (typeof options?.expectedVersion === "number") {
+      body.expectedVersion = options.expectedVersion;
+    }
+    // One key per business action: a retry of the SAME action after a timeout is answered from the original operation instead of being run twice.
+    const { data } = await api.post("/plans/adjust", body, options?.idempotencyKey ? { headers: { "Idempotency-Key": options.idempotencyKey } } : undefined);
     return extractPlanJobResponse(data);
   },
 

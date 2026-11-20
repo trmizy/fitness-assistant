@@ -30,6 +30,7 @@ import type {
   ManualSetPrescriptionDto,
 } from "../models/fitness.models";
 import { SET_TYPES, SET_SIDES } from "../models/fitness.models";
+import { isCorruptedText } from "../utils/corrupted-text.util";
 
 type MappedAiExercise = {
   exerciseId: string;
@@ -152,9 +153,6 @@ const CLEAN_WEEKDAY_LABELS: Record<number, string> = {
   6: "Thu 7",
 };
 
-const CORRUPTED_TEXT_PATTERN =
-  /[\u0000-\u0008\u000B\u000C\u000E-\u001F]|\uFFFD|\?|\u00C3|\u00C4|\u00C6|\u00C7|\u00C8|\u00D3|\u00E1\u00BA|\u00C2|\u00BB/i;
-
 const DAY_FALLBACK_TITLES = [
   "Chan + Mong",
   "Nguc + Vai + Tay sau",
@@ -169,7 +167,7 @@ function sanitizeImportedText(value?: string | null, fallback?: string) {
   if (typeof value !== "string") return fallback;
   const trimmed = value.trim();
   if (!trimmed) return fallback;
-  if (CORRUPTED_TEXT_PATTERN.test(trimmed)) return fallback;
+  if (isCorruptedText(trimmed)) return fallback;
   return trimmed;
 }
 
