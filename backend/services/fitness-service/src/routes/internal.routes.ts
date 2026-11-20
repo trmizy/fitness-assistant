@@ -33,6 +33,11 @@ router.post(
   internalController.exerciseMuscleProfiles as any,
 );
 router.post(
+  "/exercises/localized",
+  internalAuthMiddleware,
+  internalController.exerciseLocalized as any,
+);
+router.post(
   "/exercises/validate-plan-equipment",
   internalAuthMiddleware,
   internalController.validatePlanEquipment as any,

@@ -950,6 +950,20 @@ exports.Prisma.PlanReviewEventScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.ExerciseGuidanceScalarFieldEnum = {
+  id: 'id',
+  exerciseId: 'exerciseId',
+  language: 'language',
+  nameVi: 'nameVi',
+  instructionsVi: 'instructionsVi',
+  commonMistakesVi: 'commonMistakesVi',
+  safetyNotesVi: 'safetyNotesVi',
+  source: 'source',
+  verification: 'verification',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1110,7 +1124,8 @@ exports.Prisma.ModelName = {
   ExerciseReviewDecision: 'ExerciseReviewDecision',
   WorkoutMutationEvent: 'WorkoutMutationEvent',
   PlanReviewRequest: 'PlanReviewRequest',
-  PlanReviewEvent: 'PlanReviewEvent'
+  PlanReviewEvent: 'PlanReviewEvent',
+  ExerciseGuidance: 'ExerciseGuidance'
 };
 
 /**

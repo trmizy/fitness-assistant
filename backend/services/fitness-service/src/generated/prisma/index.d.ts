@@ -273,6 +273,11 @@ export type PlanReviewRequest = $Result.DefaultSelection<Prisma.$PlanReviewReque
  * 
  */
 export type PlanReviewEvent = $Result.DefaultSelection<Prisma.$PlanReviewEventPayload>
+/**
+ * Model ExerciseGuidance
+ * 
+ */
+export type ExerciseGuidance = $Result.DefaultSelection<Prisma.$ExerciseGuidancePayload>
 
 /**
  * Enums
@@ -1063,6 +1068,16 @@ export class PrismaClient<
     * ```
     */
   get planReviewEvent(): Prisma.PlanReviewEventDelegate<ExtArgs>;
+
+  /**
+   * `prisma.exerciseGuidance`: Exposes CRUD operations for the **ExerciseGuidance** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ExerciseGuidances
+    * const exerciseGuidances = await prisma.exerciseGuidance.findMany()
+    * ```
+    */
+  get exerciseGuidance(): Prisma.ExerciseGuidanceDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -1555,7 +1570,8 @@ export namespace Prisma {
     ExerciseReviewDecision: 'ExerciseReviewDecision',
     WorkoutMutationEvent: 'WorkoutMutationEvent',
     PlanReviewRequest: 'PlanReviewRequest',
-    PlanReviewEvent: 'PlanReviewEvent'
+    PlanReviewEvent: 'PlanReviewEvent',
+    ExerciseGuidance: 'ExerciseGuidance'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1571,7 +1587,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "exercise" | "equipment" | "exerciseEquipment" | "userEquipment" | "workout" | "workoutExercise" | "workoutSet" | "workoutSetSegment" | "food" | "foodAlias" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExerciseGroup" | "workoutProgramExerciseGroupMember" | "workoutProgramExercise" | "workoutProgramExerciseSetPrescription" | "workoutProgramTemplate" | "workoutSchedule" | "fitnessRoadmap" | "roadmapPhase" | "trainingCycle" | "cycleAssessment" | "recommendationAudit" | "coachClientActionAudit" | "planGenerationAudit" | "cycleSessionFeedback" | "exerciseSessionFeedback" | "cycleFeedbackSummary" | "cycleFeedbackAnalysisAudit" | "cycleInBodyLink" | "nutritionProgram" | "nutritionProgramDay" | "nutritionProgramMeal" | "nutritionProgramMealItem" | "nutritionMealCompletion" | "exerciseSource" | "exerciseAlias" | "muscle" | "exerciseMuscle" | "foodSource" | "recipe" | "recipeIngredient" | "importBatch" | "importRecord" | "workoutImportBatch" | "exerciseReviewDecision" | "workoutMutationEvent" | "planReviewRequest" | "planReviewEvent"
+      modelProps: "exercise" | "equipment" | "exerciseEquipment" | "userEquipment" | "workout" | "workoutExercise" | "workoutSet" | "workoutSetSegment" | "food" | "foodAlias" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExerciseGroup" | "workoutProgramExerciseGroupMember" | "workoutProgramExercise" | "workoutProgramExerciseSetPrescription" | "workoutProgramTemplate" | "workoutSchedule" | "fitnessRoadmap" | "roadmapPhase" | "trainingCycle" | "cycleAssessment" | "recommendationAudit" | "coachClientActionAudit" | "planGenerationAudit" | "cycleSessionFeedback" | "exerciseSessionFeedback" | "cycleFeedbackSummary" | "cycleFeedbackAnalysisAudit" | "cycleInBodyLink" | "nutritionProgram" | "nutritionProgramDay" | "nutritionProgramMeal" | "nutritionProgramMealItem" | "nutritionMealCompletion" | "exerciseSource" | "exerciseAlias" | "muscle" | "exerciseMuscle" | "foodSource" | "recipe" | "recipeIngredient" | "importBatch" | "importRecord" | "workoutImportBatch" | "exerciseReviewDecision" | "workoutMutationEvent" | "planReviewRequest" | "planReviewEvent" | "exerciseGuidance"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -5215,6 +5231,76 @@ export namespace Prisma {
           }
         }
       }
+      ExerciseGuidance: {
+        payload: Prisma.$ExerciseGuidancePayload<ExtArgs>
+        fields: Prisma.ExerciseGuidanceFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ExerciseGuidanceFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExerciseGuidancePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ExerciseGuidanceFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExerciseGuidancePayload>
+          }
+          findFirst: {
+            args: Prisma.ExerciseGuidanceFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExerciseGuidancePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ExerciseGuidanceFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExerciseGuidancePayload>
+          }
+          findMany: {
+            args: Prisma.ExerciseGuidanceFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExerciseGuidancePayload>[]
+          }
+          create: {
+            args: Prisma.ExerciseGuidanceCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExerciseGuidancePayload>
+          }
+          createMany: {
+            args: Prisma.ExerciseGuidanceCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ExerciseGuidanceCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExerciseGuidancePayload>[]
+          }
+          delete: {
+            args: Prisma.ExerciseGuidanceDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExerciseGuidancePayload>
+          }
+          update: {
+            args: Prisma.ExerciseGuidanceUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExerciseGuidancePayload>
+          }
+          deleteMany: {
+            args: Prisma.ExerciseGuidanceDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ExerciseGuidanceUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.ExerciseGuidanceUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExerciseGuidancePayload>
+          }
+          aggregate: {
+            args: Prisma.ExerciseGuidanceAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateExerciseGuidance>
+          }
+          groupBy: {
+            args: Prisma.ExerciseGuidanceGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ExerciseGuidanceGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ExerciseGuidanceCountArgs<ExtArgs>
+            result: $Utils.Optional<ExerciseGuidanceCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -5379,6 +5465,7 @@ export namespace Prisma {
     workoutExercises: number
     workoutProgramExercises: number
     equipmentLinks: number
+    guidance: number
     sources: number
     aliases: number
     muscleLinks: number
@@ -5389,6 +5476,7 @@ export namespace Prisma {
     workoutExercises?: boolean | ExerciseCountOutputTypeCountWorkoutExercisesArgs
     workoutProgramExercises?: boolean | ExerciseCountOutputTypeCountWorkoutProgramExercisesArgs
     equipmentLinks?: boolean | ExerciseCountOutputTypeCountEquipmentLinksArgs
+    guidance?: boolean | ExerciseCountOutputTypeCountGuidanceArgs
     sources?: boolean | ExerciseCountOutputTypeCountSourcesArgs
     aliases?: boolean | ExerciseCountOutputTypeCountAliasesArgs
     muscleLinks?: boolean | ExerciseCountOutputTypeCountMuscleLinksArgs
@@ -5425,6 +5513,13 @@ export namespace Prisma {
    */
   export type ExerciseCountOutputTypeCountEquipmentLinksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ExerciseEquipmentWhereInput
+  }
+
+  /**
+   * ExerciseCountOutputType without action
+   */
+  export type ExerciseCountOutputTypeCountGuidanceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ExerciseGuidanceWhereInput
   }
 
   /**
@@ -6476,6 +6571,7 @@ export namespace Prisma {
     workoutExercises?: boolean | Exercise$workoutExercisesArgs<ExtArgs>
     workoutProgramExercises?: boolean | Exercise$workoutProgramExercisesArgs<ExtArgs>
     equipmentLinks?: boolean | Exercise$equipmentLinksArgs<ExtArgs>
+    guidance?: boolean | Exercise$guidanceArgs<ExtArgs>
     sources?: boolean | Exercise$sourcesArgs<ExtArgs>
     aliases?: boolean | Exercise$aliasesArgs<ExtArgs>
     muscleLinks?: boolean | Exercise$muscleLinksArgs<ExtArgs>
@@ -6533,6 +6629,7 @@ export namespace Prisma {
     workoutExercises?: boolean | Exercise$workoutExercisesArgs<ExtArgs>
     workoutProgramExercises?: boolean | Exercise$workoutProgramExercisesArgs<ExtArgs>
     equipmentLinks?: boolean | Exercise$equipmentLinksArgs<ExtArgs>
+    guidance?: boolean | Exercise$guidanceArgs<ExtArgs>
     sources?: boolean | Exercise$sourcesArgs<ExtArgs>
     aliases?: boolean | Exercise$aliasesArgs<ExtArgs>
     muscleLinks?: boolean | Exercise$muscleLinksArgs<ExtArgs>
@@ -6547,6 +6644,7 @@ export namespace Prisma {
       workoutExercises: Prisma.$WorkoutExercisePayload<ExtArgs>[]
       workoutProgramExercises: Prisma.$WorkoutProgramExercisePayload<ExtArgs>[]
       equipmentLinks: Prisma.$ExerciseEquipmentPayload<ExtArgs>[]
+      guidance: Prisma.$ExerciseGuidancePayload<ExtArgs>[]
       sources: Prisma.$ExerciseSourcePayload<ExtArgs>[]
       aliases: Prisma.$ExerciseAliasPayload<ExtArgs>[]
       muscleLinks: Prisma.$ExerciseMusclePayload<ExtArgs>[]
@@ -6940,6 +7038,7 @@ export namespace Prisma {
     workoutExercises<T extends Exercise$workoutExercisesArgs<ExtArgs> = {}>(args?: Subset<T, Exercise$workoutExercisesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutExercisePayload<ExtArgs>, T, "findMany"> | Null>
     workoutProgramExercises<T extends Exercise$workoutProgramExercisesArgs<ExtArgs> = {}>(args?: Subset<T, Exercise$workoutProgramExercisesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutProgramExercisePayload<ExtArgs>, T, "findMany"> | Null>
     equipmentLinks<T extends Exercise$equipmentLinksArgs<ExtArgs> = {}>(args?: Subset<T, Exercise$equipmentLinksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ExerciseEquipmentPayload<ExtArgs>, T, "findMany"> | Null>
+    guidance<T extends Exercise$guidanceArgs<ExtArgs> = {}>(args?: Subset<T, Exercise$guidanceArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ExerciseGuidancePayload<ExtArgs>, T, "findMany"> | Null>
     sources<T extends Exercise$sourcesArgs<ExtArgs> = {}>(args?: Subset<T, Exercise$sourcesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ExerciseSourcePayload<ExtArgs>, T, "findMany"> | Null>
     aliases<T extends Exercise$aliasesArgs<ExtArgs> = {}>(args?: Subset<T, Exercise$aliasesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ExerciseAliasPayload<ExtArgs>, T, "findMany"> | Null>
     muscleLinks<T extends Exercise$muscleLinksArgs<ExtArgs> = {}>(args?: Subset<T, Exercise$muscleLinksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ExerciseMusclePayload<ExtArgs>, T, "findMany"> | Null>
@@ -7364,6 +7463,26 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ExerciseEquipmentScalarFieldEnum | ExerciseEquipmentScalarFieldEnum[]
+  }
+
+  /**
+   * Exercise.guidance
+   */
+  export type Exercise$guidanceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExerciseGuidance
+     */
+    select?: ExerciseGuidanceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExerciseGuidanceInclude<ExtArgs> | null
+    where?: ExerciseGuidanceWhereInput
+    orderBy?: ExerciseGuidanceOrderByWithRelationInput | ExerciseGuidanceOrderByWithRelationInput[]
+    cursor?: ExerciseGuidanceWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ExerciseGuidanceScalarFieldEnum | ExerciseGuidanceScalarFieldEnum[]
   }
 
   /**
@@ -61664,6 +61783,1003 @@ export namespace Prisma {
 
 
   /**
+   * Model ExerciseGuidance
+   */
+
+  export type AggregateExerciseGuidance = {
+    _count: ExerciseGuidanceCountAggregateOutputType | null
+    _min: ExerciseGuidanceMinAggregateOutputType | null
+    _max: ExerciseGuidanceMaxAggregateOutputType | null
+  }
+
+  export type ExerciseGuidanceMinAggregateOutputType = {
+    id: string | null
+    exerciseId: string | null
+    language: string | null
+    nameVi: string | null
+    instructionsVi: string | null
+    source: string | null
+    verification: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ExerciseGuidanceMaxAggregateOutputType = {
+    id: string | null
+    exerciseId: string | null
+    language: string | null
+    nameVi: string | null
+    instructionsVi: string | null
+    source: string | null
+    verification: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ExerciseGuidanceCountAggregateOutputType = {
+    id: number
+    exerciseId: number
+    language: number
+    nameVi: number
+    instructionsVi: number
+    commonMistakesVi: number
+    safetyNotesVi: number
+    source: number
+    verification: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ExerciseGuidanceMinAggregateInputType = {
+    id?: true
+    exerciseId?: true
+    language?: true
+    nameVi?: true
+    instructionsVi?: true
+    source?: true
+    verification?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ExerciseGuidanceMaxAggregateInputType = {
+    id?: true
+    exerciseId?: true
+    language?: true
+    nameVi?: true
+    instructionsVi?: true
+    source?: true
+    verification?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ExerciseGuidanceCountAggregateInputType = {
+    id?: true
+    exerciseId?: true
+    language?: true
+    nameVi?: true
+    instructionsVi?: true
+    commonMistakesVi?: true
+    safetyNotesVi?: true
+    source?: true
+    verification?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ExerciseGuidanceAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ExerciseGuidance to aggregate.
+     */
+    where?: ExerciseGuidanceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ExerciseGuidances to fetch.
+     */
+    orderBy?: ExerciseGuidanceOrderByWithRelationInput | ExerciseGuidanceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ExerciseGuidanceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ExerciseGuidances from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ExerciseGuidances.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ExerciseGuidances
+    **/
+    _count?: true | ExerciseGuidanceCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ExerciseGuidanceMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ExerciseGuidanceMaxAggregateInputType
+  }
+
+  export type GetExerciseGuidanceAggregateType<T extends ExerciseGuidanceAggregateArgs> = {
+        [P in keyof T & keyof AggregateExerciseGuidance]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateExerciseGuidance[P]>
+      : GetScalarType<T[P], AggregateExerciseGuidance[P]>
+  }
+
+
+
+
+  export type ExerciseGuidanceGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ExerciseGuidanceWhereInput
+    orderBy?: ExerciseGuidanceOrderByWithAggregationInput | ExerciseGuidanceOrderByWithAggregationInput[]
+    by: ExerciseGuidanceScalarFieldEnum[] | ExerciseGuidanceScalarFieldEnum
+    having?: ExerciseGuidanceScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ExerciseGuidanceCountAggregateInputType | true
+    _min?: ExerciseGuidanceMinAggregateInputType
+    _max?: ExerciseGuidanceMaxAggregateInputType
+  }
+
+  export type ExerciseGuidanceGroupByOutputType = {
+    id: string
+    exerciseId: string
+    language: string
+    nameVi: string | null
+    instructionsVi: string | null
+    commonMistakesVi: string[]
+    safetyNotesVi: string[]
+    source: string
+    verification: string
+    createdAt: Date
+    updatedAt: Date
+    _count: ExerciseGuidanceCountAggregateOutputType | null
+    _min: ExerciseGuidanceMinAggregateOutputType | null
+    _max: ExerciseGuidanceMaxAggregateOutputType | null
+  }
+
+  type GetExerciseGuidanceGroupByPayload<T extends ExerciseGuidanceGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ExerciseGuidanceGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ExerciseGuidanceGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ExerciseGuidanceGroupByOutputType[P]>
+            : GetScalarType<T[P], ExerciseGuidanceGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ExerciseGuidanceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    exerciseId?: boolean
+    language?: boolean
+    nameVi?: boolean
+    instructionsVi?: boolean
+    commonMistakesVi?: boolean
+    safetyNotesVi?: boolean
+    source?: boolean
+    verification?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    exercise?: boolean | ExerciseDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["exerciseGuidance"]>
+
+  export type ExerciseGuidanceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    exerciseId?: boolean
+    language?: boolean
+    nameVi?: boolean
+    instructionsVi?: boolean
+    commonMistakesVi?: boolean
+    safetyNotesVi?: boolean
+    source?: boolean
+    verification?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    exercise?: boolean | ExerciseDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["exerciseGuidance"]>
+
+  export type ExerciseGuidanceSelectScalar = {
+    id?: boolean
+    exerciseId?: boolean
+    language?: boolean
+    nameVi?: boolean
+    instructionsVi?: boolean
+    commonMistakesVi?: boolean
+    safetyNotesVi?: boolean
+    source?: boolean
+    verification?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ExerciseGuidanceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    exercise?: boolean | ExerciseDefaultArgs<ExtArgs>
+  }
+  export type ExerciseGuidanceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    exercise?: boolean | ExerciseDefaultArgs<ExtArgs>
+  }
+
+  export type $ExerciseGuidancePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ExerciseGuidance"
+    objects: {
+      exercise: Prisma.$ExercisePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      exerciseId: string
+      language: string
+      nameVi: string | null
+      instructionsVi: string | null
+      commonMistakesVi: string[]
+      safetyNotesVi: string[]
+      source: string
+      verification: string
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["exerciseGuidance"]>
+    composites: {}
+  }
+
+  type ExerciseGuidanceGetPayload<S extends boolean | null | undefined | ExerciseGuidanceDefaultArgs> = $Result.GetResult<Prisma.$ExerciseGuidancePayload, S>
+
+  type ExerciseGuidanceCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<ExerciseGuidanceFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: ExerciseGuidanceCountAggregateInputType | true
+    }
+
+  export interface ExerciseGuidanceDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ExerciseGuidance'], meta: { name: 'ExerciseGuidance' } }
+    /**
+     * Find zero or one ExerciseGuidance that matches the filter.
+     * @param {ExerciseGuidanceFindUniqueArgs} args - Arguments to find a ExerciseGuidance
+     * @example
+     * // Get one ExerciseGuidance
+     * const exerciseGuidance = await prisma.exerciseGuidance.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ExerciseGuidanceFindUniqueArgs>(args: SelectSubset<T, ExerciseGuidanceFindUniqueArgs<ExtArgs>>): Prisma__ExerciseGuidanceClient<$Result.GetResult<Prisma.$ExerciseGuidancePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one ExerciseGuidance that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {ExerciseGuidanceFindUniqueOrThrowArgs} args - Arguments to find a ExerciseGuidance
+     * @example
+     * // Get one ExerciseGuidance
+     * const exerciseGuidance = await prisma.exerciseGuidance.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ExerciseGuidanceFindUniqueOrThrowArgs>(args: SelectSubset<T, ExerciseGuidanceFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ExerciseGuidanceClient<$Result.GetResult<Prisma.$ExerciseGuidancePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first ExerciseGuidance that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExerciseGuidanceFindFirstArgs} args - Arguments to find a ExerciseGuidance
+     * @example
+     * // Get one ExerciseGuidance
+     * const exerciseGuidance = await prisma.exerciseGuidance.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ExerciseGuidanceFindFirstArgs>(args?: SelectSubset<T, ExerciseGuidanceFindFirstArgs<ExtArgs>>): Prisma__ExerciseGuidanceClient<$Result.GetResult<Prisma.$ExerciseGuidancePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first ExerciseGuidance that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExerciseGuidanceFindFirstOrThrowArgs} args - Arguments to find a ExerciseGuidance
+     * @example
+     * // Get one ExerciseGuidance
+     * const exerciseGuidance = await prisma.exerciseGuidance.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ExerciseGuidanceFindFirstOrThrowArgs>(args?: SelectSubset<T, ExerciseGuidanceFindFirstOrThrowArgs<ExtArgs>>): Prisma__ExerciseGuidanceClient<$Result.GetResult<Prisma.$ExerciseGuidancePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more ExerciseGuidances that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExerciseGuidanceFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ExerciseGuidances
+     * const exerciseGuidances = await prisma.exerciseGuidance.findMany()
+     * 
+     * // Get first 10 ExerciseGuidances
+     * const exerciseGuidances = await prisma.exerciseGuidance.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const exerciseGuidanceWithIdOnly = await prisma.exerciseGuidance.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ExerciseGuidanceFindManyArgs>(args?: SelectSubset<T, ExerciseGuidanceFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ExerciseGuidancePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a ExerciseGuidance.
+     * @param {ExerciseGuidanceCreateArgs} args - Arguments to create a ExerciseGuidance.
+     * @example
+     * // Create one ExerciseGuidance
+     * const ExerciseGuidance = await prisma.exerciseGuidance.create({
+     *   data: {
+     *     // ... data to create a ExerciseGuidance
+     *   }
+     * })
+     * 
+     */
+    create<T extends ExerciseGuidanceCreateArgs>(args: SelectSubset<T, ExerciseGuidanceCreateArgs<ExtArgs>>): Prisma__ExerciseGuidanceClient<$Result.GetResult<Prisma.$ExerciseGuidancePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many ExerciseGuidances.
+     * @param {ExerciseGuidanceCreateManyArgs} args - Arguments to create many ExerciseGuidances.
+     * @example
+     * // Create many ExerciseGuidances
+     * const exerciseGuidance = await prisma.exerciseGuidance.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ExerciseGuidanceCreateManyArgs>(args?: SelectSubset<T, ExerciseGuidanceCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ExerciseGuidances and returns the data saved in the database.
+     * @param {ExerciseGuidanceCreateManyAndReturnArgs} args - Arguments to create many ExerciseGuidances.
+     * @example
+     * // Create many ExerciseGuidances
+     * const exerciseGuidance = await prisma.exerciseGuidance.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ExerciseGuidances and only return the `id`
+     * const exerciseGuidanceWithIdOnly = await prisma.exerciseGuidance.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ExerciseGuidanceCreateManyAndReturnArgs>(args?: SelectSubset<T, ExerciseGuidanceCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ExerciseGuidancePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a ExerciseGuidance.
+     * @param {ExerciseGuidanceDeleteArgs} args - Arguments to delete one ExerciseGuidance.
+     * @example
+     * // Delete one ExerciseGuidance
+     * const ExerciseGuidance = await prisma.exerciseGuidance.delete({
+     *   where: {
+     *     // ... filter to delete one ExerciseGuidance
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ExerciseGuidanceDeleteArgs>(args: SelectSubset<T, ExerciseGuidanceDeleteArgs<ExtArgs>>): Prisma__ExerciseGuidanceClient<$Result.GetResult<Prisma.$ExerciseGuidancePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one ExerciseGuidance.
+     * @param {ExerciseGuidanceUpdateArgs} args - Arguments to update one ExerciseGuidance.
+     * @example
+     * // Update one ExerciseGuidance
+     * const exerciseGuidance = await prisma.exerciseGuidance.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ExerciseGuidanceUpdateArgs>(args: SelectSubset<T, ExerciseGuidanceUpdateArgs<ExtArgs>>): Prisma__ExerciseGuidanceClient<$Result.GetResult<Prisma.$ExerciseGuidancePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more ExerciseGuidances.
+     * @param {ExerciseGuidanceDeleteManyArgs} args - Arguments to filter ExerciseGuidances to delete.
+     * @example
+     * // Delete a few ExerciseGuidances
+     * const { count } = await prisma.exerciseGuidance.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ExerciseGuidanceDeleteManyArgs>(args?: SelectSubset<T, ExerciseGuidanceDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ExerciseGuidances.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExerciseGuidanceUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ExerciseGuidances
+     * const exerciseGuidance = await prisma.exerciseGuidance.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ExerciseGuidanceUpdateManyArgs>(args: SelectSubset<T, ExerciseGuidanceUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one ExerciseGuidance.
+     * @param {ExerciseGuidanceUpsertArgs} args - Arguments to update or create a ExerciseGuidance.
+     * @example
+     * // Update or create a ExerciseGuidance
+     * const exerciseGuidance = await prisma.exerciseGuidance.upsert({
+     *   create: {
+     *     // ... data to create a ExerciseGuidance
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ExerciseGuidance we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ExerciseGuidanceUpsertArgs>(args: SelectSubset<T, ExerciseGuidanceUpsertArgs<ExtArgs>>): Prisma__ExerciseGuidanceClient<$Result.GetResult<Prisma.$ExerciseGuidancePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of ExerciseGuidances.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExerciseGuidanceCountArgs} args - Arguments to filter ExerciseGuidances to count.
+     * @example
+     * // Count the number of ExerciseGuidances
+     * const count = await prisma.exerciseGuidance.count({
+     *   where: {
+     *     // ... the filter for the ExerciseGuidances we want to count
+     *   }
+     * })
+    **/
+    count<T extends ExerciseGuidanceCountArgs>(
+      args?: Subset<T, ExerciseGuidanceCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ExerciseGuidanceCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ExerciseGuidance.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExerciseGuidanceAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ExerciseGuidanceAggregateArgs>(args: Subset<T, ExerciseGuidanceAggregateArgs>): Prisma.PrismaPromise<GetExerciseGuidanceAggregateType<T>>
+
+    /**
+     * Group by ExerciseGuidance.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExerciseGuidanceGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ExerciseGuidanceGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ExerciseGuidanceGroupByArgs['orderBy'] }
+        : { orderBy?: ExerciseGuidanceGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ExerciseGuidanceGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetExerciseGuidanceGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ExerciseGuidance model
+   */
+  readonly fields: ExerciseGuidanceFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ExerciseGuidance.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ExerciseGuidanceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    exercise<T extends ExerciseDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ExerciseDefaultArgs<ExtArgs>>): Prisma__ExerciseClient<$Result.GetResult<Prisma.$ExercisePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ExerciseGuidance model
+   */ 
+  interface ExerciseGuidanceFieldRefs {
+    readonly id: FieldRef<"ExerciseGuidance", 'String'>
+    readonly exerciseId: FieldRef<"ExerciseGuidance", 'String'>
+    readonly language: FieldRef<"ExerciseGuidance", 'String'>
+    readonly nameVi: FieldRef<"ExerciseGuidance", 'String'>
+    readonly instructionsVi: FieldRef<"ExerciseGuidance", 'String'>
+    readonly commonMistakesVi: FieldRef<"ExerciseGuidance", 'String[]'>
+    readonly safetyNotesVi: FieldRef<"ExerciseGuidance", 'String[]'>
+    readonly source: FieldRef<"ExerciseGuidance", 'String'>
+    readonly verification: FieldRef<"ExerciseGuidance", 'String'>
+    readonly createdAt: FieldRef<"ExerciseGuidance", 'DateTime'>
+    readonly updatedAt: FieldRef<"ExerciseGuidance", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ExerciseGuidance findUnique
+   */
+  export type ExerciseGuidanceFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExerciseGuidance
+     */
+    select?: ExerciseGuidanceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExerciseGuidanceInclude<ExtArgs> | null
+    /**
+     * Filter, which ExerciseGuidance to fetch.
+     */
+    where: ExerciseGuidanceWhereUniqueInput
+  }
+
+  /**
+   * ExerciseGuidance findUniqueOrThrow
+   */
+  export type ExerciseGuidanceFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExerciseGuidance
+     */
+    select?: ExerciseGuidanceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExerciseGuidanceInclude<ExtArgs> | null
+    /**
+     * Filter, which ExerciseGuidance to fetch.
+     */
+    where: ExerciseGuidanceWhereUniqueInput
+  }
+
+  /**
+   * ExerciseGuidance findFirst
+   */
+  export type ExerciseGuidanceFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExerciseGuidance
+     */
+    select?: ExerciseGuidanceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExerciseGuidanceInclude<ExtArgs> | null
+    /**
+     * Filter, which ExerciseGuidance to fetch.
+     */
+    where?: ExerciseGuidanceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ExerciseGuidances to fetch.
+     */
+    orderBy?: ExerciseGuidanceOrderByWithRelationInput | ExerciseGuidanceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ExerciseGuidances.
+     */
+    cursor?: ExerciseGuidanceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ExerciseGuidances from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ExerciseGuidances.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ExerciseGuidances.
+     */
+    distinct?: ExerciseGuidanceScalarFieldEnum | ExerciseGuidanceScalarFieldEnum[]
+  }
+
+  /**
+   * ExerciseGuidance findFirstOrThrow
+   */
+  export type ExerciseGuidanceFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExerciseGuidance
+     */
+    select?: ExerciseGuidanceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExerciseGuidanceInclude<ExtArgs> | null
+    /**
+     * Filter, which ExerciseGuidance to fetch.
+     */
+    where?: ExerciseGuidanceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ExerciseGuidances to fetch.
+     */
+    orderBy?: ExerciseGuidanceOrderByWithRelationInput | ExerciseGuidanceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ExerciseGuidances.
+     */
+    cursor?: ExerciseGuidanceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ExerciseGuidances from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ExerciseGuidances.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ExerciseGuidances.
+     */
+    distinct?: ExerciseGuidanceScalarFieldEnum | ExerciseGuidanceScalarFieldEnum[]
+  }
+
+  /**
+   * ExerciseGuidance findMany
+   */
+  export type ExerciseGuidanceFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExerciseGuidance
+     */
+    select?: ExerciseGuidanceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExerciseGuidanceInclude<ExtArgs> | null
+    /**
+     * Filter, which ExerciseGuidances to fetch.
+     */
+    where?: ExerciseGuidanceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ExerciseGuidances to fetch.
+     */
+    orderBy?: ExerciseGuidanceOrderByWithRelationInput | ExerciseGuidanceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ExerciseGuidances.
+     */
+    cursor?: ExerciseGuidanceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ExerciseGuidances from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ExerciseGuidances.
+     */
+    skip?: number
+    distinct?: ExerciseGuidanceScalarFieldEnum | ExerciseGuidanceScalarFieldEnum[]
+  }
+
+  /**
+   * ExerciseGuidance create
+   */
+  export type ExerciseGuidanceCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExerciseGuidance
+     */
+    select?: ExerciseGuidanceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExerciseGuidanceInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ExerciseGuidance.
+     */
+    data: XOR<ExerciseGuidanceCreateInput, ExerciseGuidanceUncheckedCreateInput>
+  }
+
+  /**
+   * ExerciseGuidance createMany
+   */
+  export type ExerciseGuidanceCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ExerciseGuidances.
+     */
+    data: ExerciseGuidanceCreateManyInput | ExerciseGuidanceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ExerciseGuidance createManyAndReturn
+   */
+  export type ExerciseGuidanceCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExerciseGuidance
+     */
+    select?: ExerciseGuidanceSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many ExerciseGuidances.
+     */
+    data: ExerciseGuidanceCreateManyInput | ExerciseGuidanceCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExerciseGuidanceIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ExerciseGuidance update
+   */
+  export type ExerciseGuidanceUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExerciseGuidance
+     */
+    select?: ExerciseGuidanceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExerciseGuidanceInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ExerciseGuidance.
+     */
+    data: XOR<ExerciseGuidanceUpdateInput, ExerciseGuidanceUncheckedUpdateInput>
+    /**
+     * Choose, which ExerciseGuidance to update.
+     */
+    where: ExerciseGuidanceWhereUniqueInput
+  }
+
+  /**
+   * ExerciseGuidance updateMany
+   */
+  export type ExerciseGuidanceUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ExerciseGuidances.
+     */
+    data: XOR<ExerciseGuidanceUpdateManyMutationInput, ExerciseGuidanceUncheckedUpdateManyInput>
+    /**
+     * Filter which ExerciseGuidances to update
+     */
+    where?: ExerciseGuidanceWhereInput
+  }
+
+  /**
+   * ExerciseGuidance upsert
+   */
+  export type ExerciseGuidanceUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExerciseGuidance
+     */
+    select?: ExerciseGuidanceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExerciseGuidanceInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ExerciseGuidance to update in case it exists.
+     */
+    where: ExerciseGuidanceWhereUniqueInput
+    /**
+     * In case the ExerciseGuidance found by the `where` argument doesn't exist, create a new ExerciseGuidance with this data.
+     */
+    create: XOR<ExerciseGuidanceCreateInput, ExerciseGuidanceUncheckedCreateInput>
+    /**
+     * In case the ExerciseGuidance was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ExerciseGuidanceUpdateInput, ExerciseGuidanceUncheckedUpdateInput>
+  }
+
+  /**
+   * ExerciseGuidance delete
+   */
+  export type ExerciseGuidanceDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExerciseGuidance
+     */
+    select?: ExerciseGuidanceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExerciseGuidanceInclude<ExtArgs> | null
+    /**
+     * Filter which ExerciseGuidance to delete.
+     */
+    where: ExerciseGuidanceWhereUniqueInput
+  }
+
+  /**
+   * ExerciseGuidance deleteMany
+   */
+  export type ExerciseGuidanceDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ExerciseGuidances to delete
+     */
+    where?: ExerciseGuidanceWhereInput
+  }
+
+  /**
+   * ExerciseGuidance without action
+   */
+  export type ExerciseGuidanceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExerciseGuidance
+     */
+    select?: ExerciseGuidanceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExerciseGuidanceInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -62661,6 +63777,23 @@ export namespace Prisma {
   export type PlanReviewEventScalarFieldEnum = (typeof PlanReviewEventScalarFieldEnum)[keyof typeof PlanReviewEventScalarFieldEnum]
 
 
+  export const ExerciseGuidanceScalarFieldEnum: {
+    id: 'id',
+    exerciseId: 'exerciseId',
+    language: 'language',
+    nameVi: 'nameVi',
+    instructionsVi: 'instructionsVi',
+    commonMistakesVi: 'commonMistakesVi',
+    safetyNotesVi: 'safetyNotesVi',
+    source: 'source',
+    verification: 'verification',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ExerciseGuidanceScalarFieldEnum = (typeof ExerciseGuidanceScalarFieldEnum)[keyof typeof ExerciseGuidanceScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -62940,6 +64073,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseListRelationFilter
     workoutProgramExercises?: WorkoutProgramExerciseListRelationFilter
     equipmentLinks?: ExerciseEquipmentListRelationFilter
+    guidance?: ExerciseGuidanceListRelationFilter
     sources?: ExerciseSourceListRelationFilter
     aliases?: ExerciseAliasListRelationFilter
     muscleLinks?: ExerciseMuscleListRelationFilter
@@ -62970,6 +64104,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseOrderByRelationAggregateInput
     workoutProgramExercises?: WorkoutProgramExerciseOrderByRelationAggregateInput
     equipmentLinks?: ExerciseEquipmentOrderByRelationAggregateInput
+    guidance?: ExerciseGuidanceOrderByRelationAggregateInput
     sources?: ExerciseSourceOrderByRelationAggregateInput
     aliases?: ExerciseAliasOrderByRelationAggregateInput
     muscleLinks?: ExerciseMuscleOrderByRelationAggregateInput
@@ -63003,6 +64138,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseListRelationFilter
     workoutProgramExercises?: WorkoutProgramExerciseListRelationFilter
     equipmentLinks?: ExerciseEquipmentListRelationFilter
+    guidance?: ExerciseGuidanceListRelationFilter
     sources?: ExerciseSourceListRelationFilter
     aliases?: ExerciseAliasListRelationFilter
     muscleLinks?: ExerciseMuscleListRelationFilter
@@ -68024,6 +69160,92 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"PlanReviewEvent"> | Date | string
   }
 
+  export type ExerciseGuidanceWhereInput = {
+    AND?: ExerciseGuidanceWhereInput | ExerciseGuidanceWhereInput[]
+    OR?: ExerciseGuidanceWhereInput[]
+    NOT?: ExerciseGuidanceWhereInput | ExerciseGuidanceWhereInput[]
+    id?: StringFilter<"ExerciseGuidance"> | string
+    exerciseId?: StringFilter<"ExerciseGuidance"> | string
+    language?: StringFilter<"ExerciseGuidance"> | string
+    nameVi?: StringNullableFilter<"ExerciseGuidance"> | string | null
+    instructionsVi?: StringNullableFilter<"ExerciseGuidance"> | string | null
+    commonMistakesVi?: StringNullableListFilter<"ExerciseGuidance">
+    safetyNotesVi?: StringNullableListFilter<"ExerciseGuidance">
+    source?: StringFilter<"ExerciseGuidance"> | string
+    verification?: StringFilter<"ExerciseGuidance"> | string
+    createdAt?: DateTimeFilter<"ExerciseGuidance"> | Date | string
+    updatedAt?: DateTimeFilter<"ExerciseGuidance"> | Date | string
+    exercise?: XOR<ExerciseRelationFilter, ExerciseWhereInput>
+  }
+
+  export type ExerciseGuidanceOrderByWithRelationInput = {
+    id?: SortOrder
+    exerciseId?: SortOrder
+    language?: SortOrder
+    nameVi?: SortOrderInput | SortOrder
+    instructionsVi?: SortOrderInput | SortOrder
+    commonMistakesVi?: SortOrder
+    safetyNotesVi?: SortOrder
+    source?: SortOrder
+    verification?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    exercise?: ExerciseOrderByWithRelationInput
+  }
+
+  export type ExerciseGuidanceWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    exerciseId_language?: ExerciseGuidanceExerciseIdLanguageCompoundUniqueInput
+    AND?: ExerciseGuidanceWhereInput | ExerciseGuidanceWhereInput[]
+    OR?: ExerciseGuidanceWhereInput[]
+    NOT?: ExerciseGuidanceWhereInput | ExerciseGuidanceWhereInput[]
+    exerciseId?: StringFilter<"ExerciseGuidance"> | string
+    language?: StringFilter<"ExerciseGuidance"> | string
+    nameVi?: StringNullableFilter<"ExerciseGuidance"> | string | null
+    instructionsVi?: StringNullableFilter<"ExerciseGuidance"> | string | null
+    commonMistakesVi?: StringNullableListFilter<"ExerciseGuidance">
+    safetyNotesVi?: StringNullableListFilter<"ExerciseGuidance">
+    source?: StringFilter<"ExerciseGuidance"> | string
+    verification?: StringFilter<"ExerciseGuidance"> | string
+    createdAt?: DateTimeFilter<"ExerciseGuidance"> | Date | string
+    updatedAt?: DateTimeFilter<"ExerciseGuidance"> | Date | string
+    exercise?: XOR<ExerciseRelationFilter, ExerciseWhereInput>
+  }, "id" | "exerciseId_language">
+
+  export type ExerciseGuidanceOrderByWithAggregationInput = {
+    id?: SortOrder
+    exerciseId?: SortOrder
+    language?: SortOrder
+    nameVi?: SortOrderInput | SortOrder
+    instructionsVi?: SortOrderInput | SortOrder
+    commonMistakesVi?: SortOrder
+    safetyNotesVi?: SortOrder
+    source?: SortOrder
+    verification?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ExerciseGuidanceCountOrderByAggregateInput
+    _max?: ExerciseGuidanceMaxOrderByAggregateInput
+    _min?: ExerciseGuidanceMinOrderByAggregateInput
+  }
+
+  export type ExerciseGuidanceScalarWhereWithAggregatesInput = {
+    AND?: ExerciseGuidanceScalarWhereWithAggregatesInput | ExerciseGuidanceScalarWhereWithAggregatesInput[]
+    OR?: ExerciseGuidanceScalarWhereWithAggregatesInput[]
+    NOT?: ExerciseGuidanceScalarWhereWithAggregatesInput | ExerciseGuidanceScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ExerciseGuidance"> | string
+    exerciseId?: StringWithAggregatesFilter<"ExerciseGuidance"> | string
+    language?: StringWithAggregatesFilter<"ExerciseGuidance"> | string
+    nameVi?: StringNullableWithAggregatesFilter<"ExerciseGuidance"> | string | null
+    instructionsVi?: StringNullableWithAggregatesFilter<"ExerciseGuidance"> | string | null
+    commonMistakesVi?: StringNullableListFilter<"ExerciseGuidance">
+    safetyNotesVi?: StringNullableListFilter<"ExerciseGuidance">
+    source?: StringWithAggregatesFilter<"ExerciseGuidance"> | string
+    verification?: StringWithAggregatesFilter<"ExerciseGuidance"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"ExerciseGuidance"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ExerciseGuidance"> | Date | string
+  }
+
   export type ExerciseCreateInput = {
     id?: string
     exerciseName: string
@@ -68048,6 +69270,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseCreateNestedManyWithoutExerciseInput
     workoutProgramExercises?: WorkoutProgramExerciseCreateNestedManyWithoutExerciseInput
     equipmentLinks?: ExerciseEquipmentCreateNestedManyWithoutExerciseInput
+    guidance?: ExerciseGuidanceCreateNestedManyWithoutExerciseInput
     sources?: ExerciseSourceCreateNestedManyWithoutExerciseInput
     aliases?: ExerciseAliasCreateNestedManyWithoutExerciseInput
     muscleLinks?: ExerciseMuscleCreateNestedManyWithoutExerciseInput
@@ -68078,6 +69301,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseUncheckedCreateNestedManyWithoutExerciseInput
     workoutProgramExercises?: WorkoutProgramExerciseUncheckedCreateNestedManyWithoutExerciseInput
     equipmentLinks?: ExerciseEquipmentUncheckedCreateNestedManyWithoutExerciseInput
+    guidance?: ExerciseGuidanceUncheckedCreateNestedManyWithoutExerciseInput
     sources?: ExerciseSourceUncheckedCreateNestedManyWithoutExerciseInput
     aliases?: ExerciseAliasUncheckedCreateNestedManyWithoutExerciseInput
     muscleLinks?: ExerciseMuscleUncheckedCreateNestedManyWithoutExerciseInput
@@ -68108,6 +69332,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseUpdateManyWithoutExerciseNestedInput
     workoutProgramExercises?: WorkoutProgramExerciseUpdateManyWithoutExerciseNestedInput
     equipmentLinks?: ExerciseEquipmentUpdateManyWithoutExerciseNestedInput
+    guidance?: ExerciseGuidanceUpdateManyWithoutExerciseNestedInput
     sources?: ExerciseSourceUpdateManyWithoutExerciseNestedInput
     aliases?: ExerciseAliasUpdateManyWithoutExerciseNestedInput
     muscleLinks?: ExerciseMuscleUpdateManyWithoutExerciseNestedInput
@@ -68138,6 +69363,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseUncheckedUpdateManyWithoutExerciseNestedInput
     workoutProgramExercises?: WorkoutProgramExerciseUncheckedUpdateManyWithoutExerciseNestedInput
     equipmentLinks?: ExerciseEquipmentUncheckedUpdateManyWithoutExerciseNestedInput
+    guidance?: ExerciseGuidanceUncheckedUpdateManyWithoutExerciseNestedInput
     sources?: ExerciseSourceUncheckedUpdateManyWithoutExerciseNestedInput
     aliases?: ExerciseAliasUncheckedUpdateManyWithoutExerciseNestedInput
     muscleLinks?: ExerciseMuscleUncheckedUpdateManyWithoutExerciseNestedInput
@@ -73949,6 +75175,103 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ExerciseGuidanceCreateInput = {
+    id?: string
+    language?: string
+    nameVi?: string | null
+    instructionsVi?: string | null
+    commonMistakesVi?: ExerciseGuidanceCreatecommonMistakesViInput | string[]
+    safetyNotesVi?: ExerciseGuidanceCreatesafetyNotesViInput | string[]
+    source: string
+    verification?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    exercise: ExerciseCreateNestedOneWithoutGuidanceInput
+  }
+
+  export type ExerciseGuidanceUncheckedCreateInput = {
+    id?: string
+    exerciseId: string
+    language?: string
+    nameVi?: string | null
+    instructionsVi?: string | null
+    commonMistakesVi?: ExerciseGuidanceCreatecommonMistakesViInput | string[]
+    safetyNotesVi?: ExerciseGuidanceCreatesafetyNotesViInput | string[]
+    source: string
+    verification?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ExerciseGuidanceUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    language?: StringFieldUpdateOperationsInput | string
+    nameVi?: NullableStringFieldUpdateOperationsInput | string | null
+    instructionsVi?: NullableStringFieldUpdateOperationsInput | string | null
+    commonMistakesVi?: ExerciseGuidanceUpdatecommonMistakesViInput | string[]
+    safetyNotesVi?: ExerciseGuidanceUpdatesafetyNotesViInput | string[]
+    source?: StringFieldUpdateOperationsInput | string
+    verification?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    exercise?: ExerciseUpdateOneRequiredWithoutGuidanceNestedInput
+  }
+
+  export type ExerciseGuidanceUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    exerciseId?: StringFieldUpdateOperationsInput | string
+    language?: StringFieldUpdateOperationsInput | string
+    nameVi?: NullableStringFieldUpdateOperationsInput | string | null
+    instructionsVi?: NullableStringFieldUpdateOperationsInput | string | null
+    commonMistakesVi?: ExerciseGuidanceUpdatecommonMistakesViInput | string[]
+    safetyNotesVi?: ExerciseGuidanceUpdatesafetyNotesViInput | string[]
+    source?: StringFieldUpdateOperationsInput | string
+    verification?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ExerciseGuidanceCreateManyInput = {
+    id?: string
+    exerciseId: string
+    language?: string
+    nameVi?: string | null
+    instructionsVi?: string | null
+    commonMistakesVi?: ExerciseGuidanceCreatecommonMistakesViInput | string[]
+    safetyNotesVi?: ExerciseGuidanceCreatesafetyNotesViInput | string[]
+    source: string
+    verification?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ExerciseGuidanceUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    language?: StringFieldUpdateOperationsInput | string
+    nameVi?: NullableStringFieldUpdateOperationsInput | string | null
+    instructionsVi?: NullableStringFieldUpdateOperationsInput | string | null
+    commonMistakesVi?: ExerciseGuidanceUpdatecommonMistakesViInput | string[]
+    safetyNotesVi?: ExerciseGuidanceUpdatesafetyNotesViInput | string[]
+    source?: StringFieldUpdateOperationsInput | string
+    verification?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ExerciseGuidanceUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    exerciseId?: StringFieldUpdateOperationsInput | string
+    language?: StringFieldUpdateOperationsInput | string
+    nameVi?: NullableStringFieldUpdateOperationsInput | string | null
+    instructionsVi?: NullableStringFieldUpdateOperationsInput | string | null
+    commonMistakesVi?: ExerciseGuidanceUpdatecommonMistakesViInput | string[]
+    safetyNotesVi?: ExerciseGuidanceUpdatesafetyNotesViInput | string[]
+    source?: StringFieldUpdateOperationsInput | string
+    verification?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -74055,6 +75378,12 @@ export namespace Prisma {
     none?: ExerciseEquipmentWhereInput
   }
 
+  export type ExerciseGuidanceListRelationFilter = {
+    every?: ExerciseGuidanceWhereInput
+    some?: ExerciseGuidanceWhereInput
+    none?: ExerciseGuidanceWhereInput
+  }
+
   export type ExerciseSourceListRelationFilter = {
     every?: ExerciseSourceWhereInput
     some?: ExerciseSourceWhereInput
@@ -74093,6 +75422,10 @@ export namespace Prisma {
   }
 
   export type ExerciseEquipmentOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ExerciseGuidanceOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -77926,6 +79259,49 @@ export namespace Prisma {
     createdAt?: SortOrder
   }
 
+  export type ExerciseGuidanceExerciseIdLanguageCompoundUniqueInput = {
+    exerciseId: string
+    language: string
+  }
+
+  export type ExerciseGuidanceCountOrderByAggregateInput = {
+    id?: SortOrder
+    exerciseId?: SortOrder
+    language?: SortOrder
+    nameVi?: SortOrder
+    instructionsVi?: SortOrder
+    commonMistakesVi?: SortOrder
+    safetyNotesVi?: SortOrder
+    source?: SortOrder
+    verification?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ExerciseGuidanceMaxOrderByAggregateInput = {
+    id?: SortOrder
+    exerciseId?: SortOrder
+    language?: SortOrder
+    nameVi?: SortOrder
+    instructionsVi?: SortOrder
+    source?: SortOrder
+    verification?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ExerciseGuidanceMinOrderByAggregateInput = {
+    id?: SortOrder
+    exerciseId?: SortOrder
+    language?: SortOrder
+    nameVi?: SortOrder
+    instructionsVi?: SortOrder
+    source?: SortOrder
+    verification?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
   export type ExerciseCreatemuscleGroupsActivatedInput = {
     set: string[]
   }
@@ -77953,6 +79329,13 @@ export namespace Prisma {
     connectOrCreate?: ExerciseEquipmentCreateOrConnectWithoutExerciseInput | ExerciseEquipmentCreateOrConnectWithoutExerciseInput[]
     createMany?: ExerciseEquipmentCreateManyExerciseInputEnvelope
     connect?: ExerciseEquipmentWhereUniqueInput | ExerciseEquipmentWhereUniqueInput[]
+  }
+
+  export type ExerciseGuidanceCreateNestedManyWithoutExerciseInput = {
+    create?: XOR<ExerciseGuidanceCreateWithoutExerciseInput, ExerciseGuidanceUncheckedCreateWithoutExerciseInput> | ExerciseGuidanceCreateWithoutExerciseInput[] | ExerciseGuidanceUncheckedCreateWithoutExerciseInput[]
+    connectOrCreate?: ExerciseGuidanceCreateOrConnectWithoutExerciseInput | ExerciseGuidanceCreateOrConnectWithoutExerciseInput[]
+    createMany?: ExerciseGuidanceCreateManyExerciseInputEnvelope
+    connect?: ExerciseGuidanceWhereUniqueInput | ExerciseGuidanceWhereUniqueInput[]
   }
 
   export type ExerciseSourceCreateNestedManyWithoutExerciseInput = {
@@ -78002,6 +79385,13 @@ export namespace Prisma {
     connectOrCreate?: ExerciseEquipmentCreateOrConnectWithoutExerciseInput | ExerciseEquipmentCreateOrConnectWithoutExerciseInput[]
     createMany?: ExerciseEquipmentCreateManyExerciseInputEnvelope
     connect?: ExerciseEquipmentWhereUniqueInput | ExerciseEquipmentWhereUniqueInput[]
+  }
+
+  export type ExerciseGuidanceUncheckedCreateNestedManyWithoutExerciseInput = {
+    create?: XOR<ExerciseGuidanceCreateWithoutExerciseInput, ExerciseGuidanceUncheckedCreateWithoutExerciseInput> | ExerciseGuidanceCreateWithoutExerciseInput[] | ExerciseGuidanceUncheckedCreateWithoutExerciseInput[]
+    connectOrCreate?: ExerciseGuidanceCreateOrConnectWithoutExerciseInput | ExerciseGuidanceCreateOrConnectWithoutExerciseInput[]
+    createMany?: ExerciseGuidanceCreateManyExerciseInputEnvelope
+    connect?: ExerciseGuidanceWhereUniqueInput | ExerciseGuidanceWhereUniqueInput[]
   }
 
   export type ExerciseSourceUncheckedCreateNestedManyWithoutExerciseInput = {
@@ -78116,6 +79506,20 @@ export namespace Prisma {
     deleteMany?: ExerciseEquipmentScalarWhereInput | ExerciseEquipmentScalarWhereInput[]
   }
 
+  export type ExerciseGuidanceUpdateManyWithoutExerciseNestedInput = {
+    create?: XOR<ExerciseGuidanceCreateWithoutExerciseInput, ExerciseGuidanceUncheckedCreateWithoutExerciseInput> | ExerciseGuidanceCreateWithoutExerciseInput[] | ExerciseGuidanceUncheckedCreateWithoutExerciseInput[]
+    connectOrCreate?: ExerciseGuidanceCreateOrConnectWithoutExerciseInput | ExerciseGuidanceCreateOrConnectWithoutExerciseInput[]
+    upsert?: ExerciseGuidanceUpsertWithWhereUniqueWithoutExerciseInput | ExerciseGuidanceUpsertWithWhereUniqueWithoutExerciseInput[]
+    createMany?: ExerciseGuidanceCreateManyExerciseInputEnvelope
+    set?: ExerciseGuidanceWhereUniqueInput | ExerciseGuidanceWhereUniqueInput[]
+    disconnect?: ExerciseGuidanceWhereUniqueInput | ExerciseGuidanceWhereUniqueInput[]
+    delete?: ExerciseGuidanceWhereUniqueInput | ExerciseGuidanceWhereUniqueInput[]
+    connect?: ExerciseGuidanceWhereUniqueInput | ExerciseGuidanceWhereUniqueInput[]
+    update?: ExerciseGuidanceUpdateWithWhereUniqueWithoutExerciseInput | ExerciseGuidanceUpdateWithWhereUniqueWithoutExerciseInput[]
+    updateMany?: ExerciseGuidanceUpdateManyWithWhereWithoutExerciseInput | ExerciseGuidanceUpdateManyWithWhereWithoutExerciseInput[]
+    deleteMany?: ExerciseGuidanceScalarWhereInput | ExerciseGuidanceScalarWhereInput[]
+  }
+
   export type ExerciseSourceUpdateManyWithoutExerciseNestedInput = {
     create?: XOR<ExerciseSourceCreateWithoutExerciseInput, ExerciseSourceUncheckedCreateWithoutExerciseInput> | ExerciseSourceCreateWithoutExerciseInput[] | ExerciseSourceUncheckedCreateWithoutExerciseInput[]
     connectOrCreate?: ExerciseSourceCreateOrConnectWithoutExerciseInput | ExerciseSourceCreateOrConnectWithoutExerciseInput[]
@@ -78212,6 +79616,20 @@ export namespace Prisma {
     update?: ExerciseEquipmentUpdateWithWhereUniqueWithoutExerciseInput | ExerciseEquipmentUpdateWithWhereUniqueWithoutExerciseInput[]
     updateMany?: ExerciseEquipmentUpdateManyWithWhereWithoutExerciseInput | ExerciseEquipmentUpdateManyWithWhereWithoutExerciseInput[]
     deleteMany?: ExerciseEquipmentScalarWhereInput | ExerciseEquipmentScalarWhereInput[]
+  }
+
+  export type ExerciseGuidanceUncheckedUpdateManyWithoutExerciseNestedInput = {
+    create?: XOR<ExerciseGuidanceCreateWithoutExerciseInput, ExerciseGuidanceUncheckedCreateWithoutExerciseInput> | ExerciseGuidanceCreateWithoutExerciseInput[] | ExerciseGuidanceUncheckedCreateWithoutExerciseInput[]
+    connectOrCreate?: ExerciseGuidanceCreateOrConnectWithoutExerciseInput | ExerciseGuidanceCreateOrConnectWithoutExerciseInput[]
+    upsert?: ExerciseGuidanceUpsertWithWhereUniqueWithoutExerciseInput | ExerciseGuidanceUpsertWithWhereUniqueWithoutExerciseInput[]
+    createMany?: ExerciseGuidanceCreateManyExerciseInputEnvelope
+    set?: ExerciseGuidanceWhereUniqueInput | ExerciseGuidanceWhereUniqueInput[]
+    disconnect?: ExerciseGuidanceWhereUniqueInput | ExerciseGuidanceWhereUniqueInput[]
+    delete?: ExerciseGuidanceWhereUniqueInput | ExerciseGuidanceWhereUniqueInput[]
+    connect?: ExerciseGuidanceWhereUniqueInput | ExerciseGuidanceWhereUniqueInput[]
+    update?: ExerciseGuidanceUpdateWithWhereUniqueWithoutExerciseInput | ExerciseGuidanceUpdateWithWhereUniqueWithoutExerciseInput[]
+    updateMany?: ExerciseGuidanceUpdateManyWithWhereWithoutExerciseInput | ExerciseGuidanceUpdateManyWithWhereWithoutExerciseInput[]
+    deleteMany?: ExerciseGuidanceScalarWhereInput | ExerciseGuidanceScalarWhereInput[]
   }
 
   export type ExerciseSourceUncheckedUpdateManyWithoutExerciseNestedInput = {
@@ -80466,6 +81884,38 @@ export namespace Prisma {
     update?: XOR<XOR<PlanReviewRequestUpdateToOneWithWhereWithoutEventsInput, PlanReviewRequestUpdateWithoutEventsInput>, PlanReviewRequestUncheckedUpdateWithoutEventsInput>
   }
 
+  export type ExerciseGuidanceCreatecommonMistakesViInput = {
+    set: string[]
+  }
+
+  export type ExerciseGuidanceCreatesafetyNotesViInput = {
+    set: string[]
+  }
+
+  export type ExerciseCreateNestedOneWithoutGuidanceInput = {
+    create?: XOR<ExerciseCreateWithoutGuidanceInput, ExerciseUncheckedCreateWithoutGuidanceInput>
+    connectOrCreate?: ExerciseCreateOrConnectWithoutGuidanceInput
+    connect?: ExerciseWhereUniqueInput
+  }
+
+  export type ExerciseGuidanceUpdatecommonMistakesViInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type ExerciseGuidanceUpdatesafetyNotesViInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type ExerciseUpdateOneRequiredWithoutGuidanceNestedInput = {
+    create?: XOR<ExerciseCreateWithoutGuidanceInput, ExerciseUncheckedCreateWithoutGuidanceInput>
+    connectOrCreate?: ExerciseCreateOrConnectWithoutGuidanceInput
+    upsert?: ExerciseUpsertWithoutGuidanceInput
+    connect?: ExerciseWhereUniqueInput
+    update?: XOR<XOR<ExerciseUpdateToOneWithWhereWithoutGuidanceInput, ExerciseUpdateWithoutGuidanceInput>, ExerciseUncheckedUpdateWithoutGuidanceInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -81013,6 +82463,42 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ExerciseGuidanceCreateWithoutExerciseInput = {
+    id?: string
+    language?: string
+    nameVi?: string | null
+    instructionsVi?: string | null
+    commonMistakesVi?: ExerciseGuidanceCreatecommonMistakesViInput | string[]
+    safetyNotesVi?: ExerciseGuidanceCreatesafetyNotesViInput | string[]
+    source: string
+    verification?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ExerciseGuidanceUncheckedCreateWithoutExerciseInput = {
+    id?: string
+    language?: string
+    nameVi?: string | null
+    instructionsVi?: string | null
+    commonMistakesVi?: ExerciseGuidanceCreatecommonMistakesViInput | string[]
+    safetyNotesVi?: ExerciseGuidanceCreatesafetyNotesViInput | string[]
+    source: string
+    verification?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ExerciseGuidanceCreateOrConnectWithoutExerciseInput = {
+    where: ExerciseGuidanceWhereUniqueInput
+    create: XOR<ExerciseGuidanceCreateWithoutExerciseInput, ExerciseGuidanceUncheckedCreateWithoutExerciseInput>
+  }
+
+  export type ExerciseGuidanceCreateManyExerciseInputEnvelope = {
+    data: ExerciseGuidanceCreateManyExerciseInput | ExerciseGuidanceCreateManyExerciseInput[]
+    skipDuplicates?: boolean
+  }
+
   export type ExerciseSourceCreateWithoutExerciseInput = {
     id?: string
     sourceName: string
@@ -81233,6 +82719,39 @@ export namespace Prisma {
     equipmentId?: StringFilter<"ExerciseEquipment"> | string
     requirementType?: StringFilter<"ExerciseEquipment"> | string
     createdAt?: DateTimeFilter<"ExerciseEquipment"> | Date | string
+  }
+
+  export type ExerciseGuidanceUpsertWithWhereUniqueWithoutExerciseInput = {
+    where: ExerciseGuidanceWhereUniqueInput
+    update: XOR<ExerciseGuidanceUpdateWithoutExerciseInput, ExerciseGuidanceUncheckedUpdateWithoutExerciseInput>
+    create: XOR<ExerciseGuidanceCreateWithoutExerciseInput, ExerciseGuidanceUncheckedCreateWithoutExerciseInput>
+  }
+
+  export type ExerciseGuidanceUpdateWithWhereUniqueWithoutExerciseInput = {
+    where: ExerciseGuidanceWhereUniqueInput
+    data: XOR<ExerciseGuidanceUpdateWithoutExerciseInput, ExerciseGuidanceUncheckedUpdateWithoutExerciseInput>
+  }
+
+  export type ExerciseGuidanceUpdateManyWithWhereWithoutExerciseInput = {
+    where: ExerciseGuidanceScalarWhereInput
+    data: XOR<ExerciseGuidanceUpdateManyMutationInput, ExerciseGuidanceUncheckedUpdateManyWithoutExerciseInput>
+  }
+
+  export type ExerciseGuidanceScalarWhereInput = {
+    AND?: ExerciseGuidanceScalarWhereInput | ExerciseGuidanceScalarWhereInput[]
+    OR?: ExerciseGuidanceScalarWhereInput[]
+    NOT?: ExerciseGuidanceScalarWhereInput | ExerciseGuidanceScalarWhereInput[]
+    id?: StringFilter<"ExerciseGuidance"> | string
+    exerciseId?: StringFilter<"ExerciseGuidance"> | string
+    language?: StringFilter<"ExerciseGuidance"> | string
+    nameVi?: StringNullableFilter<"ExerciseGuidance"> | string | null
+    instructionsVi?: StringNullableFilter<"ExerciseGuidance"> | string | null
+    commonMistakesVi?: StringNullableListFilter<"ExerciseGuidance">
+    safetyNotesVi?: StringNullableListFilter<"ExerciseGuidance">
+    source?: StringFilter<"ExerciseGuidance"> | string
+    verification?: StringFilter<"ExerciseGuidance"> | string
+    createdAt?: DateTimeFilter<"ExerciseGuidance"> | Date | string
+    updatedAt?: DateTimeFilter<"ExerciseGuidance"> | Date | string
   }
 
   export type ExerciseSourceUpsertWithWhereUniqueWithoutExerciseInput = {
@@ -81470,6 +82989,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseCreateNestedManyWithoutExerciseInput
     workoutProgramExercises?: WorkoutProgramExerciseCreateNestedManyWithoutExerciseInput
+    guidance?: ExerciseGuidanceCreateNestedManyWithoutExerciseInput
     sources?: ExerciseSourceCreateNestedManyWithoutExerciseInput
     aliases?: ExerciseAliasCreateNestedManyWithoutExerciseInput
     muscleLinks?: ExerciseMuscleCreateNestedManyWithoutExerciseInput
@@ -81499,6 +83019,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseUncheckedCreateNestedManyWithoutExerciseInput
     workoutProgramExercises?: WorkoutProgramExerciseUncheckedCreateNestedManyWithoutExerciseInput
+    guidance?: ExerciseGuidanceUncheckedCreateNestedManyWithoutExerciseInput
     sources?: ExerciseSourceUncheckedCreateNestedManyWithoutExerciseInput
     aliases?: ExerciseAliasUncheckedCreateNestedManyWithoutExerciseInput
     muscleLinks?: ExerciseMuscleUncheckedCreateNestedManyWithoutExerciseInput
@@ -81575,6 +83096,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUpdateManyWithoutExerciseNestedInput
     workoutProgramExercises?: WorkoutProgramExerciseUpdateManyWithoutExerciseNestedInput
+    guidance?: ExerciseGuidanceUpdateManyWithoutExerciseNestedInput
     sources?: ExerciseSourceUpdateManyWithoutExerciseNestedInput
     aliases?: ExerciseAliasUpdateManyWithoutExerciseNestedInput
     muscleLinks?: ExerciseMuscleUpdateManyWithoutExerciseNestedInput
@@ -81604,6 +83126,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUncheckedUpdateManyWithoutExerciseNestedInput
     workoutProgramExercises?: WorkoutProgramExerciseUncheckedUpdateManyWithoutExerciseNestedInput
+    guidance?: ExerciseGuidanceUncheckedUpdateManyWithoutExerciseNestedInput
     sources?: ExerciseSourceUncheckedUpdateManyWithoutExerciseNestedInput
     aliases?: ExerciseAliasUncheckedUpdateManyWithoutExerciseNestedInput
     muscleLinks?: ExerciseMuscleUncheckedUpdateManyWithoutExerciseNestedInput
@@ -81941,6 +83464,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     workoutProgramExercises?: WorkoutProgramExerciseCreateNestedManyWithoutExerciseInput
     equipmentLinks?: ExerciseEquipmentCreateNestedManyWithoutExerciseInput
+    guidance?: ExerciseGuidanceCreateNestedManyWithoutExerciseInput
     sources?: ExerciseSourceCreateNestedManyWithoutExerciseInput
     aliases?: ExerciseAliasCreateNestedManyWithoutExerciseInput
     muscleLinks?: ExerciseMuscleCreateNestedManyWithoutExerciseInput
@@ -81970,6 +83494,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     workoutProgramExercises?: WorkoutProgramExerciseUncheckedCreateNestedManyWithoutExerciseInput
     equipmentLinks?: ExerciseEquipmentUncheckedCreateNestedManyWithoutExerciseInput
+    guidance?: ExerciseGuidanceUncheckedCreateNestedManyWithoutExerciseInput
     sources?: ExerciseSourceUncheckedCreateNestedManyWithoutExerciseInput
     aliases?: ExerciseAliasUncheckedCreateNestedManyWithoutExerciseInput
     muscleLinks?: ExerciseMuscleUncheckedCreateNestedManyWithoutExerciseInput
@@ -82108,6 +83633,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutProgramExercises?: WorkoutProgramExerciseUpdateManyWithoutExerciseNestedInput
     equipmentLinks?: ExerciseEquipmentUpdateManyWithoutExerciseNestedInput
+    guidance?: ExerciseGuidanceUpdateManyWithoutExerciseNestedInput
     sources?: ExerciseSourceUpdateManyWithoutExerciseNestedInput
     aliases?: ExerciseAliasUpdateManyWithoutExerciseNestedInput
     muscleLinks?: ExerciseMuscleUpdateManyWithoutExerciseNestedInput
@@ -82137,6 +83663,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutProgramExercises?: WorkoutProgramExerciseUncheckedUpdateManyWithoutExerciseNestedInput
     equipmentLinks?: ExerciseEquipmentUncheckedUpdateManyWithoutExerciseNestedInput
+    guidance?: ExerciseGuidanceUncheckedUpdateManyWithoutExerciseNestedInput
     sources?: ExerciseSourceUncheckedUpdateManyWithoutExerciseNestedInput
     aliases?: ExerciseAliasUncheckedUpdateManyWithoutExerciseNestedInput
     muscleLinks?: ExerciseMuscleUncheckedUpdateManyWithoutExerciseNestedInput
@@ -83453,6 +84980,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseCreateNestedManyWithoutExerciseInput
     equipmentLinks?: ExerciseEquipmentCreateNestedManyWithoutExerciseInput
+    guidance?: ExerciseGuidanceCreateNestedManyWithoutExerciseInput
     sources?: ExerciseSourceCreateNestedManyWithoutExerciseInput
     aliases?: ExerciseAliasCreateNestedManyWithoutExerciseInput
     muscleLinks?: ExerciseMuscleCreateNestedManyWithoutExerciseInput
@@ -83482,6 +85010,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseUncheckedCreateNestedManyWithoutExerciseInput
     equipmentLinks?: ExerciseEquipmentUncheckedCreateNestedManyWithoutExerciseInput
+    guidance?: ExerciseGuidanceUncheckedCreateNestedManyWithoutExerciseInput
     sources?: ExerciseSourceUncheckedCreateNestedManyWithoutExerciseInput
     aliases?: ExerciseAliasUncheckedCreateNestedManyWithoutExerciseInput
     muscleLinks?: ExerciseMuscleUncheckedCreateNestedManyWithoutExerciseInput
@@ -83629,6 +85158,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUpdateManyWithoutExerciseNestedInput
     equipmentLinks?: ExerciseEquipmentUpdateManyWithoutExerciseNestedInput
+    guidance?: ExerciseGuidanceUpdateManyWithoutExerciseNestedInput
     sources?: ExerciseSourceUpdateManyWithoutExerciseNestedInput
     aliases?: ExerciseAliasUpdateManyWithoutExerciseNestedInput
     muscleLinks?: ExerciseMuscleUpdateManyWithoutExerciseNestedInput
@@ -83658,6 +85188,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUncheckedUpdateManyWithoutExerciseNestedInput
     equipmentLinks?: ExerciseEquipmentUncheckedUpdateManyWithoutExerciseNestedInput
+    guidance?: ExerciseGuidanceUncheckedUpdateManyWithoutExerciseNestedInput
     sources?: ExerciseSourceUncheckedUpdateManyWithoutExerciseNestedInput
     aliases?: ExerciseAliasUncheckedUpdateManyWithoutExerciseNestedInput
     muscleLinks?: ExerciseMuscleUncheckedUpdateManyWithoutExerciseNestedInput
@@ -87009,6 +88540,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseCreateNestedManyWithoutExerciseInput
     workoutProgramExercises?: WorkoutProgramExerciseCreateNestedManyWithoutExerciseInput
     equipmentLinks?: ExerciseEquipmentCreateNestedManyWithoutExerciseInput
+    guidance?: ExerciseGuidanceCreateNestedManyWithoutExerciseInput
     aliases?: ExerciseAliasCreateNestedManyWithoutExerciseInput
     muscleLinks?: ExerciseMuscleCreateNestedManyWithoutExerciseInput
     reviewDecisionsLinkedHere?: ExerciseReviewDecisionCreateNestedManyWithoutTargetExerciseInput
@@ -87038,6 +88570,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseUncheckedCreateNestedManyWithoutExerciseInput
     workoutProgramExercises?: WorkoutProgramExerciseUncheckedCreateNestedManyWithoutExerciseInput
     equipmentLinks?: ExerciseEquipmentUncheckedCreateNestedManyWithoutExerciseInput
+    guidance?: ExerciseGuidanceUncheckedCreateNestedManyWithoutExerciseInput
     aliases?: ExerciseAliasUncheckedCreateNestedManyWithoutExerciseInput
     muscleLinks?: ExerciseMuscleUncheckedCreateNestedManyWithoutExerciseInput
     reviewDecisionsLinkedHere?: ExerciseReviewDecisionUncheckedCreateNestedManyWithoutTargetExerciseInput
@@ -87083,6 +88616,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseUpdateManyWithoutExerciseNestedInput
     workoutProgramExercises?: WorkoutProgramExerciseUpdateManyWithoutExerciseNestedInput
     equipmentLinks?: ExerciseEquipmentUpdateManyWithoutExerciseNestedInput
+    guidance?: ExerciseGuidanceUpdateManyWithoutExerciseNestedInput
     aliases?: ExerciseAliasUpdateManyWithoutExerciseNestedInput
     muscleLinks?: ExerciseMuscleUpdateManyWithoutExerciseNestedInput
     reviewDecisionsLinkedHere?: ExerciseReviewDecisionUpdateManyWithoutTargetExerciseNestedInput
@@ -87112,6 +88646,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseUncheckedUpdateManyWithoutExerciseNestedInput
     workoutProgramExercises?: WorkoutProgramExerciseUncheckedUpdateManyWithoutExerciseNestedInput
     equipmentLinks?: ExerciseEquipmentUncheckedUpdateManyWithoutExerciseNestedInput
+    guidance?: ExerciseGuidanceUncheckedUpdateManyWithoutExerciseNestedInput
     aliases?: ExerciseAliasUncheckedUpdateManyWithoutExerciseNestedInput
     muscleLinks?: ExerciseMuscleUncheckedUpdateManyWithoutExerciseNestedInput
     reviewDecisionsLinkedHere?: ExerciseReviewDecisionUncheckedUpdateManyWithoutTargetExerciseNestedInput
@@ -87141,6 +88676,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseCreateNestedManyWithoutExerciseInput
     workoutProgramExercises?: WorkoutProgramExerciseCreateNestedManyWithoutExerciseInput
     equipmentLinks?: ExerciseEquipmentCreateNestedManyWithoutExerciseInput
+    guidance?: ExerciseGuidanceCreateNestedManyWithoutExerciseInput
     sources?: ExerciseSourceCreateNestedManyWithoutExerciseInput
     muscleLinks?: ExerciseMuscleCreateNestedManyWithoutExerciseInput
     reviewDecisionsLinkedHere?: ExerciseReviewDecisionCreateNestedManyWithoutTargetExerciseInput
@@ -87170,6 +88706,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseUncheckedCreateNestedManyWithoutExerciseInput
     workoutProgramExercises?: WorkoutProgramExerciseUncheckedCreateNestedManyWithoutExerciseInput
     equipmentLinks?: ExerciseEquipmentUncheckedCreateNestedManyWithoutExerciseInput
+    guidance?: ExerciseGuidanceUncheckedCreateNestedManyWithoutExerciseInput
     sources?: ExerciseSourceUncheckedCreateNestedManyWithoutExerciseInput
     muscleLinks?: ExerciseMuscleUncheckedCreateNestedManyWithoutExerciseInput
     reviewDecisionsLinkedHere?: ExerciseReviewDecisionUncheckedCreateNestedManyWithoutTargetExerciseInput
@@ -87215,6 +88752,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseUpdateManyWithoutExerciseNestedInput
     workoutProgramExercises?: WorkoutProgramExerciseUpdateManyWithoutExerciseNestedInput
     equipmentLinks?: ExerciseEquipmentUpdateManyWithoutExerciseNestedInput
+    guidance?: ExerciseGuidanceUpdateManyWithoutExerciseNestedInput
     sources?: ExerciseSourceUpdateManyWithoutExerciseNestedInput
     muscleLinks?: ExerciseMuscleUpdateManyWithoutExerciseNestedInput
     reviewDecisionsLinkedHere?: ExerciseReviewDecisionUpdateManyWithoutTargetExerciseNestedInput
@@ -87244,6 +88782,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseUncheckedUpdateManyWithoutExerciseNestedInput
     workoutProgramExercises?: WorkoutProgramExerciseUncheckedUpdateManyWithoutExerciseNestedInput
     equipmentLinks?: ExerciseEquipmentUncheckedUpdateManyWithoutExerciseNestedInput
+    guidance?: ExerciseGuidanceUncheckedUpdateManyWithoutExerciseNestedInput
     sources?: ExerciseSourceUncheckedUpdateManyWithoutExerciseNestedInput
     muscleLinks?: ExerciseMuscleUncheckedUpdateManyWithoutExerciseNestedInput
     reviewDecisionsLinkedHere?: ExerciseReviewDecisionUncheckedUpdateManyWithoutTargetExerciseNestedInput
@@ -87436,6 +88975,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseCreateNestedManyWithoutExerciseInput
     workoutProgramExercises?: WorkoutProgramExerciseCreateNestedManyWithoutExerciseInput
     equipmentLinks?: ExerciseEquipmentCreateNestedManyWithoutExerciseInput
+    guidance?: ExerciseGuidanceCreateNestedManyWithoutExerciseInput
     sources?: ExerciseSourceCreateNestedManyWithoutExerciseInput
     aliases?: ExerciseAliasCreateNestedManyWithoutExerciseInput
     reviewDecisionsLinkedHere?: ExerciseReviewDecisionCreateNestedManyWithoutTargetExerciseInput
@@ -87465,6 +89005,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseUncheckedCreateNestedManyWithoutExerciseInput
     workoutProgramExercises?: WorkoutProgramExerciseUncheckedCreateNestedManyWithoutExerciseInput
     equipmentLinks?: ExerciseEquipmentUncheckedCreateNestedManyWithoutExerciseInput
+    guidance?: ExerciseGuidanceUncheckedCreateNestedManyWithoutExerciseInput
     sources?: ExerciseSourceUncheckedCreateNestedManyWithoutExerciseInput
     aliases?: ExerciseAliasUncheckedCreateNestedManyWithoutExerciseInput
     reviewDecisionsLinkedHere?: ExerciseReviewDecisionUncheckedCreateNestedManyWithoutTargetExerciseInput
@@ -87537,6 +89078,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseUpdateManyWithoutExerciseNestedInput
     workoutProgramExercises?: WorkoutProgramExerciseUpdateManyWithoutExerciseNestedInput
     equipmentLinks?: ExerciseEquipmentUpdateManyWithoutExerciseNestedInput
+    guidance?: ExerciseGuidanceUpdateManyWithoutExerciseNestedInput
     sources?: ExerciseSourceUpdateManyWithoutExerciseNestedInput
     aliases?: ExerciseAliasUpdateManyWithoutExerciseNestedInput
     reviewDecisionsLinkedHere?: ExerciseReviewDecisionUpdateManyWithoutTargetExerciseNestedInput
@@ -87566,6 +89108,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseUncheckedUpdateManyWithoutExerciseNestedInput
     workoutProgramExercises?: WorkoutProgramExerciseUncheckedUpdateManyWithoutExerciseNestedInput
     equipmentLinks?: ExerciseEquipmentUncheckedUpdateManyWithoutExerciseNestedInput
+    guidance?: ExerciseGuidanceUncheckedUpdateManyWithoutExerciseNestedInput
     sources?: ExerciseSourceUncheckedUpdateManyWithoutExerciseNestedInput
     aliases?: ExerciseAliasUncheckedUpdateManyWithoutExerciseNestedInput
     reviewDecisionsLinkedHere?: ExerciseReviewDecisionUncheckedUpdateManyWithoutTargetExerciseNestedInput
@@ -88062,6 +89605,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseCreateNestedManyWithoutExerciseInput
     workoutProgramExercises?: WorkoutProgramExerciseCreateNestedManyWithoutExerciseInput
     equipmentLinks?: ExerciseEquipmentCreateNestedManyWithoutExerciseInput
+    guidance?: ExerciseGuidanceCreateNestedManyWithoutExerciseInput
     sources?: ExerciseSourceCreateNestedManyWithoutExerciseInput
     aliases?: ExerciseAliasCreateNestedManyWithoutExerciseInput
     muscleLinks?: ExerciseMuscleCreateNestedManyWithoutExerciseInput
@@ -88091,6 +89635,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseUncheckedCreateNestedManyWithoutExerciseInput
     workoutProgramExercises?: WorkoutProgramExerciseUncheckedCreateNestedManyWithoutExerciseInput
     equipmentLinks?: ExerciseEquipmentUncheckedCreateNestedManyWithoutExerciseInput
+    guidance?: ExerciseGuidanceUncheckedCreateNestedManyWithoutExerciseInput
     sources?: ExerciseSourceUncheckedCreateNestedManyWithoutExerciseInput
     aliases?: ExerciseAliasUncheckedCreateNestedManyWithoutExerciseInput
     muscleLinks?: ExerciseMuscleUncheckedCreateNestedManyWithoutExerciseInput
@@ -88136,6 +89681,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseUpdateManyWithoutExerciseNestedInput
     workoutProgramExercises?: WorkoutProgramExerciseUpdateManyWithoutExerciseNestedInput
     equipmentLinks?: ExerciseEquipmentUpdateManyWithoutExerciseNestedInput
+    guidance?: ExerciseGuidanceUpdateManyWithoutExerciseNestedInput
     sources?: ExerciseSourceUpdateManyWithoutExerciseNestedInput
     aliases?: ExerciseAliasUpdateManyWithoutExerciseNestedInput
     muscleLinks?: ExerciseMuscleUpdateManyWithoutExerciseNestedInput
@@ -88165,6 +89711,7 @@ export namespace Prisma {
     workoutExercises?: WorkoutExerciseUncheckedUpdateManyWithoutExerciseNestedInput
     workoutProgramExercises?: WorkoutProgramExerciseUncheckedUpdateManyWithoutExerciseNestedInput
     equipmentLinks?: ExerciseEquipmentUncheckedUpdateManyWithoutExerciseNestedInput
+    guidance?: ExerciseGuidanceUncheckedUpdateManyWithoutExerciseNestedInput
     sources?: ExerciseSourceUncheckedUpdateManyWithoutExerciseNestedInput
     aliases?: ExerciseAliasUncheckedUpdateManyWithoutExerciseNestedInput
     muscleLinks?: ExerciseMuscleUncheckedUpdateManyWithoutExerciseNestedInput
@@ -88349,6 +89896,142 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ExerciseCreateWithoutGuidanceInput = {
+    id?: string
+    exerciseName: string
+    typeOfActivity: $Enums.ExerciseType
+    typeOfEquipment: $Enums.EquipmentType
+    bodyPart: $Enums.BodyPart
+    type: $Enums.MovementType
+    muscleGroupsActivated?: ExerciseCreatemuscleGroupsActivatedInput | string[]
+    instructions: string
+    videoUrl?: string | null
+    movementPattern?: string | null
+    mechanics?: string | null
+    contraindications?: ExerciseCreatecontraindicationsInput | string[]
+    difficultyLevel?: string | null
+    loggingMode?: string
+    status?: string
+    source?: string
+    ownerId?: string | null
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    workoutExercises?: WorkoutExerciseCreateNestedManyWithoutExerciseInput
+    workoutProgramExercises?: WorkoutProgramExerciseCreateNestedManyWithoutExerciseInput
+    equipmentLinks?: ExerciseEquipmentCreateNestedManyWithoutExerciseInput
+    sources?: ExerciseSourceCreateNestedManyWithoutExerciseInput
+    aliases?: ExerciseAliasCreateNestedManyWithoutExerciseInput
+    muscleLinks?: ExerciseMuscleCreateNestedManyWithoutExerciseInput
+    reviewDecisionsLinkedHere?: ExerciseReviewDecisionCreateNestedManyWithoutTargetExerciseInput
+  }
+
+  export type ExerciseUncheckedCreateWithoutGuidanceInput = {
+    id?: string
+    exerciseName: string
+    typeOfActivity: $Enums.ExerciseType
+    typeOfEquipment: $Enums.EquipmentType
+    bodyPart: $Enums.BodyPart
+    type: $Enums.MovementType
+    muscleGroupsActivated?: ExerciseCreatemuscleGroupsActivatedInput | string[]
+    instructions: string
+    videoUrl?: string | null
+    movementPattern?: string | null
+    mechanics?: string | null
+    contraindications?: ExerciseCreatecontraindicationsInput | string[]
+    difficultyLevel?: string | null
+    loggingMode?: string
+    status?: string
+    source?: string
+    ownerId?: string | null
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    workoutExercises?: WorkoutExerciseUncheckedCreateNestedManyWithoutExerciseInput
+    workoutProgramExercises?: WorkoutProgramExerciseUncheckedCreateNestedManyWithoutExerciseInput
+    equipmentLinks?: ExerciseEquipmentUncheckedCreateNestedManyWithoutExerciseInput
+    sources?: ExerciseSourceUncheckedCreateNestedManyWithoutExerciseInput
+    aliases?: ExerciseAliasUncheckedCreateNestedManyWithoutExerciseInput
+    muscleLinks?: ExerciseMuscleUncheckedCreateNestedManyWithoutExerciseInput
+    reviewDecisionsLinkedHere?: ExerciseReviewDecisionUncheckedCreateNestedManyWithoutTargetExerciseInput
+  }
+
+  export type ExerciseCreateOrConnectWithoutGuidanceInput = {
+    where: ExerciseWhereUniqueInput
+    create: XOR<ExerciseCreateWithoutGuidanceInput, ExerciseUncheckedCreateWithoutGuidanceInput>
+  }
+
+  export type ExerciseUpsertWithoutGuidanceInput = {
+    update: XOR<ExerciseUpdateWithoutGuidanceInput, ExerciseUncheckedUpdateWithoutGuidanceInput>
+    create: XOR<ExerciseCreateWithoutGuidanceInput, ExerciseUncheckedCreateWithoutGuidanceInput>
+    where?: ExerciseWhereInput
+  }
+
+  export type ExerciseUpdateToOneWithWhereWithoutGuidanceInput = {
+    where?: ExerciseWhereInput
+    data: XOR<ExerciseUpdateWithoutGuidanceInput, ExerciseUncheckedUpdateWithoutGuidanceInput>
+  }
+
+  export type ExerciseUpdateWithoutGuidanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    exerciseName?: StringFieldUpdateOperationsInput | string
+    typeOfActivity?: EnumExerciseTypeFieldUpdateOperationsInput | $Enums.ExerciseType
+    typeOfEquipment?: EnumEquipmentTypeFieldUpdateOperationsInput | $Enums.EquipmentType
+    bodyPart?: EnumBodyPartFieldUpdateOperationsInput | $Enums.BodyPart
+    type?: EnumMovementTypeFieldUpdateOperationsInput | $Enums.MovementType
+    muscleGroupsActivated?: ExerciseUpdatemuscleGroupsActivatedInput | string[]
+    instructions?: StringFieldUpdateOperationsInput | string
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    movementPattern?: NullableStringFieldUpdateOperationsInput | string | null
+    mechanics?: NullableStringFieldUpdateOperationsInput | string | null
+    contraindications?: ExerciseUpdatecontraindicationsInput | string[]
+    difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    workoutExercises?: WorkoutExerciseUpdateManyWithoutExerciseNestedInput
+    workoutProgramExercises?: WorkoutProgramExerciseUpdateManyWithoutExerciseNestedInput
+    equipmentLinks?: ExerciseEquipmentUpdateManyWithoutExerciseNestedInput
+    sources?: ExerciseSourceUpdateManyWithoutExerciseNestedInput
+    aliases?: ExerciseAliasUpdateManyWithoutExerciseNestedInput
+    muscleLinks?: ExerciseMuscleUpdateManyWithoutExerciseNestedInput
+    reviewDecisionsLinkedHere?: ExerciseReviewDecisionUpdateManyWithoutTargetExerciseNestedInput
+  }
+
+  export type ExerciseUncheckedUpdateWithoutGuidanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    exerciseName?: StringFieldUpdateOperationsInput | string
+    typeOfActivity?: EnumExerciseTypeFieldUpdateOperationsInput | $Enums.ExerciseType
+    typeOfEquipment?: EnumEquipmentTypeFieldUpdateOperationsInput | $Enums.EquipmentType
+    bodyPart?: EnumBodyPartFieldUpdateOperationsInput | $Enums.BodyPart
+    type?: EnumMovementTypeFieldUpdateOperationsInput | $Enums.MovementType
+    muscleGroupsActivated?: ExerciseUpdatemuscleGroupsActivatedInput | string[]
+    instructions?: StringFieldUpdateOperationsInput | string
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    movementPattern?: NullableStringFieldUpdateOperationsInput | string | null
+    mechanics?: NullableStringFieldUpdateOperationsInput | string | null
+    contraindications?: ExerciseUpdatecontraindicationsInput | string[]
+    difficultyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    loggingMode?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    ownerId?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    workoutExercises?: WorkoutExerciseUncheckedUpdateManyWithoutExerciseNestedInput
+    workoutProgramExercises?: WorkoutProgramExerciseUncheckedUpdateManyWithoutExerciseNestedInput
+    equipmentLinks?: ExerciseEquipmentUncheckedUpdateManyWithoutExerciseNestedInput
+    sources?: ExerciseSourceUncheckedUpdateManyWithoutExerciseNestedInput
+    aliases?: ExerciseAliasUncheckedUpdateManyWithoutExerciseNestedInput
+    muscleLinks?: ExerciseMuscleUncheckedUpdateManyWithoutExerciseNestedInput
+    reviewDecisionsLinkedHere?: ExerciseReviewDecisionUncheckedUpdateManyWithoutTargetExerciseNestedInput
+  }
+
   export type WorkoutExerciseCreateManyExerciseInput = {
     id?: string
     workoutId: string
@@ -88381,6 +90064,19 @@ export namespace Prisma {
     equipmentId: string
     requirementType?: string
     createdAt?: Date | string
+  }
+
+  export type ExerciseGuidanceCreateManyExerciseInput = {
+    id?: string
+    language?: string
+    nameVi?: string | null
+    instructionsVi?: string | null
+    commonMistakesVi?: ExerciseGuidanceCreatecommonMistakesViInput | string[]
+    safetyNotesVi?: ExerciseGuidanceCreatesafetyNotesViInput | string[]
+    source: string
+    verification?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type ExerciseSourceCreateManyExerciseInput = {
@@ -88533,6 +90229,45 @@ export namespace Prisma {
     equipmentId?: StringFieldUpdateOperationsInput | string
     requirementType?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ExerciseGuidanceUpdateWithoutExerciseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    language?: StringFieldUpdateOperationsInput | string
+    nameVi?: NullableStringFieldUpdateOperationsInput | string | null
+    instructionsVi?: NullableStringFieldUpdateOperationsInput | string | null
+    commonMistakesVi?: ExerciseGuidanceUpdatecommonMistakesViInput | string[]
+    safetyNotesVi?: ExerciseGuidanceUpdatesafetyNotesViInput | string[]
+    source?: StringFieldUpdateOperationsInput | string
+    verification?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ExerciseGuidanceUncheckedUpdateWithoutExerciseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    language?: StringFieldUpdateOperationsInput | string
+    nameVi?: NullableStringFieldUpdateOperationsInput | string | null
+    instructionsVi?: NullableStringFieldUpdateOperationsInput | string | null
+    commonMistakesVi?: ExerciseGuidanceUpdatecommonMistakesViInput | string[]
+    safetyNotesVi?: ExerciseGuidanceUpdatesafetyNotesViInput | string[]
+    source?: StringFieldUpdateOperationsInput | string
+    verification?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ExerciseGuidanceUncheckedUpdateManyWithoutExerciseInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    language?: StringFieldUpdateOperationsInput | string
+    nameVi?: NullableStringFieldUpdateOperationsInput | string | null
+    instructionsVi?: NullableStringFieldUpdateOperationsInput | string | null
+    commonMistakesVi?: ExerciseGuidanceUpdatecommonMistakesViInput | string[]
+    safetyNotesVi?: ExerciseGuidanceUpdatesafetyNotesViInput | string[]
+    source?: StringFieldUpdateOperationsInput | string
+    verification?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ExerciseSourceUpdateWithoutExerciseInput = {
@@ -90984,6 +92719,10 @@ export namespace Prisma {
      * @deprecated Use PlanReviewEventDefaultArgs instead
      */
     export type PlanReviewEventArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PlanReviewEventDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use ExerciseGuidanceDefaultArgs instead
+     */
+    export type ExerciseGuidanceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ExerciseGuidanceDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany
