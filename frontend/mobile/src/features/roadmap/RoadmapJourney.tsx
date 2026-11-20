@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ActivityIndicator, Alert, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -81,18 +81,27 @@ export function RoadmapJourney({ onOpenCycle }: { onOpenCycle?: () => void }) {
     void queryClient.invalidateQueries({ queryKey: ["workout-schedules"] });
   };
 
+  // in-flight flag: the Alert onPress closure can be stale, so `advance.isPending` alone does not stop a double tap
+  const advanceInFlight = useRef(false);
   const advance = useMutation({
     mutationFn: (id: string) => fitnessRoadmapService.advance(id),
     onSuccess: (projection) => {
       // advance can answer 200 WITHOUT moving on (insufficient data / review pending): say what actually happened.
-      const moved = Boolean((projection as any)?.activeCycle) || (projection as any)?.status === "COMPLETED";
-      toast.show(moved ? "Đã bắt đầu chu kỳ tiếp theo" : "Lộ trình chưa chuyển tiếp — xem đánh giá chu kỳ bên dưới", moved ? "success" : "danger");
+      const completed = (projection as any)?.roadmap?.status === "COMPLETED";
+      const moved = Boolean((projection as any)?.activeCycle) || completed;
+      toast.show(
+        completed ? "Bạn đã hoàn thành lộ trình" : moved ? "Đã bắt đầu chu kỳ tiếp theo" : "Lộ trình chưa chuyển tiếp — xem đánh giá chu kỳ bên dưới",
+        moved ? "success" : "danger",
+      );
       refresh();
     },
     onError: (e) => {
       toast.show(roadmapErrorMessage(e, "Không thể bắt đầu chu kỳ tiếp theo"), "danger");
       // a timeout may still have been processed by the server: re-read the real state instead of showing a stale screen
       void queryClient.invalidateQueries({ queryKey: ROADMAP_KEY });
+    },
+    onSettled: () => {
+      advanceInFlight.current = false;
     },
   });
   const restartPhase = useMutation({
@@ -171,7 +180,7 @@ export function RoadmapJourney({ onOpenCycle }: { onOpenCycle?: () => void }) {
             Alert.alert("Bắt đầu chu kỳ tiếp theo?", "Hệ thống sẽ tạo và kích hoạt chu kỳ mới (hoặc chuyển sang giai đoạn kế tiếp) dựa trên kết quả đánh giá ở trên.", [
               { text: "Huỷ", style: "cancel" },
               // double tap: a second confirmation while the first request runs is ignored (the server is idempotent too)
-              { text: "Bắt đầu", onPress: () => { if (!advance.isPending) advance.mutate(roadmap.id); } },
+              { text: "Bắt đầu", onPress: () => { if (advanceInFlight.current) return; advanceInFlight.current = true; advance.mutate(roadmap.id); } },
             ])
           }
           advancing={advance.isPending}

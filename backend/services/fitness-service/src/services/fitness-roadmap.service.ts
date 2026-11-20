@@ -1349,7 +1349,7 @@ export const fitnessRoadmapService = {
         throw {
           status: 409,
           code: "ACTIVE_CYCLE_OUTSIDE_PHASE",
-          message: `Bạn đang có chu kỳ tập "${stray.name ?? "chưa đặt tên"}" chưa kết thúc và không thuộc lộ trình này. Hãy kết thúc hoặc lưu trữ chu kỳ đó rồi kiểm tra tiến độ lại — hệ thống không tự đóng chu kỳ của bạn.`,
+          message: `Bạn đang có chu kỳ tập "${stray.name ?? "chưa đặt tên"}" chưa kết thúc và không thuộc lộ trình này. Hãy kết thúc hoặc lưu trữ chu kỳ đó rồi bấm "Bắt đầu chu kỳ tiếp theo" lại — hệ thống không tự đóng chu kỳ của bạn.`,
           details: { cycleId: stray.id, name: stray.name ?? null, startDate: stray.startDate, endDate: stray.endDate },
         };
       };
