@@ -30,7 +30,8 @@ test("B2 phrases: absolute vs relative vs question vs replacement are told apart
   assert.deepEqual(r("Thêm 2 bài mỗi buổi"), { ok: true, target: 6, source: "text-relative" });
   assert.deepEqual(r("bớt 1 bài mỗi buổi"), { ok: true, target: 3, source: "text-relative" });
   assert.deepEqual(r("Thêm 2 bài bụng"), { ok: true, target: 4, source: "current" }, "'thêm 2 bài bụng' is a muscle-focus addition, not a count");
-  assert.deepEqual(r("Giữ nguyên bài cũ, thêm bài mới"), { ok: true, target: 4, source: "current" });
+  // 2026-11-20: "thêm bài mới" with NO count used to resolve to "current" (=> the job answered "nothing to change"); the user clearly wants MORE, so it is a question now.
+  assert.ok(!r("Giữ nguyên bài cũ, thêm bài mới").ok && (r("Giữ nguyên bài cũ, thêm bài mới") as any).code === "AMBIGUOUS");
   assert.equal(P("Giữ nguyên bài cũ, thêm bài mới").keepExisting, true);
   assert.deepEqual(r("lên 7 bài", 5), { ok: true, target: 5, source: "explicit" }, "an explicit numeric input beats the text");
   const o = P("Đổi bài thứ 2 của buổi ngực");
@@ -253,4 +254,52 @@ test("A1 chunking: a 31-exercise plan (4,4,4,4,5,5,5) raised to the per-day maxi
   const small: PlanDay[] = [0, 1, 2, 3, 4].map((d) => ({ day: `Day ${d + 1}`, goal: "x", cardio: "c", exercises: sized(5).map((id, i) => ex(`q${d}-${id}`, i + 1)) }));
   const w2 = planRevisionWork(small, 10, HOSTED);
   assert.equal(w2.chunks.length, 1); assert.ok(w2.chunkTokens[0] <= 5000);
+});
+
+import { planFullRegenerationChunks } from "../services/revision/workout-revision-planner";
+test("A1-F1 chunk planner: a plan that fits stays ONE group; bigger ones are split by DAYS, each group within the limit, every day exactly once, the count never lowered", () => {
+  assert.deepEqual(planFullRegenerationChunks([5, 5, 5, 5, 5], HOSTED).chunks, [[0, 1, 2, 3, 4]], "25 exercises: one call (unchanged behaviour)");
+  assert.deepEqual(planFullRegenerationChunks([7, 7, 7, 7], HOSTED).chunks, [[0, 1, 2, 3]], "28: one call");
+  assert.deepEqual(planFullRegenerationChunks([8, 8, 8, 8], HOSTED).chunks, [[0, 1, 2], [3]], "32: refused before, now 2 groups");
+  assert.deepEqual(planFullRegenerationChunks([7, 7, 7, 7, 7], HOSTED).chunks, [[0, 1, 2, 3], [4]], "35");
+  const big = planFullRegenerationChunks([10, 10, 10, 10, 10, 10, 10], HOSTED);
+  assert.deepEqual(big.chunks, [[0, 1, 2], [3, 4, 5], [6]], "70 (7 days x the per-day maximum 10)");
+  assert.ok(big.chunkTokens.every((t) => t <= HOSTED.providerMaxOutputTokens), JSON.stringify(big.chunkTokens));
+  assert.deepEqual(big.chunks.flat(), [0, 1, 2, 3, 4, 5, 6], "each day in exactly one group, in order");
+  // uneven days (the real 31-exercise case) are respected by actual count
+  const uneven = planFullRegenerationChunks([4, 4, 4, 4, 5, 5, 5], HOSTED);
+  assert.equal(uneven.chunks.length, 1, "31 exercises fit one call"); 
+  assert.equal(planFullRegenerationChunks([10, 10, 10, 10], LOCAL).chunks.flat().length, 4);
+  // a single day that cannot fit the provider limit is the only conflict, and it is explicit
+  const tiny = planFullRegenerationChunks([10, 4], { ...HOSTED, providerMaxOutputTokens: 1500 });
+  assert.equal(tiny.conflict?.code, "TOKEN_BUDGET"); assert.match(tiny.conflict!.message, /không tự giảm số bài/);
+});
+
+test("item 2 phrases: 7 / 8 absolute, +2 relative, 'còn 3' absolute, 'giữ nguyên bài cũ và bổ sung bài mới' (no count) is a QUESTION, never 'no change'", () => {
+  const r = (t: string, cur = 4) => R({ parsed: P(t), current: cur });
+  assert.deepEqual(r("Tăng tất cả buổi lên 7 bài"), { ok: true, target: 7, source: "text-absolute" });
+  assert.deepEqual(r("Từ 4 bài lên 8 bài mỗi buổi"), { ok: true, target: 8, source: "text-absolute" });
+  assert.deepEqual(r("Thêm 2 bài mỗi buổi"), { ok: true, target: 6, source: "text-relative" });
+  assert.deepEqual(r("Giảm còn 3 bài"), { ok: true, target: 3, source: "text-absolute" });
+  const keep = r("Giữ nguyên bài cũ và bổ sung bài mới");
+  assert.ok(!keep.ok && keep.code === "AMBIGUOUS" && /bao nhiêu bài/.test(keep.message));
+  assert.equal(P("Giữ nguyên bài cũ và bổ sung bài mới").keepExisting, true);
+  // with a number the same sentence is a normal request
+  assert.deepEqual(r("Giữ nguyên bài cũ và bổ sung thêm bài mới, mỗi buổi 6 bài"), { ok: true, target: 6, source: "text-absolute" });
+  // "giữ nguyên bài cũ" alone does not ask anything
+  assert.deepEqual(r("Giữ nguyên bài cũ, thêm cardio"), { ok: true, target: 4, source: "current" });
+});
+
+test("Phase 1A phrases: ambiguous 'add' requests ask for the number (never guessed, never 'no change'); clear ones parse exactly; muscle-focus additions are not counts", () => {
+  const r = (t: string) => R({ parsed: P(t), current: 4 });
+  for (const t of ["Bổ sung bài mới", "Thêm bài cho các buổi", "Tăng số bài", "Thêm bài", "Bổ sung bài tập", "Thêm bài mới cho mỗi buổi", "Bổ sung thêm bài cho tất cả các buổi", "Giữ nguyên bài cũ và bổ sung bài mới"]) {
+    const x = r(t); assert.ok(!x.ok && x.code === "AMBIGUOUS", `${t} -> ${JSON.stringify(x)}`);
+  }
+  assert.deepEqual(r("Lên 7 bài"), { ok: true, target: 7, source: "text-absolute" });
+  assert.deepEqual(r("Thêm 2 bài mỗi buổi"), { ok: true, target: 6, source: "text-relative" });
+  assert.deepEqual(r("Mỗi buổi 7 bài"), { ok: true, target: 7, source: "text-absolute" });
+  // a muscle-focus addition keeps the current count (existing behaviour), it is not a question
+  for (const t of ["Thêm bài bụng", "Thêm 2 bài bụng", "Bổ sung bài tập chân"]) assert.deepEqual(r(t), { ok: true, target: 4, source: "current" }, t);
+  // a number anywhere wins over the vague wording
+  assert.deepEqual(r("Bổ sung bài mới, mỗi buổi 6 bài"), { ok: true, target: 6, source: "text-absolute" });
 });

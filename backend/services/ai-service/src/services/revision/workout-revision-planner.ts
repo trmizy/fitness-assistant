@@ -48,6 +48,26 @@ export function fullRegenerationCheck(totalExercises: number, cfg: TokenBudgetCo
   return { ok: needed <= cfg.providerMaxOutputTokens, needed, limit: cfg.providerMaxOutputTokens };
 }
 
+/**
+ * Splits a whole-plan regeneration into groups of DAYS whose output each fits one call (same estimate as fullRegenerationCheck). A plan that fits
+ * stays ONE group (unchanged behaviour); a bigger one is generated group by group instead of being refused. The number of exercises is never lowered.
+ * A conflict is only possible when a SINGLE day cannot fit the provider limit (impossible with the 10/day maximum on a real model limit).
+ */
+export function planFullRegenerationChunks(exercisesPerDay: number[], cfg: TokenBudgetConfig = tokenBudgetConfig()): { chunks: number[][]; chunkTokens: number[]; conflict?: { code: "TOKEN_BUDGET"; message: string } } {
+  const chunks: number[][] = []; const chunkTokens: number[] = [];
+  let cur: number[] = []; let curCount = 0;
+  const flush = () => { if (cur.length) { chunks.push(cur); chunkTokens.push(fullRegenerationCheck(curCount, cfg).needed); cur = []; curCount = 0; } };
+  for (const [i, n] of exercisesPerDay.entries()) {
+    if (!fullRegenerationCheck(n, cfg).ok) {
+      return { chunks: [], chunkTokens: [], conflict: { code: "TOKEN_BUDGET", message: `Một buổi ${i + 1} với ${n} bài cần khoảng ${fullRegenerationCheck(n, cfg).needed} token, vượt giới hạn đầu ra ${cfg.providerMaxOutputTokens} của mô hình. Mình không tự giảm số bài — hãy đặt số bài thấp hơn.` } };
+    }
+    if (cur.length && !fullRegenerationCheck(curCount + n, cfg).ok) flush();
+    cur.push(i); curCount += n;
+  }
+  flush();
+  return { chunks, chunkTokens };
+}
+
 export interface DayDelta { dayIndex: number; have: number; add: number; remove: number }
 export type RevisionConflict = { code: "TOKEN_BUDGET" | "SESSION_TOO_LONG" | "OUT_OF_RANGE" | "NO_DAYS"; message: string };
 export interface RevisionWork {

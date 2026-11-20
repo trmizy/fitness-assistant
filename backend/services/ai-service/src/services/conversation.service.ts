@@ -11,6 +11,7 @@ import type { GenerateWorkoutRequest } from "../schemas/ai.schemas";
 import type { GeneratePlanRequest as PlanGenerateRequest } from "../schemas/plan.schemas";
 import { ApiError, LlmGenerationError } from "../errors/api-error";
 import { parseWorkoutAdjustment, resolveExercisesPerDay } from "./revision/workout-adjustment-constraints";
+import { isCleanDayLabel } from "./revision/vietnamese-text-guard";
 
 // Quick-workout exercise schema, simpler than the full multi-week plan.
 const QuickExerciseSchema = z.object({
@@ -295,7 +296,8 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     const exercisesPerDay = resolved.target;
     // The plan being adjusted, so the model EDITS it instead of generating an unrelated new one (adjust eval 2026-11-11).
     const previousPlan = schedule.slice(0, 7).map((d) => ({
-      goal: String(d.goal ?? "").slice(0, 80),
+      // an already corrupted stored label (real Nova Pro output, 2026-11-20) must not be fed back into the next prompt: it only gets worse
+      goal: isCleanDayLabel(d.goal) ? String(d.goal).slice(0, 80) : "",
       cardio: d.cardio ? String(d.cardio).slice(0, 120) : undefined,
       exercises: (d.exercises ?? []).slice(0, 10).map((e) => ({
         exerciseId: String(e.exerciseId ?? ""), name: String(e.name ?? "").slice(0, 100), sets: Number(e.sets) || undefined, reps: e.reps ? String(e.reps).slice(0, 20) : undefined,

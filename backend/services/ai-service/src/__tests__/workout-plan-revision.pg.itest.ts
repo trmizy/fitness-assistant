@@ -200,12 +200,18 @@ test("outcomes for unusable plans: archived / not owned / not completed are refu
   assert.equal((await prisma.workoutPlan.findUniqueOrThrow({ where: { id: mine.id } })).version, 1);
 });
 
-test("B13 a legacy PT review recorded on the plan is reset by a revision: an approval never carries over to new content", async () => {
+test("B13 a legacy PT review recorded on the plan never carries over to new content; it is kept in the history of the version it was made on", async () => {
   const u = user("B13");
   const plan = await newPlan(u, 4, { ptUserId: "pt-1", ptReviewStatus: "PT_APPROVED", ptNote: "ok", ptReviewedAt: new Date() });
   await repo.conversationRepository.commitPlanRevision({ planId: plan.id, userId: u, operationId: null, expectedVersion: 1, content: content(7, "n"), daysPerWeek: 4 });
   const row = await prisma.workoutPlan.findUniqueOrThrow({ where: { id: plan.id } });
-  assert.equal(row.ptReviewStatus, "PENDING_PT_REVIEW"); assert.equal(row.ptNote, null); assert.equal(row.ptReviewedAt, null);
+  // approved policy: the new content is NOT approved, NOT put back in the PT's pending queue, and the old note is not shown next to it …
+  assert.equal(row.ptReviewStatus, null); assert.equal(row.ptNote, null); assert.equal(row.ptReviewedAt, null);
+  assert.equal(row.ptUserId, "pt-1", "the PT assignment itself is kept");
+  // … while the PT's review stays in the history, bound to the version it was made on
+  const hist = await repo.conversationRepository.listPlanRevisions(plan.id, u);
+  assert.deepEqual({ ...hist[0].ptReview, reviewedAt: undefined }, { version: 1, ptUserId: "pt-1", status: "PT_APPROVED", note: "ok", reviewedAt: undefined });
+  assert.ok(hist[0].ptReview!.reviewedAt, "review time kept");
 });
 
 test("revert in place: content returns, id stays, version still moves FORWARD, the undo is recorded; history is ordered", async () => {
@@ -228,7 +234,7 @@ test("B2 at the API boundary: an ambiguous or out-of-range request is refused wi
   const u = user("amb");
   const plan = await newPlan(u);
   const n = published.length;
-  for (const text of ["tăng số bài", "Buổi 1 và 3 lên 6 bài", "Mỗi buổi 15 bài"]) {
+  for (const text of ["tăng số bài", "Buổi 1 và 3 lên 6 bài", "Mỗi buổi 15 bài", "Bổ sung bài mới", "Thêm bài cho các buổi", "Bổ sung bài tập", "Giữ nguyên bài cũ và bổ sung bài mới"]) {
     await assert.rejects(svc.queuePlanAdjustment({ originalPlanId: plan.id, userId: u, adjustments: text }), (e: any) => e.statusCode === 422 && /NEEDS_CLARIFICATION|VALIDATION_ERROR/.test(e.code), text);
   }
   assert.equal(published.length, n);
@@ -518,4 +524,31 @@ test("review C3-F1: a double tap whose first request is still RESERVING is not a
   await assert.rejects(svc.queuePlanAdjustment({ originalPlanId: plan.id, userId: u, adjustments: "Mỗi buổi 6 bài", expectedVersion: 1, idempotencyKey: key }), (e: any) => e.statusCode === 409 && e.code !== "VERSION_CONFLICT");
   assert.equal(published.length, n, "nothing queued by the second tap");
   assert.equal(await prisma.aiGenerationOperation.count({ where: { actorUserId: u } }), 1);
+});
+
+test("approved PT policy: a revision never re-queues the plan for the PT; Undo keeps every PT note in the history of its version and never revives the approval", async () => {
+  const u = user("pt-policy");
+  const plan = await newPlan(u, 4, { ptUserId: "pt-9", ptReviewStatus: "PT_APPROVED", ptNote: "Giảm tạ vì đau vai", ptReviewedAt: new Date("2026-11-01T00:00:00Z") });
+  const pendingQueue = () => prisma.workoutPlan.count({ where: { ptUserId: "pt-9", status: "COMPLETED", ptReviewStatus: "PENDING_PT_REVIEW" } }); // = GET /plans/pt/pending-review
+  assert.equal(await pendingQueue(), 0);
+  await repo.conversationRepository.commitPlanRevision({ planId: plan.id, userId: u, operationId: null, expectedVersion: 1, content: content(7, "n"), daysPerWeek: 4 });
+  assert.equal(await pendingQueue(), 0, "the revision did NOT resubmit the plan to the PT");
+  // the PT reviews the NEW version (explicit action elsewhere): simulate the stored result
+  await prisma.workoutPlan.update({ where: { id: plan.id }, data: { ptReviewStatus: "PT_REJECTED", ptNote: "Bản 2 quá nhiều bài", ptReviewedAt: new Date("2026-11-10T00:00:00Z") } });
+  // Undo: content of v1 comes back as v3 — the v1 approval is NOT revived, nothing is queued, both PT notes stay in history at their versions
+  assert.equal((await repo.conversationRepository.revertPlanRevisionInPlace(plan.id, u)).kind, "ok");
+  const row = await prisma.workoutPlan.findUniqueOrThrow({ where: { id: plan.id } });
+  assert.equal(row.version, 3); assert.equal(row.ptReviewStatus, null); assert.equal(row.ptNote, null);
+  assert.equal(await pendingQueue(), 0);
+  const hist = await repo.conversationRepository.listPlanRevisions(plan.id, u);
+  assert.deepEqual(hist.map((h: any) => [h.kind, h.resultVersion, h.ptReview?.version, h.ptReview?.status, h.ptReview?.note]), [
+    ["REVERT", 3, 2, "PT_REJECTED", "Bản 2 quá nhiều bài"],
+    ["ADJUST", 2, 1, "PT_APPROVED", "Giảm tạ vì đau vai"],
+  ]);
+  // a plan with NO PT is untouched by this policy
+  const solo = await newPlan(user("pt-none"));
+  await repo.conversationRepository.commitPlanRevision({ planId: solo.id, userId: solo.userId, operationId: null, expectedVersion: 1, content: content(6, "s"), daysPerWeek: 4 });
+  const s2 = await prisma.workoutPlan.findUniqueOrThrow({ where: { id: solo.id } });
+  assert.equal(s2.ptUserId, null); assert.equal(s2.ptReviewStatus, null);
+  assert.equal((await repo.conversationRepository.listPlanRevisions(solo.id, solo.userId))[0].ptReview, null);
 });

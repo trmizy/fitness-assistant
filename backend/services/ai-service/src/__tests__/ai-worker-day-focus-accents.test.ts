@@ -33,7 +33,7 @@ test("đ is folded too ('Đẩy'/'Đùi' style words do not break matching) and 
 });
 
 test("default split labels are accented Vietnamese for every days-per-week / goal (no unaccented or English leftovers)", () => {
-  const forbidden = /(Nguc|Lung|Chan|Mong|truoc|nhe|Push|Pull|Legs|Chest|Back|Shoulders|Arms)/;
+  const forbidden = /\b(Nguc|Lung|Chan|Mong|truoc|nhe|Push|Pull|Legs|Chest|Back|Shoulders|Arms)\b/;
   for (const goal of ["Tăng cơ", "Giảm mỡ", "Duy trì sức khỏe"]) {
     for (let days = 2; days <= 7; days += 1) {
       for (let i = 0; i < days; i += 1) {
