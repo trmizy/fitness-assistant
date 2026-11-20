@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -1159,23 +1159,30 @@ export function RoadmapJourneyPage() {
 
   // Starting the next cycle/phase is a consequential action: it is NEVER triggered by "checking progress" — the evaluation is shown read-only on
   // the page; the user must press a separately named button AND confirm.
+  const advanceInFlight = useRef(false);
   const confirmAndAdvance = (roadmapId: string) => {
-    if (advanceMutation.isPending) return; // double click while the first request runs
+    if (advanceInFlight.current || advanceMutation.isPending) return; // double click while the first request runs
     if (!window.confirm("Bắt đầu chu kỳ tập tiếp theo? Hệ thống sẽ tạo và kích hoạt chu kỳ mới (hoặc chuyển sang giai đoạn kế tiếp) dựa trên kết quả đánh giá ở trên.")) return;
+    advanceInFlight.current = true;
     advanceMutation.mutate(roadmapId);
   };
   const advanceMutation = useMutation({
     mutationFn: (roadmapId: string) => fitnessRoadmapService.advance(roadmapId),
     onSuccess: (projection: any) => {
       // advance can answer 200 WITHOUT moving on (insufficient data / review pending): say what actually happened.
-      const moved = Boolean(projection?.activeCycle) || projection?.status === "COMPLETED";
-      if (moved) toast.success("Đã bắt đầu chu kỳ tiếp theo");
+      const completed = projection?.roadmap?.status === "COMPLETED";
+      const moved = Boolean(projection?.activeCycle) || completed;
+      if (completed) toast.success("Bạn đã hoàn thành lộ trình");
+      else if (moved) toast.success("Đã bắt đầu chu kỳ tiếp theo");
       else toast.info("Lộ trình chưa chuyển tiếp — xem đánh giá chu kỳ bên dưới");
       refresh();
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.error ?? "Không thể bắt đầu chu kỳ tiếp theo");
       refresh(); // a timeout may still have been processed by the server
+    },
+    onSettled: () => {
+      advanceInFlight.current = false;
     },
   });
 

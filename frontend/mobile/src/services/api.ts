@@ -3581,6 +3581,10 @@ export const planService = {
     cancelledScheduleCount?: number;
     skippedDuplicateCount: number;
     alreadyExists?: boolean;
+    /** Only when an EXISTING program was re-saved: did the save change the program's content? (K9) */
+    contentSynced?: boolean;
+    previousAiPlanVersion?: number | null;
+    programVersion?: number | null;
     mode?: string;
     message?: string;
     selectedWeekdays?: number[];
@@ -3617,6 +3621,20 @@ export const planService = {
         alreadyExists:
           typeof unwrapped.alreadyExists === "boolean"
             ? unwrapped.alreadyExists
+            : undefined,
+        contentSynced:
+          typeof unwrapped.contentSynced === "boolean"
+            ? unwrapped.contentSynced
+            : undefined,
+        previousAiPlanVersion:
+          typeof unwrapped.previousAiPlanVersion === "number"
+            ? unwrapped.previousAiPlanVersion
+            : unwrapped.previousAiPlanVersion === null
+              ? null
+              : undefined,
+        programVersion:
+          typeof unwrapped.programVersion === "number"
+            ? unwrapped.programVersion
             : undefined,
         mode: typeof unwrapped.mode === "string" ? unwrapped.mode : undefined,
         message:
@@ -3666,6 +3684,17 @@ export const planService = {
     // One key per business action: a retry of the SAME action after a timeout is answered from the original operation instead of being run twice.
     const { data } = await api.post("/plans/adjust", body, options?.idempotencyKey ? { headers: { "Idempotency-Key": options.idempotencyKey } } : undefined);
     return extractPlanJobResponse(data);
+  },
+
+  /** Undo an AI adjustment. An in-place revision restores the previous content into the SAME plan (version still goes up); a legacy adjustment returns the restored plan's id. */
+  revertPlanAdjustment: async (planId: string): Promise<{ planId: string; version?: number }> => {
+    const { data } = await api.post(`/plans/${planId}/revert`);
+    const unwrapped = unwrapApiPayload<unknown>(data);
+    const rec = isRecord(unwrapped) ? unwrapped : {};
+    return {
+      planId: typeof rec.planId === "string" ? rec.planId : planId,
+      version: typeof rec.version === "number" ? rec.version : undefined,
+    };
   },
 
   getCurrentNutritionAiPlans: async (): Promise<any[]> => {
