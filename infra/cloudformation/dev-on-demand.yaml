@@ -230,14 +230,21 @@ Resources:
 
   # ───────────────────── OpenSearch Serverless endpoint (ai mode) ─────────
   OpenSearchVpcEndpoint:
-    Type: AWS::OpenSearchServerless::VpcEndpoint
+    # NextGen collection hostname (*.aoss.<region>.on.aws).
+    Type: AWS::EC2::VPCEndpoint
     Condition: CreateOpenSearchEndpoint
     Properties:
-      Name: !Sub "${EnvironmentName}-opensearch-vpce"
+      VpcEndpointType: Interface
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.aoss-data"
+      PrivateDnsEnabled: true
       VpcId: !Ref VpcId
       SubnetIds: !Ref PrivateSubnetIds
       SecurityGroupIds:
         - !Ref LambdaSecurityGroupId
+      Tags:
+        - { Key: Name, Value: !Sub "${EnvironmentName}-opensearch-vpce" }
+        - { Key: environment, Value: !Ref EnvironmentName }
+        - { Key: managed-by, Value: gymini-dev-on-demand }
 
   # NOTE — OpenSearch Serverless network security policy auto-update,
   # deliberately NOT a CFN resource in Phase 1:
@@ -315,7 +322,7 @@ Outputs:
     Value: !Ref ChatTargetGroup
   OpenSearchVpcEndpointId:
     Condition: CreateOpenSearchEndpoint
-    Value: !GetAtt OpenSearchVpcEndpoint.Id
+    Value: !Ref OpenSearchVpcEndpoint
   SecretsManagerVpcEndpointId:
     Condition: CreateSecretsManagerEndpoint
     Value: !Ref SecretsManagerVpcEndpoint

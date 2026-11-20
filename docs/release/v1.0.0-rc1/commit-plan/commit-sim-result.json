@@ -1,0 +1,45 @@
+{
+ "head": "5ce4a0ee60aea143887efa8d0dab26ab00528b0d",
+ "steps": [
+  {
+   "id": "C1",
+   "title": "shared contract",
+   "tree": "60225dfa8dd8a2226dc619dbd3f894cf256e4e75",
+   "files": 1,
+   "unexpected": [],
+   "importProblems": []
+  },
+  {
+   "id": "C2",
+   "title": "b4 coach safety",
+   "tree": "e589650ddb438974c2c338544d1a8178ff8f461f",
+   "files": 6,
+   "unexpected": [],
+   "importProblems": [],
+   "safety_guard_equals_HEAD_plus_b4_only": true,
+   "intent_router_equals_HEAD_plus_b4_only": true
+  },
+  {
+   "id": "C3",
+   "title": "AI stabilization (V1 RC1)",
+   "tree": "685622f00df1fa52ff4e77a986d03f9b477f8e0f",
+   "files": 64,
+   "unexpected": [],
+   "importProblems": []
+  },
+  {
+   "id": "C4",
+   "title": "evaluation & test harness",
+   "tree": "b809ca3d6099f753fbfd781c438f47c874618f80",
+   "files": 21,
+   "unexpected": [],
+   "importProblems": []
+  }
+ ],
+ "final": {
+  "tree": "b809ca3d6099f753fbfd781c438f47c874618f80",
+  "filesChangedVsHead": 90,
+  "notInManifest": [],
+  "manifestFilesDifferingFromWorkingTree": []
+ }
+}

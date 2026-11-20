@@ -1,0 +1,686 @@
+{
+  "head": "5ce4a0ee60aea143887efa8d0dab26ab00528b0d",
+  "branch": "aws-deploy",
+  "generatedAt": "2026-11-12T09:37:45.415Z",
+  "rows": [
+    {
+      "file": "backend/services/ai-service/src/agent-workflow/orchestrator.ts",
+      "state": "modified",
+      "group": "V1-RC round (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/agent-workflow/workflows/create-workout-plan.workflow.ts",
+      "state": "modified",
+      "group": "V1-RC round (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/generated/prisma/schema.prisma",
+      "state": "modified",
+      "group": "generated-prisma",
+      "include": false,
+      "note": "whitespace-only diff vs HEAD (prisma format); regenerate in build, do not hand-commit"
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/bugfix.test.ts",
+      "state": "modified",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/answer_validator.ts",
+      "state": "modified",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/body_composition_rules.ts",
+      "state": "modified",
+      "group": "V1-RC round (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/exercise_name_normalizer.ts",
+      "state": "modified",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/intent_router.ts",
+      "state": "modified",
+      "group": "MIXED",
+      "include": true,
+      "note": "b4 hunk + 7-phase + B2-38 routing"
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/medical-referral.ts",
+      "state": "modified",
+      "group": "b4",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/memory_extraction.ts",
+      "state": "modified",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/memory_policy.ts",
+      "state": "modified",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/orchestrator.service.ts",
+      "state": "modified",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/prompt_builder.ts",
+      "state": "modified",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/recommendation_engine.ts",
+      "state": "modified",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/retriever.ts",
+      "state": "modified",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/safety_guard.ts",
+      "state": "modified",
+      "group": "MIXED",
+      "include": true,
+      "note": "b4 + V1-RC minor policy"
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/types.ts",
+      "state": "modified",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/workout_schedule_context.ts",
+      "state": "modified",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/services/bedrock.client.ts",
+      "state": "modified",
+      "group": "V1-RC round (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/services/exercise-guidance.ts",
+      "state": "modified",
+      "group": "b4",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/services/fitness-agent-intent.ts",
+      "state": "modified",
+      "group": "V1-RC round (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/services/fitness-agent.service.ts",
+      "state": "modified",
+      "group": "V1-RC round (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/services/llm.service.ts",
+      "state": "modified",
+      "group": "V1-RC round (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/services/revision/workout-guards.ts",
+      "state": "modified",
+      "group": "b4",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/services/training-direction.ts",
+      "state": "modified",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/shared/src/fitness-agent.ts",
+      "state": "modified",
+      "group": "pre-existing dependency",
+      "include": true,
+      "note": "SUBSTITUTE_SAVED_EXERCISE enum — HEAD ai-service already uses it; RC is NOT buildable without it"
+    },
+    {
+      "file": "test/ai-chat-full-verification/lib.mjs",
+      "state": "modified",
+      "group": "test harness (stack process safety)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-chat-full-verification/stack.mjs",
+      "state": "modified",
+      "group": "test harness (stack process safety)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-quality-eval/judge.mjs",
+      "state": "modified",
+      "group": "eval tooling",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-quality-eval/run-nutrition-eval.mjs",
+      "state": "modified",
+      "group": "eval tooling",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/__tests__/agent-advisory-question-no-mutation.test.ts",
+      "state": "new",
+      "group": "V1-RC round (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/__tests__/agent-ai-workout-lifecycle.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/__tests__/agent-pending-draft-advisory-gate.test.ts",
+      "state": "new",
+      "group": "V1-RC round (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/__tests__/agent-turn-act-gate.test.ts",
+      "state": "new",
+      "group": "V1-RC round (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/__tests__/coach-b4-regressions.test.ts",
+      "state": "new",
+      "group": "b4",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/__tests__/food-vs-exercise-swap-boundary.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/__tests__/model-call-cost-telemetry.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/__tests__/workout-workflow-opening-extraction.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/evaluation/advisory-baseline/README.md",
+      "state": "new",
+      "group": "docs/report",
+      "include": false,
+      "note": "local only (no .md in pushes)"
+    },
+    {
+      "file": "backend/services/ai-service/src/evaluation/advisory-progress/README.md",
+      "state": "new",
+      "group": "docs/report",
+      "include": false,
+      "note": "local only (no .md in pushes)"
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/bmi_grounding.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/context_fidelity_review.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/context_hallucination_trace.test.ts",
+      "state": "new",
+      "group": "V1-RC round (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/enum_labels.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/equipment_scope_semantics.test.ts",
+      "state": "new",
+      "group": "V1-RC round (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/exercise_constraint_guard_review.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/exercise_guard_qualified_variant.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/exercise_name_normalizer.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/knee_over_toes_semantics.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/meal_comparison_routing.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/memory_contamination.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/metamorphic.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/minor_safety_policy.test.ts",
+      "state": "new",
+      "group": "V1-RC round (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/nutrition_semantic_types.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/output_hygiene.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/prompt_rules_and_manifest.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/rag_knowledge_quality.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/route_snapshot.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/turn_facts_and_context.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/turn_facts_injury_fold.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/turn_facts_review_fixes.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/__tests__/validator_non_destructive.test.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/bmi_claim_guard.ts",
+      "state": "new",
+      "group": "V1-RC round (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/claim_rules.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/context_fidelity_guard.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/context_plan.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/enum_labels.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/exercise_constraint_guard.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/intake_claim_guard.ts",
+      "state": "new",
+      "group": "V1-RC round (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/memory_selection.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/minor_safety_policy.ts",
+      "state": "new",
+      "group": "V1-RC round (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/output_hygiene.ts",
+      "state": "new",
+      "group": "V1-RC round (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/retrieval_ranking.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/speech_act.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/llm/turn_facts.ts",
+      "state": "new",
+      "group": "7-phase / independent-review / stabilization (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "backend/services/ai-service/src/services/agent-turn-act.ts",
+      "state": "new",
+      "group": "V1-RC round (2026-11-12)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-chat-full-verification/provider-gate-sdk-probe.mjs",
+      "state": "new",
+      "group": "test harness (stack process safety)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-chat-full-verification/provider-gate.mjs",
+      "state": "new",
+      "group": "test harness (stack process safety)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-chat-full-verification/provider-gate.test.mjs",
+      "state": "new",
+      "group": "test harness (stack process safety)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-chat-full-verification/stack-process.mjs",
+      "state": "new",
+      "group": "test harness (stack process safety)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-chat-full-verification/stack-process.test.mjs",
+      "state": "new",
+      "group": "test harness (stack process safety)",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-quality-eval/HANDOFF-other-agent-vi.md",
+      "state": "new",
+      "group": "docs/report",
+      "include": false,
+      "note": "local only (no .md in pushes)"
+    },
+    {
+      "file": "test/ai-quality-eval/REPORT-nutrition-vi.md",
+      "state": "new",
+      "group": "docs/report",
+      "include": false,
+      "note": "local only (no .md in pushes)"
+    },
+    {
+      "file": "test/ai-quality-eval/REPORT-quality-vi.md",
+      "state": "new",
+      "group": "docs/report",
+      "include": false,
+      "note": "local only (no .md in pushes)"
+    },
+    {
+      "file": "test/ai-quality-eval/coach-cases-holdout-v1.json",
+      "state": "new",
+      "group": "eval tooling",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-quality-eval/coach-cases-rc-verify-v1.json",
+      "state": "new",
+      "group": "eval tooling",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-quality-eval/coach-cases-rc-verify-v2.json",
+      "state": "new",
+      "group": "eval tooling",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-quality-eval/coach-cases-recheck-v1.json",
+      "state": "new",
+      "group": "eval tooling",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-quality-eval/cost-ledger.mjs",
+      "state": "new",
+      "group": "eval tooling",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-quality-eval/cost-ledger.test.mjs",
+      "state": "new",
+      "group": "eval tooling",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-quality-eval/export-human-review.mjs",
+      "state": "new",
+      "group": "eval tooling",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-quality-eval/golden/build-golden.mts",
+      "state": "new",
+      "group": "eval tooling",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-quality-eval/golden/coach-golden-v1.json",
+      "state": "new",
+      "group": "eval tooling",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-quality-eval/golden/human-review-v1.csv",
+      "state": "new",
+      "group": "eval tooling",
+      "include": false,
+      "note": "results/reports stay local"
+    },
+    {
+      "file": "test/ai-quality-eval/holdout-score.mjs",
+      "state": "new",
+      "group": "eval tooling",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-quality-eval/layer1-checks.mts",
+      "state": "new",
+      "group": "eval tooling",
+      "include": true,
+      "note": ""
+    },
+    {
+      "file": "test/ai-quality-eval/prompt-size-offline.mts",
+      "state": "new",
+      "group": "eval tooling",
+      "include": true,
+      "note": ""
+    }
+  ]
+}

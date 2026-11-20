@@ -1,0 +1,64 @@
+{
+  "judge": "GPT-6 (OpenAI)",
+  "n": 48,
+  "vs_opus": {
+    "correctness": {
+      "qwk": 0.38782608695652177,
+      "spearman": 0.5320454349848189
+    },
+    "personalization": {
+      "qwk": 0.5919854280510017,
+      "spearman": 0.588417061623197
+    },
+    "safety": {
+      "qwk": 0.6764252696456086,
+      "spearman": 0.6401783602558483
+    },
+    "clarity": {
+      "qwk": 0.1103448275862069,
+      "spearman": 0.3339135484518728
+    },
+    "unsafe_flag": {
+      "agreement": 0.8333333333333334,
+      "kappa": 0.559633027522936
+    }
+  },
+  "by_config": {
+    "A": {
+      "n": 12,
+      "correctness": 2.8333333333333335,
+      "personalization": 1.9166666666666667,
+      "safety": 3.6666666666666665,
+      "clarity": 4.833333333333333,
+      "unsafe_pct": 8.333333333333332,
+      "opus_unsafe_pct": 0.0
+    },
+    "B": {
+      "n": 12,
+      "correctness": 2.6666666666666665,
+      "personalization": 3.75,
+      "safety": 2.75,
+      "clarity": 4.75,
+      "unsafe_pct": 33.33333333333333,
+      "opus_unsafe_pct": 50.0
+    },
+    "C": {
+      "n": 12,
+      "correctness": 2.5,
+      "personalization": 3.5833333333333335,
+      "safety": 2.5833333333333335,
+      "clarity": 4.583333333333333,
+      "unsafe_pct": 50.0,
+      "opus_unsafe_pct": 33.33333333333333
+    },
+    "D": {
+      "n": 12,
+      "correctness": 3.4166666666666665,
+      "personalization": 3.6666666666666665,
+      "safety": 3.3333333333333335,
+      "clarity": 4.5,
+      "unsafe_pct": 25.0,
+      "opus_unsafe_pct": 0.0
+    }
+  }
+}

@@ -174,3 +174,47 @@ export async function createPersistentNotification(params: {
     );
   }
 }
+
+/**
+ * STRICT persistent delivery for at-least-once producers (the Plan Review outbox). Unlike createPersistentNotification above it
+ * THROWS on any failure, so the caller leaves the event undelivered and retries; `dedupeKey` makes the retry (or a crash between
+ * "delivered" and "marked delivered") harmless — user-service stores one row per key and answers success for a replay.
+ */
+export async function deliverPlanReviewNotification(params: {
+  userId: string;
+  text: string;
+  kind: "REQUESTED" | "DECIDED";
+  requestId: string;
+  dedupeKey: string;
+  link: string;
+}): Promise<void> {
+  const payload = {
+    userId: params.userId,
+    text: params.text,
+    eventType: params.kind === "REQUESTED" ? "PLAN_REVIEW_REQUESTED" : "PLAN_REVIEW_DECIDED",
+    entityType: "PLAN_REVIEW",
+    entityId: params.requestId,
+    link: params.link,
+    dedupeKey: params.dedupeKey,
+  };
+  if (!process.env.INTERNAL_SERVICE_SECRET) {
+    throw new Error("INTERNAL_SERVICE_SECRET is not configured — plan-review notification not delivered");
+  }
+  if (process.env.USER_LAMBDA_NAME) {
+    const response = await invokeHttpLambda({
+      functionName: process.env.USER_LAMBDA_NAME,
+      method: "POST",
+      path: "/internal/notifications",
+      headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET },
+      body: payload,
+    });
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw new Error(`User notification Lambda returned HTTP ${response.statusCode}`);
+    }
+    return;
+  }
+  await axios.post(`${USER_SERVICE_URL}/internal/notifications`, payload, {
+    headers: { "x-service-secret": process.env.INTERNAL_SERVICE_SECRET },
+    timeout: 5000,
+  });
+}

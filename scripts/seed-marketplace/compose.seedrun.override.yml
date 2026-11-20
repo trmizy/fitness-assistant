@@ -34,7 +34,7 @@ services:
     environment:
       <<: *seed-environment
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_payment_seedrun
-      VNPAY_SIMULATE: "true"
+      VNPAY_SIMULATE: "false"
   gym-service:
     environment:
       <<: *seed-environment

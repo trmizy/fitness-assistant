@@ -91,6 +91,8 @@ const PTClientList = lazy(() => import("./pages/pt/PTClientList").then((m) => ({
 const PTClientDetail = lazy(() => import("./pages/pt/PTClientDetail").then((m) => ({ default: m.PTClientDetail })));
 const PTContractsPage = lazy(() => import("./pages/pt/PTContractsPage").then((m) => ({ default: m.PTContractsPage })));
 const PlanReviewPage = lazy(() => import("./pages/pt/PlanReviewPage").then((m) => ({ default: m.PlanReviewPage })));
+// Workout Plan Review & Approval (client → PT) inbox — separate from the legacy AI-plan review page above.
+const PlanReviewInboxPage = lazy(() => import("./pages/pt/PlanReviewInboxPage").then((m) => ({ default: m.PlanReviewInboxPage })));
 const PTSchedulePage = lazy(() => import("./pages/pt/PTSchedulePage").then((m) => ({ default: m.PTSchedulePage })));
 const PTProfilePage = lazy(() => import("./pages/pt/PTProfilePage").then((m) => ({ default: m.PTProfilePage })));
 const PTWalletPage = lazy(() => import("./pages/pt/PTWalletPage").then((m) => ({ default: m.PTWalletPage })));
@@ -342,6 +344,7 @@ export const router = createBrowserRouter([
           { path: "clients/:id", Component: PTClientDetail },
           { path: "contracts", Component: PTContractsPage },
           { path: "plans", Component: PlanReviewPage },
+          { path: "plan-reviews", Component: PlanReviewInboxPage },
           { path: "service-orders/:id", Component: PTServiceOrderPage },
           { path: "schedule", Component: PTSchedulePage },
           { path: "profile", Component: PTProfilePage },

@@ -1,0 +1,16 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "InvokeServiceLambdasForHealthProbe",
+      "Effect": "Allow",
+      "Action": "lambda:InvokeFunction",
+      "Resource": [
+        "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-fitness",
+        "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-gym",
+        "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-payment",
+        "arn:aws:lambda:ap-southeast-1:191798898985:function:fitness-assistant-dev-ai"
+      ]
+    }
+  ]
+}

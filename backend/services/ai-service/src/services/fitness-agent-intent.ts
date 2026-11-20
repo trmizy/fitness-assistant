@@ -113,7 +113,8 @@ export type FitnessAgentIntentKind = "PT" | "PROGRAM" | "SELECT" | "EVALUATE" | 
   | "CREATE_WORKOUT_PLAN" | "CREATE_NUTRITION_PLAN"
   | "ROADMAP_STATUS" | "ROADMAP_ADVANCE" | "ROADMAP_REBUILD" | "ROADMAP_ARCHIVE"
   | "CYCLE_COMPLETE" | "CYCLE_CANCEL"
-  | "WORKOUT_START" | "WORKOUT_SKIP" | "WORKOUT_CANCEL";
+  | "WORKOUT_START" | "WORKOUT_SKIP" | "WORKOUT_CANCEL"
+  | "SEND_PLAN_TO_PT_REVIEW";
 
 export interface FitnessAgentIntent {
   kind: FitnessAgentIntentKind | null;
@@ -134,7 +135,7 @@ export interface FitnessAgentIntent {
 const MUTATING_KINDS = new Set<FitnessAgentIntentKind>([
   "CREATE_PLAN_BUNDLE", "SAVE_GENERATED_PLAN", "CREATE_WORKOUT_PLAN", "CREATE_NUTRITION_PLAN",
   "ROADMAP_ADVANCE", "ROADMAP_REBUILD", "ROADMAP_ARCHIVE", "CYCLE_COMPLETE", "CYCLE_CANCEL",
-  "WORKOUT_START", "WORKOUT_SKIP", "WORKOUT_CANCEL", "REVIEW",
+  "WORKOUT_START", "WORKOUT_SKIP", "WORKOUT_CANCEL", "REVIEW", "SEND_PLAN_TO_PT_REVIEW",
 ]);
 
 /**
@@ -177,6 +178,18 @@ function parseFitnessAgentIntentUngated(text: string): FitnessAgentIntent {
   const planningCycles = /\b(chia|lap|xay dung|len|thiet ke|bo tri|sap xep|periodi[sz]ation|peaking|taper|mesocycle|macrocycle)\b/.test(s);
   if (evaluate && !planningCycles) {
     return { kind: "EVALUATE", preferences: {} };
+  }
+
+  // "gửi plan [hiện tại] cho PT xem/duyệt" — the CLIENT sends their own program to their PT (direction matters: "PT gửi plan cho
+  // tôi" is the opposite and must NOT match, so the PT has to be the RECIPIENT: "cho/đến/tới PT"). Checked before the plan-creation
+  // and PT-search rules, which would otherwise claim the same words. Only ever opens a preview + explicit confirmation.
+  const toPt = "(?:cho|den|toi|to)\\s+(?:pt|huan luyen vien|hlv|coach|trainer)\\b";
+  const planWord = "(?:plan|ke hoach|lich tap|chuong trinh(?: tap)?|giao an)";
+  const sendVerb = "(?:gui|chia se|nop|send|share|submit)";
+  const sendPlanToPt = new RegExp(`\\b${sendVerb}\\b[^.?!]{0,50}?\\b${planWord}\\b[^.?!]{0,40}?\\b${toPt}`).test(s)
+    || new RegExp(`\\b${sendVerb}\\s+${toPt}[^.?!]{0,50}?\\b${planWord}\\b`).test(s);
+  if (sendPlanToPt) {
+    return { kind: "SEND_PLAN_TO_PT_REVIEW", preferences: {} };
   }
 
   // Agent automation — "hãy tạo/gán lộ trình + plan tập + dinh dưỡng vào hệ

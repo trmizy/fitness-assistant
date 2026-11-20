@@ -584,6 +584,11 @@ enum NotificationEventType {
   GYM_BRANCH_SUSPENSION_LIFTED
   GYM_BRANCH_TEMPORARILY_CLOSED
   GYM_BRANCH_REOPENED
+  // Workout Plan Review & Approval (fitness-service). REQUESTED => the PT (a client submitted/cancelled/lost access to a plan
+  // review); DECIDED => the client (the PT approved / asked for changes / rejected). Text is generic: never plan contents,
+  // notes or body data. DECIDED is gated by the existing ptFeedbackEnabled preference.
+  PLAN_REVIEW_REQUESTED
+  PLAN_REVIEW_DECIDED
 }
 
 enum NotificationEntityType {
@@ -622,6 +627,8 @@ enum NotificationEntityType {
   GYM_COMPLAINT_CASE
   // WITHDRAWAL_*'s entityId = payment-service's WithdrawalRequest.id (cross-service reference by convention).
   WITHDRAWAL_REQUEST
+  // PLAN_REVIEW_*'s entityId = fitness-service's PlanReviewRequest.id (cross-service reference by convention).
+  PLAN_REVIEW
 }
 
 enum RescheduleStatus {
@@ -938,6 +945,9 @@ model Notification {
   entityType NotificationEntityType  @map("entity_type")
   entityId   String                  @map("entity_id")
   link       String?
+  // Optional idempotency key supplied by an at-least-once producer (e.g. fitness-service's plan-review outbox): a replay
+  // with the same key is stored once. NULL for every pre-existing producer (Postgres allows many NULLs under UNIQUE).
+  dedupeKey  String?                 @unique @map("dedupe_key")
   unread     Boolean                 @default(true)
   createdAt  DateTime                @default(now()) @map("created_at")
   updatedAt  DateTime                @updatedAt @map("updated_at")

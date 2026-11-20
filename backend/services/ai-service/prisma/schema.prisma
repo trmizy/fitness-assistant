@@ -132,6 +132,32 @@ model WorkoutPlan {
   @@map("workout_plans")
 }
 
+/// In-place AI workout plan revision history ("Điều chỉnh"). The WorkoutPlan row keeps its id; every applied revision bumps
+/// WorkoutPlan.version by exactly one and stores the content it REPLACED here, so a revision can be audited and reverted without
+/// ever creating a second plan row. A row exists only for a COMMITTED revision (a failed/queued one lives in ai_generation_operations).
+/// operation_id is UNIQUE: re-delivering/retrying the same operation can never apply (or record) a revision twice.
+/// (plan_id, result_version) is UNIQUE: two writers can never both produce the same version.
+model WorkoutPlanRevision {
+  id            String   @id @default(uuid())
+  planId        String   @map("plan_id")
+  userId        String   @map("user_id")
+  /// null for a REVERT (not produced by a generation operation)
+  operationId   String?  @unique @map("operation_id")
+  /// ADJUST | REVERT
+  kind          String   @default("ADJUST")
+  baseVersion   Int      @map("base_version")
+  resultVersion Int      @map("result_version")
+  adjustments   String?
+  /// {name, description, goal, duration, daysPerWeek, plan} exactly as they were BEFORE this revision
+  previous      Json
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([planId, resultVersion])
+  @@index([planId, createdAt])
+  @@index([userId])
+  @@map("workout_plan_revisions")
+}
+
 enum PublishModerationStatus {
   DRAFT
   SUBMITTED

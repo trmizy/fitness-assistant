@@ -1,0 +1,6 @@
+✖ Bodyweight persona (bodyweight + pull-up-bar only): real generated plan passes the final equipment invariant validator
+✖ Commercial-gym persona (owns every active equipment item): 1 real generated plan passes the final equipment invariant validator
+✖ GOLDEN 4th turn (real DB, flag ON): '…1m73 thì 80kg là đang khá mập rồi tôi muốn xuống 72kg là đẹp' → height 173, current 80,
+✖ Home-gym persona (dumbbell/barbell/bench/rack/pull-up-bar/bands): real generated plan passes the final equipment invariant validator
+✖ PG: FAILED + same payload -> new epoch, new target plan, charged again; a message of the old epoch is STALE_MESSAGE
+✖ a PERMANENT failure (no matching workout program) does not keep the action open forever: COMPLETED, reported ❌

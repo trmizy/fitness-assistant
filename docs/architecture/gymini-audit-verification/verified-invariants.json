@@ -1,0 +1,369 @@
+{
+  "evidence_tier": "CODE AUDIT",
+  "invariants": [
+    {
+      "id": "INV-V01",
+      "statement": "Workout requested frequency equals final generated sessions",
+      "related_gap_ids": [
+        "BDG-14"
+      ],
+      "evidence_refs": [
+        "E01",
+        "E03",
+        "E07"
+      ],
+      "existing_test_coverage": [
+        "agent-workflow-create-workout-plan.test.ts (partial, not run)"
+      ],
+      "missing_tests": "All generation surfaces, catalog drops, injury and combined intents",
+      "recommended_test_level": "UNIT + BACKEND INTEGRATION",
+      "required_fixture_context": "All generation surfaces, catalog drops, injury and combined intents",
+      "acceptance_criteria": "Exact requested count or explicit clarification/failure; never silent count drift.",
+      "executed_this_audit": false
+    },
+    {
+      "id": "INV-V02",
+      "statement": "MOVE preserves count and all unrelated sessions",
+      "related_gap_ids": [
+        "BDG-15",
+        "BDG-20"
+      ],
+      "evidence_refs": [
+        "E05"
+      ],
+      "existing_test_coverage": [
+        "NOT_EXHAUSTIVELY_MAPPED"
+      ],
+      "missing_tests": "Four-day draft; Fri→Sat; collision case",
+      "recommended_test_level": "UNIT + BACKEND INTEGRATION",
+      "required_fixture_context": "Four-day draft; Fri→Sat; collision case",
+      "acceptance_criteria": "Only destination weekday changes; session/exercise IDs and doses unchanged.",
+      "executed_this_audit": false
+    },
+    {
+      "id": "INV-V03",
+      "statement": "Targeted focus/exercise change preserves unrelated content",
+      "related_gap_ids": [
+        "BDG-20"
+      ],
+      "evidence_refs": [
+        "E05",
+        "E06"
+      ],
+      "existing_test_coverage": [
+        "agent-workflow-create-workout-plan.test.ts (partial, not run)"
+      ],
+      "missing_tests": "Monday third item, cable exclusion; ambiguous ordinal/day",
+      "recommended_test_level": "UNIT + BACKEND INTEGRATION",
+      "required_fixture_context": "Monday third item, cable exclusion; ambiguous ordinal/day",
+      "acceptance_criteria": "Only resolved item/focus patched; ambiguous requests ask; catalog and equipment rules rerun.",
+      "executed_this_audit": false
+    },
+    {
+      "id": "INV-V04",
+      "statement": "Unresolved physical limitation survives unrelated revisions",
+      "related_gap_ids": [
+        "BDG-16",
+        "BDG-17"
+      ],
+      "evidence_refs": [
+        "E01",
+        "E02",
+        "E17"
+      ],
+      "existing_test_coverage": [
+        "NOT_EXHAUSTIVELY_MAPPED"
+      ],
+      "missing_tests": "Scenarios C/D; benign soreness vs red flags; different regions",
+      "recommended_test_level": "UNIT + BACKEND INTEGRATION",
+      "required_fixture_context": "Scenarios C/D; benign soreness vs red flags; different regions",
+      "acceptance_criteria": "Retain uncertainty and restriction until clarified/resolved; conflicting leg request asks, no diagnosis.",
+      "executed_this_audit": false
+    },
+    {
+      "id": "INV-V05",
+      "statement": "Catalog identity remains authoritative",
+      "related_gap_ids": [
+        "BDG-14"
+      ],
+      "evidence_refs": [
+        "E43"
+      ],
+      "existing_test_coverage": [
+        "NOT_EXHAUSTIVELY_MAPPED"
+      ],
+      "missing_tests": "Published, archived, staging and other-user custom exercise IDs",
+      "recommended_test_level": "BACKEND INTEGRATION",
+      "required_fixture_context": "Published, archived, staging and other-user custom exercise IDs",
+      "acceptance_criteria": "Persist only permitted canonical IDs; no silent fuzzy fallback for an invalid explicit ID.",
+      "executed_this_audit": false
+    },
+    {
+      "id": "INV-V06",
+      "statement": "Nutrition substitutions preserve goal and unrelated meals",
+      "related_gap_ids": [],
+      "evidence_refs": [
+        "E39",
+        "E40"
+      ],
+      "existing_test_coverage": [
+        "NOT_EXHAUSTIVELY_MAPPED"
+      ],
+      "missing_tests": "Active goal+program; completed meal; ambiguous item",
+      "recommended_test_level": "BACKEND INTEGRATION",
+      "required_fixture_context": "Active goal+program; completed meal; ambiguous item",
+      "acceptance_criteria": "Goal row unchanged, scoped item update and transactional meal/day rollups; completed meal refuses.",
+      "executed_this_audit": false
+    },
+    {
+      "id": "INV-V07",
+      "statement": "Serving changes keep derived nutrient totals consistent",
+      "related_gap_ids": [],
+      "evidence_refs": [
+        "E40"
+      ],
+      "existing_test_coverage": [
+        "NOT_EXHAUSTIVELY_MAPPED"
+      ],
+      "missing_tests": "Quantity-only update versus complete nutrient payload",
+      "recommended_test_level": "BACKEND INTEGRATION",
+      "required_fixture_context": "Quantity-only update versus complete nutrient payload",
+      "acceptance_criteria": "Specify API contract; verify resulting item nutrients and rolled-up totals, not only quantity.",
+      "executed_this_audit": false
+    },
+    {
+      "id": "INV-V08",
+      "statement": "Dietary constraints survive unrelated edits and explicit removal",
+      "related_gap_ids": [],
+      "evidence_refs": [
+        "E17",
+        "E18"
+      ],
+      "existing_test_coverage": [
+        "NOT_EXHAUSTIVELY_MAPPED"
+      ],
+      "missing_tests": "Allergy vs preference; add, correct, withdraw",
+      "recommended_test_level": "UNIT + BACKEND INTEGRATION",
+      "required_fixture_context": "Allergy vs preference; add, correct, withdraw",
+      "acceptance_criteria": "Preserve active restrictions; clarify safety-sensitive removal; do not copy permanent union semantics blindly.",
+      "executed_this_audit": false
+    },
+    {
+      "id": "INV-V09",
+      "statement": "Roadmap honors deadline semantics",
+      "related_gap_ids": [
+        "BDG-18"
+      ],
+      "evidence_refs": [
+        "E12",
+        "E14",
+        "E16"
+      ],
+      "existing_test_coverage": [
+        "NOT_EXHAUSTIVELY_MAPPED"
+      ],
+      "missing_tests": "Chat/wizard, explicit 12wk, unspecified and no-deadline; fallback",
+      "recommended_test_level": "UNIT + BACKEND INTEGRATION",
+      "required_fixture_context": "Chat/wizard, explicit 12wk, unspecified and no-deadline; fallback",
+      "acceptance_criteria": "No literal override of explicit input; no-deadline is preserved or clarified; unaffected milestones retained.",
+      "executed_this_audit": false
+    },
+    {
+      "id": "INV-V10",
+      "statement": "PT only accesses actively authorized clients",
+      "related_gap_ids": [
+        "G-24",
+        "BDG-08"
+      ],
+      "evidence_refs": [
+        "E19",
+        "E21",
+        "E49",
+        "E50"
+      ],
+      "existing_test_coverage": [
+        "NOT_EXHAUSTIVELY_MAPPED"
+      ],
+      "missing_tests": "Two PTs, two clients, revoked contract, service error",
+      "recommended_test_level": "BACKEND INTEGRATION",
+      "required_fixture_context": "Two PTs, two clients, revoked contract, service error",
+      "acceptance_criteria": "Every read/write/tool rechecks verified relationship and target ownership; fail closed.",
+      "executed_this_audit": false
+    },
+    {
+      "id": "INV-V11",
+      "statement": "Client-scoped batch proposals remain independent",
+      "related_gap_ids": [
+        "BDG-08"
+      ],
+      "evidence_refs": [
+        "E20",
+        "E23"
+      ],
+      "existing_test_coverage": [
+        "NOT_EXHAUSTIVELY_MAPPED"
+      ],
+      "missing_tests": "Three clients, one revoked, one generation failure",
+      "recommended_test_level": "BACKEND INTEGRATION",
+      "required_fixture_context": "Three clients, one revoked, one generation failure",
+      "acceptance_criteria": "Each authorized result has client/version/audit provenance; no cross-client state or implicit apply.",
+      "executed_this_audit": false
+    },
+    {
+      "id": "INV-V12",
+      "statement": "Stale or altered proposal cannot be confirmed",
+      "related_gap_ids": [
+        "NEW-GAP-001",
+        "G-26"
+      ],
+      "evidence_refs": [
+        "E04",
+        "E09",
+        "E10"
+      ],
+      "existing_test_coverage": [
+        "agent-workflow-finalization-race.test.ts (definitions inspected, not run)"
+      ],
+      "missing_tests": "Two devices confirm/edit/dismiss interleavings and expired TTL",
+      "recommended_test_level": "BACKEND INTEGRATION",
+      "required_fixture_context": "Two devices confirm/edit/dismiss interleavings and expired TTL",
+      "acceptance_criteria": "Atomic content-version check; losing edit rejected; confirmed snapshot exactly equals reviewed preview.",
+      "executed_this_audit": false
+    },
+    {
+      "id": "INV-V13",
+      "statement": "Duplicate confirmation creates one business result",
+      "related_gap_ids": [],
+      "evidence_refs": [
+        "E09",
+        "E51"
+      ],
+      "existing_test_coverage": [
+        "agent-workflow-finalization-race.test.ts (definitions inspected, not run)"
+      ],
+      "missing_tests": "Duplicate request and crash after downstream commit",
+      "recommended_test_level": "BACKEND INTEGRATION",
+      "required_fixture_context": "Duplicate request and crash after downstream commit",
+      "acceptance_criteria": "Use existing claim and downstream idempotency; replay returns original IDs without new writes.",
+      "executed_this_audit": false
+    },
+    {
+      "id": "INV-V14",
+      "statement": "Partial bundle failure is truthful and recoverable",
+      "related_gap_ids": [
+        "BDG-19"
+      ],
+      "evidence_refs": [
+        "E11",
+        "E15"
+      ],
+      "existing_test_coverage": [
+        "NOT_EXHAUSTIVELY_MAPPED"
+      ],
+      "missing_tests": "Fail each step before/after commit; crash before finalization",
+      "recommended_test_level": "BACKEND INTEGRATION",
+      "required_fixture_context": "Fail each step before/after commit; crash before finalization",
+      "acceptance_criteria": "Report each outcome; retry failed steps only; preserve created IDs; concurrent retry cannot duplicate.",
+      "executed_this_audit": false
+    },
+    {
+      "id": "INV-V15",
+      "statement": "Logout/account switch leaves no prior-user state",
+      "related_gap_ids": [
+        "BDG-12"
+      ],
+      "evidence_refs": [
+        "E24",
+        "E25",
+        "E26"
+      ],
+      "existing_test_coverage": [
+        "NOT_EXHAUSTIVELY_MAPPED"
+      ],
+      "missing_tests": "A→B→A, delayed query, token refresh, sockets, rapid switch",
+      "recommended_test_level": "REAL BROWSER + REAL HTTP/API",
+      "required_fixture_context": "A→B→A, delayed query, token refresh, sockets, rapid switch",
+      "acceptance_criteria": "No previous resource IDs rendered, including transient delayed-response flash.",
+      "executed_this_audit": false
+    },
+    {
+      "id": "INV-V16",
+      "statement": "Workflow concurrent corrections do not erase known slots",
+      "related_gap_ids": [
+        "NEW-GAP-002"
+      ],
+      "evidence_refs": [
+        "E41"
+      ],
+      "existing_test_coverage": [
+        "NOT_EXHAUSTIVELY_MAPPED"
+      ],
+      "missing_tests": "Same workflow, two devices editing different slots",
+      "recommended_test_level": "BACKEND INTEGRATION",
+      "required_fixture_context": "Same workflow, two devices editing different slots",
+      "acceptance_criteria": "Merge or explicit conflict; correct lifecycle; no silent lost fields.",
+      "executed_this_audit": false
+    },
+    {
+      "id": "INV-V17",
+      "statement": "Tokens never reach logs",
+      "related_gap_ids": [
+        "G-02",
+        "G-32"
+      ],
+      "evidence_refs": [
+        "E31",
+        "E32"
+      ],
+      "existing_test_coverage": [
+        "NOT_EXHAUSTIVELY_MAPPED"
+      ],
+      "missing_tests": "Capture logger output after login/verify/errors",
+      "recommended_test_level": "UNIT + BACKEND INTEGRATION",
+      "required_fixture_context": "Capture logger output after login/verify/errors",
+      "acceptance_criteria": "No raw access/refresh/cookie/password/OTP in output at any supported serialization nesting.",
+      "executed_this_audit": false
+    },
+    {
+      "id": "INV-V18",
+      "statement": "Safety signals gate every relevant generation surface",
+      "related_gap_ids": [
+        "BDG-16"
+      ],
+      "evidence_refs": [
+        "E02",
+        "E07",
+        "E08"
+      ],
+      "existing_test_coverage": [
+        "NOT_EXHAUSTIVELY_MAPPED"
+      ],
+      "missing_tests": "High-risk vs caution vs ordinary fatigue; context follow-up",
+      "recommended_test_level": "UNIT + BACKEND INTEGRATION",
+      "required_fixture_context": "High-risk vs caution vs ordinary fatigue; context follow-up",
+      "acceptance_criteria": "Appropriate clarification/abstention, no warning-only bypass for known contraindication; no diagnosis invented.",
+      "executed_this_audit": false
+    },
+    {
+      "id": "INV-V19",
+      "statement": "Every directly callable billed-model endpoint enforces intended caller and shared quota",
+      "related_gap_ids": [
+        "G-33",
+        "NEW-GAP-003"
+      ],
+      "evidence_refs": [
+        "E64",
+        "E65",
+        "E66"
+      ],
+      "existing_test_coverage": [
+        "NOT_EXHAUSTIVELY_MAPPED"
+      ],
+      "missing_tests": "Ordinary JWT on service-only endpoint, spoofed body userId, shared bucket exhaustion across endpoints, limiter outage",
+      "recommended_test_level": "BACKEND INTEGRATION",
+      "required_fixture_context": "Mock provider and verified synthetic JWT/service credentials; no paid calls",
+      "acceptance_criteria": "No alternate endpoint bypass; only intended trusted callers or quota-bound verified users; failures fail closed.",
+      "executed_this_audit": false
+    }
+  ]
+}

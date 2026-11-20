@@ -12,6 +12,7 @@ export const notificationRepository = {
     entityType: NotificationEntityType;
     entityId: string;
     link?: string;
+    dedupeKey?: string;
   }) => prisma.notification.create({ data }),
 
   findByUser: (userId: string, skip = 0, take = 20) =>

@@ -87,6 +87,7 @@ import {
 import { StarRating } from "../../components/StarRating";
 import ExerciseMuscleMap from "../../components/ExerciseMuscleMap";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
+import { PlanReviewPanel } from "../../components/plan-review/PlanReviewPanel";
 
 // Format helper
 const formatVideoUrlToImg = (
@@ -4689,6 +4690,15 @@ export function WorkoutLogPage() {
               </div>
             </div>
           </div>
+
+          {/* Plan Review: send the CURRENT program to the client's PT and see the PT's decision. Renders nothing without an active PT contract. */}
+          {currentProgram?.id && (
+            <PlanReviewPanel
+              programId={currentProgram.id}
+              programName={currentProgram.name}
+              programVersion={currentProgram.version}
+            />
+          )}
 
           {/* Training Days + Upcoming Sessions — the actionable core: what's the
               program's structure (left) and which real calendar dates it's

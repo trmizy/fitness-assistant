@@ -1,0 +1,6 @@
+dev-deploy dry-run — run 43223942042, head 3cab8b21, workflow_dispatch, completed success (2026-11-12T13:05Z), chạy bởi chủ dự án.
+Steps: Resolve service list ✓ · download-artifact (lambda-* của build 43217789667) ✓ · Verify artifact hashes against manifests ✓
+(script tính SHA-256 của từng ZIP thật và throw ARTIFACT_HASH_MISMATCH nếu lệch manifest) · configure-aws-credentials SKIPPED ·
+Identity gate SKIPPED · Snapshot scheduler SKIPPED · Deploy services ✓ (DRY: chỉ in kế hoạch, `continue` trước mọi lệnh aws) ·
+Smoke SKIPPED · Scheduler unchanged SKIPPED. Không có migration trong dev-deploy (migrateFunction không được gọi).
+Giá trị sha256 cụ thể chưa đọc (log cần đăng nhập GitHub).

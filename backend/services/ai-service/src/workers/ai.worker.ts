@@ -1,4 +1,9 @@
 import { withGenerationOperation } from "../services/generation-operations";
+import { leaseStorage } from "../services/generation-lease-context";
+import {
+  fullRegenerationCheck, planRevisionWork, runDeltaRevision, tokenBudgetConfig,
+  type CandidateExercise, type PlanDay,
+} from "../services/revision/workout-revision-planner";
 import { Job } from "bullmq";
 import { z } from "zod";
 import { logger } from "@gym-coach/shared";
@@ -176,8 +181,15 @@ function exerciseMatchesMuscleGroup(
 }
 
 /** Parse a day goal string into a list of focus muscle group keys */
-function parseDayFocusMuscleGroups(dayGoal: string): string[] {
-  const s = dayGoal.toLowerCase();
+export function parseDayFocusMuscleGroups(dayGoal: string): string[] {
+  // Accent-insensitive: every pattern below is plain ASCII ("nguc", "lung", "chan", "mong", "tay truoc"), but day goals are written in
+  // accented Vietnamese ("Ngực + Vai", "Lưng + Tay trước") by the model (the schema demands it) and by splitGoalForDay. Lower-casing
+  // alone never matched those, so the focus groups of an accented day silently collapsed to whatever happened to be ASCII ("vai").
+  const s = dayGoal
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d");
 
   // Full body / conditioning patterns first
   if (/full.body|toan.*than|conditioning.*all|general.*strength/.test(s)) {
@@ -339,7 +351,7 @@ function validateExerciseMuscleMatch(
   return null;
 }
 
-function splitGoalForDay(
+export function splitGoalForDay(
   planGoal: string,
   dayIndex: number,
   daysPerWeek: number,
@@ -350,47 +362,47 @@ function splitGoalForDay(
   const hypertrophySplits =
     daysPerWeek >= 6
       ? [
-          "Nguc + Tay sau",
-          "Lung + Tay truoc",
-          "Chan + Mong",
-          "Nguc + Vai",
-          "Lung + Tay truoc B",
-          "Chan + Mong + Core",
+          "Ngực + Tay sau",
+          "Lưng + Tay trước",
+          "Chân + Mông",
+          "Ngực + Vai",
+          "Lưng + Tay trước B",
+          "Chân + Mông + Core",
         ]
       : daysPerWeek >= 5
         ? [
-            "Nguc + Vai + Tay sau",
-            "Lung + Tay truoc",
-            "Chan + Mong",
-            "Vai + Tay truoc + Tay sau",
-            "Chan + Mong + Core",
+            "Ngực + Vai + Tay sau",
+            "Lưng + Tay trước",
+            "Chân + Mông",
+            "Vai + Tay trước + Tay sau",
+            "Chân + Mông + Core",
           ]
         : daysPerWeek >= 4
           ? [
-              "Nguc + Vai + Tay sau",
-              "Lung + Tay truoc",
-              "Chan + Mong",
-              "Vai + Tay truoc + Tay sau",
+              "Ngực + Vai + Tay sau",
+              "Lưng + Tay trước",
+              "Chân + Mông",
+              "Vai + Tay trước + Tay sau",
             ]
-          : ["Nguc + Lung", "Chan + Mong", "Vai + Tay truoc + Tay sau"];
+          : ["Ngực + Lưng", "Chân + Mông", "Vai + Tay trước + Tay sau"];
 
   const generalSplits =
     daysPerWeek >= 5
       ? [
-          "Nguc + Lung + Core",
-          "Chan + Mong",
-          "Vai + Tay truoc + Tay sau",
-          "Chan + Mong + Cardio",
-          "Nguc + Lung nhe",
+          "Ngực + Lưng + Core",
+          "Chân + Mông",
+          "Vai + Tay trước + Tay sau",
+          "Chân + Mông + Cardio",
+          "Ngực + Lưng nhẹ",
         ]
       : daysPerWeek >= 4
         ? [
-            "Nguc + Lung + Core",
-            "Chan + Mong",
-            "Vai + Tay truoc + Tay sau",
-            "Chan + Mong + Core nhe",
+            "Ngực + Lưng + Core",
+            "Chân + Mông",
+            "Vai + Tay trước + Tay sau",
+            "Chân + Mông + Core nhẹ",
           ]
-        : ["Nguc + Lung + Core", "Chan + Mong", "Vai + Tay truoc + Tay sau"];
+        : ["Ngực + Lưng + Core", "Chân + Mông", "Vai + Tay trước + Tay sau"];
 
   const splits = muscleGain ? hypertrophySplits : generalSplits;
   return splits[dayIndex % splits.length];
@@ -1138,7 +1150,9 @@ const PlanJobDataSchema = z.object({
   goal: z.string().min(1).max(200),
   durationWeeks: z.number().int().min(1).max(52),
   daysPerWeek: z.number().int().min(1).max(7),
-  exercisesPerDay: z.number().int().min(1).max(8).default(4),
+  exercisesPerDay: z.number().int().min(1).max(10).default(4),
+  /** In-place revision: the WorkoutPlan version this job was queued against (optimistic concurrency at commit). */
+  baseVersion: z.number().int().min(1).optional(),
   trainingLocation: z.enum(["HOME", "GYM"]).default("GYM").optional(),
   equipmentPreference: z
     .enum(["MACHINE_ONLY", "MIXED_GYM"])
@@ -1213,8 +1227,36 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       swap,
       trainingLocation: requestedTrainingLocation = "GYM",
       equipmentPreference = "MIXED_GYM",
+      baseVersion,
     } = dataResult.data as PlanJobData;
     const planJobStartedAt = Date.now();
+    // An adjustment is an IN-PLACE REVISION of an existing plan (kind PLAN_ADJUSTMENT): the plan row is never marked QUEUED/PROCESSING/FAILED
+    // and is written exactly once, at the end, by commitPlanRevision (atomic, version-checked, idempotent). Any other job keeps the legacy
+    // plan-row lifecycle unchanged.
+    const isRevision = (job.data as any)?.kind === "PLAN_ADJUSTMENT" && baseVersion !== undefined;
+    const revisionOperationId: string | null = isRevision ? String((job.data as any)?.operationId ?? "") || null : null;
+    const lease = leaseStorage.getStore();
+    const REVISION_MOVED_MESSAGE = "Kế hoạch đã được cập nhật trong lúc AI đang điều chỉnh nên bản điều chỉnh này không được áp dụng. Kế hoạch hiện tại vẫn giữ nguyên — hãy thử lại trên bản mới nhất.";
+    const sink = {
+      status: (id: string, st: PlanStatus) => (isRevision ? Promise.resolve() : conversationRepository.updatePlanStatus(id, st)),
+      fail: async (id: string, reason: string): Promise<unknown> => {
+        if (!isRevision) return conversationRepository.updatePlanFailed(id, reason);
+        if (lease) lease.failReason = reason; // recorded on the OPERATION (the revision job); the plan row is untouched
+        return undefined;
+      },
+      complete: async (id: string, content: any): Promise<unknown> => {
+        if (!isRevision) return conversationRepository.updatePlanCompletion(id, content);
+        const outcome = await conversationRepository.commitPlanRevision({
+          planId: id, userId, operationId: revisionOperationId, expectedVersion: baseVersion!, content,
+          daysPerWeek: Array.isArray(content?.weeklySchedule) ? content.weeklySchedule.length : daysPerWeek, adjustments: adjustmentContext ?? null,
+        });
+        if (outcome.kind === "applied" || outcome.kind === "already_applied") return outcome;
+        if (lease) lease.failReason = outcome.kind === "version_conflict" ? REVISION_MOVED_MESSAGE
+          : outcome.kind === "plan_published" ? "Kế hoạch này vừa được đăng lên chợ nên không thể điều chỉnh tại chỗ. Không có gì được thay đổi."
+          : "Kế hoạch không còn khả dụng để điều chỉnh (đã bị ẩn hoặc xoá). Không có gì được thay đổi.";
+        return false;
+      },
+    };
     // Adjustment constraints parsed from the user's text: they decide which catalog exercises the model may choose from.
     const adjust = adjustmentContext?.trim() ? parseWorkoutAdjustment(adjustmentContext) : null;
     if (adjust && swap) {
@@ -1236,10 +1278,17 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
     );
 
     // 2. Mark plan as PROCESSING
-    await conversationRepository.updatePlanStatus(
+    await sink.status(
       planId,
       PlanStatus.PROCESSING,
     );
+
+    // Revision only: load the plan being revised and refuse BEFORE spending a model call if it already moved on.
+    const baseRow: any = isRevision ? await conversationRepository.findPlanById(planId) : null;
+    if (isRevision && (!baseRow || baseRow.userId !== userId || baseRow.archivedAt || baseRow.status !== PlanStatus.COMPLETED || baseRow.version !== baseVersion)) {
+      await sink.fail(planId, baseRow && baseRow.version !== baseVersion ? REVISION_MOVED_MESSAGE : "Kế hoạch không còn khả dụng để điều chỉnh. Không có gì được thay đổi.");
+      return;
+    }
 
     // 3. Fetch allowed exercises from fitness-service (internal API — direct
     // Lambda invoke when FITNESS_LAMBDA_NAME is set, HTTP otherwise)
@@ -1285,7 +1334,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
         { err, planId, userId },
         "Failed to fetch allowed exercises from fitness-service",
       );
-      await conversationRepository.updatePlanFailed(
+      await sink.fail(
         planId,
         "Failed to load exercise catalog from fitness-service",
       );
@@ -1318,7 +1367,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       allowedExercises = allowedExercises.filter((exercise) => !exerciseViolates(exercise, adjust));
       logger.info({ planId, before, after: allowedExercises.length, excluded: adjust.excludeLabels, equipmentOnly: adjust.equipmentOnly ?? null }, "Adjustment constraints applied to the exercise pool");
       if (allowedExercises.length < Math.max(3, exercisesPerDay)) {
-        await conversationRepository.updatePlanFailed(planId, "Thư viện bài tập không còn đủ bài phù hợp với yêu cầu điều chỉnh này. Kế hoạch cũ vẫn giữ nguyên — bạn thử nới bớt yêu cầu nhé.");
+        await sink.fail(planId, "Thư viện bài tập không còn đủ bài phù hợp với yêu cầu điều chỉnh này. Kế hoạch cũ vẫn giữ nguyên — bạn thử nới bớt yêu cầu nhé.");
         return;
       }
     }
@@ -1327,7 +1376,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       const reason =
         "No allowed exercises available for the requested goal/filters";
       logger.error({ planId, userId, goal }, reason);
-      await conversationRepository.updatePlanFailed(planId, reason);
+      await sink.fail(planId, reason);
       return;
     }
 
@@ -1657,7 +1706,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
         const reason = `Final workout plan invariant failed: ${[
           ...new Set(failedConstraints),
         ].join(", ")}`;
-        await conversationRepository.updatePlanFailed(planId, reason);
+        await sink.fail(planId, reason);
         logger.error(
           {
             jobId: job.id,
@@ -1672,7 +1721,8 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       }
 
       attachEvidenceToPlanContent(content, evidenceBundle);
-      await conversationRepository.updatePlanCompletion(planId, content);
+      const committed = await sink.complete(planId, content);
+      if (committed === false) return false; // revision not applied (plan moved/removed): reason recorded, nothing written
       logger.info(
         {
           jobId: job.id,
@@ -1778,6 +1828,60 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
       }
     }
 
+    // ── In-place revision: DELTA path ────────────────────────────────────────────────────────────────────────────────────────────────
+    // A count-only change (raise/lower exercises per session) keeps every existing exercise untouched and asks the model ONLY for the new
+    // ones, chunked by day to the provider's real output limit. The merge and the final count are deterministic; nothing is persisted
+    // unless every chunk and the final verification pass, and the target is never lowered to fit a limit.
+    if (isRevision && adjust && baseRow) {
+      const baseContent: any = baseRow.plan ?? {};
+      const prevDays: PlanDay[] = Array.isArray(baseContent.weeklySchedule) ? baseContent.weeklySchedule : [];
+      const countOnly = !swap && adjust.excludeNamePatterns.length === 0 && !adjust.equipmentOnly && adjust.fullBodyDays.length === 0
+        && !adjust.lighterVolume && !adjust.strengthFocus && !adjust.cardioEachDay && prevDays.length === daysPerWeek && prevDays.length > 0;
+      if (countOnly) {
+        const cfg = tokenBudgetConfig();
+        const work = planRevisionWork(prevDays, exercisesPerDay, cfg);
+        if (work.conflict) {
+          await sink.fail(planId, work.conflict.message);
+          return;
+        }
+        if (work.mode === "NOOP") {
+          await sink.fail(planId, `Kế hoạch đã có đúng ${exercisesPerDay} bài mỗi buổi nên không có gì để thay đổi.`);
+          return;
+        }
+        // Existing exercises stay valid even if today's catalog sample no longer lists them: they are already part of a saved plan.
+        for (const day of prevDays) for (const e of day.exercises) allowedIds.add(e.exerciseId);
+        const candidatesByDay = new Map<number, CandidateExercise[]>(
+          perDayCatalogs.map((c) => [c.dayIndex, c.exercises.map((x) => ({ id: x.id, exerciseName: x.exerciseName }))] as [number, CandidateExercise[]]),
+        );
+        const outcome = await runDeltaRevision({
+          prev: prevDays, target: exercisesPerDay, work, candidatesByDay, validIds: allowedIds,
+          goal, trainingLocation, equipmentPreference, adjustmentContext,
+          callLLM: async (promptText, o) => (await llmService.callLLM(promptText, { responseFormat: "json", timeoutMs: planTimeoutMs, numPredict: o.numPredict, temperature: 0.1 })).answer,
+        });
+        logger.info({ jobId: job.id, planId, mode: work.mode, chunks: work.chunks.length, budgets: outcome.ok ? outcome.budgets : undefined, calls: outcome.ok ? outcome.calls : undefined }, "Plan revision delta finished");
+        if (!outcome.ok) {
+          logger.error({ jobId: job.id, planId, reason: outcome.reason }, "Plan revision delta failed; the plan is unchanged");
+          await sink.fail(planId, outcome.userMessage);
+          return;
+        }
+        const revised: any = { ...baseContent, exercisesPerDay, weeklySchedule: outcome.days };
+        if (outcome.warnings.length) appendPlanWarnings(revised, outcome.warnings as Array<Record<string, unknown>>);
+        await completePlan(revised, "Plan revision completed (delta)", { revisionMode: work.mode });
+        return;
+      }
+    }
+    // Revision through the full-regeneration path: refuse up front when the whole plan cannot fit the provider's output limit.
+    if (isRevision) {
+      const cfg = tokenBudgetConfig();
+      // Same estimate the pre-revision worker used to size this very call (600 + tokensPerExercise per exercise, no extra headroom) — see fullRegenerationCheck.
+      const budget = fullRegenerationCheck(daysPerWeek * exercisesPerDay, cfg);
+      const needed = budget.needed;
+      if (!budget.ok) {
+        await sink.fail(planId, `Điều chỉnh này cần tạo lại cả kế hoạch (${daysPerWeek} buổi × ${exercisesPerDay} bài ≈ ${needed} token), vượt giới hạn đầu ra ${cfg.providerMaxOutputTokens} của mô hình. Mình không tự giảm số bài — hãy tách thành từng bước nhỏ hơn.`);
+        return;
+      }
+    }
+
     let rawAnswer: string;
     try {
       const llmStartedAt = Date.now();
@@ -1847,7 +1951,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
         { err, jobId: job.id, planId },
         "Plan generation: LLM call failed",
       );
-      await conversationRepository.updatePlanFailed(planId, reason);
+      await sink.fail(planId, reason);
       throw err; // Let BullMQ mark the job as failed and apply retry policy.
     }
 
@@ -2011,7 +2115,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
           },
           "Plan generation: structured output validation failed",
         );
-        await conversationRepository.updatePlanFailed(planId, reason);
+        await sink.fail(planId, reason);
         return;
       }
 
@@ -2027,7 +2131,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
         },
         "Plan generation: structured output validation failed",
       );
-      await conversationRepository.updatePlanFailed(planId, reason);
+      await sink.fail(planId, reason);
       return;
     }
 
@@ -2322,7 +2426,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
             { jobId: job.id, planId, reason },
             "Plan generation: retry parse failed",
           );
-          await conversationRepository.updatePlanFailed(planId, reason);
+          await sink.fail(planId, reason);
           return;
         }
         const retryCountRepair = repairExerciseCountAndDayGoals(
@@ -2429,7 +2533,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
             return;
           }
 
-          await conversationRepository.updatePlanFailed(
+          await sink.fail(
             planId,
             "AI khong tao du bai tap cho mot so ngay. Vui long thu lai hoac giam so buoi/tuan.",
           );
@@ -2445,7 +2549,7 @@ async function processAiTaskJobInner(job: Job): Promise<void> {
           { err, jobId: job.id, planId },
           "Plan generation: LLM retry failed",
         );
-        await conversationRepository.updatePlanFailed(planId, reason);
+        await sink.fail(planId, reason);
         return;
       }
     }

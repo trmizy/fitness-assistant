@@ -7,6 +7,7 @@ import {
   ArrowLeftRight,
   BellRing,
   Brain,
+  ClipboardCheck,
   CalendarDays,
   ChevronRight,
   Clock,
@@ -281,6 +282,15 @@ export default function PtDashboardScreen() {
                 label="Check-in"
                 hint="Quét QR gym"
                 onPress={() => router.push("/pt/gym-checkin" as never)}
+              />
+            </View>
+            {/* Own row: a fourth tile would crowd the three above on a 360dp phone. */}
+            <View className="mt-3 flex-row gap-3">
+              <ActionTile
+                icon={ClipboardCheck}
+                label="Duyệt kế hoạch"
+                hint="Kế hoạch học viên gửi"
+                onPress={() => router.push("/pt/plan-reviews" as never)}
               />
             </View>
           </StaggerItem>

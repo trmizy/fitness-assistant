@@ -1,0 +1,64 @@
+{
+  "version": "advisory-evidence-claim-map-v2",
+  "scope": "Traceability supplement; does not replace or modify the frozen v1 source pack",
+  "authority": "ASSISTANT_SOURCE_CHECKED_NOT_INDEPENDENT_HUMAN_REVIEW",
+  "humanExpertReviewed": false,
+  "checkedAt": "2026-10-27",
+  "basePack": "evidence-pack.json",
+  "sources": [
+    {
+      "sourceId": "ACSM_PROGRESSIVE",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/19204579/?dopt=Abstract",
+      "excerpts": [
+        { "id": "ACSM_PROGRESSIVE_OPENING", "basePackPointer": "/sources/0/originalExcerpt", "locator": "Abstract, first sentence" },
+        { "id": "ACSM_CONTEXT", "text": "individual's target goals, physical capacity, and training status.", "locator": "Abstract, final sentence, closing phrase" }
+      ],
+      "claims": [
+        { "id": "ACSM_GENERAL_PROGRESSION", "kind": "SOURCE_FINDING", "supportExcerptIds": ["ACSM_PROGRESSIVE_OPENING"], "textVi": "Position stand mô tả tiến triển tập kháng lực theo mục tiêu." },
+        { "id": "ACSM_CONTEXTUAL_APPLICATION", "kind": "SOURCE_FINDING", "supportExcerptIds": ["ACSM_CONTEXT"], "textVi": "Áp dụng khuyến nghị phải xét mục tiêu, khả năng thể chất và trạng thái tập luyện của cá nhân." }
+      ],
+      "doesNotSupport": ["A particular user needs more load", "The user's improvement was caused by increasing load", "The current plan should be kept or changed"],
+      "currency": {
+        "status": "HISTORICAL_VERSION_USED_IN_FROZEN_DEV",
+        "updateObserved": 2026,
+        "updateAnnouncement": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "updatePaperRecord": "https://pubmed.ncbi.nlm.nih.gov/41843416/",
+        "updateCheckScope": "Existence of the updated position stand confirmed on the official ACSM announcement; no migration of claims or full-text comparison performed"
+      }
+    },
+    {
+      "sourceId": "LOAD_OUTCOME_SPECIFICITY",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28834797/",
+      "excerpts": [
+        { "id": "LOAD_STRENGTH_RESULT", "basePackPointer": "/sources/1/originalExcerpt", "locator": "Abstract, results paragraph, 1RM comparison sentence" },
+        { "id": "LOAD_HYPERTROPHY_RESULT", "text": "Changes in measures of muscle hypertrophy were similar between conditions.", "locator": "Abstract, results paragraph, sentence following the 1RM/isometric-strength comparison" }
+      ],
+      "claims": [
+        { "id": "LOAD_STRENGTH_COMPARISON", "kind": "SOURCE_FINDING", "supportExcerptIds": ["LOAD_STRENGTH_RESULT"], "textVi": "Kết quả 1RM giữa các nhóm tải khác nhau trong các thử nghiệm được tổng hợp." },
+        { "id": "LOAD_HYPERTROPHY_COMPARISON", "kind": "SOURCE_FINDING", "supportExcerptIds": ["LOAD_HYPERTROPHY_RESULT"], "textVi": "Thay đổi phì đại cơ tương tự giữa các điều kiện trong tổng hợp này." }
+      ],
+      "doesNotSupport": ["Individual strength change was caused by hypertrophy", "Estimated 1RM proves individual muscle-size change", "The user's plan is optimal or needs no change"]
+    }
+  ],
+  "applicationInferences": [
+    {
+      "id": "ATTENDANCE_NOT_CAUSAL_DIAGNOSIS",
+      "kind": "APPLICATION_INFERENCE_NOT_AUTHOR_QUOTE",
+      "basedOnClaimIds": ["ACSM_GENERAL_PROGRESSION", "ACSM_CONTEXTUAL_APPLICATION"],
+      "requiresPersonalFacts": "Attendance describes completed sessions; no load/progression history or comparison outcome is supplied in attendance-only.",
+      "textVi": "Chỉ số hoàn thành lịch không đủ để xác định nguyên nhân hoặc quyết định đổi tải của cá nhân."
+    },
+    {
+      "id": "STRENGTH_NOT_MUSCLE_MEASUREMENT",
+      "kind": "APPLICATION_INFERENCE_NOT_AUTHOR_QUOTE",
+      "basedOnClaimIds": ["LOAD_STRENGTH_COMPARISON", "LOAD_HYPERTROPHY_COMPARISON"],
+      "requiresPersonalFacts": "The fixture has estimated strength progression, no direct muscle-size measurement.",
+      "textVi": "Chưa thể kết luận thay đổi kích thước cơ từ các giá trị e1RM trong fixture; đây là giới hạn suy luận, không phải giả thuyết nguyên nhân."
+    }
+  ],
+  "limitations": [
+    "Supplemental excerpts are short supporting fragments, not complete abstracts or eligibility criteria.",
+    "Applicability and inclusion criteria still require the full abstract and existing pack limitations; no clinical/source-wide signoff.",
+    "Do not alter a real scientific source for counterfactual tests; synthetic rules must be separately labelled."
+  ]
+}

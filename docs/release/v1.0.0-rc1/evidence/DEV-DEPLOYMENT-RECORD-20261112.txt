@@ -1,0 +1,15 @@
+GYMINI V1 RC1 — DEV deployment record (account 191798898985, ap-southeast-1)
+Deploy run      : 43227752415 (dev-deploy, workflow_dispatch, dry_run=false, 13:29:19Z → 13:30:52Z, success; reviewer: trmizy)
+                  steps: hash verify ✓ OIDC ✓ identity gate ✓ scheduler snapshot ✓ deploy ✓ smoke /health ✓ scheduler unchanged ✓
+Source          : git 3cab8b216fae9e5f9fffb19ce535fcb7c4f5d58d, CI build 43217789667
+RC1 ZIP sha256  : b8ca3656bd5b5790c5ee4f595c7ee35a9d6ab1aaa2f330aff4977806e34e09db
+RC1 CodeSha256  : uMo2Vr1bV5DF7k9ZXH7jWp1qsaqi8zCv9Jd4BuNOCds=  (base64 → hex re-checked locally)
+S3 object       : s3://fitness-assistant-deployments-dev-191798898985/ci-artifacts/ai/3cab8b21…/b8ca3656….zip (re-hashed by preflight: MATCH)
+Post-deploy verification: preflight 43228949085 (13:4xZ, approved by trmizy):
+  fitness-assistant-dev-ai         RevisionId f5fe94c2-2ef3-4d6f-92a9-17dbf0ca72fe  LastModified 2026-11-12T13:30:10Z  Active Successful Zip  RC1 ✓
+  fitness-assistant-dev-ai-jobs    RevisionId b0e4c964-4049-4f34-a15a-c1191bf45fa8  LastModified 2026-11-12T13:30:21Z  Active Successful Zip  RC1 ✓
+  fitness-assistant-dev-ai-worker  RevisionId 814dfdcc-d44e-4bcc-afd6-378e80655285  LastModified 2026-11-12T13:30:32Z  Active Successful Zip  RC1 ✓
+Pre-deploy baseline (preflight 43227488940, 13:27Z): all three kFRiL623skiUwxiZQVlfaj5o9Yhzqtp7mZx0pdxNG6I= = a54bf4d8 — unchanged since 43225808184.
+Rollback target : ci-artifacts/ai/a54bf4d82153ec5520ef854c8f80c35cee174dc3/9054622fadb7b24894c3189941595f6a3e68f58873aada7b999c74a5dc4d1ba2.zip
+                  (or dev-deploy build_run_id=42614561317 services=ai); success = all three back to kFRiL623…NG6I=.
+Not done        : end-to-end smoke (AI chat through Nova) — needs separate cost approval; RC1 tag; rollback drill.

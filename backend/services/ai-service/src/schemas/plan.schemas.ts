@@ -301,7 +301,9 @@ export const AdjustPlanRequestSchema = z.object({
     .min(5, "adjustments must be at least 5 characters")
     .max(1000, "adjustments must be at most 1000 characters"),
   daysPerWeek: z.number().int().min(1).max(7).optional(),
-  exercisesPerDay: z.number().int().min(1).max(8).optional(),
+  exercisesPerDay: z.number().int().min(1).max(10).optional(),
+  /** Optimistic concurrency: the plan version the caller was looking at. A newer plan => 409 VERSION_CONFLICT and nothing is queued. */
+  expectedVersion: z.number().int().min(1).optional(),
 });
 export type AdjustPlanRequest = z.infer<typeof AdjustPlanRequestSchema>;
 
@@ -358,7 +360,8 @@ export const PlanContentSchema = z
     goal: z.string().min(1).max(200),
     durationWeeks: z.number().int().min(1).max(52),
     daysPerWeek: z.number().int().min(1).max(7),
-    exercisesPerDay: z.number().int().min(1).max(8).optional(),
+    // 10 = MAX_EXERCISES_PER_DAY of an in-place revision (workout-adjustment-constraints.ts); generation requests stay capped at 8 above.
+    exercisesPerDay: z.number().int().min(1).max(10).optional(),
     weeklySchedule: z
       .array(WorkoutDaySchema)
       .min(1, "weeklySchedule must not be empty"),

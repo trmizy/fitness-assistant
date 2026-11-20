@@ -1,0 +1,2 @@
+# Preserve the user-supplied review verbatim, including original CRLF and whitespace.
+user-review-2026-10-27.txt -text

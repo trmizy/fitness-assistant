@@ -1,0 +1,15 @@
+# Temporary, hand-added override — NOT part of the seed tooling.
+# Restores real SMTP + turns off PARTNER_APPLICATION_DEV_ECHO for auth-service only,
+# so a real Gym Owner registration email can be tested during this live session.
+# Apply AFTER compose.seedrun.override.yml (and compose.restore.override.yml) so these
+# win over that file's blanket SMTP="" / DEV_ECHO="true".
+services:
+  auth-service:
+    environment:
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
+      SMTP_SECURE: ${SMTP_SECURE}
+      PARTNER_APPLICATION_DEV_ECHO: "false"

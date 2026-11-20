@@ -153,6 +153,11 @@ export const AgentActionKindSchema = z.enum([
   // Wraps the existing PATCH /workouts/program-exercises/:id endpoint —
   // one exerciseId swap per confirmed day, nothing else on the row changes.
   "SUBSTITUTE_SAVED_EXERCISE",
+  // "gửi plan hiện tại cho PT xem" — submits the user's CURRENT WorkoutProgram to the PT they hold an ACTIVE contract with via the
+  // ordinary Plan Review API (fitness-service POST /plan-reviews). MEDIUM risk (default): it shares plan content (never body/health
+  // data) with a third party, so it always goes through preview + explicit confirm; the PT decides — the agent never approves,
+  // never creates/changes a contract, and never reports success unless the API did.
+  "SEND_PLAN_TO_PT_REVIEW",
 ]);
 export type AgentActionKind = z.infer<typeof AgentActionKindSchema>;
 export function agentActionRisk(kind: AgentActionKind): "LOW" | "MEDIUM" | "HIGH" {

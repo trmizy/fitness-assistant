@@ -1,0 +1,38 @@
+{
+  "_meta": {
+    "source": "03-role-capability-permission-matrix.md",
+    "note": "MANAGER and OWNER both authenticate as GYM_OWNER; the split is a permission inside one partner account, not a separate role. Enforced server-side by gym-service partner-context.middleware.ts (requirePartnerOwner, requireGymScope); client-side checks are UX convenience only."
+  },
+  "roles": [
+    { "id": "ROLE-CUSTOMER", "code_enum": "CUSTOMER", "frontend_name": "client", "owning_service": "auth-service" },
+    { "id": "ROLE-PT", "code_enum": "PT", "frontend_name": "pt", "owning_service": "auth-service", "note": "an account can hold PT and also access full client capabilities via an activeView toggle; exact backend mechanism pending verification" },
+    { "id": "ROLE-GYM_OWNER", "code_enum": "GYM_OWNER", "frontend_name": "gym_owner", "owning_service": "auth-service", "sub_permission": "OWNER vs MANAGER, enforced in gym-service partner-context.middleware.ts, not a separate auth role" },
+    { "id": "ROLE-ADMIN", "code_enum": "ADMIN", "frontend_name": "admin", "owning_service": "auth-service" }
+  ],
+  "removed_roles": [
+    { "code_enum": "GYM_STAFF", "note": "existed historically, removed per web AppContext.tsx comment citing 'Money-flow plan 5.1' — not the same concept as today's MANAGER permission" }
+  ],
+  "role_capability_matrix": [
+    { "role": "ROLE-CUSTOMER", "capabilities": ["CAP-02-01","CAP-03-04","CAP-03-05","CAP-03-06","CAP-04-01","CAP-04-02","CAP-04-03","CAP-05-01","CAP-07-01","CAP-07-03","CAP-09-01","CAP-09-07","CAP-10-01","CAP-10-02","CAP-11-01"] },
+    { "role": "ROLE-PT", "capabilities": ["CAP-08-01","CAP-08-02","CAP-08-03","CAP-08-05","CAP-11-05","CAP-07-04"], "inherits_via_activeView": "ROLE-CUSTOMER capability set" },
+    { "role": "ROLE-GYM_OWNER", "capabilities": ["CAP-12-01","CAP-12-02","CAP-12-03","CAP-12-04","CAP-12-05"], "owner_only_subset": ["wallet (gym revenue)", "manager invitations", "PT collaborations (gym side)"] },
+    { "role": "ROLE-ADMIN", "capabilities": ["CAP-01-07","CAP-03-03","CAP-14-01","CAP-14-02","CAP-14-03","CAP-14-04","CAP-14-07","CAP-14-08","CAP-12-06","CAP-12-07"] }
+  ],
+  "authorization_findings": [
+    { "id": "AUTHZ-01", "finding": "Admin role/status mutation routes have no in-service role check in auth-service, gateway-only enforcement", "related_gap": "G-08", "severity": "P1" },
+    { "id": "AUTHZ-02", "finding": "/auth/internal/* and other internal routes reachable through public gateway proxy, single shared static secret, non-constant-time comparison", "related_gap": "G-09", "severity": "P1" },
+    { "id": "AUTHZ-03", "finding": "No complete owner-check / cross-user-isolation test suite exists; authorization verified by sampling only", "related_gap": "G-24", "severity": "P1" },
+    { "id": "AUTHZ-04", "finding": "ai-service requireRole middleware trusts gateway-injected x-user-role headers by design, documented as conditional on ai-service not being publicly reachable", "related_gap": null, "severity": "UNRATED_ARCHITECTURAL_RISK" },
+    { "id": "AUTHZ-05", "finding": "Coach(PT)-client relationship re-check on the server independently verified as real (not just claimed)", "related_gap": null, "severity": "POSITIVE_FINDING" },
+    { "id": "AUTHZ-06", "finding": "Shared unscoped exercise cache depends on every caller re-applying USER_CUSTOM visibility after read", "related_gap": "G-29", "severity": "P2" },
+    { "id": "AUTHZ-07", "finding": "PT-to-client authorization confirmed robust by direct trace: single shared gate (assertActivePtClientRelationship), clientId always from URL path never request body, re-verified fresh fail-closed on every call, across all 10 coach.controller.ts handlers including program assignment and CycleAssessment review (both nutrition and training side)", "related_gap": null, "severity": "POSITIVE_FINDING" },
+    { "id": "AUTHZ-08", "finding": "AI never autonomously messages a client or writes to a client's plan without an explicit human action; every ai-service tool acts only on the calling user's own account, the one PT-facing AI-generation surface (generatePlanDraft) is confirmed draft-only", "related_gap": null, "severity": "POSITIVE_FINDING" }
+  ],
+  "resolved_questions": [
+    { "question": "Exact mechanics of client+pt dual-capability account", "answer": "Role is a single mutually-exclusive enum column (not multi-role); functional dual-capability exists because ownership checks use userId, not role. Confirmed by direct trace, see 08-pt-client-management-ai-copilot-audit.md section 4." },
+    { "question": "Whether a PT can reach another PT's client data by supplying a clientId without a server-side relationship check", "answer": "No. Confirmed: clientId source is always the URL path across all 10 coach.controller.ts handlers, never the request body; relationship re-verified fresh, fail-closed, on every call. See section 1 of the same file." }
+  ],
+  "open_questions": [
+    "Web-side query-cache clearing on logout/account-switch not traced by this or the prior audit (gap BDG-12)"
+  ]
+}

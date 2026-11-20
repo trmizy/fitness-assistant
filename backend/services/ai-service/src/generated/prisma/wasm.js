@@ -191,6 +191,19 @@ exports.Prisma.WorkoutPlanScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.WorkoutPlanRevisionScalarFieldEnum = {
+  id: 'id',
+  planId: 'planId',
+  userId: 'userId',
+  operationId: 'operationId',
+  kind: 'kind',
+  baseVersion: 'baseVersion',
+  resultVersion: 'resultVersion',
+  adjustments: 'adjustments',
+  previous: 'previous',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.PublishedPlanScalarFieldEnum = {
   id: 'id',
   sourcePlanId: 'sourcePlanId',
@@ -713,6 +726,7 @@ exports.Prisma.ModelName = {
   ChatSession: 'ChatSession',
   UserMemory: 'UserMemory',
   WorkoutPlan: 'WorkoutPlan',
+  WorkoutPlanRevision: 'WorkoutPlanRevision',
   PublishedPlan: 'PublishedPlan',
   PlanModerationAnalysis: 'PlanModerationAnalysis',
   PlanReview: 'PlanReview',

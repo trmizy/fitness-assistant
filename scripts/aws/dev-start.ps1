@@ -58,7 +58,7 @@
 
 .PARAMETER AutoStopHours
   With -Execute, arms the Gymini-DEV-AutoStop scheduled task to turn off
-  EVERYTHING still on-demand-on this many hours from now (default 6) via
+  EVERYTHING still on-demand-on this many hours from now (default 5) via
   dev-auto-stop.ps1 -> dev-stop.ps1 -Execute. It is armed BEFORE any resource
   is created, so a start that fails half-way is still cleaned up. Every
   dev-start re-arms it from "now"; a manual dev-stop that leaves nothing on
@@ -72,7 +72,7 @@ param(
     [switch]$Backend,
     [switch]$Secrets,
     [switch]$Execute,
-    [ValidateRange(0, 24)] [double]$AutoStopHours = 6
+    [ValidateRange(0, 24)] [double]$AutoStopHours = 5
 )
 
 $ErrorActionPreference = "Stop"
@@ -560,20 +560,20 @@ if ($enableChat -eq "true" -and $newTgArn) {
 
 if ($enableAi -eq "true" -and $newVpceId) {
     Write-Host ""
-    Write-Host "9) Waiting for OpenSearch VPC endpoint to become ACTIVE..."
+    Write-Host "9) Waiting for OpenSearch VPC endpoint to become available..."
     $vpceState = "unknown"
     for ($i = 0; $i -lt 20; $i++) {
-        $result = aws opensearchserverless batch-get-vpc-endpoint --ids $newVpceId --region $ExpectedRegion --query "vpcEndpointDetails[0].status" --output text 2>&1
+        $result = aws ec2 describe-vpc-endpoints --vpc-endpoint-ids $newVpceId --region $ExpectedRegion --query "VpcEndpoints[0].State" --output text 2>&1
         if ($LASTEXITCODE -eq 0) { $vpceState = $result }
         Write-Host "   [$i] VPCE $newVpceId status: $vpceState"
-        if ($vpceState -eq "ACTIVE") { break }
+        if ($vpceState -eq "available") { break }
         Start-Sleep -Seconds 10
     }
-    if ($vpceState -ne "ACTIVE") {
-        Write-Host "HARD STOP: VPC endpoint did not reach ACTIVE (last status '$vpceState')." -ForegroundColor Red
+    if ($vpceState -ne "available") {
+        Write-Host "HARD STOP: VPC endpoint did not reach available (last status '$vpceState')." -ForegroundColor Red
         exit 1
     }
-    Write-Host "   Verified: VPCE $newVpceId is ACTIVE" -ForegroundColor Green
+    Write-Host "   Verified: VPCE $newVpceId is available" -ForegroundColor Green
 
     Write-Host ""
     Write-Host "10) Re-pointing network policy '$AossNetworkPolicyName' at the new VPCE ID..."

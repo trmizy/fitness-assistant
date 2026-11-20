@@ -1,0 +1,24 @@
+{
+  "_meta": { "source": "11-test-coverage-and-business-invariants.md", "note": "No test suite was executed by this audit; all counts are from reading test files, not run results." },
+  "test_inventory": {
+    "total_test_files_repo_wide": 393,
+    "frontend_test_files": 61,
+    "playwright_specs": 4,
+    "ai_service_jest_tests": 143,
+    "ai_service_offline_evaluation_harness_files": "not individually counted; separate from Jest count, do not conflate"
+  },
+  "invariants": [
+    { "id": "INV-01", "statement": "Moving a workout session must preserve unrelated sessions", "status": "VIOLATED_CONFIRMED", "gap": "BDG-15" },
+    { "id": "INV-02", "statement": "Changing workout frequency must result in the requested session count", "status": "PARTIALLY_ENFORCED", "gap": "BDG-14" },
+    { "id": "INV-03", "statement": "Changing a meal must not silently change an unrelated nutrition goal", "status": "NOT_VERIFIED_FROM_STATIC_READING", "gap": null },
+    { "id": "INV-04", "statement": "Changing one client's program must not affect another client", "status": "CONFIRMED_ENFORCED", "gap": null },
+    { "id": "INV-05", "statement": "Unauthorized PT-client access must fail", "status": "CONFIRMED_ENFORCED", "gap": null },
+    { "id": "INV-06", "statement": "Confirming a stale proposal must not apply outdated changes", "status": "PARTIALLY_ENFORCED", "gap": "G-26" },
+    { "id": "INV-07", "statement": "Partially completed workflows must accurately report what succeeded", "status": "CONFIRMED_ENFORCED", "gap": null },
+    { "id": "INV-08", "statement": "Safety restrictions must survive conversational revisions", "status": "VIOLATED_CONFIRMED", "gap": "BDG-16,BDG-17", "note": "most important invariant failure in the audit" },
+    { "id": "INV-09", "statement": "A PT-dashboard query must never require N+1 calls across a client roster", "status": "ENFORCED_BY_OMISSION", "gap": "BDG-08", "note": "enforced only because the feature that would risk it does not exist yet" },
+    { "id": "INV-10", "statement": "An AI-drafted plan must never be persisted without the owning service's own accept step", "status": "CONFIRMED_ENFORCED_3X", "gap": null },
+    { "id": "INV-11", "statement": "A CycleAssessment's AI-authored decision must never be settable by a human reviewer", "status": "CONFIRMED_ENFORCED", "gap": null },
+    { "id": "INV-12", "statement": "An unresolvable AI-generated exercise reference must never be silently persisted", "status": "CONFIRMED_ENFORCED", "gap": null }
+  ]
+}

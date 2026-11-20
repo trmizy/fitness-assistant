@@ -1,0 +1,15 @@
+RC1 on AWS dev — quick end-to-end smoke (REAL BROWSER, owner's own logged-in session on gymini.vn, Edge via Claude in Chrome), 2026-11-12
+Backend started by the owner (dev-start -Backend, AutoStopHours 0). Code: ai Lambdas = RC1 (CodeSha256 uMo2Vr1b…OCds=).
+Calls: 3 × POST /ai/ask/stream → 200 (Nova Pro, ~3 paid calls). Every other request in the session was a GET → 200. No write requests.
+Q1 "Tập 3 buổi hay 5 buổi một tuần thì tăng cơ tốt hơn?" → coherent Vietnamese answer, personalised to the active 5-day plan.
+   QUALITY P2 (same class as known issue H-03): it claims 5 sessions/week is "thường hiệu quả hơn" and "phục hồi tốt hơn"
+   and does not say that total weekly volume matters more than frequency when volume is equal.
+Q2 "Nếu tôi tập 3 buổi một tuần thì sao?" (hypothetical) → text-only sample 3-day split + rest advice; NO draft/confirm card,
+   no write request; dashboard after reload still "Lịch tập do AI Coach tạo · 5 ngày · 40 bài tập" → hypothetical did not mutate. PASS.
+   Minor: exercise names/sets in English inside a Vietnamese answer (P3).
+Q3 "Mỗi ngày tôi cần ăn bao nhiêu protein?" → "162g đạm/ngày … Đây là mục tiêu hiện tại của bạn, dựa trên cân nặng 80kg" — matches the
+   NutritionGoal (162 g ≈ 2.0 g/kg, inside 1.6–2.2), framed as a target not as intake; doctor caveat. PASS.
+No internal enum leak in the three new answers (an OLD message earlier in the thread shows MUSCLE_GAIN/BEGINNER — generated before RC1).
+Separate finding (frontend, not RC1, P2): when /auth/refresh returns 500 (backend down), the dashboard stays blank and loops requests
+(~360 in 10 s) instead of sending the user to login.
+Label: REAL BROWSER, 3 samples, CC-rater (LLM, not human, not independent blind review). Not a full E2E regression.

@@ -1,0 +1,4 @@
+backend/services/ai-service/src/llm/medical-referral.ts
+backend/services/ai-service/src/services/exercise-guidance.ts
+backend/services/ai-service/src/services/revision/workout-guards.ts
+backend/services/ai-service/src/__tests__/coach-b4-regressions.test.ts

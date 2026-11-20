@@ -1,0 +1,18 @@
+✔ 40 calls admitted; call 41 is refused BEFORE the network, with a non-retryable error (114.6114ms)
+✔ concurrent background workers cannot race past the cap (60 simultaneous requests, cap 40) (127.154ms)
+✔ embeddings are provider calls under the same cap; usage counted once per attempt (32.2705ms)
+✔ the USD cap uses actual + reserved spend, so in-flight calls cannot jointly overrun it (56.5173ms)
+✔ unknown operations (e.g. streaming) are refused, never forwarded (4.7166ms)
+✔ a job left from an earlier run that fires after the run closed the gate is refused before the network (6.1038ms)
+✔ a call longer than any quiet window keeps the run UNSETTLED until the provider answers (no time-based guess) (55.6745ms)
+✔ a call the client abandons (timeout / stop) is still followed to completion and its usage recorded (275.8659ms)
+✔ no provider answer at all → recorded as UNKNOWN (possibly billed), not dropped (118.0426ms)
+✔ queue still holding jobs, or a queue that cannot be read, is UNSETTLED (0.3624ms)
+✔ REAL ai-service client: chat AND embedding go through the gate (endpoint override honoured, fake creds suffice) (880.3538ms)
+✔ REAL ai-service client: every SDK retry is a separate counted attempt; usage only from the successful one (1007.1896ms)
+✔ REAL ai-service client: a gate refusal is not retried by the SDK (one refused attempt per call) (867.9189ms)
+✔ fail closed: gate not running → the ai-service client cannot reach any provider (1128.3378ms)
+✔ real upstream signs for Bedrock Runtime with the GATE's credentials (offline: request function injected) (29.4737ms)
+ℹ tests 15
+ℹ pass 15
+ℹ fail 0

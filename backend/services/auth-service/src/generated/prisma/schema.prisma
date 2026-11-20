@@ -24,24 +24,24 @@ enum Role {
 }
 
 model User {
-  id                 String   @id @default(uuid())
-  email              String   @unique
-  password           String
-  firstName          String?
-  lastName           String?
-  role               Role     @default(CUSTOMER)
-  isActive           Boolean  @default(true)
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String?
+  lastName  String?
+  role      Role     @default(CUSTOMER)
+  isActive  Boolean  @default(true)
   /// Set true only when an admin creates the account directly (currently just gym owners —
   /// see authService.createGymOwnerAccount) with a random temporary password the admin relays
   /// out of band. Cleared the moment ANY password change succeeds (self-service or this
   /// forced one go through the same changePassword path) — never touched anywhere else, so a
   /// normal self-registered user is never affected by this flag at all.
-  mustChangePassword Boolean  @default(false) @map("must_change_password")
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  mustChangePassword Boolean @default(false) @map("must_change_password")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  refreshTokens  RefreshToken[]
-  auditLogs      AuditLog[]
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
   passwordResets PasswordResetToken[]
 
   @@map("users")
@@ -55,15 +55,15 @@ model User {
 /// ⚠️ LƯU BĂM (sha256), KHÔNG LƯU TOKEN GỐC. Token gốc chỉ tồn tại một lần trong phản hồi
 /// lúc tạo, để nhét vào link gửi đi.
 model PasswordResetToken {
-  id          String    @id @default(uuid())
-  userId      String    @map("user_id")
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash   String    @unique @map("token_hash")
-  expiresAt   DateTime  @map("expires_at")
-  usedAt      DateTime? @map("used_at")
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
   /// Quản trị viên đã bấm "Đặt lại mật khẩu"; null nếu người dùng tự yêu cầu.
-  requestedBy String?   @map("requested_by")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  requestedBy String? @map("requested_by")
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@index([userId])
   @@map("password_reset_tokens")
@@ -144,10 +144,10 @@ model AuditLog {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  action    String // "LOGIN", "LOGOUT", "REGISTER", "REFRESH_TOKEN", "PASSWORD_CHANGE"
+  action    String   // "LOGIN", "LOGOUT", "REGISTER", "REFRESH_TOKEN", "PASSWORD_CHANGE"
   ipAddress String?
   userAgent String?
-  metadata  Json? // Additional context
+  metadata  Json?    // Additional context
   createdAt DateTime @default(now())
 
   @@index([userId])

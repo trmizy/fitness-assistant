@@ -1,0 +1,207 @@
+{
+  "nodes": [
+    {
+      "id": "RC-01",
+      "name": "Workout operation semantics and precise targets",
+      "gap_ids": [
+        "BDG-15",
+        "BDG-20"
+      ],
+      "evidence_refs": [
+        "E05",
+        "E06"
+      ],
+      "recommendation": "Shared typed operation envelope plus domain-specific patch functions; retain unaffected identities, count and content."
+    },
+    {
+      "id": "RC-02",
+      "name": "Constraint capture and lifecycle across turns",
+      "gap_ids": [
+        "BDG-16",
+        "BDG-17"
+      ],
+      "evidence_refs": [
+        "E01",
+        "E02",
+        "E03",
+        "E17"
+      ],
+      "recommendation": "Workflow-scoped symptom/restriction state with provenance, uncertainty, status and explicit resolution; nutrition union semantics are insufficient for safety."
+    },
+    {
+      "id": "RC-03",
+      "name": "Unequal validation across generation surfaces",
+      "gap_ids": [
+        "BDG-14"
+      ],
+      "evidence_refs": [
+        "E07",
+        "E08"
+      ],
+      "recommendation": "Normalize proposals and validate requested count and constraints after all generation paths, before display and persistence."
+    },
+    {
+      "id": "RC-04",
+      "name": "Explicit versus default duration not carried to chat request",
+      "gap_ids": [
+        "BDG-18"
+      ],
+      "evidence_refs": [
+        "E12",
+        "E13",
+        "E16"
+      ],
+      "recommendation": "Preserve user-specified, unspecified and open-ended intent; domain phase bounds remain valid."
+    },
+    {
+      "id": "RC-05",
+      "name": "Bundle lacks durable per-step recovery identity",
+      "gap_ids": [
+        "BDG-19"
+      ],
+      "evidence_refs": [
+        "E11",
+        "E15"
+      ],
+      "recommendation": "Persist step result IDs/status and stable per-step idempotency tokens; test crash boundaries and concurrent retry."
+    },
+    {
+      "id": "RC-06",
+      "name": "Unredacted authentication request logging",
+      "gap_ids": [
+        "G-02",
+        "G-32"
+      ],
+      "evidence_refs": [
+        "E31",
+        "E32"
+      ],
+      "recommendation": "Central redaction with captured-output tests."
+    },
+    {
+      "id": "RC-07",
+      "name": "Read-modify-write without expected content revision",
+      "gap_ids": [
+        "NEW-GAP-001",
+        "NEW-GAP-002",
+        "G-26"
+      ],
+      "evidence_refs": [
+        "E04",
+        "E09",
+        "E10",
+        "E41"
+      ],
+      "recommendation": "Extend existing conditional transition pattern to revisions; explicit preview version at confirmation."
+    },
+    {
+      "id": "RC-08",
+      "name": "Governance scope ambiguity",
+      "gap_ids": [
+        "BDG-01",
+        "G-17"
+      ],
+      "evidence_refs": [
+        "E07",
+        "E36"
+      ],
+      "recommendation": "Clarify local flags; add global policy only against an agreed model-entry-point contract."
+    },
+    {
+      "id": "RC-09",
+      "name": "Partial model-entry-point authorization and budget coverage",
+      "gap_ids": [
+        "G-33",
+        "NEW-GAP-003"
+      ],
+      "evidence_refs": [
+        "E64",
+        "E65",
+        "E66"
+      ],
+      "recommendation": "Use endpoint policy inventory; service-only gates or authenticated distributed user quotas on every billable path."
+    }
+  ],
+  "edges": [
+    {
+      "from": "RC-01",
+      "to": "BDG-15",
+      "relationship": "contributes_to"
+    },
+    {
+      "from": "RC-01",
+      "to": "BDG-20",
+      "relationship": "contributes_to"
+    },
+    {
+      "from": "RC-02",
+      "to": "BDG-16",
+      "relationship": "contributes_to"
+    },
+    {
+      "from": "RC-02",
+      "to": "BDG-17",
+      "relationship": "contributes_to"
+    },
+    {
+      "from": "RC-03",
+      "to": "BDG-14",
+      "relationship": "contributes_to"
+    },
+    {
+      "from": "RC-04",
+      "to": "BDG-18",
+      "relationship": "contributes_to"
+    },
+    {
+      "from": "RC-05",
+      "to": "BDG-19",
+      "relationship": "contributes_to"
+    },
+    {
+      "from": "RC-06",
+      "to": "G-02",
+      "relationship": "contributes_to"
+    },
+    {
+      "from": "RC-06",
+      "to": "G-32",
+      "relationship": "contributes_to"
+    },
+    {
+      "from": "RC-07",
+      "to": "NEW-GAP-001",
+      "relationship": "contributes_to"
+    },
+    {
+      "from": "RC-07",
+      "to": "NEW-GAP-002",
+      "relationship": "contributes_to"
+    },
+    {
+      "from": "RC-07",
+      "to": "G-26",
+      "relationship": "contributes_to"
+    },
+    {
+      "from": "RC-08",
+      "to": "BDG-01",
+      "relationship": "contributes_to"
+    },
+    {
+      "from": "RC-08",
+      "to": "G-17",
+      "relationship": "contributes_to"
+    },
+    {
+      "from": "RC-09",
+      "to": "G-33",
+      "relationship": "contributes_to"
+    },
+    {
+      "from": "RC-09",
+      "to": "NEW-GAP-003",
+      "relationship": "contributes_to"
+    }
+  ]
+}

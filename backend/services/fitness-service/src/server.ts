@@ -7,6 +7,7 @@ import { redisClient } from "./repositories/redis";
 import { workoutWorker } from "./workers/workout.worker";
 import { startWorkoutUpcomingReminderJob, startWorkoutUnfinishedReminderJob } from "./services/workout-reminder.service";
 import { startCycleEvaluationSweepJob } from "./services/cycle-evaluation-sweep.service";
+import { startPlanReviewNotificationJob } from "./services/plan-review/plan-review.notifier";
 import { logger } from "@gym-coach/shared";
 
 const PORT = process.env.PORT || 3002;
@@ -26,6 +27,7 @@ async function startServer() {
       startWorkoutUpcomingReminderJob();
       startWorkoutUnfinishedReminderJob();
       startCycleEvaluationSweepJob();
+      startPlanReviewNotificationJob();
     });
   } catch (error) {
     logger.error("Failed to start server:", error);

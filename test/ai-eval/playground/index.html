@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Coach Playground</title>
+<style>
+  :root { --bg:#0d0f12; --panel:#161a20; --line:#262c36; --text:#e8ecf2; --muted:#8a93a3; --green:#22c55e; --amber:#f59e0b; --red:#ef4444; --blue:#60a5fa; }
+  :root[data-theme="light"] { --bg:#f5f6f8; --panel:#fff; --line:#dfe3ea; --text:#161a20; --muted:#667085; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  header { padding:14px 16px; border-bottom:1px solid var(--line); display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  h1 { font-size:17px; margin:0; }
+  main { display:grid; grid-template-columns:300px 1fr; gap:0; min-height:calc(100vh - 56px); }
+  aside { border-right:1px solid var(--line); padding:14px 16px; background:var(--panel); }
+  section#chat { padding:14px 16px 120px; max-width:900px; width:100%; }
+  @media (max-width:760px) { main { grid-template-columns:1fr; } aside { border-right:0; border-bottom:1px solid var(--line); } }
+  label { display:block; color:var(--muted); font-size:12px; margin:12px 0 4px; }
+  select, textarea, input[type=text] { width:100%; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:9px 10px; font:inherit; }
+  textarea { min-height:64px; resize:vertical; }
+  button { background:var(--green); color:#04210f; border:0; border-radius:8px; padding:9px 14px; font:inherit; font-weight:600; cursor:pointer; min-height:40px; }
+  button.ghost { background:transparent; color:var(--text); border:1px solid var(--line); }
+  button:disabled { opacity:.5; cursor:default; }
+  .profile { font-size:13px; color:var(--muted); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-top:6px; }
+  .tabs { display:flex; gap:6px; margin:14px 0 8px; }
+  .tabs button { flex:1; }
+  .tabs button.on { background:var(--blue); color:#06182c; }
+  .msg { margin:14px 0; }
+  .me { background:var(--blue); color:#06182c; display:inline-block; padding:8px 12px; border-radius:12px 12px 2px 12px; max-width:90%; }
+  .ai { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; white-space:pre-wrap; word-break:break-word; }
+  .meta { color:var(--muted); font-size:12px; margin:6px 2px; }
+  .chip { display:inline-block; border:1px solid var(--line); border-radius:999px; padding:2px 10px; font-size:12px; margin-right:6px; color:var(--amber); }
+  .ideal { border-left:3px solid var(--amber); padding:6px 10px; margin:8px 0; color:var(--muted); font-size:13px; background:var(--panel); border-radius:0 8px 8px 0; }
+  .rate { margin-top:10px; border-top:1px dashed var(--line); padding-top:10px; }
+  .rate .row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .v-ok.on { background:var(--green); } .v-part.on { background:var(--amber); color:#2a1a00; } .v-bad.on { background:var(--red); color:#fff; }
+  .saved { color:var(--green); font-size:13px; }
+  .composer { position:fixed; left:300px; right:0; bottom:0; padding:12px 16px; background:var(--bg); border-top:1px solid var(--line); display:flex; gap:8px; }
+  @media (max-width:760px) { .composer { left:0; } }
+  .composer textarea { min-height:46px; height:46px; }
+  .hint { color:var(--muted); font-size:13px; }
+  .actions { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+<header>
+  <h1>AI Coach Playground</h1>
+  <span class="hint">Nhập câu hỏi → AI thật trả lời → bạn chấm. Mọi đánh giá được lưu để kỹ sư sửa theo.</span>
+  <button class="ghost" id="theme" style="margin-left:auto">Sáng/Tối</button>
+</header>
+<main>
+  <aside>
+    <label for="persona">Bạn đang đóng vai</label>
+    <select id="persona"></select>
+    <div class="profile" id="profile"></div>
+    <div class="tabs">
+      <button id="tab-v1" class="on">Kịch bản v1</button>
+      <button id="tab-v2" class="ghost">Tự nhập (v2)</button>
+    </div>
+    <div id="v1box">
+      <div class="hint" id="v1step"></div>
+      <div class="ideal" id="v1ideal"></div>
+      <button id="v1send">Gửi câu này</button>
+      <button class="ghost" id="v1skip">Bỏ qua</button>
+    </div>
+    <div id="v2box" style="display:none"><div class="hint">Gõ câu hỏi của bạn ở ô dưới cùng, bấm Gửi.</div></div>
+    <label>Phiên chat</label>
+    <button class="ghost" id="newchat">Bắt đầu cuộc trò chuyện mới</button>
+    <label>Đã chấm hôm nay</label>
+    <div class="hint" id="count">0</div>
+  </aside>
+  <section id="chat"></section>
+</main>
+<div class="composer">
+  <textarea id="q" placeholder="Gõ câu hỏi như người dùng thật… (Enter để gửi, Shift+Enter xuống dòng)"></textarea>
+  <button id="send">Gửi</button>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const state = { personas: [], persona: null, sessionId: null, mode: "v1", step: 0, rated: 0 };
+const chat = $("chat");
+const esc = (s) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+const fmt = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+try { const t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+$("theme").onclick = () => { const n = document.documentElement.dataset.theme === "light" ? "dark" : "light"; document.documentElement.dataset.theme = n; try { localStorage.setItem("theme", n); } catch {} };
+
+async function api(path, body) {
+  const r = await fetch(path, body ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : undefined);
+  return r.json();
+}
+const current = () => state.personas.find((p) => p.key === state.persona);
+
+function renderSidebar() {
+  const p = current();
+  const pr = p.profile;
+  $("profile").textContent = `${pr.gender === "MALE" ? "Nam" : "Nữ"}, ${pr.age} tuổi, ${pr.heightCm}cm, ${pr.currentWeight}kg → ${pr.targetWeight}kg · mục tiêu ${pr.goal} · trình độ ${pr.experienceLevel}`;
+  const s = p.scenario[state.step];
+  $("v1step").textContent = s ? `Câu ${state.step + 1}/${p.scenario.length}: “${s.say}”` : "Đã hết kịch bản v1 cho vai này. Chuyển sang “Tự nhập (v2)”.";
+  $("v1ideal").style.display = s ? "block" : "none";
+  $("v1ideal").textContent = s ? `Một câu trả lời hợp lý nên: ${s.ideal}` : "";
+  $("v1send").disabled = !s; $("v1skip").disabled = !s;
+}
+function setMode(m) {
+  state.mode = m;
+  $("tab-v1").className = m === "v1" ? "on" : "ghost"; $("tab-v2").className = m === "v2" ? "on" : "ghost";
+  $("v1box").style.display = m === "v1" ? "block" : "none"; $("v2box").style.display = m === "v2" ? "block" : "none";
+}
+function newChat() { state.sessionId = null; chat.innerHTML = ""; state.step = 0; renderSidebar(); }
+
+async function ask(question, ideal) {
+  if (!question.trim()) return;
+  chat.insertAdjacentHTML("beforeend", `<div class="msg"><span class="me">${esc(question)}</span></div>`);
+  const holder = document.createElement("div"); holder.className = "msg";
+  holder.innerHTML = '<div class="ai">Đang chờ AI trả lời…</div>'; chat.appendChild(holder);
+  holder.scrollIntoView({ behavior: "smooth", block: "end" });
+  $("send").disabled = true; $("v1send").disabled = true;
+  let r;
+  try { r = await api("/api/ask", { persona: state.persona, sessionId: state.sessionId, question }); } catch (e) { r = { error: String(e), answer: "" , blocks: []}; }
+  $("send").disabled = false; renderSidebar();
+  if (r.sessionId) state.sessionId = r.sessionId;
+  const chips = (r.blocks || []).map((b) => `<span class="chip">${esc(b.kind)}</span>`).join("");
+  const renderBlock = (bl) => {
+    const d = bl.detail; if (!d) return "";
+    const days = d.days || d.weeklySchedule || d.summary?.days;
+    let body;
+    if (Array.isArray(days) && days.length) {
+      body = days.map((x) => `<div style="margin:6px 0"><b>${esc(x.day || x.title || "")}</b> <span class="hint">${esc(x.goal || "")}</span><br>${(x.exercises || []).map((e) => esc(`• ${e.name}: ${e.sets} hiệp × ${e.reps}${e.restSeconds ? " · nghỉ " + e.restSeconds + "s" : ""}`)).join("<br>")}</div>`).join("");
+      body = `<div class="hint">${esc([d.daysPerWeek && d.daysPerWeek + " buổi/tuần", d.sessionMinutes && d.sessionMinutes + " phút/buổi", d.goal].filter(Boolean).join(" · "))}</div>` + body;
+    } else body = `<pre style="white-space:pre-wrap;word-break:break-word;margin:0">${esc(JSON.stringify(d.summary ?? d, null, 1).slice(0, 6000))}</pre>`;
+    return `<details open class="ai" style="margin-top:8px"><summary><b>Thẻ: ${esc(bl.kind)}</b> — ${esc(bl.title || "")}</summary>${body}</details>`;
+  };
+  const cards = (r.blocks || []).map(renderBlock).join("");
+  const acts = (r.blocks || []).filter((b) => b.actionId).map((b) => `<button class="ghost" data-a="confirm" data-id="${esc(b.actionId)}">Xác nhận (${esc(b.kind)})</button><button class="ghost" data-a="dismiss" data-id="${esc(b.actionId)}">Bỏ qua</button>`).join("");
+  holder.innerHTML = `
+    <div class="ai">${fmt(r.answer || r.error || "(không có câu trả lời)")}</div>
+    <div class="meta">${r.status ?? ""} · ${r.ms ?? "?"}ms ${chips}</div>
+    ${cards}
+    ${acts ? `<div class="actions">${acts}</div><div class="meta act-result"></div>` : ""}
+    <div class="rate">
+      <div class="row">
+        <button class="ghost v-ok" data-v="dung">👍 Hợp lý</button>
+        <button class="ghost v-part" data-v="mot-phan">😐 Đúng một phần</button>
+        <button class="ghost v-bad" data-v="sai">👎 Chưa hợp lý</button>
+      </div>
+      <textarea class="note" placeholder="Lý do / chỗ chưa ổn (nếu có)"></textarea>
+      <textarea class="should" placeholder="Theo bạn AI nên trả lời / làm gì (nếu muốn)"></textarea>
+      <div class="row" style="margin-top:8px"><button class="save">Lưu đánh giá</button><span class="saved"></span></div>
+    </div>`;
+  let verdict = null;
+  holder.querySelectorAll("[data-v]").forEach((b) => b.onclick = () => { verdict = b.dataset.v; holder.querySelectorAll("[data-v]").forEach((x) => x.classList.toggle("on", x === b)); });
+  holder.querySelectorAll("[data-a]").forEach((b) => b.onclick = async () => {
+    b.disabled = true;
+    const x = await api("/api/action", { persona: state.persona, op: b.dataset.a, actionId: b.dataset.id });
+    holder.querySelector(".act-result").textContent = `${b.dataset.a === "confirm" ? "Kết quả xác nhận" : "Đã bỏ qua"}: ${x.message}${(x.steps || []).length ? " — " + x.steps.join(" | ") : ""}`;
+  });
+  holder.querySelector(".save").onclick = async () => {
+    if (!verdict) { holder.querySelector(".saved").textContent = "Hãy chọn Hợp lý / Một phần / Chưa hợp lý trước."; return; }
+    await api("/api/rate", { persona: state.persona, mode: state.mode, question, answer: r.answer, blocks: r.blocks, verdict, note: holder.querySelector(".note").value, shouldBe: holder.querySelector(".should").value, ideal: ideal || "" });
+    state.rated++; $("count").textContent = state.rated; holder.querySelector(".saved").textContent = "Đã lưu ✓";
+  };
+  holder.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
+$("persona").onchange = () => { state.persona = $("persona").value; newChat(); };
+$("tab-v1").onclick = () => setMode("v1"); $("tab-v2").onclick = () => setMode("v2");
+$("newchat").onclick = newChat;
+$("v1send").onclick = () => { const s = current().scenario[state.step]; if (!s) return; state.step++; ask(s.say, s.ideal); };
+$("v1skip").onclick = () => { state.step++; renderSidebar(); };
+$("send").onclick = () => { const v = $("q").value; $("q").value = ""; ask(v, ""); };
+$("q").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("send").click(); } });
+
+(async () => {
+  state.personas = await api("/api/personas");
+  $("persona").innerHTML = state.personas.map((p) => `<option value="${p.key}">${esc(p.label)}</option>`).join("");
+  state.persona = state.personas[0].key; renderSidebar();
+})();
+</script>
+</body>
+</html>

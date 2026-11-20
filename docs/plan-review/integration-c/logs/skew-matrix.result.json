@@ -1,0 +1,227 @@
+[
+ {
+  "scenario": "S1_fresh_published",
+  "how": "processAiTaskJob",
+  "modelCalls": 0,
+  "planIntact": true,
+  "before": {
+   "plan": {
+    "status": "COMPLETED",
+    "version": 1,
+    "perDay": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "failReason": null
+   },
+   "planRows": 1,
+   "op": {
+    "status": "PUBLISHED",
+    "epoch": 1,
+    "lastError": null
+   }
+  },
+  "after": {
+   "plan": {
+    "status": "COMPLETED",
+    "version": 1,
+    "perDay": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "failReason": null
+   },
+   "planRows": 1,
+   "op": {
+    "status": "COMPLETED",
+    "epoch": 1,
+    "lastError": null
+   }
+  },
+  "thrown": null
+ },
+ {
+  "scenario": "S2_running_expired_lease",
+  "how": "recoverPendingGenerations (old)",
+  "modelCalls": 0,
+  "planIntact": true,
+  "before": {
+   "plan": {
+    "status": "COMPLETED",
+    "version": 1,
+    "perDay": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "failReason": null
+   },
+   "planRows": 1,
+   "op": {
+    "status": "RUNNING",
+    "epoch": 1,
+    "lastError": null
+   }
+  },
+  "after": {
+   "plan": {
+    "status": "COMPLETED",
+    "version": 1,
+    "perDay": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "failReason": null
+   },
+   "planRows": 1,
+   "op": {
+    "status": "COMPLETED",
+    "epoch": 1,
+    "lastError": null
+   }
+  },
+  "thrown": null
+ },
+ {
+  "scenario": "S3_attempts_exhausted",
+  "how": "processAiTaskJob",
+  "modelCalls": 0,
+  "planIntact": true,
+  "before": {
+   "plan": {
+    "status": "COMPLETED",
+    "version": 1,
+    "perDay": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "failReason": null
+   },
+   "planRows": 1,
+   "op": {
+    "status": "PUBLISHED",
+    "epoch": 1,
+    "lastError": null
+   }
+  },
+  "after": {
+   "plan": {
+    "status": "COMPLETED",
+    "version": 1,
+    "perDay": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "failReason": null
+   },
+   "planRows": 1,
+   "op": {
+    "status": "COMPLETED",
+    "epoch": 1,
+    "lastError": null
+   }
+  },
+  "thrown": null
+ },
+ {
+  "scenario": "S4_failed_op",
+  "how": "store.repairFailedTarget (old)",
+  "modelCalls": 0,
+  "planIntact": true,
+  "before": {
+   "plan": {
+    "status": "COMPLETED",
+    "version": 1,
+    "perDay": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "failReason": null
+   },
+   "planRows": 1,
+   "op": {
+    "status": "FAILED",
+    "epoch": 1,
+    "lastError": "boom"
+   }
+  },
+  "after": {
+   "plan": {
+    "status": "COMPLETED",
+    "version": 1,
+    "perDay": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "failReason": null
+   },
+   "planRows": 1,
+   "op": {
+    "status": "FAILED",
+    "epoch": 1,
+    "lastError": "boom"
+   }
+  },
+  "thrown": null
+ },
+ {
+  "scenario": "S5_plan_not_completed_UNREACHABLE",
+  "how": "processAiTaskJob",
+  "modelCalls": 1,
+  "planIntact": false,
+  "before": {
+   "plan": {
+    "status": "PROCESSING",
+    "version": 1,
+    "perDay": [
+     4,
+     4,
+     4,
+     4
+    ],
+    "failReason": null
+   },
+   "planRows": 1,
+   "op": {
+    "status": "PUBLISHED",
+    "epoch": 1,
+    "lastError": null
+   }
+  },
+  "after": {
+   "plan": {
+    "status": "COMPLETED",
+    "version": 1,
+    "perDay": [
+     8,
+     8,
+     8,
+     8
+    ],
+    "failReason": null
+   },
+   "planRows": 1,
+   "op": {
+    "status": "COMPLETED",
+    "epoch": 1,
+    "lastError": null
+   }
+  },
+  "thrown": null
+ }
+]

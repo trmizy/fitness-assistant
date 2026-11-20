@@ -1,0 +1,36 @@
+{
+  "_meta": { "source": "06-ai-capability-and-integration-audit.md" },
+  "providers": [
+    { "id": "PROV-ollama", "role": "chat (default)", "model": "qwen3:4b-instruct-2507-q4_K_M", "status": "active, confirmed runtime dependency by independent audit" },
+    { "id": "PROV-anthropic", "role": "chat (alternative)", "model": "claude-sonnet-5 default", "status": "code path exists, production status not verified by either audit" },
+    { "id": "PROV-bedrock", "role": "chat (alternative)", "model": "amazon.nova-pro-v1:0", "status": "mid-edit by a concurrent session fixing a real cross-account credential blocker; not stable ground for a verdict right now" },
+    { "id": "PROV-mock", "role": "chat (tests)", "status": "active in test environment only" },
+    { "id": "EMBED-bedrock-cohere", "role": "embedding", "dim": 1024, "status": "see bedrock caveat above" },
+    { "id": "EMBED-ollama-nomic", "role": "embedding", "dim": 768, "status": "active" },
+    { "id": "VECTOR-qdrant", "role": "vector store (default)", "status": "active" },
+    { "id": "VECTOR-opensearch", "role": "vector store (alternative)", "status": "code path exists" }
+  ],
+  "capabilities": [
+    { "id": "AICAP-01", "name": "Core chat (/ai/ask)", "governance": "active, but LLM-off flags don't fully gate it (BDG-01)", "schema": null },
+    { "id": "AICAP-02", "name": "AI workout plan generation", "governance": "active", "schema": "plan.schemas.ts", "known_defects": ["BDG-14", "BDG-16", "BDG-17"] },
+    { "id": "AICAP-03", "name": "AI nutrition plan generation", "governance": "active", "schema": "nutrition-plan.schemas.ts" },
+    { "id": "AICAP-04", "name": "AI roadmap draft", "governance": "active", "schema": "roadmap-draft.schemas.ts", "known_defects": ["BDG-18"] },
+    { "id": "AICAP-05", "name": "PT-facing client plan draft", "governance": "active, draft-only confirmed", "schema": "client-plan-draft.schemas.ts" },
+    { "id": "AICAP-06", "name": "Cycle-completion analysis + next-cycle draft", "governance": "active", "schema": "cycle-analysis.schemas.ts" },
+    { "id": "AICAP-07", "name": "CycleAssessment explanation", "governance": "active, decision-field deliberately absent from schema", "schema": "cycle-assessment.schemas.ts" },
+    { "id": "AICAP-08", "name": "Session-feedback interpretation", "governance": "active", "schema": "feedback-analysis.schemas.ts" },
+    { "id": "AICAP-09", "name": "Exercise-progression explanation", "governance": "active, decision-field deliberately absent", "schema": "exercise-progression-explanation.schemas.ts" },
+    { "id": "AICAP-10", "name": "Marketplace plan moderation/improvement AI assist", "governance": "active", "schema": "plan-moderation-analysis.schemas.ts, plan-improvement.schemas.ts" },
+    { "id": "AICAP-11", "name": "AI image analysis", "governance": "active", "schema": "GoalImageSchema" },
+    { "id": "AICAP-12", "name": "True LLM tool-calling", "governance": "OFF by default, code+compose", "schema": null },
+    { "id": "AICAP-13", "name": "Conversational Intelligence V2", "governance": "OFF by default, code+compose, does not gate all LLM calls even when off", "schema": null },
+    { "id": "AICAP-14", "name": "Unified AI Coach (bounded multi-intent)", "governance": "OFF/shadow, team's own latest assessment is shadow-only-ready", "schema": null },
+    { "id": "AICAP-15", "name": "ML-based safety/routing classifier", "governance": "trained but not deployed, empty model artifacts", "schema": null },
+    { "id": "AICAP-16", "name": "RAG/knowledge grounding", "governance": "active (authoritative pipeline); deprecated duplicate pipeline has unported sources", "schema": null, "known_defects": ["BDG-10"] }
+  ],
+  "deterministic_grounding_guarantees": [
+    "Plan-generation RAG retrieval restricted to fitness_evidence Qdrant collection only, never the exercises knowledge-base collection",
+    "cycle-assessment.schemas.ts and exercise-progression-explanation.schemas.ts have no decision/target field at all - structurally impossible for AI to override deterministic decisions",
+    "Zero Prisma writes to business-authoritative tables anywhere in ai-service's llm/ or conversational-intelligence/ modules, confirmed independently 3 times"
+  ]
+}

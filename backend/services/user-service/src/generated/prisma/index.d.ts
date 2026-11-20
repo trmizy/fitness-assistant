@@ -581,7 +581,9 @@ export const NotificationEventType: {
   GYM_BRANCH_SUSPENDED: 'GYM_BRANCH_SUSPENDED',
   GYM_BRANCH_SUSPENSION_LIFTED: 'GYM_BRANCH_SUSPENSION_LIFTED',
   GYM_BRANCH_TEMPORARILY_CLOSED: 'GYM_BRANCH_TEMPORARILY_CLOSED',
-  GYM_BRANCH_REOPENED: 'GYM_BRANCH_REOPENED'
+  GYM_BRANCH_REOPENED: 'GYM_BRANCH_REOPENED',
+  PLAN_REVIEW_REQUESTED: 'PLAN_REVIEW_REQUESTED',
+  PLAN_REVIEW_DECIDED: 'PLAN_REVIEW_DECIDED'
 };
 
 export type NotificationEventType = (typeof NotificationEventType)[keyof typeof NotificationEventType]
@@ -602,7 +604,8 @@ export const NotificationEntityType: {
   GYM_PARTNER_APPLICATION: 'GYM_PARTNER_APPLICATION',
   DISPUTE_CASE: 'DISPUTE_CASE',
   GYM_COMPLAINT_CASE: 'GYM_COMPLAINT_CASE',
-  WITHDRAWAL_REQUEST: 'WITHDRAWAL_REQUEST'
+  WITHDRAWAL_REQUEST: 'WITHDRAWAL_REQUEST',
+  PLAN_REVIEW: 'PLAN_REVIEW'
 };
 
 export type NotificationEntityType = (typeof NotificationEntityType)[keyof typeof NotificationEntityType]
@@ -18664,6 +18667,7 @@ export namespace Prisma {
     entityType: $Enums.NotificationEntityType | null
     entityId: string | null
     link: string | null
+    dedupeKey: string | null
     unread: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -18677,6 +18681,7 @@ export namespace Prisma {
     entityType: $Enums.NotificationEntityType | null
     entityId: string | null
     link: string | null
+    dedupeKey: string | null
     unread: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -18690,6 +18695,7 @@ export namespace Prisma {
     entityType: number
     entityId: number
     link: number
+    dedupeKey: number
     unread: number
     createdAt: number
     updatedAt: number
@@ -18705,6 +18711,7 @@ export namespace Prisma {
     entityType?: true
     entityId?: true
     link?: true
+    dedupeKey?: true
     unread?: true
     createdAt?: true
     updatedAt?: true
@@ -18718,6 +18725,7 @@ export namespace Prisma {
     entityType?: true
     entityId?: true
     link?: true
+    dedupeKey?: true
     unread?: true
     createdAt?: true
     updatedAt?: true
@@ -18731,6 +18739,7 @@ export namespace Prisma {
     entityType?: true
     entityId?: true
     link?: true
+    dedupeKey?: true
     unread?: true
     createdAt?: true
     updatedAt?: true
@@ -18817,6 +18826,7 @@ export namespace Prisma {
     entityType: $Enums.NotificationEntityType
     entityId: string
     link: string | null
+    dedupeKey: string | null
     unread: boolean
     createdAt: Date
     updatedAt: Date
@@ -18847,6 +18857,7 @@ export namespace Prisma {
     entityType?: boolean
     entityId?: boolean
     link?: boolean
+    dedupeKey?: boolean
     unread?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -18860,6 +18871,7 @@ export namespace Prisma {
     entityType?: boolean
     entityId?: boolean
     link?: boolean
+    dedupeKey?: boolean
     unread?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -18873,6 +18885,7 @@ export namespace Prisma {
     entityType?: boolean
     entityId?: boolean
     link?: boolean
+    dedupeKey?: boolean
     unread?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -18890,6 +18903,7 @@ export namespace Prisma {
       entityType: $Enums.NotificationEntityType
       entityId: string
       link: string | null
+      dedupeKey: string | null
       unread: boolean
       createdAt: Date
       updatedAt: Date
@@ -19293,6 +19307,7 @@ export namespace Prisma {
     readonly entityType: FieldRef<"Notification", 'NotificationEntityType'>
     readonly entityId: FieldRef<"Notification", 'String'>
     readonly link: FieldRef<"Notification", 'String'>
+    readonly dedupeKey: FieldRef<"Notification", 'String'>
     readonly unread: FieldRef<"Notification", 'Boolean'>
     readonly createdAt: FieldRef<"Notification", 'DateTime'>
     readonly updatedAt: FieldRef<"Notification", 'DateTime'>
@@ -77233,6 +77248,7 @@ export namespace Prisma {
     entityType: 'entityType',
     entityId: 'entityId',
     link: 'link',
+    dedupeKey: 'dedupeKey',
     unread: 'unread',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -80606,6 +80622,7 @@ export namespace Prisma {
     entityType?: EnumNotificationEntityTypeFilter<"Notification"> | $Enums.NotificationEntityType
     entityId?: StringFilter<"Notification"> | string
     link?: StringNullableFilter<"Notification"> | string | null
+    dedupeKey?: StringNullableFilter<"Notification"> | string | null
     unread?: BoolFilter<"Notification"> | boolean
     createdAt?: DateTimeFilter<"Notification"> | Date | string
     updatedAt?: DateTimeFilter<"Notification"> | Date | string
@@ -80619,6 +80636,7 @@ export namespace Prisma {
     entityType?: SortOrder
     entityId?: SortOrder
     link?: SortOrderInput | SortOrder
+    dedupeKey?: SortOrderInput | SortOrder
     unread?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -80626,6 +80644,7 @@ export namespace Prisma {
 
   export type NotificationWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    dedupeKey?: string
     AND?: NotificationWhereInput | NotificationWhereInput[]
     OR?: NotificationWhereInput[]
     NOT?: NotificationWhereInput | NotificationWhereInput[]
@@ -80638,7 +80657,7 @@ export namespace Prisma {
     unread?: BoolFilter<"Notification"> | boolean
     createdAt?: DateTimeFilter<"Notification"> | Date | string
     updatedAt?: DateTimeFilter<"Notification"> | Date | string
-  }, "id">
+  }, "id" | "dedupeKey">
 
   export type NotificationOrderByWithAggregationInput = {
     id?: SortOrder
@@ -80648,6 +80667,7 @@ export namespace Prisma {
     entityType?: SortOrder
     entityId?: SortOrder
     link?: SortOrderInput | SortOrder
+    dedupeKey?: SortOrderInput | SortOrder
     unread?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -80667,6 +80687,7 @@ export namespace Prisma {
     entityType?: EnumNotificationEntityTypeWithAggregatesFilter<"Notification"> | $Enums.NotificationEntityType
     entityId?: StringWithAggregatesFilter<"Notification"> | string
     link?: StringNullableWithAggregatesFilter<"Notification"> | string | null
+    dedupeKey?: StringNullableWithAggregatesFilter<"Notification"> | string | null
     unread?: BoolWithAggregatesFilter<"Notification"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"Notification"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Notification"> | Date | string
@@ -87615,6 +87636,7 @@ export namespace Prisma {
     entityType: $Enums.NotificationEntityType
     entityId: string
     link?: string | null
+    dedupeKey?: string | null
     unread?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -87628,6 +87650,7 @@ export namespace Prisma {
     entityType: $Enums.NotificationEntityType
     entityId: string
     link?: string | null
+    dedupeKey?: string | null
     unread?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -87641,6 +87664,7 @@ export namespace Prisma {
     entityType?: EnumNotificationEntityTypeFieldUpdateOperationsInput | $Enums.NotificationEntityType
     entityId?: StringFieldUpdateOperationsInput | string
     link?: NullableStringFieldUpdateOperationsInput | string | null
+    dedupeKey?: NullableStringFieldUpdateOperationsInput | string | null
     unread?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -87654,6 +87678,7 @@ export namespace Prisma {
     entityType?: EnumNotificationEntityTypeFieldUpdateOperationsInput | $Enums.NotificationEntityType
     entityId?: StringFieldUpdateOperationsInput | string
     link?: NullableStringFieldUpdateOperationsInput | string | null
+    dedupeKey?: NullableStringFieldUpdateOperationsInput | string | null
     unread?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -87667,6 +87692,7 @@ export namespace Prisma {
     entityType: $Enums.NotificationEntityType
     entityId: string
     link?: string | null
+    dedupeKey?: string | null
     unread?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -87680,6 +87706,7 @@ export namespace Prisma {
     entityType?: EnumNotificationEntityTypeFieldUpdateOperationsInput | $Enums.NotificationEntityType
     entityId?: StringFieldUpdateOperationsInput | string
     link?: NullableStringFieldUpdateOperationsInput | string | null
+    dedupeKey?: NullableStringFieldUpdateOperationsInput | string | null
     unread?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -87693,6 +87720,7 @@ export namespace Prisma {
     entityType?: EnumNotificationEntityTypeFieldUpdateOperationsInput | $Enums.NotificationEntityType
     entityId?: StringFieldUpdateOperationsInput | string
     link?: NullableStringFieldUpdateOperationsInput | string | null
+    dedupeKey?: NullableStringFieldUpdateOperationsInput | string | null
     unread?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -95168,6 +95196,7 @@ export namespace Prisma {
     entityType?: SortOrder
     entityId?: SortOrder
     link?: SortOrder
+    dedupeKey?: SortOrder
     unread?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -95181,6 +95210,7 @@ export namespace Prisma {
     entityType?: SortOrder
     entityId?: SortOrder
     link?: SortOrder
+    dedupeKey?: SortOrder
     unread?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -95194,6 +95224,7 @@ export namespace Prisma {
     entityType?: SortOrder
     entityId?: SortOrder
     link?: SortOrder
+    dedupeKey?: SortOrder
     unread?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder

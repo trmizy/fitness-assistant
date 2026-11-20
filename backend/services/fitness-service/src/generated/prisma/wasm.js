@@ -912,6 +912,44 @@ exports.Prisma.WorkoutMutationEventScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.PlanReviewRequestScalarFieldEnum = {
+  id: 'id',
+  clientUserId: 'clientUserId',
+  ptUserId: 'ptUserId',
+  subjectType: 'subjectType',
+  subjectId: 'subjectId',
+  subjectVersion: 'subjectVersion',
+  contentHash: 'contentHash',
+  sourcePlanId: 'sourcePlanId',
+  aiPlanVersion: 'aiPlanVersion',
+  snapshot: 'snapshot',
+  status: 'status',
+  revision: 'revision',
+  idempotencyKey: 'idempotencyKey',
+  clientNote: 'clientNote',
+  decisionNote: 'decisionNote',
+  decidedAt: 'decidedAt',
+  submittedAt: 'submittedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PlanReviewEventScalarFieldEnum = {
+  id: 'id',
+  requestId: 'requestId',
+  type: 'type',
+  actorUserId: 'actorUserId',
+  actorRole: 'actorRole',
+  fromStatus: 'fromStatus',
+  toStatus: 'toStatus',
+  contentHash: 'contentHash',
+  note: 'note',
+  metadata: 'metadata',
+  notifyUserId: 'notifyUserId',
+  notifiedAt: 'notifiedAt',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1009,6 +1047,17 @@ exports.RoadmapPhaseStatus = exports.$Enums.RoadmapPhaseStatus = {
   SKIPPED: 'SKIPPED'
 };
 
+exports.PlanReviewStatus = exports.$Enums.PlanReviewStatus = {
+  PENDING_REVIEW: 'PENDING_REVIEW',
+  IN_REVIEW: 'IN_REVIEW',
+  APPROVED: 'APPROVED',
+  CHANGES_REQUESTED: 'CHANGES_REQUESTED',
+  REJECTED: 'REJECTED',
+  CANCELLED: 'CANCELLED',
+  SUPERSEDED: 'SUPERSEDED',
+  ACCESS_REVOKED: 'ACCESS_REVOKED'
+};
+
 exports.Prisma.ModelName = {
   Exercise: 'Exercise',
   Equipment: 'Equipment',
@@ -1059,7 +1108,9 @@ exports.Prisma.ModelName = {
   ImportRecord: 'ImportRecord',
   WorkoutImportBatch: 'WorkoutImportBatch',
   ExerciseReviewDecision: 'ExerciseReviewDecision',
-  WorkoutMutationEvent: 'WorkoutMutationEvent'
+  WorkoutMutationEvent: 'WorkoutMutationEvent',
+  PlanReviewRequest: 'PlanReviewRequest',
+  PlanReviewEvent: 'PlanReviewEvent'
 };
 
 /**

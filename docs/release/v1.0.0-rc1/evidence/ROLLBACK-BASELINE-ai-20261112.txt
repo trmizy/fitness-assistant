@@ -1,0 +1,22 @@
+RC1 pre-deployment baseline — DEV ai Lambdas (account 191798898985, ap-southeast-1)
+Source: DEV Read-only Preflight run 43225808184 (workflow commit e703b714, 2026-11-12T13:17Z), all steps success.
+Account gate: VERIFIED (STS = 191798898985).
+
+function                          CodeSha256 (base64)                            RevisionId                              LastModified (UTC)          State  Update      Pkg
+fitness-assistant-dev-ai          kFRiL623skiUwxiZQVlfaj5o9Yhzqtp7mZx0pdxNG6I=   47410505-03e7-4945-9d61-959e4b617949    2026-11-09T12:29:21.000Z    Active Successful  Zip
+fitness-assistant-dev-ai-jobs     kFRiL623skiUwxiZQVlfaj5o9Yhzqtp7mZx0pdxNG6I=   a8d8c60c-d4a6-446b-9e75-3f918b7e35ad    2026-11-09T12:29:31.000Z    Active Successful  Zip
+fitness-assistant-dev-ai-worker   kFRiL623skiUwxiZQVlfaj5o9Yhzqtp7mZx0pdxNG6I=   564c2720-4863-45d7-a4fd-d661bc14a576    2026-11-09T12:29:42.000Z    Active Successful  Zip
+
+All three run the SAME code. CodeSha256 → hex 9054622fadb7b24894c3189941595f6a3e68f58873aada7b999c74a5dc4d1ba2 (re-checked locally).
+Running artifact (= ROLLBACK SOURCE), content-verified: the preflight downloaded it and re-hashed it, and the step fails on any mismatch:
+  s3://fitness-assistant-deployments-dev-191798898985/ci-artifacts/ai/a54bf4d82153ec5520ef854c8f80c35cee174dc3/9054622fadb7b24894c3189941595f6a3e68f58873aada7b999c74a5dc4d1ba2.zip
+  git a54bf4d8 (2026-11-09, an ancestor of RC1 3cab8b21), deployed by dev-deploy run 42617314070 (12:28Z) from build 42614561317
+  (GitHub artifact lambda-ai-a54bf4d8…, kept until 2026-12-09; the S3 object is content-addressed and has no expiry from this workflow).
+
+Rollback after an RC1 deploy, for each of the three functions:
+  aws lambda update-function-code --function-name <fn> --s3-bucket fitness-assistant-deployments-dev-191798898985 \
+    --s3-key ci-artifacts/ai/a54bf4d82153ec5520ef854c8f80c35cee174dc3/9054622fadb7b24894c3189941595f6a3e68f58873aada7b999c74a5dc4d1ba2.zip
+  or re-run dev-deploy with build_run_id=42614561317 services=ai (while that GitHub artifact exists).
+Pass condition: every function's CodeSha256 is back to kFRiL623skiUwxiZQVlfaj5o9Yhzqtp7mZx0pdxNG6I=.
+Not covered by a code rollback: environment variables/configuration (dev-deploy changes code only), DB schema (RC1 has no migrations).
+Cosmetic issue in the preflight summary (P3, not fixed — no change approved): the S3 column shows the key twice (a quirk of ${key:+…}${key:-…}).

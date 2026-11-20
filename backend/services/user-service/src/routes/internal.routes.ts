@@ -306,13 +306,17 @@ router.post("/contracts/:id/refund-guard", async (req, res) => {
 // notificationService.create UNCHANGED — same preference-gating,
 // same real-time push, as every other notification source in this app.
 router.post("/notifications", async (req, res) => {
-  const { userId, text, eventType, entityType, entityId, link } = req.body ?? {};
+  const { userId, text, eventType, entityType, entityId, link, dedupeKey } = req.body ?? {};
   if (!userId || !text || !eventType || !entityType || !entityId) {
     res.status(400).json({ error: "userId, text, eventType, entityType, entityId are required" });
     return;
   }
+  if (dedupeKey !== undefined && (typeof dedupeKey !== "string" || dedupeKey.length === 0 || dedupeKey.length > 200)) {
+    res.status(400).json({ error: "dedupeKey must be a non-empty string of at most 200 characters" });
+    return;
+  }
   try {
-    const notification = await notificationService.create({ userId, text, eventType, entityType, entityId, link });
+    const notification = await notificationService.create({ userId, text, eventType, entityType, entityId, link, dedupeKey });
     res.json({ notification });
   } catch (error: any) {
     logger.error(error, "Internal notification create failed");

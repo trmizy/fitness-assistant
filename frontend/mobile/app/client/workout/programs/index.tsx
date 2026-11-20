@@ -10,6 +10,7 @@ import { workoutService } from "../../../../src/services/api";
 import { useWorkspaceAccent } from "../../../../src/theme/workspace";
 import { darkColors } from "../../../../src/theme/colors";
 import { ExercisePickerSheet } from "../../../../src/features/workout/ExercisePickerSheet";
+import { PlanReviewCard } from "../../../../src/features/planReview/PlanReviewCard";
 import {
   GROUP_TYPE_LABEL,
   daySaveOps,
@@ -94,6 +95,9 @@ export default function ProgramsScreen() {
               </View>
             </View>
           </Card>
+
+          {/* Plan Review: send this program to the client's PT and see the decision. Renders nothing without an ACTIVE PT contract. */}
+          <PlanReviewCard programId={String(program.id)} programName={String(program.name ?? "")} programVersion={typeof program.version === "number" ? program.version : undefined} />
 
           {days.map((day) => (
             <DayCard key={day.id} day={day} open={openDay === day.id} onToggle={() => setOpenDay(openDay === day.id ? null : day.id)} onChanged={refresh} />

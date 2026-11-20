@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Gymini DEV - keeps the stopped Aurora cluster stopped. AWS restarts any
+  stopped Aurora cluster automatically after 7 days (event RDS-EVENT-0153) and
+  offers no setting to disable that. This stack listens for that exact event
+  and calls StopDBCluster again, so an idle DEV database never bills by
+  accident. It does nothing when the cluster is started or stopped normally
+  (dev-start.ps1 / dev-stop.ps1), because only RDS-EVENT-0153 triggers it.
+  RDS-EVENT-0153 fires when the restart BEGINS; StopDBCluster is rejected
+  until the cluster is "available" (~9 min later), so the function waits for
+  that (up to ~14 min per attempt; Lambda async retries add two more).
+  2026-11-08: the first version stopped immediately, all 3 attempts failed
+  within 3 min and the cluster stayed on ~22 h.
+
+Parameters:
+  AuroraClusterIdentifier:
+    Type: String
+    Default: fitness-assistant-dev-aurora
+
+Resources:
+  KeepStoppedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: fitness-assistant-dev-aurora-keep-stopped
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: stop-this-cluster-only
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - rds:StopDBCluster
+                  - rds:DescribeDBClusters
+                Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:${AuroraClusterIdentifier}"
+
+  KeepStoppedFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: fitness-assistant-dev-aurora-keep-stopped
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Timeout: 900
+      MemorySize: 128
+      Role: !GetAtt KeepStoppedRole.Arn
+      Environment:
+        Variables:
+          CLUSTER_ID: !Ref AuroraClusterIdentifier
+      Code:
+        ZipFile: |
+          const { RDSClient, StopDBClusterCommand, DescribeDBClustersCommand } = require("@aws-sdk/client-rds");
+          const rds = new RDSClient({});
+          const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+          const log = (o) => console.log(JSON.stringify(o));
+          exports.handler = async (event, context) => {
+            const id = process.env.CLUSTER_ID;
+            log({ msg: "aurora auto-started, will stop it once available", id, eventId: event?.detail?.EventID });
+            // Wait for "available" (StopDBCluster is rejected while starting), leaving 60 s spare.
+            while (context.getRemainingTimeInMillis() > 60000) {
+              const c = (await rds.send(new DescribeDBClustersCommand({ DBClusterIdentifier: id }))).DBClusters[0];
+              log({ msg: "status", status: c.Status });
+              if (c.Status === "stopping" || c.Status === "stopped") return { stopped: true, already: c.Status };
+              if (c.Status === "available") {
+                try {
+                  await rds.send(new StopDBClusterCommand({ DBClusterIdentifier: id }));
+                  log({ msg: "stop requested" });
+                  return { stopped: true };
+                } catch (err) {
+                  log({ msg: "stop failed, will retry", name: err.name, message: err.message });
+                }
+              }
+              await sleep(30000);
+            }
+            // Still not stoppable: throw so the Lambda async retry runs this again.
+            throw new Error("cluster " + id + " did not become stoppable within this attempt");
+          };
+
+  AutoStartRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: fitness-assistant-dev-aurora-auto-started
+      Description: Aurora was restarted automatically after 7 days stopped (RDS-EVENT-0153)
+      EventPattern:
+        source: [aws.rds]
+        detail-type: [RDS DB Cluster Event]
+        detail:
+          EventID: [RDS-EVENT-0153]
+          SourceIdentifier: [!Ref AuroraClusterIdentifier]
+      State: ENABLED
+      Targets:
+        - Id: KeepStopped
+          Arn: !GetAtt KeepStoppedFunction.Arn
+          RetryPolicy:
+            MaximumRetryAttempts: 8
+            MaximumEventAgeInSeconds: 3600
+
+  KeepStoppedRetries:
+    Type: AWS::Lambda::EventInvokeConfig
+    Properties:
+      FunctionName: !Ref KeepStoppedFunction
+      Qualifier: $LATEST
+      MaximumRetryAttempts: 2
+      MaximumEventAgeInSeconds: 21600
+
+  AllowEventsInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref KeepStoppedFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt AutoStartRule.Arn
+
+Outputs:
+  RuleName:
+    Value: !Ref AutoStartRule
+  FunctionName:
+    Value: !Ref KeepStoppedFunction
