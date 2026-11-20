@@ -80,8 +80,8 @@ test("409-B reproduction: an ACTIVE cycle OUTSIDE the phase makes advance fail w
     const auditsBefore = await prisma.recommendationAudit.count({ where: { userId } });
     await assert.rejects(
       () => roadmaps.advanceRoadmap(userId, roadmapId),
-      (e: any) => e.status === 409 && e.message === "An active training cycle already exists",
-      "advance surfaces startCycle's generic, untranslated message",
+      (e: any) => e.status === 409 && e.code === "ACTIVE_CYCLE_OUTSIDE_PHASE" && e.details.cycleId === stray.id && /chu kỳ tập "Chu kỳ lẻ"/.test(e.message) && /không tự đóng/.test(e.message),
+      "FIXED 2026-11-20: advance reports the stray cycle as an actionable structured conflict (Vietnamese, with the cycle id) instead of startCycle's generic English 409",
     );
     // transactional: nothing half-done
     assert.equal((await prisma.roadmapPhase.findUniqueOrThrow({ where: { id: phaseId } })).status, "ACTIVE");
@@ -104,5 +104,34 @@ test("409-C the guard is real at DB level too: two ACTIVE cycles for one user ca
       () => prisma.trainingCycle.create({ data: { userId, name: "Hai", status: "ACTIVE", startDate: new Date("2026-09-11"), endDate: new Date("2026-10-11"), durationDays: 30 } as any }),
     );
     await assert.rejects(() => cycles.startCycle(userId, null, "2026-09-12", 30, { name: "Ba" }), (e: any) => e.status === 409);
+  } finally { await cleanup(userId); }
+});
+
+test("409-D idempotency + race: 'Kiểm tra tiến độ' twice in a row and 3x concurrently ends with EXACTLY ONE new ACTIVE cycle; repeats are no-ops (no extra audit, no 409)", { timeout: 60_000 }, async () => {
+  const userId = `c409-race-${randomUUID()}`;
+  try {
+    const { roadmapId, phaseId } = await roadmapWithClosedFirstCycle(userId);
+    const settled = await Promise.allSettled([1, 2, 3].map(() => roadmaps.advanceRoadmap(userId, roadmapId)));
+    assert.ok(settled.every((s) => s.status === "fulfilled"), JSON.stringify(settled.map((s) => s.status === "rejected" ? String((s as any).reason?.message) : "ok")));
+    assert.equal(await prisma.trainingCycle.count({ where: { userId, status: "ACTIVE" } }), 1, "exactly one ACTIVE cycle");
+    assert.equal(await prisma.trainingCycle.count({ where: { userId, roadmapPhaseId: phaseId } }), 2, "first (closed) + ONE new cycle");
+    const audits = await prisma.recommendationAudit.count({ where: { userId } });
+    const again = await roadmaps.advanceRoadmap(userId, roadmapId); // sequential repeat
+    assert.equal(again.activeCycle?.sequenceInPhase, 2);
+    assert.equal(await prisma.recommendationAudit.count({ where: { userId } }), audits, "a repeat while a cycle is running writes no new decision");
+  } finally { await cleanup(userId); }
+});
+
+test("409-E the HTTP layer of advance forwards code + details", { timeout: 60_000 }, async () => {
+  const userId = `c409-http-${randomUUID()}`;
+  try {
+    const { roadmapId } = await roadmapWithClosedFirstCycle(userId);
+    const stray = await cycles.startCycle(userId, null, "2026-09-20", 30, { name: "Chu kỳ lẻ" });
+    const { fitnessRoadmapController } = await import("../controllers/fitness-roadmap.controller");
+    let status = 0, body: any;
+    const res: any = { status(c: number) { status = c; return this; }, json(b: any) { body = b; return this; } };
+    await fitnessRoadmapController.advance({ user: { id: userId }, params: { roadmapId } } as any, res);
+    assert.equal(status, 409); assert.equal(body.code, "ACTIVE_CYCLE_OUTSIDE_PHASE"); assert.equal(body.details.cycleId, stray.id); assert.match(body.error, /không tự đóng/);
+    assert.equal(await prisma.trainingCycle.count({ where: { userId, status: "ACTIVE" } }), 1, "the system did not close or replace the user's stray cycle");
   } finally { await cleanup(userId); }
 });
