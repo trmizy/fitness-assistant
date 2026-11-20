@@ -638,7 +638,7 @@ function ActivePhaseDetail({
             className="flex items-center gap-1.5 rounded-lg bg-green-500 px-3 py-1.5 text-xs font-bold text-black transition-all hover:bg-green-400 disabled:opacity-60"
           >
             {advancePending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
-            Kiểm tra tiến độ
+            Bắt đầu chu kỳ tiếp theo
           </button>
         </div>
       ) : (
@@ -1157,14 +1157,25 @@ export function RoadmapJourneyPage() {
     },
   });
 
+  // Starting the next cycle/phase is a consequential action: it is NEVER triggered by "checking progress" — the evaluation is shown read-only on
+  // the page; the user must press a separately named button AND confirm.
+  const confirmAndAdvance = (roadmapId: string) => {
+    if (advanceMutation.isPending) return; // double click while the first request runs
+    if (!window.confirm("Bắt đầu chu kỳ tập tiếp theo? Hệ thống sẽ tạo và kích hoạt chu kỳ mới (hoặc chuyển sang giai đoạn kế tiếp) dựa trên kết quả đánh giá ở trên.")) return;
+    advanceMutation.mutate(roadmapId);
+  };
   const advanceMutation = useMutation({
     mutationFn: (roadmapId: string) => fitnessRoadmapService.advance(roadmapId),
-    onSuccess: () => {
-      toast.success("Đã kiểm tra tiến độ lộ trình");
+    onSuccess: (projection: any) => {
+      // advance can answer 200 WITHOUT moving on (insufficient data / review pending): say what actually happened.
+      const moved = Boolean(projection?.activeCycle) || projection?.status === "COMPLETED";
+      if (moved) toast.success("Đã bắt đầu chu kỳ tiếp theo");
+      else toast.info("Lộ trình chưa chuyển tiếp — xem đánh giá chu kỳ bên dưới");
       refresh();
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.error ?? "Không thể cập nhật lộ trình");
+      toast.error(error?.response?.data?.error ?? "Không thể bắt đầu chu kỳ tiếp theo");
+      refresh(); // a timeout may still have been processed by the server
     },
   });
 
@@ -1268,12 +1279,12 @@ export function RoadmapJourneyPage() {
         {roadmap.status === "ACTIVE" && readiness?.kind === "READY_TO_ADVANCE" && (
           <button
             type="button"
-            onClick={() => advanceMutation.mutate(roadmap.id)}
+            onClick={() => confirmAndAdvance(roadmap.id)}
             disabled={advanceMutation.isPending}
             className="flex items-center gap-1.5 rounded-lg border border-green-500/40 px-3 py-1.5 text-xs font-semibold text-green-300 hover:bg-green-500/10 disabled:opacity-60"
           >
             {advanceMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
-            Kiểm tra tiến độ
+            Bắt đầu chu kỳ tiếp theo
           </button>
         )}
       </div>
@@ -1296,7 +1307,7 @@ export function RoadmapJourneyPage() {
           trainingReadiness={data.trainingReadiness}
           nutritionReadiness={data.nutritionReadiness}
           readiness={readiness}
-          onAdvance={() => advanceMutation.mutate(roadmap.id)}
+          onAdvance={() => confirmAndAdvance(roadmap.id)}
           advancePending={advanceMutation.isPending}
           onRestartPhase={() => restartPhaseMutation.mutate({ roadmapId: roadmap.id, phaseId: activePhase.id })}
           restartPending={restartPhaseMutation.isPending}
