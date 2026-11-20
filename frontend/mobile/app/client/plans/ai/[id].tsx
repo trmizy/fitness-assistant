@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Linking, ScrollView, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -54,8 +54,28 @@ import {
 import { FieldLabel, OptionCard, StartDateStrip, WeekdayPicker } from "../../../../src/features/plans/PlanWidgets";
 import { formatPlanDate, planQueryKey } from "../../../../src/features/plans/AiPlansTab";
 import { toDateInputValue } from "../../../../src/utils/date";
+import { planReviewApi } from "../../../../src/features/planReview/planReviewApi";
+import { AiRevisionSheet } from "../../../../src/features/planRevision/AiRevisionSheet";
+import { PlanSyncCard } from "../../../../src/features/planRevision/PlanSyncCard";
+import {
+  canRevertPlan,
+  deriveSyncState,
+  mapRevertError,
+  PT_OUTDATED_HINT,
+  REVERT_CONFIRM,
+  saveOutcomeFrom,
+  saveSheetTitles,
+  showPtOutdatedHint,
+  type SyncActionId,
+} from "../../../../src/features/planRevision/planRevision";
 
-type SaveOutcome = { alreadyExists: boolean; createdScheduleCount: number; selectedWeekdays?: number[] };
+type SaveOutcome = {
+  /** Which plan version this save was made for: a later revision / undo makes the banner stale (K9). */
+  planVersion: number;
+  message: string;
+  createdScheduleCount: number;
+  selectedWeekdays?: number[];
+};
 
 /**
  * CL-18 — one AI workout plan (web's AIPlansPage right-hand panel): stats, AI warnings and the
@@ -86,7 +106,11 @@ export default function AiPlanDetailScreen() {
   const [weekdayWarning, setWeekdayWarning] = useState<string | null>(null);
   const [replaceExisting, setReplaceExisting] = useState(true);
   const [outcome, setOutcome] = useState<SaveOutcome | null>(null);
+  const [saveFailure, setSaveFailure] = useState<{ planId: string; message: string } | null>(null);
   const [checking, setChecking] = useState(false);
+  const [reviseOpen, setReviseOpen] = useState(false);
+  const [revertOpen, setRevertOpen] = useState(false);
+  const uid = user?.id ?? "guest";
 
   const planQuery = useQuery({
     queryKey: ["ai-plan", planId],
@@ -98,7 +122,13 @@ export default function AiPlanDetailScreen() {
     refetchInterval: (q) => (q.state.data && isPending((q.state.data as any).status) ? 4000 : false),
   });
   const healthQuery = useQuery({ queryKey: ["ai-plans", "llm-health"], queryFn: () => planService.getLlmHealth(), retry: false });
-  const programQuery = useQuery({ queryKey: ["current-workout-program"], queryFn: () => workoutService.getCurrentProgram() });
+  // The CURRENT PROGRAM is the source of truth for "is this plan in my schedule, at which version" (K9). Keyed by user id; the
+  // shared ["current-workout-program"] prefix is still what every save/revert invalidates.
+  const programQuery = useQuery({
+    queryKey: ["current-workout-program", uid],
+    queryFn: () => workoutService.getCurrentProgram(),
+    refetchOnMount: "always",
+  });
 
   const plan = planQuery.data ?? null;
   const content = toPlanContent(plan?.plan);
@@ -113,6 +143,25 @@ export default function AiPlanDetailScreen() {
   const completed = plan?.status === "COMPLETED";
   const llmDown = Boolean(healthQuery.data && !healthQuery.data.llmAvailable);
   const applied = (programQuery.data as any)?.sourcePlanId === planId;
+  const planVersion = Number(plan?.version) > 0 ? Number(plan?.version) : 1;
+
+  // PT approval hint: same query (and cache entry) as the program screen's PlanReviewCard; we only read the newest request's state.
+  const program = programQuery.data as { id?: unknown; version?: unknown; sourcePlanId?: unknown } | null | undefined;
+  const reviewQuery = useQuery({
+    queryKey: ["plan-reviews", uid, "mine", program?.id ? String(program.id) : null, typeof program?.version === "number" ? program.version : null],
+    queryFn: () => planReviewApi.mine(String(program!.id)),
+    enabled: completed && applied && !!program?.id,
+    retry: false,
+  });
+  const showPtHint = showPtOutdatedHint(program, planId, reviewQuery.data?.[0]);
+
+  const canRevert = canRevertPlan(plan as any);
+
+  // A new plan version changes how many training days the save needs: forget a selection made for the old one.
+  useEffect(() => {
+    setWeekdays(null);
+    setWeekdayWarning(null);
+  }, [planVersion]);
 
   const catalogQuery = useQuery({
     queryKey: ["exercises-by-ids", ids],
@@ -159,14 +208,16 @@ export default function AiPlanDetailScreen() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: (repeat?: number) =>
+    // `version` = the plan version this save is made for (the screen can move on before the answer arrives).
+    mutationFn: (input: { repeat?: number; version: number }) =>
       planService.savePlanToWorkoutLog(planId, {
         startDate,
-        repeatWeeks: repeat,
+        repeatWeeks: input.repeat,
         selectedWeekdays,
         replaceExisting,
       }),
-    onSuccess: (res) => {
+    onSuccess: (res, input) => {
+      setSaveFailure(null);
       setSaveOpen(false);
       setConfirmReplace(null);
       setRepeatWeeks("");
@@ -174,15 +225,72 @@ export default function AiPlanDetailScreen() {
       void queryClient.invalidateQueries({ queryKey: ["workout-schedules"] });
       void queryClient.invalidateQueries({ queryKey: ["workout-stats"] });
       void queryClient.invalidateQueries({ queryKey: ["training-cycle"] });
+      // K9: `alreadyExists` is true for every re-save onto an existing program, so the message comes from what the server says
+      // actually happened (contentSynced / previousAiPlanVersion), never from alreadyExists alone.
+      const verdict = saveOutcomeFrom(res, input.version);
       setOutcome({
-        alreadyExists: Boolean(res.alreadyExists),
+        planVersion: input.version,
+        message: verdict.message,
         createdScheduleCount: res.createdScheduleCount,
         selectedWeekdays: res.selectedWeekdays,
       });
-      toast.show(res.alreadyExists ? "Kế hoạch này đã được lưu vào lịch tập trước đó." : "Đã lưu kế hoạch vào lịch tập.", "success");
+      toast.show(verdict.message, "success");
     },
-    onError: (e) => toast.show(apiErrorMessage(e, "Không thể lưu kế hoạch vào lịch tập"), "danger"),
+    onError: (e) => {
+      const message = apiErrorMessage(e, "Không thể lưu kế hoạch vào lịch tập");
+      setSaveFailure({ planId, message });
+      toast.show(message, "danger");
+      void queryClient.invalidateQueries({ queryKey: ["current-workout-program"] });
+    },
   });
+
+  const revertMutation = useMutation({
+    mutationFn: () => planService.revertPlanAdjustment(planId),
+    onSuccess: (res) => {
+      setRevertOpen(false);
+      setOutcome(null);
+      setSaveFailure(null);
+      invalidateAll();
+      // Undo moves the plan version FORWARD (same id), so the program may now be behind it: re-read it, the sync card follows.
+      void queryClient.invalidateQueries({ queryKey: ["current-workout-program"] });
+      void queryClient.invalidateQueries({ queryKey: ["plan-reviews"] });
+      toast.show(REVERT_CONFIRM.done, "success");
+      // A plan adjusted before in-place revisions existed returns the plan it replaced (another id).
+      if (res.planId && res.planId !== planId) router.replace(`/client/plans/ai/${res.planId}`);
+    },
+    onError: (e) => {
+      const mapped = mapRevertError(e);
+      setRevertOpen(false);
+      toast.show(mapped.message, "danger");
+      if (mapped.reload) invalidateAll();
+    },
+  });
+
+  const sheetTitles = saveSheetTitles(
+    completed && applied ? (deriveSyncState({ program, planId, planVersion })?.kind ?? null) : null,
+  );
+
+  const reloadPlan = () => {
+    invalidateAll();
+    void queryClient.invalidateQueries({ queryKey: ["current-workout-program"] });
+  };
+
+  const onSyncAction = (id: SyncActionId) => {
+    // "Áp dụng bản mới" re-saves through the SAME save-to-workout-log (same sheet as web's panel): the server finds the program by
+    // sourcePlanId and updates it in place, so no second WorkoutProgram is created. "Thử lại" reopens the sheet to confirm the choices.
+    if (id === "retry") setSaveFailure(null);
+    setSaveOpen(true);
+  };
+
+  const syncModel = completed
+    ? deriveSyncState({
+        program: programQuery.isLoading ? undefined : programQuery.isError ? null : (program ?? null),
+        planId,
+        planVersion,
+        saving: saveMutation.isPending,
+        failedMessage: saveFailure?.planId === planId ? saveFailure.message : null,
+      })
+    : null;
 
   const requireLlm = async () => {
     const h = await healthQuery.refetch();
@@ -217,7 +325,7 @@ export default function AiPlanDetailScreen() {
     } finally {
       setChecking(false);
     }
-    saveMutation.mutate(repeat.value);
+    saveMutation.mutate({ repeat: repeat.value, version: planVersion });
   };
 
   if (planQuery.isLoading && !plan) {
@@ -369,9 +477,25 @@ export default function AiPlanDetailScreen() {
                 </Button>
               </View>
             </View>
-            <Button full size="lg" icon={CalendarDays} onPress={() => setSaveOpen(true)}>
-              Lưu vào lịch tập
+            <Button variant="secondary" full icon={Wand2} disabled={llmDown || isPending(plan.status)} onPress={() => setReviseOpen(true)}>
+              Nhờ AI chỉnh kế hoạch
             </Button>
+            {syncModel ? <PlanSyncCard model={syncModel} onAction={onSyncAction} /> : null}
+            {showPtHint ? (
+              <Tappable
+                className="flex-row items-center gap-2 rounded-xl border border-warning/40 bg-warning/5 p-3"
+                onPress={() => router.push("/client/workout/programs")}
+              >
+                <Info size={16} color={designTokens.warning} />
+                <Text className="flex-1 font-body text-xs text-foreground">{PT_OUTDATED_HINT}</Text>
+                <ChevronRight size={16} color="#8b9299" />
+              </Tappable>
+            ) : null}
+            {canRevert ? (
+              <Button variant="ghost" full icon={RotateCcw} disabled={revertMutation.isPending || saveMutation.isPending} onPress={() => setRevertOpen(true)}>
+                Khôi phục bản trước
+              </Button>
+            ) : null}
             <Button variant="ghost" full icon={Archive} onPress={() => setArchiveOpen(true)}>
               Ẩn kế hoạch
             </Button>
@@ -392,11 +516,9 @@ export default function AiPlanDetailScreen() {
           </Card>
         ) : null}
 
-        {outcome ? (
+        {outcome && outcome.planVersion === planVersion ? (
           <Card className="border-primary/40 bg-primary/5 p-4">
-            <Text className="font-body-semibold text-sm text-foreground">
-              {outcome.alreadyExists ? "Kế hoạch này đã được lưu vào lịch tập trước đó." : "Đã lưu kế hoạch vào lịch tập."}
-            </Text>
+            <Text className="font-body-semibold text-sm text-foreground">{outcome.message}</Text>
             <Text className="mt-1 font-body text-xs text-muted-foreground">
               {outcome.createdScheduleCount > 0
                 ? `Đã tạo ${outcome.createdScheduleCount} buổi trong lịch.`
@@ -497,7 +619,7 @@ export default function AiPlanDetailScreen() {
           setSaveOpen(false);
           setConfirmReplace(null);
         }}
-        title="Lưu vào lịch tập"
+        title={sheetTitles.title}
       >
         {confirmReplace ? (
           <View>
@@ -508,7 +630,7 @@ export default function AiPlanDetailScreen() {
             </View>
             <Button full size="lg" disabled={saveMutation.isPending} onPress={() => {
                 const r = parseRepeatWeeks(repeatWeeks);
-                saveMutation.mutate(r.ok ? r.value : undefined);
+                saveMutation.mutate({ repeat: r.ok ? r.value : undefined, version: planVersion });
               }}>
               {saveMutation.isPending ? "Đang lưu…" : "Thay thế và lưu"}
             </Button>
@@ -570,10 +692,35 @@ export default function AiPlanDetailScreen() {
               disabled={saveMutation.isPending || checking || missingIds > 0 || selectedWeekdays.length !== daysForSave}
               onPress={() => void submitSave()}
             >
-              {checking ? "Đang kiểm tra…" : saveMutation.isPending ? "Đang lưu…" : "Lưu lịch tập"}
+              {checking ? "Đang kiểm tra…" : saveMutation.isPending ? "Đang lưu…" : sheetTitles.confirm}
             </Button>
           </View>
         )}
+      </BottomSheet>
+
+      <AiRevisionSheet
+        open={reviseOpen}
+        onClose={() => setReviseOpen(false)}
+        planId={planId}
+        currentVersion={planVersion}
+        onRevised={() => {
+          setOutcome(null);
+          reloadPlan();
+          void queryClient.invalidateQueries({ queryKey: ["plan-reviews"] });
+        }}
+        onReload={reloadPlan}
+      />
+
+      <BottomSheet open={revertOpen} onClose={() => (revertMutation.isPending ? undefined : setRevertOpen(false))} title={REVERT_CONFIRM.title}>
+        <Text className="mb-4 text-center font-body text-sm text-muted-foreground">{REVERT_CONFIRM.body}</Text>
+        <Button full size="lg" disabled={revertMutation.isPending} onPress={() => revertMutation.mutate()}>
+          {revertMutation.isPending ? "Đang khôi phục…" : REVERT_CONFIRM.confirm}
+        </Button>
+        <View className="mt-1">
+          <Button variant="ghost" full disabled={revertMutation.isPending} onPress={() => setRevertOpen(false)}>
+            {REVERT_CONFIRM.cancel}
+          </Button>
+        </View>
       </BottomSheet>
 
       <BottomSheet open={archiveOpen} onClose={() => setArchiveOpen(false)} title="Ẩn kế hoạch?">

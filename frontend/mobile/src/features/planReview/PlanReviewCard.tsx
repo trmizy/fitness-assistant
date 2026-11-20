@@ -31,6 +31,9 @@ export function PlanReviewCard({ programId, programName, programVersion }: { pro
   const [note, setNote] = useState("");
   // One key per confirmed attempt: a double tap / retry re-sends the SAME key, so the server returns the same request.
   const attemptKey = useRef<string>(newIdempotencyKey());
+  // Synchronous double-tap guard (mobile fix, 20/11): `submit.isPending` only flips after the next render, so two taps delivered before it
+  // both reach `mutate()`. The ref closes that window; the shared idempotency key stays the server-side safety net.
+  const sending = useRef(false);
 
   const reviews = useQuery({
     queryKey: ["plan-reviews", uid, "mine", programId, programVersion ?? null],
@@ -143,7 +146,15 @@ export function PlanReviewCard({ programId, programName, programVersion }: { pro
           )}
           <Input value={note} onChangeText={setNote} maxLength={NOTE_MAX} multiline numberOfLines={2} placeholder="Lời nhắn cho PT (không bắt buộc)" />
           <View className="flex-row gap-2">
-            <Button size="sm" disabled={submit.isPending || !chosenPt} onPress={() => submit.mutate()}>
+            <Button
+              size="sm"
+              disabled={submit.isPending || !chosenPt}
+              onPress={() => {
+                if (sending.current) return;
+                sending.current = true;
+                submit.mutate(undefined, { onSettled: () => { sending.current = false; } });
+              }}
+            >
               {submit.isPending ? "Đang gửi..." : "Xác nhận gửi"}
             </Button>
             <Button size="sm" variant="ghost" disabled={submit.isPending} onPress={() => setConfirming(false)}>
