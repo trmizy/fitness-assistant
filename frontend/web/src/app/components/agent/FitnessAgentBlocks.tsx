@@ -92,6 +92,7 @@ export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: {
       {c.specialties && <p>{c.specialties.join(" · ")}</p>}
       {c.yearsExperience && <p>Kinh nghiệm: {c.yearsExperience}</p>}
       {c.availableDays && <p>Lịch: {c.availableDays.map((d: number) => d === 7 ? "CN" : `T${d + 1}`).join(" · ")}</p>}
+      {c.location?.label && <p className="break-words">📍 {c.location.label}{typeof c.location.distanceKm === "number" ? ` · ~${c.location.distanceKm} km` : ""}</p>}
       {c.daysPerWeek && <p>{c.daysPerWeek} buổi/tuần · {c.durationWeeks} tuần · khoảng {c.estimatedMinutes} phút/buổi</p>}
       {c.reviewCount > 0 && <p>Đánh giá {Number(c.averageRating).toFixed(1)}/5 ({c.reviewCount} lượt)</p>}
       <details><summary className="cursor-pointer min-h-11 py-2">Lý do và bằng chứng</summary>
@@ -110,7 +111,7 @@ export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: {
         {c.days?.map((day: any, n: number) => <div key={n} className="mt-2"><strong>Buổi {n + 1}</strong>{day.exercises?.map((e: any) => <p key={e.exerciseId}>{e.name}: {e.sets} × {e.reps}</p>)}</div>)}
       </details>
       {c.packages?.length > 0 && <div className="text-sm"><p className="text-zinc-400">Gói dịch vụ</p>
-        <ul className="list-disc pl-5">{c.packages.map((p: any) => <li key={p.id} className="break-words">{p.name} · {p.sessions} buổi · {money(p.price)}</li>)}</ul></div>}
+        <ul className="list-disc pl-5">{c.packages.map((p: any) => <li key={p.id} className="break-words">{p.name} · {p.sessions} buổi · {money(p.price)}{p.mode ? ` · ${p.mode === "ONLINE" ? "Online" : p.mode === "OFFLINE" ? "Trực tiếp" : "Kết hợp"}` : ""}</li>)}</ul></div>}
       <div className="flex flex-wrap gap-2">
         {c.packages
           ? c.dataOrigin !== "SYNTHETIC" && <Link className={button} to={`/client/services?tab=coaches&ptId=${encodeURIComponent(c.id)}`}>Xem hồ sơ &amp; đặt lịch</Link>
