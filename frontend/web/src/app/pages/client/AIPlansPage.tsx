@@ -16,6 +16,7 @@ import {
 } from "../../components/ui/alert-dialog";
 import {
   planService,
+  newIdempotencyKey,
   workoutService,
   equipmentService,
   type PlanContent,
@@ -58,7 +59,19 @@ function isAdjustmentDraft(plan: WorkoutPlanRecord): boolean {
 type JobActionType = "generate" | "adjust";
 type AiPlanTab = "workout" | "nutrition";
 
+/** How the AI plan relates to the program being trained (derived from server data, never from a transient flag). */
+type PlanSyncState =
+  | "never_saved" // no program was created from this plan
+  | "synced" // the program follows this plan version
+  | "pending_sync"; // the plan was revised after the program last followed it
+
 type SaveOutcome = {
+  /** Which plan/version this save was made for: a later revision, undo or plan switch makes the banner stale and it is cleared. */
+  planId: string;
+  planVersion: number;
+  kind: "first_save" | "synced" | "already_current" | "unchanged_content";
+  contentSynced?: boolean;
+  programVersion?: number | null;
   alreadyExists: boolean;
   createdScheduleCount: number;
   createdProgramId?: string;
@@ -644,6 +657,24 @@ export function AIPlansPage() {
     () => toPlanContent(currentPlan?.plan),
     [currentPlan],
   );
+
+  // Same source plan id AND a followed version at least as new as the plan => saved and current.
+  const currentProgramQuery = useQuery({
+    queryKey: ["current-workout-program", userScopeId],
+    queryFn: () => workoutService.getCurrentProgram(),
+    staleTime: 0,
+  });
+  const planSyncState: PlanSyncState = useMemo(() => {
+    const program = currentProgramQuery.data as
+      | { sourcePlanId?: string | null; aiPlanVersion?: number | null }
+      | null
+      | undefined;
+    if (!currentPlan?.id || !program || program.sourcePlanId !== currentPlan.id) return "never_saved";
+    return (program.aiPlanVersion ?? 0) >= (currentPlan.version ?? 1) ? "synced" : "pending_sync";
+  }, [currentProgramQuery.data, currentPlan?.id, currentPlan?.version]);
+  const [saveFailure, setSaveFailure] = useState<{ planId: string; message: string } | null>(null);
+  // A response that arrives after the viewed plan/version changed must never paint a banner for the old one (the effect below only fires on a change).
+  const failureForThisPlan = saveFailure && saveFailure.planId === currentPlan?.id ? saveFailure : null;
   const saveDaysPerWeek = useMemo(() => {
     const rawDays = Number(
       currentContent?.daysPerWeek ?? currentPlan?.daysPerWeek ?? daysPerWeek,
@@ -793,20 +824,29 @@ export function AIPlansPage() {
     },
   });
 
+  // One Idempotency-Key per business action: the SAME payload retried after a timeout (no server answer) reuses the key; once the server has
+  // answered (accepted or refused) the next attempt is a new action; a different payload or plan version always gets a new key.
+  const adjustKeyRef = useRef<{ sig: string; key: string } | null>(null);
   const adjustMutation = useMutation({
     mutationFn: (payload: {
       planId: string;
       adjustments: string;
       daysPerWeek?: number;
       exercisesPerDay?: number;
-    }) =>
-      planService.adjustPlan(
+    }) => {
+      const version = currentPlan?.version ?? null;
+      const sig = JSON.stringify([payload.planId, payload.adjustments, payload.daysPerWeek ?? null, payload.exercisesPerDay ?? null, version]);
+      if (adjustKeyRef.current?.sig !== sig) adjustKeyRef.current = { sig, key: newIdempotencyKey() };
+      return planService.adjustPlan(
         payload.planId,
         payload.adjustments,
         payload.daysPerWeek,
         payload.exercisesPerDay,
-      ),
+        { idempotencyKey: adjustKeyRef.current.key, expectedVersion: typeof version === "number" ? version : undefined },
+      );
+    },
     onSuccess: (result) => {
+      adjustKeyRef.current = null;
       liveTaskIdsRef.current.add(result.jobId);
       enqueuePlanTask(userScopeId, {
         jobId: result.jobId,
@@ -826,6 +866,7 @@ export function AIPlansPage() {
       toast.success("Đã gửi yêu cầu điều chỉnh kế hoạch");
     },
     onError: (error: unknown) => {
+      if ((error as { response?: unknown } | null)?.response) adjustKeyRef.current = null;
       toast.error(summarizeApiError(error, "Không thể điều chỉnh kế hoạch"));
     },
   });
@@ -838,6 +879,7 @@ export function AIPlansPage() {
       await queryClient.invalidateQueries({
         queryKey: ["ai-plans", "current", userScopeId],
       });
+      void queryClient.invalidateQueries({ queryKey: ["current-workout-program"] });
       toast.success("Đã quay lại phiên bản kế hoạch trước");
     },
     onError: (error: unknown) => {
@@ -845,9 +887,16 @@ export function AIPlansPage() {
     },
   });
 
+  // A banner/failure that belongs to another plan or an older version is stale (adjust, undo or plan switch happened since).
+  useEffect(() => {
+    setSaveOutcome((prev) => (prev && (prev.planId !== currentPlan?.id || prev.planVersion !== (currentPlan?.version ?? 1)) ? null : prev));
+    setSaveFailure((prev) => (prev && prev.planId !== currentPlan?.id ? null : prev));
+  }, [currentPlan?.id, currentPlan?.version]);
+
   const saveMutation = useMutation({
     mutationFn: (payload: {
       planId: string;
+      planVersion: number;
       startDate?: string;
       repeatWeeks?: number;
       selectedWeekdays?: number[];
@@ -859,35 +908,52 @@ export function AIPlansPage() {
         selectedWeekdays: payload.selectedWeekdays,
         replaceExisting: payload.replaceExisting,
       }),
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
       setShowSavePanel(false);
       setSaveRepeatWeeksInput("");
-      void queryClient.invalidateQueries({
-        queryKey: ["current-workout-program"],
-      });
+      setSaveFailure(null);
+      void queryClient.invalidateQueries({ queryKey: ["current-workout-program"] });
       void queryClient.invalidateQueries({ queryKey: ["workout-schedules"] });
       void queryClient.invalidateQueries({ queryKey: ["workout-stats"] });
+      void queryClient.invalidateQueries({ queryKey: ["ai-plans", "current", userScopeId] });
       const alreadyExists = Boolean(result.alreadyExists);
+      const v = variables.planVersion;
+      // What actually happened to the program: contentSynced / previousAiPlanVersion come from the server (an existing program re-saved).
+      let kind: SaveOutcome["kind"];
+      let message: string;
+      if (!alreadyExists) {
+        kind = "first_save";
+        message = "Đã lưu kế hoạch vào lịch tập.";
+      } else if (result.contentSynced) {
+        kind = "synced";
+        message = `Đã cập nhật chương trình tập theo phiên bản ${v} của kế hoạch.`;
+      } else if ((result.previousAiPlanVersion ?? 0) >= v) {
+        kind = "already_current";
+        message = `Chương trình tập đã khớp với phiên bản ${v} của kế hoạch — không có gì thay đổi.`;
+      } else {
+        kind = "unchanged_content";
+        message = `Phiên bản ${v} không đổi nội dung buổi tập nên chương trình giữ nguyên (đã ghi nhận theo phiên bản mới).`;
+      }
       setSaveOutcome({
+        planId: variables.planId,
+        planVersion: v,
+        kind,
+        contentSynced: result.contentSynced,
+        programVersion: result.programVersion,
         alreadyExists,
         createdScheduleCount: result.createdScheduleCount,
         createdProgramId: result.createdProgramId,
         selectedWeekdays: result.selectedWeekdays,
         schedulePreview: result.schedulePreview,
-        message: alreadyExists
-          ? "Kế hoạch này đã được lưu vào lịch tập trước đó."
-          : "Đã lưu kế hoạch vào lịch tập.",
+        message,
       });
-      toast.success(
-        alreadyExists
-          ? "Kế hoạch này đã được lưu vào lịch tập trước đó."
-          : "Đã lưu kế hoạch vào lịch tập.",
-      );
+      toast.success(message);
     },
-    onError: (error: unknown) => {
-      toast.error(
-        summarizeApiError(error, "Không thể lưu kế hoạch vào lịch tập"),
-      );
+    onError: (error: unknown, variables) => {
+      const message = summarizeApiError(error, "Không thể lưu kế hoạch vào lịch tập");
+      setSaveFailure({ planId: variables.planId, message });
+      toast.error(message);
+      void queryClient.invalidateQueries({ queryKey: ["current-workout-program"] });
     },
   });
 
@@ -1241,6 +1307,7 @@ export function AIPlansPage() {
 
     saveMutation.mutate({
       planId: currentPlan.id,
+      planVersion: currentPlan.version ?? 1,
       startDate: saveStartDate || undefined,
       repeatWeeks: parsedRepeatWeeks,
       selectedWeekdays,
@@ -2007,8 +2074,28 @@ export function AIPlansPage() {
                           className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                           <CalendarDays className="w-4 h-4" />
-                          Lưu vào lịch tập
+                          {planSyncState === "pending_sync"
+                            ? `Cập nhật lịch tập theo bản ${currentPlan.version ?? 1}`
+                            : planSyncState === "synced"
+                              ? "Lưu lại vào lịch tập"
+                              : "Lưu vào lịch tập"}
                         </button>
+                      </div>
+
+                      <div
+                        data-testid="plan-sync-status"
+                        data-state={saveMutation.isPending ? "syncing" : failureForThisPlan ? "sync_failed" : planSyncState}
+                        className="text-xs text-zinc-400"
+                      >
+                        {saveMutation.isPending
+                          ? "Đang đồng bộ lịch tập…"
+                          : failureForThisPlan
+                            ? `Chưa đồng bộ được: ${failureForThisPlan.message}`
+                            : planSyncState === "pending_sync"
+                              ? `Bản ${currentPlan.version ?? 1} chưa được áp dụng vào lịch tập đang tập.`
+                              : planSyncState === "synced"
+                                ? `Lịch tập đang theo bản ${currentPlan.version ?? 1} của kế hoạch này.`
+                                : "Kế hoạch này chưa được lưu vào lịch tập."}
                       </div>
 
                       {showSavePanel && (
@@ -2171,7 +2258,9 @@ export function AIPlansPage() {
                               )}
                               {checkingCurrentProgram
                                 ? "Đang kiểm tra"
-                                : "Lưu lịch tập"}
+                                : planSyncState === "pending_sync"
+                                  ? "Cập nhật lịch tập"
+                                  : "Lưu lịch tập"}
                             </button>
                             <button
                               type="button"
@@ -2184,8 +2273,8 @@ export function AIPlansPage() {
                         </div>
                       )}
 
-                      {saveOutcome && (
-                        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100 space-y-3">
+                      {saveOutcome && saveOutcome.planId === currentPlan.id && saveOutcome.planVersion === (currentPlan.version ?? 1) && (
+                        <div data-testid="save-outcome" data-kind={saveOutcome.kind} className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100 space-y-3">
                           <div className="font-semibold">
                             {saveOutcome.message}
                           </div>
