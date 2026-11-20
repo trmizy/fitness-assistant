@@ -3,7 +3,14 @@ import { logger } from '@gym-coach/shared';
 import { buildSimulatedReturnQuery, isVnpaySimulateEnabled } from '../providers/vnpay.provider';
 import { transactionRepository } from '../repositories/transaction.repository';
 import { handleVnpayCallback } from '../services/vnpay-callback.service';
-import { buildResultRedirect, uiStatusFromDbStatus, type ReturnUiStatus } from '../services/payment-return-redirect';
+import { randomBytes } from 'crypto';
+import {
+  buildResultRedirect,
+  uiStatusFromDbStatus,
+  renderMobileReturnPage,
+  MOBILE_DEEP_LINK_PREFIX,
+  type ReturnUiStatus,
+} from '../services/payment-return-redirect';
 
 const router = Router();
 
@@ -102,7 +109,21 @@ router.get('/zalopay/return', async (req: Request, res: Response) => {
   } catch (err) {
     logger.error({ error: '[ZaloPayReturn] processing failed', txnId, message: (err as Error).message });
   }
-  return res.redirect(302, await buildResultRedirect(txnId, uiStatus));
+  const target = await buildResultRedirect(txnId, uiStatus);
+  if (target.startsWith(MOBILE_DEEP_LINK_PREFIX)) {
+    // Mobile: a 302 to the custom scheme is blocked by Chrome Custom Tabs when no user gesture precedes it
+    // (ZaloPay auto-redirects), leaving a white tab. Serve a tap-to-return page instead (REAL DEVICE 20/11).
+    const nonce = randomBytes(16).toString('base64');
+    return res
+      .status(200)
+      .set({
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'Content-Security-Policy': `default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; base-uri 'none'; form-action 'none'`,
+      })
+      .send(renderMobileReturnPage(txnId, uiStatus, nonce));
+  }
+  return res.redirect(302, target);
 });
 
 export default router;
