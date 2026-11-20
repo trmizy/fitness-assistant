@@ -14,6 +14,10 @@ router.post("/projection", authMiddleware, fitnessRoadmapController.projection a
 router.post("/ai-draft", authMiddleware, fitnessRoadmapController.generateAiDraft as any);
 router.post("/ai-draft/accept", authMiddleware, fitnessRoadmapController.acceptAiDraft as any);
 router.get("/current", authMiddleware, fitnessRoadmapController.current as any);
+// Where the user's goals disagree (profile vs roadmap vs target weight vs calories). Derived, read-only. Must stay above "/:roadmapId".
+router.get("/goal-coherence", authMiddleware, fitnessRoadmapController.goalCoherence as any);
+// A goal suggestion from the body metrics (read-only). POST because the wizard sends its not-yet-saved numbers; must stay above "/:roadmapId".
+router.post("/goal-recommendation", authMiddleware, fitnessRoadmapController.goalRecommendation as any);
 router.get("/draft/current", authMiddleware, fitnessRoadmapController.currentDraft as any);
 // Gymini Adaptive Forecast Reconciliation — read-only.
 router.get("/current/forecast", authMiddleware, fitnessRoadmapController.currentForecast as any);
@@ -24,6 +28,7 @@ router.post("/:roadmapId/advance", authMiddleware, fitnessRoadmapController.adva
 router.post("/:roadmapId/rebuild/preview", authMiddleware, fitnessRoadmapController.previewRebuild as any);
 router.post("/:roadmapId/rebuild/apply", authMiddleware, fitnessRoadmapController.applyRebuild as any);
 router.post("/:roadmapId/archive", authMiddleware, fitnessRoadmapController.archive as any);
+router.post("/:roadmapId/cancel", authMiddleware, fitnessRoadmapController.cancel as any);
 router.get("/:roadmapId", authMiddleware, fitnessRoadmapController.getById as any);
 
 export default router;

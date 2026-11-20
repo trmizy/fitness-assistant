@@ -12,6 +12,7 @@ import { fetchUserProfile, fetchLatestInBodyOnOrBefore } from "../clients/user.c
 import { queueInitialNutritionPlanSafe } from "../clients/ai.client";
 import { createPersistentNotification } from "../clients/notification.client";
 import { nutritionBootstrapScreening } from "./nutrition-bootstrap-screening";
+import { resolveEffectiveGoal } from "./effective-goal.service";
 
 /** Indirection point for tests — same pattern as coach.service.ts's
  * coachDeps: a plain named-import binding can't be reassigned from a test
@@ -166,12 +167,14 @@ type AssembledBootstrapInput =
 async function assembleBootstrapInput(userId: string): Promise<AssembledBootstrapInput> {
   const profile = await nutritionBootstrapDeps.fetchUserProfile(userId);
   const screening = nutritionBootstrapScreening(profile);
+  // The ACTIVE roadmap phase decides the energy direction; the profile goal only applies when there is none.
+  const effectiveGoal = await resolveEffectiveGoal(userId, profile?.goal ?? null);
   const candidateInput: Partial<Record<keyof NutritionBootstrapInput, unknown>> = {
     weightKg: profile?.currentWeight ?? profile?.startingWeight ?? null,
     heightCm: profile?.heightCm ?? null,
     age: profile?.age ?? null,
     gender: profile?.gender ?? null,
-    goal: profile?.goal ?? null,
+    goal: effectiveGoal.goal,
     activityLevel: profile?.activityLevel ?? null,
   };
   const missingFields = findMissingBootstrapFields(candidateInput);

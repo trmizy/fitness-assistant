@@ -14,6 +14,7 @@ import {
   buildDiagnosisReasoning,
 } from "./fitness-diagnosis.engine";
 import { deriveStrategyGroups, forecastPhaseSequence } from "./fitness-roadmap-forecast.engine";
+import { goalForPhaseType } from "./effective-goal.service";
 import { reconcilePhase, buildForecastChangeExplanation, type ForecastChangeReasonCode } from "./fitness-roadmap-reconciliation.engine";
 import type { Gender, ActivityLevel, Goal } from "./nutrition-bootstrap.engine";
 import type {
@@ -63,6 +64,11 @@ interface EffectiveDiagnosisContext {
   measuredBmr: number | null;
   bodyFatPct: number | null;
   bodyFatMethod: string | null;
+  /** when the InBody reading that supplied bodyFatPct/measuredBmr was taken (null when none) */
+  inbodyMeasuredAt: string | null;
+  /** health-screening review (flags / follow-up suggested) ONLY — unlike safety.professionalReviewRequired it excludes the minor-age rule,
+   * which depends on the age the caller supplies (a wizard may send an unsaved age) */
+  healthReviewRequired: boolean;
   profileGoal: Goal | null;
   safety: ReturnType<typeof nutritionBootstrapScreening>;
 }
@@ -72,7 +78,7 @@ interface EffectiveDiagnosisContext {
 // with any wizard-supplied override taking precedence field-by-field.
 // Never duplicated logic between the two callers, so they can never
 // silently drift on which value wins (design doc §13).
-async function resolveEffectiveDiagnosisContext(
+export async function resolveEffectiveDiagnosisContext(
   userId: string,
   input: {
     weightKg?: number;
@@ -121,6 +127,8 @@ async function resolveEffectiveDiagnosisContext(
     measuredBmr,
     bodyFatPct,
     bodyFatMethod,
+    inbodyMeasuredAt: inbody?.date ?? null,
+    healthReviewRequired: profile?.safetyScreeningStatus === "FOLLOW_UP_SUGGESTED" || (profile?.safetyScreeningFlags?.length ?? 0) > 0,
     profileGoal: (profile?.goal as Goal | undefined) ?? null,
     safety: nutritionBootstrapScreening(profile),
   };
@@ -248,7 +256,8 @@ async function activatePhaseInTransaction(
   );
   const linked = await tx.trainingCycle.update({
     where: { id: cycle.id },
-    data: { roadmapPhaseId: phaseId, sequenceInPhase },
+    // The cycle was snapshotted from the profile goal by startCycle; a roadmap-linked cycle follows its phase.
+    data: { roadmapPhaseId: phaseId, sequenceInPhase, goal: goalForPhaseType(phase.phaseType) },
   });
 
   await tx.recommendationAudit.create({
@@ -1679,5 +1688,71 @@ export const fitnessRoadmapService = {
       });
     });
     return { roadmapId, archived: true };
+  },
+
+  /**
+   * Ends an ACTIVE roadmap the user no longer wants ("làm lại từ đầu"). archiveRoadmap
+   * deliberately refuses while a phase is ACTIVE, and an ACTIVE roadmap always has one,
+   * so without this the user is stuck until the whole journey is finished.
+   *
+   * History is preserved: COMPLETED/ANALYZED cycles, CycleAssessment and audits are not
+   * touched. Only what is still running/planned is closed: ACTIVE/PLANNED phases ->
+   * CANCELLED, and this roadmap's own ACTIVE/DRAFT cycles -> CANCELLED (same effect as
+   * trainingCycleService.cancelCycle). Never touches cycles outside this roadmap's phases
+   * and only cancels those cycles' upcoming never-started sessions (no logged workout).
+   * Idempotent for an already-CANCELLED roadmap.
+   */
+  async cancelRoadmap(userId: string, roadmapId: string) {
+    await prisma.$transaction(async (tx) => {
+      await lockRoadmapUser(tx, userId);
+      const roadmap = await tx.fitnessRoadmap.findFirst({
+        where: { id: roadmapId, userId, archivedAt: null },
+        include: { phases: { select: { id: true, status: true } } },
+      });
+      if (!roadmap) throw { status: 404, message: "Fitness roadmap not found" };
+      if (roadmap.status === "CANCELLED") return;
+      if (roadmap.status !== "ACTIVE") {
+        throw { status: 409, message: "Chỉ có thể kết thúc một lộ trình đang thực hiện" };
+      }
+      const now = new Date();
+      const phaseIds = roadmap.phases.map((phase) => phase.id);
+      // Upcoming, never-started sessions of the cycles being closed would otherwise linger on the calendar for a journey that no longer exists.
+      // Same guard as workoutService.cancelSchedule (no logged workout); past/missed sessions are history and are left alone.
+      const closingCycles = await tx.trainingCycle.findMany({
+        where: { roadmapPhaseId: { in: phaseIds }, status: { in: ["ACTIVE", "DRAFT"] }, archivedAt: null },
+        select: { id: true },
+      });
+      if (closingCycles.length > 0) {
+        const startOfToday = new Date(now);
+        startOfToday.setHours(0, 0, 0, 0);
+        await tx.workoutSchedule.updateMany({
+          where: {
+            userId,
+            trainingCycleId: { in: closingCycles.map((cycle) => cycle.id) },
+            status: "NOT_STARTED",
+            workoutId: null,
+            date: { gte: startOfToday },
+          },
+          data: { status: "CANCELLED", notes: "Lộ trình đã kết thúc" },
+        });
+      }
+      await tx.trainingCycle.updateMany({
+        where: { roadmapPhaseId: { in: phaseIds }, status: { in: ["ACTIVE", "DRAFT"] }, archivedAt: null },
+        data: { status: "CANCELLED", endDate: now, actualEndDate: now },
+      });
+      await tx.roadmapPhase.updateMany({
+        where: { roadmapId: roadmap.id, status: "ACTIVE" },
+        data: { status: "CANCELLED", actualEndAt: now },
+      });
+      await tx.roadmapPhase.updateMany({
+        where: { roadmapId: roadmap.id, status: "PLANNED" },
+        data: { status: "CANCELLED" },
+      });
+      await tx.fitnessRoadmap.update({
+        where: { id: roadmap.id },
+        data: { status: "CANCELLED", actualEndAt: now },
+      });
+    });
+    return { roadmapId, cancelled: true };
   },
 };

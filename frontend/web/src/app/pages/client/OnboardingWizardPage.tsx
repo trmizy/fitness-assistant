@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { ACTIVITY_LEVELS } from "../../constants/activityLevels";
 import { SESSION_DURATION_MAX, SESSION_DURATION_MIN, validateSessionDuration } from "./onboarding.validation";
 
+import { GoalSuggestion } from "../../components/GoalSuggestion";
 /**
  * First-run onboarding wizard — collects everything the Decision Engine and
  * plan-generation flows need but that a brand-new profile leaves null:
@@ -555,6 +556,16 @@ export function OnboardingWizardPage() {
                   ))}
                 </div>
               </div>
+              <GoalSuggestion
+                currentGoal={goal}
+                onChoose={(g) => setGoal(g)}
+                inputs={{
+                  ...(currentWeight ? { weightKg: Number(currentWeight) } : {}),
+                  ...(heightCm ? { heightCm: Number(heightCm) } : {}),
+                  ...(age ? { age: Number(age) } : {}),
+                  ...(gender === "MALE" || gender === "FEMALE" || gender === "OTHER" ? { gender } : {}),
+                }}
+              />
               <div>
                 <label className={lbl}>Mục tiêu chính *</label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">

@@ -22,6 +22,7 @@ import { DayMacroQuickEstimate } from "../../components/nutrition/DayMacroEstima
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 import { BeginnerNutritionSummary } from "../../components/nutrition/BeginnerNutritionSummary";
 import { useApp } from "../../context/AppContext";
+import { GoalCoherenceBanner } from "../../components/GoalCoherenceBanner";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -968,6 +969,7 @@ export function NutritionPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-5">
+      <GoalCoherenceBanner />
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>

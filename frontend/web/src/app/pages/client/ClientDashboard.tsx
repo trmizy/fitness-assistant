@@ -21,6 +21,7 @@ import {
 } from "../../services/api";
 import { MedalIcon as Award, BellIcon as Bell, BrainIcon as Brain, CalendarIcon as Calendar, CaretRightIcon as ChevronRight, BarbellIcon as Dumbbell, FlameIcon as Flame, CircleNotchIcon as Loader2, ChatTextIcon as MessageSquare, TargetIcon as Target, TrendDownIcon as TrendingDown, TrendUpIcon as TrendingUp, UploadSimpleIcon as Upload } from "@phosphor-icons/react";
 
+import { GoalCoherenceBanner } from "../../components/GoalCoherenceBanner";
 const tooltipStyle = {
   contentStyle: {
     fontSize: 12,
@@ -327,6 +328,7 @@ export function ClientDashboard() {
 
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto">
+      <GoalCoherenceBanner />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-zinc-50 drop-shadow-md">Xin chào, {firstName}</h1>

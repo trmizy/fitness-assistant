@@ -9,6 +9,11 @@ import { feetInchesFromCm, cmFromFeetInches, kgFromLb, lbFromKg } from "../../ut
 import { fullName } from "../../utils/fullName";
 import { ACTIVITY_LEVELS } from "../../constants/activityLevels";
 
+import { GoalSuggestion } from "../../components/GoalSuggestion";
+// This page keeps its own goal keys; the suggestion speaks the backend enum. Only these three exist on this page.
+const GOAL_KEY_BY_ENUM: Record<string, string> = { WEIGHT_LOSS: "lose_fat", MUSCLE_GAIN: "gain_muscle", MAINTENANCE: "maintain" };
+const GOAL_ENUM_BY_KEY: Record<string, string> = { lose_fat: "WEIGHT_LOSS", gain_muscle: "MUSCLE_GAIN", maintain: "MAINTENANCE" };
+
 const goals = [
   { key: "lose_fat", label: "Giảm mỡ", emoji: "🔥" },
   { key: "gain_muscle", label: "Tăng cơ", emoji: "💪" },
@@ -137,6 +142,8 @@ export function ProfilePage() {
       queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
       queryClient.invalidateQueries({ queryKey: ["current-workout-program"] });
       queryClient.invalidateQueries({ queryKey: ["workout-schedules"] });
+      // the goal or target weight may now disagree with the running roadmap: refresh the "goals don't match" banner
+      queryClient.invalidateQueries({ queryKey: ["goal-coherence"] });
       toast.success("Hồ sơ đã được cập nhật");
       setEditing(false);
     },
@@ -568,6 +575,14 @@ export function ProfilePage() {
             <h3 className="text-sm font-semibold text-zinc-200 mb-3">
               Mục tiêu tập luyện
             </h3>
+            {editing && (
+              <GoalSuggestion
+                className="mb-3"
+                currentGoal={GOAL_ENUM_BY_KEY[goal] ?? null}
+                allowedGoals={["WEIGHT_LOSS", "MUSCLE_GAIN", "MAINTENANCE"]}
+                onChoose={(g) => setGoal(GOAL_KEY_BY_ENUM[g] ?? goal)}
+              />
+            )}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {goals.map((g) => (
                 <button

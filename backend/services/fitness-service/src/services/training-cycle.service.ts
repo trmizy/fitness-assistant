@@ -44,6 +44,7 @@ import { checkNutritionGoalMacroConsistency, assertCalorieFloor } from "./nutrit
 import { nutritionRepository } from "../repositories/nutrition.repository";
 import { computeInitialNutritionPrescription } from "./nutrition-bootstrap.engine";
 import { systemClock, type Clock } from "../utils/clock";
+import { resolveCycleGoal } from "./effective-goal.service";
 import type { CreateTrainingCycleInput, UpdateTrainingCycleInput, SessionFeedbackInput } from "../models/training-cycle.models";
 
 const PROGRESS_CACHE_TTL_SECONDS = 120;
@@ -751,7 +752,7 @@ export const trainingCycleService = {
       cycle.planId,
       cycle.startDate,
       clock.now(),
-      cycle.goal,
+      await resolveCycleGoal(cycle),
     );
 
     return { cycle, summary };
@@ -782,7 +783,7 @@ export const trainingCycleService = {
       lowConfidence = true; // completed without a fresh, explicitly-chosen end measurement
     }
 
-    const rolling = await buildRollingSummary(userId, cycle.planId, cycle.startDate, now, cycle.goal);
+    const rolling = await buildRollingSummary(userId, cycle.planId, cycle.startDate, now, await resolveCycleGoal(cycle));
 
     // Data-sufficiency gate — mirrors the newer /evaluate flow's
     // CYCLE_TOO_SHORT / TOO_FEW_COMPLETED_SESSIONS gates (cycle-decision.engine.ts),
@@ -876,7 +877,7 @@ export const trainingCycleService = {
       userId,
       cycle: {
         cycleIndex: cycle.cycleIndex,
-        goal: cycle.goal,
+        goal: await resolveCycleGoal(cycle),
         startDate: cycle.startDate,
         endDate: cycle.endDate,
         durationDays: cycle.durationDays,
@@ -1190,7 +1191,7 @@ export const trainingCycleService = {
       cycleId,
       userId,
       planId: cycle.planId,
-      goal: cycle.goal,
+      goal: await resolveCycleGoal(cycle),
       startDate: cycle.startDate,
       asOf: clock.now(),
       inBodyEntries,
@@ -1536,7 +1537,7 @@ export const trainingCycleService = {
         cycleId,
         userId,
         planId: cycle.planId,
-        goal: cycle.goal,
+        goal: await resolveCycleGoal(cycle),
         startDate: cycle.startDate,
         asOf: now,
         inBodyEntries,
@@ -1609,7 +1610,7 @@ export const trainingCycleService = {
       // space and accept/reject lifecycle — see nutrition-decision.engine.ts.
       const nutritionResult = await this.evaluateNutritionForCycle({
         userId,
-        goal: (profile?.goal as any) ?? null,
+        goal: ((await resolveCycleGoal(cycle)) ?? profile?.goal ?? null) as any,
         metrics,
         cycleDurationDays,
         now,
@@ -1629,7 +1630,7 @@ export const trainingCycleService = {
         userId,
         cycle: {
           name: cycle.name,
-          goalType: cycle.goal,
+          goalType: await resolveCycleGoal(cycle),
           cycleIndex: cycle.cycleIndex,
           durationDays: cycle.durationDays,
           startDate: cycle.startDate,
@@ -1779,13 +1780,14 @@ export const trainingCycleService = {
   async getDietBreakStatus(cycleId: string, userId: string) {
     const cycle = await this.getCycle(cycleId, userId);
     const thresholdWeeks = cycleThresholds.nutritionAdaptive.dietBreakThresholdWeeks;
-    if (cycle.goal !== "WEIGHT_LOSS") {
+    const cycleGoal = await resolveCycleGoal(cycle);
+    if (cycleGoal !== "WEIGHT_LOSS") {
       return { applicable: false, weeksSinceDeficitPhaseStarted: null, thresholdWeeks, weeksRemaining: null, eligible: false };
     }
     const weeksSinceDeficitPhaseStarted = await computeWeeksSinceDeficitPhaseStarted(userId, {
       cycleIndex: cycle.cycleIndex,
       startDate: cycle.startDate,
-      goal: cycle.goal,
+      goal: cycleGoal,
     });
     return {
       applicable: true,
@@ -1963,7 +1965,7 @@ export const trainingCycleService = {
     if (cycle.status !== "ACTIVE") {
       throw { status: 409, message: "Chỉ có thể đề xuất diet break cho chu kỳ đang hoạt động." };
     }
-    if (cycle.goal !== "WEIGHT_LOSS") {
+    if ((await resolveCycleGoal(cycle)) !== "WEIGHT_LOSS") {
       throw { status: 409, message: "Diet break chỉ áp dụng cho chu kỳ giảm cân (WEIGHT_LOSS)." };
     }
 

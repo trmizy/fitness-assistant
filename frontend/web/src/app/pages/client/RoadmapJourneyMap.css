@@ -1,0 +1,68 @@
+/*
+ * Roadmap journey map motion — transitions.dev tokens (scoped here: the project does not import the shared _root.css).
+ * Only transform and opacity animate; everything rests under prefers-reduced-motion.
+ */
+.t-journey {
+  --duration-stagger: 40ms;
+  --duration-very-slow: 500ms;
+  --distance-micro: 4px;
+  --distance-base: 8px;
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* the elapsed part of the route draws from the left once */
+.t-journey-fill {
+  transform-origin: left center;
+  animation: t-journey-fill-in var(--duration-very-slow) var(--ease-smooth-out) both;
+  will-change: transform;
+}
+
+/* the "you are here" tag settles in after the route has drawn */
+.t-journey-pop {
+  animation: t-journey-pop-in var(--duration-very-slow) var(--ease-smooth-out) 250ms both;
+}
+
+/* phase cards rise in a short stagger */
+.t-journey-item {
+  animation: t-journey-item-in var(--duration-very-slow) var(--ease-smooth-out) both;
+  animation-delay: calc(var(--i, 0) * var(--duration-stagger));
+}
+
+@keyframes t-journey-fill-in {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes t-journey-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--distance-micro) * -1));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes t-journey-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--distance-base));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-journey-fill,
+  .t-journey-pop,
+  .t-journey-item {
+    animation: none;
+  }
+}
