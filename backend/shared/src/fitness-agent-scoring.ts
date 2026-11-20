@@ -15,7 +15,9 @@ export const FITNESS_SCORING = {
   // for a cold-start PT changed (no longer penalized as if evidence were
   // negative), not because the weights themselves changed.
   version: "compatibility-v2", similarityVersion: "journey-distance-v1",
-  weights: { goal: 30, schedule: 25, budget: 20, reputation: 10, evidence: 15 },
+  weights: { goal: 30, schedule: 25, budget: 20, reputation: 10, evidence: 15, proximity: 15 },
+  // Proximity: full score within `fullKm`, decaying linearly to 0 at `zeroKm`.
+  proximity: { fullKm: 5, zeroKm: 30 },
   distance: { weight: 0.30, frequency: 0.25, duration: 0.15, session: 0.15, bodyFat: 0.15 },
   minimumCohort: 5, maximumCohort: 20,
 } as const;
@@ -27,6 +29,14 @@ export const GOAL_SPECIALTIES: Record<string, string[]> = {
   MAINTENANCE: ["Sức bền", "General Fitness", "GENERAL_FITNESS", "HIIT", "Functional Training"],
   ATHLETIC_PERFORMANCE: ["Powerlifting", "Thể thao thành tích", "Sports Performance", "STRENGTH", "Functional Training"],
 };
+/** 1 within `fullKm`, linear decay to 0 at `zeroKm` (defaults 5 / 30 km). */
+export function proximityScore(distanceKm: number, config = FITNESS_SCORING): number {
+  const { fullKm, zeroKm } = config.proximity;
+  if (!Number.isFinite(distanceKm) || distanceKm < 0) return 0;
+  if (distanceKm <= fullKm) return 1;
+  if (distanceKm >= zeroKm) return 0;
+  return 1 - (distanceKm - fullKm) / (zeroKm - fullKm);
+}
 export interface JourneyFeatures {
   goal: string; experience: string; baselineWeight: number; baselineBodyFat: number | null;
   trainingDays: number; sessionMinutes: number; durationWeeks: number; constraints: string[];
@@ -87,6 +97,11 @@ export function scorePT(candidate: PTCandidate, preferences: AgentPreferences, c
   // when there isn't enough cohort data to trust it, so a cold-start PT is
   // ranked on goal/schedule/budget/reputation only, not artificially
   // capped by a dimension that has nothing real to say yet.
+  // Proximity: a term only when a real distance is known and the client did not ask for ONLINE (distance is meaningless
+  // for online coaching). Absent otherwise — dropped from numerator AND denominator, never scored as 0.
+  if (preferences.mode !== "ONLINE" && typeof candidate.location?.distanceKm === "number") {
+    components.proximity = proximityScore(candidate.location.distanceKm, config);
+  }
   const hasEvidence = candidate.history.count >= config.minimumCohort;
   if (hasEvidence) {
     components.evidence = Math.min(1, candidate.history.count / config.maximumCohort);

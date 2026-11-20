@@ -568,6 +568,25 @@ function buildSearchOrderBySql(sortKind: DiscoverySortKey, hasViewerGyms: boolea
   return Prisma.sql`ORDER BY b.tier ASC, b.sort_num ASC NULLS LAST, b."userId" ASC`;
 }
 
+/**
+ * Haversine distance (km) from a reference point to a training location, using the location's own lat/lng and falling back
+ * to its ward centroid (Q5) — the SQL expression expects the aliases `tl` (pt_training_locations) and `wg` (vietnam_ward_geo).
+ * Shared by PT discovery search and the AI Coach PT candidate search so both measure distance the same way.
+ */
+export function trainingLocationHaversineKmSql(refLat: number, refLng: number): Prisma.Sql {
+  return Prisma.sql`CASE
+      WHEN COALESCE(tl.latitude, wg.centroid_lat) IS NULL
+        OR COALESCE(tl.longitude, wg.centroid_lng) IS NULL
+      THEN NULL::double precision
+      ELSE 6371.0 * 2.0 * ASIN(SQRT(LEAST(1.0,
+        POWER(SIN(RADIANS(COALESCE(tl.latitude, wg.centroid_lat) - ${refLat}::double precision) / 2.0), 2)
+        + COS(RADIANS(${refLat}::double precision))
+          * COS(RADIANS(COALESCE(tl.latitude, wg.centroid_lat)))
+          * POWER(SIN(RADIANS(COALESCE(tl.longitude, wg.centroid_lng) - ${refLng}::double precision) / 2.0), 2)
+      )))
+    END`;
+}
+
 function round3(v: number): number {
   return Math.round(v * 1000) / 1000;
 }
@@ -735,19 +754,7 @@ export async function searchDiscoveryPtPageIds(
   if (appliedScope === "near") locWhereParts.push(nearBboxFilterSql);
   if (appliedScope === "province") locWhereParts.push(Prisma.sql`tl.province_code = ${safeProvinceCode}::int4`);
 
-  const haversineMinSql = Prisma.sql`MIN(
-    CASE
-      WHEN COALESCE(tl.latitude, wg.centroid_lat) IS NULL
-        OR COALESCE(tl.longitude, wg.centroid_lng) IS NULL
-      THEN NULL::double precision
-      ELSE 6371.0 * 2.0 * ASIN(SQRT(LEAST(1.0,
-        POWER(SIN(RADIANS(COALESCE(tl.latitude, wg.centroid_lat) - ${safeLat}::double precision) / 2.0), 2)
-        + COS(RADIANS(${safeLat}::double precision))
-          * COS(RADIANS(COALESCE(tl.latitude, wg.centroid_lat)))
-          * POWER(SIN(RADIANS(COALESCE(tl.longitude, wg.centroid_lng) - ${safeLng}::double precision) / 2.0), 2)
-      )))
-    END
-  )`;
+  const haversineMinSql = Prisma.sql`MIN(${trainingLocationHaversineKmSql(safeLat, safeLng)})`;
 
   const ctes: Prisma.Sql[] = [
     Prisma.sql`pkg_flags AS (
