@@ -41,6 +41,7 @@ import {
   MONTH_LABEL,
   RESCHEDULE_MIN_NOTICE_HOURS,
   type AvailabilityBlock,
+  type PtSession,
   availabilityFromServer,
   blockedDateSet,
   canProposeReschedule,
@@ -55,6 +56,8 @@ import {
   sessionActions,
   ptCancelNotice,
   PT_CANCEL_CONFIRMED_NOTICE,
+  ptBlockDayNotice,
+  confirmedSessionsOnDate,
   sessionDayOf,
   sessionDaysIn,
   sessionTimeLabel,
@@ -498,6 +501,7 @@ export default function PtScheduleScreen() {
             blocks={availabilityFromServer(availQuery.data)}
             loading={availQuery.isLoading}
             exceptions={exceptions}
+            sessions={sessions}
             uid={uid}
           />
         )}
@@ -569,11 +573,13 @@ function AvailabilityTab({
   blocks,
   loading,
   exceptions,
+  sessions,
   uid,
 }: {
   blocks: AvailabilityBlock[];
   loading: boolean;
   exceptions: any[];
+  sessions: PtSession[];
   uid: string;
 }) {
   const accent = useWorkspaceAccent();
@@ -625,6 +631,19 @@ function AvailabilityTab({
   });
 
   const dateError = blockDate && !/^\d{4}-\d{2}-\d{2}$/.test(blockDate.trim()) ? "Ngày theo dạng YYYY-MM-DD." : null;
+
+  // A day holding CONFIRMED sessions costs the PT one cash compensation per session, so ask first; an empty day is sent straight away.
+  const askBlock = () => {
+    const confirmed = confirmedSessionsOnDate(sessions, blockDate);
+    if (confirmed === 0) {
+      addException.mutate();
+      return;
+    }
+    Alert.alert("Đánh dấu ngày nghỉ?", ptBlockDayNotice(confirmed), [
+      { text: "Không", style: "cancel" },
+      { text: "Đánh dấu nghỉ", style: "destructive", onPress: () => addException.mutate() },
+    ]);
+  };
 
   return (
     <View className="gap-4 p-5">
@@ -744,7 +763,7 @@ function AvailabilityTab({
           <Button
             full
             disabled={!blockDate.trim() || !!dateError || addException.isPending}
-            onPress={() => addException.mutate()}
+            onPress={askBlock}
           >
             {addException.isPending ? "Đang lưu…" : "Đánh dấu nghỉ"}
           </Button>

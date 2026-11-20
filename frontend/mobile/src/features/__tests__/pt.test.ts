@@ -36,6 +36,8 @@ import {
   planTitle,
   ptAlerts,
   ptCancelNotice,
+  ptBlockDayNotice,
+  confirmedSessionsOnDate,
   PT_CANCEL_CONFIRMED_NOTICE,
   ptContractStatus,
   ptIncomingReschedule,
@@ -530,5 +532,27 @@ describe("PT cancel / block-day notice (owner decision 20/11/2026: no 24-hour gr
 
   it("uses the same wording for the block-day sheet", () => {
     assert.match(PT_CANCEL_CONFIRMED_NOTICE, /kể cả chặn ngày nghỉ/);
+  });
+});
+
+describe("PT block-day confirm", () => {
+  const at = (d: number, h: number) => new Date(2026, 10, d, h, 0).toISOString();
+  const list = [
+    { id: "a", status: "CONFIRMED", scheduledStartAt: at(25, 9) },
+    { id: "b", status: "CONFIRMED", scheduledStartAt: at(25, 17) },
+    { id: "c", status: "REQUESTED", scheduledStartAt: at(25, 12) },
+    { id: "d", status: "CONFIRMED", scheduledStartAt: at(26, 9) },
+  ] as any;
+
+  it("counts only the CONFIRMED sessions on the chosen local day", () => {
+    assert.equal(confirmedSessionsOnDate(list, "2026-11-25"), 2);
+    assert.equal(confirmedSessionsOnDate(list, "2026-11-27"), 0);
+    assert.equal(confirmedSessionsOnDate(list, "garbage"), 0);
+  });
+
+  it("puts the count and the compensation notice in the confirm body", () => {
+    const text = ptBlockDayNotice(2);
+    assert.match(text, /2 buổi đã xác nhận/);
+    assert.match(text, /bồi thường cho học viên 1 buổi bằng tiền/);
   });
 });
