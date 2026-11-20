@@ -12,6 +12,8 @@ import type {
 } from "../../types";
 import { DateSlotPicker, type DateSlotValue } from "../../components/booking/DateSlotPicker";
 import { Modal, ModalTitle } from "../../components/ui/Modal";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { confirmedSessionsOnDate, ptBlockDayNotice, ptCancelNotice } from "./ptCancelNotice";
 import { useNavigate } from "react-router";
 import { sessionsToClose, sessionWhenLabel } from "./sessionsToClose";
 import { formatDateTimeVi } from "../../utils/contractGymOptions"; // "19:00 25/11/2026" - the PT-11 fix: date shown, no seconds
@@ -142,6 +144,8 @@ export function PTSchedulePage() {
   const [isEditingAvail, setIsEditingAvail] = useState(false);
   const [blockDate, setBlockDate] = useState("");
   const [blockReason, setBlockReason] = useState("");
+  const [cancelTarget, setCancelTarget] = useState<{ id: string; status: string; name: string } | null>(null);
+  const [blockConfirm, setBlockConfirm] = useState<{ date: string; reason?: string; count: number } | null>(null);
 
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDay(year, month);
@@ -672,7 +676,7 @@ export function PTSchedulePage() {
                             <Check className="w-3 h-3" /> Xác nhận
                           </button>
                           <button
-                            onClick={() => cancelSessionMut.mutate(s.id)}
+                            onClick={() => setCancelTarget({ id: s.id, status: s.status, name: clientLabel(s.clientUserId) })}
                             disabled={cancelSessionMut.isPending}
                             className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
                           >
@@ -738,8 +742,9 @@ export function PTSchedulePage() {
                               </button>
                             )}
                           <button
-                            onClick={() => cancelSessionMut.mutate(s.id)}
+                            onClick={() => setCancelTarget({ id: s.id, status: s.status, name: clientLabel(s.clientUserId) })}
                             disabled={cancelSessionMut.isPending}
+                            title="Huỷ buổi đã xác nhận (kể cả chặn ngày nghỉ) sẽ bồi thường cho học viên 1 buổi bằng tiền, trừ vào thu nhập của bạn. Nên dùng Đổi lịch nếu học viên đồng ý."
                             className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
                           >
                             <X className="w-3 h-3" /> Hủy buổi
@@ -950,6 +955,9 @@ export function PTSchedulePage() {
             <p className="text-xs text-zinc-500">
               Chặn những ngày bạn không nhận lịch (nghỉ phép, lễ, v.v.)
             </p>
+            <p className="text-xs text-amber-400">
+              Huỷ buổi đã xác nhận (kể cả chặn ngày nghỉ) sẽ bồi thường cho học viên 1 buổi bằng tiền, trừ vào thu nhập của bạn. Nên dùng Đổi lịch nếu học viên đồng ý.
+            </p>
 
             <div className="flex gap-2">
               <input
@@ -966,13 +974,14 @@ export function PTSchedulePage() {
                 className="flex-1 bg-zinc-800 border border-zinc-700/60 rounded-lg px-3 py-2 text-sm text-zinc-300 placeholder-zinc-600 outline-none"
               />
               <button
-                onClick={() =>
-                  blockDate &&
-                  addExceptionMut.mutate({
-                    date: blockDate,
-                    reason: blockReason || undefined,
-                  })
-                }
+                onClick={() => {
+                  if (!blockDate) return;
+                  const reason = blockReason || undefined;
+                  // A day holding CONFIRMED sessions costs one cash compensation each: ask first. An empty day goes straight through.
+                  const count = confirmedSessionsOnDate(upcomingSessions as any[], blockDate);
+                  if (count > 0) setBlockConfirm({ date: blockDate, reason, count });
+                  else addExceptionMut.mutate({ date: blockDate, reason });
+                }}
                 disabled={!blockDate || addExceptionMut.isPending}
                 className="flex items-center gap-1 bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 px-3 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
               >
@@ -1092,6 +1101,31 @@ export function PTSchedulePage() {
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        open={!!cancelTarget}
+        onOpenChange={(o) => !o && setCancelTarget(null)}
+        title="Huỷ buổi tập?"
+        description={cancelTarget ? ptCancelNotice(cancelTarget.status, cancelTarget.name) : undefined}
+        confirmLabel="Huỷ buổi"
+        cancelLabel="Không"
+        onConfirm={() => {
+          if (cancelTarget) cancelSessionMut.mutate(cancelTarget.id);
+          setCancelTarget(null);
+        }}
+      />
+      <ConfirmDialog
+        open={!!blockConfirm}
+        onOpenChange={(o) => !o && setBlockConfirm(null)}
+        title="Chặn ngày nghỉ?"
+        description={blockConfirm ? ptBlockDayNotice(blockConfirm.count) : undefined}
+        confirmLabel="Chặn ngày"
+        cancelLabel="Không"
+        onConfirm={() => {
+          if (blockConfirm) addExceptionMut.mutate({ date: blockConfirm.date, reason: blockConfirm.reason });
+          setBlockConfirm(null);
+        }}
+      />
     </div>
   );
 }

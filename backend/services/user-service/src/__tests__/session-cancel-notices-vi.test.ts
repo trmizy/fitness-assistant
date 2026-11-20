@@ -66,6 +66,10 @@ async function cancelAndCapture(opts: { status: SessionStatus; startInHours: num
     patch(sessionRepository, "transitionStatus", async () => true),
     patch(contractRepository, "findById", async () => contract as any),
     patch(contractRepository, "incrementSession", async () => ({}) as any),
+    // PT-cancel path (owner decision 20/11/2026: always compensated): the entitlement mark + the money call.
+    patch(sessionRepository, "claimNoShowQuota", async () => true),
+    patch(contractRepository, "incrementCompensatedSessions", async () => ({}) as any),
+    patch(paymentClient, "noShow", async () => ({ compensation: "100000.00", pt: "90000.00", gym: "0.00", platform: "10000.00", shortfall: "0.00" }) as any),
     patch(contractRepository, "update", async () => ({}) as any),
     patch(paymentClient, "releaseSession", async () => ({ unit: "100000.00", released: { pt: "90000.00", gym: "0.00", platform: "10000.00" } })),
     patch(contractService, "checkAndCompleteContract", async () => null),
@@ -83,25 +87,25 @@ async function cancelAndCapture(opts: { status: SessionStatus; startInHours: num
   return notes[0] as { userId: string; text: string };
 }
 
-test("B32: client cancels a CONFIRMED session late - the PT is told, in Vietnamese, they are still paid for it", async () => {
-  const n = await cancelAndCapture({ status: SessionStatus.CONFIRMED, startInHours: 2, actor: "client-1" });
-  assert.equal(n.userId, "pt-1");
-  assert.match(n.text, /sát giờ/);
-  assert.match(n.text, /vẫn được thanh toán/);
-  assert.doesNotMatch(n.text, ENGLISH);
-  assert.doesNotMatch(n.text, /\d{3}/, "no invented amount: the real payout is not known at that point");
-});
+// OWNER DECISION 20/11/2026: no 24h grace - the notice is the same at any distance from the session.
+for (const hours of [2, 48]) {
+  test(`B32: client cancels a CONFIRMED session ${hours}h out - the PT is told, in Vietnamese, they are still paid for it`, async () => {
+    const n = await cancelAndCapture({ status: SessionStatus.CONFIRMED, startInHours: hours, actor: "client-1" });
+    assert.equal(n.userId, "pt-1");
+    assert.match(n.text, /vẫn được thanh toán/);
+    assert.doesNotMatch(n.text, /24 giờ|sát giờ/, "no 24h wording any more");
+    assert.doesNotMatch(n.text, ENGLISH);
+    assert.doesNotMatch(n.text, /\d{3}/, "no invented amount: the real payout is not known at that point");
+  });
 
-test("B32: client cancels a CONFIRMED session in good time - plain Vietnamese notice, no payment promise", async () => {
-  const n = await cancelAndCapture({ status: SessionStatus.CONFIRMED, startInHours: 48, actor: "client-1" });
-  assert.equal(n.text, "Khách đã huỷ một buổi tập.");
-});
-
-test("B32: PT cancels a CONFIRMED session in good time - the client gets a Vietnamese notice", async () => {
-  const n = await cancelAndCapture({ status: SessionStatus.CONFIRMED, startInHours: 48, actor: "pt-1" });
-  assert.equal(n.userId, "client-1");
-  assert.equal(n.text, "Huấn luyện viên đã huỷ một buổi tập.");
-});
+  test(`B32: PT cancels a CONFIRMED session ${hours}h out - the client is told, in Vietnamese, the session is closed and refunded`, async () => {
+    const n = await cancelAndCapture({ status: SessionStatus.CONFIRMED, startInHours: hours, actor: "pt-1" });
+    assert.equal(n.userId, "client-1");
+    assert.match(n.text, /^Huấn luyện viên đã huỷ buổi tập đã xác nhận của bạn\./);
+    assert.doesNotMatch(n.text, /24 giờ|sát giờ/, "no 24h wording any more");
+    assert.doesNotMatch(n.text, ENGLISH);
+  });
+}
 
 test("B32: cancelling a REQUESTED (unconfirmed) session notifies in Vietnamese both ways", async () => {
   const byClient = await cancelAndCapture({ status: SessionStatus.REQUESTED, startInHours: 48, actor: "client-1" });

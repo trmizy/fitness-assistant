@@ -79,7 +79,7 @@ function baseFixtures(scheduledStartAt: Date) {
   return { session, contract };
 }
 
-test("client cancelling < 24h before the session releases the PT's money for it", async () => {
+test("client cancelling < 24h before a CONFIRMED session releases the PT's money for it", async () => {
   const { session, contract } = baseFixtures(futureBy(2 * HOUR)); // 2h out — inside the 24h window
   const calls: string[] = [];
 
@@ -129,13 +129,13 @@ test("client cancelling < 24h before the session releases the PT's money for it"
   );
 });
 
-test("client cancelling >= 24h ahead does not deduct quota or release money", async () => {
-  const { session, contract } = baseFixtures(futureBy(48 * HOUR)); // well outside the window
+// OWNER DECISION 20/11/2026: no 24h grace - a client cancelling a CONFIRMED session loses it and the PT is paid at ANY notice.
+test("client cancelling >= 24h ahead ALSO deducts the quota and releases the PT's money (no 24h grace any more)", async () => {
+  const { session, contract } = baseFixtures(futureBy(48 * HOUR));
   const calls: string[] = [];
 
   const restores = [
     patch(sessionRepository, "findById", async () => session as any),
-    // Vòng 4 / Phase A1: cancelSession CASes via transitionStatus now, not updateStatus.
     patch(sessionRepository, "transitionStatus", async () => {
       calls.push("session.updateStatus");
       return true;
@@ -145,9 +145,10 @@ test("client cancelling >= 24h ahead does not deduct quota or release money", as
       calls.push("incrementSession");
       return {} as any;
     }),
+    patch(contractRepository, "update", async () => ({}) as any),
     patch(paymentClient, "releaseSession", async () => {
       calls.push("paymentClient.releaseSession");
-      return {};
+      return { unit: "100000.00", released: { pt: "90000.00", gym: "0.00", platform: "10000.00" } };
     }),
     patch(contractService, "checkAndCompleteContract", async () => {
       calls.push("checkAndCompleteContract");
@@ -162,15 +163,46 @@ test("client cancelling >= 24h ahead does not deduct quota or release money", as
     restores.forEach((r) => r());
   }
 
-  assert.deepEqual(calls, ["session.updateStatus"], "no quota, no money, no completion check — the session just returns to the pool");
+  assert.deepEqual(calls, ["session.updateStatus", "incrementSession", "paymentClient.releaseSession", "checkAndCompleteContract"]);
 });
 
-test("the PT cancelling with plenty of notice (≥24h) never deducts quota or releases money", async () => {
-  // Money-flow plan 3.1 note: a PT cancelling with LESS than 24h notice now DOES compensate
-  // the client (matrix 0.1 row 4) — that case moved to
-  // pt-late-cancel-compensates-via-shared-outcome.test.ts, which also covers this ≥24h case.
-  // Kept here too since this file is specifically about the money-release call chain.
-  const { session, contract } = baseFixtures(futureBy(48 * HOUR)); // well outside the window
+test("client cancelling a REQUESTED (not yet confirmed) session still costs nothing - unchanged", async () => {
+  const { session, contract } = baseFixtures(futureBy(48 * HOUR));
+  (session as any).status = SessionStatus.REQUESTED;
+  const calls: string[] = [];
+
+  const restores = [
+    patch(sessionRepository, "findById", async () => session as any),
+    patch(sessionRepository, "transitionStatus", async () => {
+      calls.push("session.updateStatus");
+      return true;
+    }),
+    patch(contractRepository, "findById", async () => contract as any),
+    patch(contractRepository, "incrementSession", async () => {
+      calls.push("incrementSession");
+      return {} as any;
+    }),
+    patch(paymentClient, "releaseSession", async () => {
+      calls.push("paymentClient.releaseSession");
+      return {};
+    }),
+    patch(notificationService, "create", async () => ({}) as any),
+  ];
+
+  try {
+    await bookingService.cancelSession(session.id, "client-1", "Chưa xác nhận");
+  } finally {
+    restores.forEach((r) => r());
+  }
+
+  assert.deepEqual(calls, ["session.updateStatus"], "no quota, no money for a request that was never confirmed");
+});
+
+test("the PT cancelling a REQUESTED session never deducts quota or releases money", async () => {
+  // The PT-cancels-CONFIRMED case (compensation at any notice) is covered by
+  // pt-late-cancel-compensates-via-shared-outcome.test.ts. This file is about the money-release call chain.
+  const { session, contract } = baseFixtures(futureBy(48 * HOUR));
+  (session as any).status = SessionStatus.REQUESTED;
   const calls: string[] = [];
 
   const restores = [

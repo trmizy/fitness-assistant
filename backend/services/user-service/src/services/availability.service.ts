@@ -434,7 +434,7 @@ export const availabilityService = {
   /**
    * Add a blocked date. Any session already sitting on that date must not just silently keep
    * pointing at a PT who has now marked themselves unavailable that day:
-   *   - CONFIRMED → the PT is the one at fault, same as a same-day no-show (§3.4): the client
+   *   - CONFIRMED → the PT is the one at fault, at ANY notice (owner decision 20/11/2026), same as a no-show (§3.4): the client
    *     is compensated one session's value via compensateNoShowMoney, the session doesn't
    *     count against quota, and the reason is recorded on the session itself.
    *   - REQUESTED (never confirmed) → nothing was committed yet, so just cancel it, no
@@ -458,9 +458,8 @@ export const availabilityService = {
     const reasonSuffix = reason ? `: ${reason}` : "";
     for (const session of conflicts) {
       if (session.status === SessionStatus.CONFIRMED) {
-        // Money-flow plan 3.1: routed through the single shared matrix instead of always
-        // treating a PT block as a compensated no-show — a block ≥24h out is just a
-        // reschedule, no money changes hands (see session-outcome.ts for the full table).
+        // Money-flow plan 3.1: routed through the single shared matrix (session-outcome.ts). Owner decision 20/11/2026:
+        // a PT blocking a day with a CONFIRMED session ALWAYS compensates the client (no 24 h grace any more).
         // F4 / D56: the CAS on the status that was read (L2: a session the contract's ending / the client / the sweep has
         // already dealt with is never overwritten, and its compensation never triggered a second time) and the
         // compensation are ONE critical section on the contract, decided while it is still running. A contract that has
@@ -471,8 +470,7 @@ export const availabilityService = {
           // Phase 0 / D58: the status CAS and the INTENT of the compensation commit as one short transaction; the
           // payment-service call is made after the lock is released (idempotent on the intent's key).
           const decided = await withRunningContract(session.contractId, async (tx) => {
-            const hoursBeforeStart = (session.scheduledStartAt.getTime() - Date.now()) / (60 * 60 * 1000);
-            const o = resolveSessionOutcome({ actor: "PT", event: "CANCEL", hoursBeforeStart });
+            const o = resolveSessionOutcome({ actor: "PT", event: "CANCEL" });
             const ok = await sessionRepository.transitionStatus(
               session.id,
               [session.status],
@@ -480,8 +478,8 @@ export const availabilityService = {
               {
                 sessionDeducted: o.clientQuotaEffect === "DEDUCT",
                 ptNotes: `PT chặn lịch ngày này${reasonSuffix}`,
-                // Ghi người huỷ cho trường hợp ≥24h (CANCELLED): đồng hồ "hợp đồng nhàn rỗi" của khoản
-                // giữ lại PT (findIdleHoldbackCandidates) tính buổi do chính PT huỷ là hoạt động.
+                // Ghi người huỷ nếu kết quả là CANCELLED (hiện không còn xảy ra với PT chặn ngày): đồng hồ "hợp đồng
+                // nhàn rỗi" của khoản giữ lại PT tính buổi do chính PT huỷ là hoạt động.
                 ...(o.sessionStatus === SessionStatus.CANCELLED ? { cancelledBy: ptUserId } : {}),
               },
               tx,
@@ -513,10 +511,10 @@ export const availabilityService = {
             userId: session.clientUserId,
             text: outcome.clientCompensation
               ? ptFaultClientMessage(
-                  `Huấn luyện viên đã chặn lịch ngày ${dateStr}${reasonSuffix}, sát giờ hẹn.`,
+                  `Huấn luyện viên đã chặn lịch ngày ${dateStr}${reasonSuffix}.`,
                   readPtFaultMoney(moneyAnswer),
                 )
-              // ≥24h before the start: a plain reschedule - nothing was consumed, no money moved (session-outcome row 3).
+              // Unreachable since the 20/11/2026 owner decision (a PT block always compensates); kept as a safe fallback.
               : `Huấn luyện viên đã chặn lịch ngày ${dateStr}${reasonSuffix}. Buổi tập của bạn không bị trừ — vui lòng đặt lại lịch mới.`,
             eventType: outcome.clientCompensation ? "SESSION_NO_SHOW_PT" : "SESSION_CANCELLED",
             entityType: "SESSION",

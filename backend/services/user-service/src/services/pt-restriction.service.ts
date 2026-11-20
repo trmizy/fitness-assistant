@@ -1685,7 +1685,6 @@ async function cancelUpcomingSessionsAdministratively(
     const outcome = resolveSessionOutcome({
       actor: "FORCE_MAJEURE",
       event: "CANCEL",
-      hoursBeforeStart: (s.scheduledStartAt.getTime() - at.getTime()) / (60 * 60 * 1000),
     });
     // The shared matrix is the contract of this path: if it ever stopped being a no-penalty
     // cancellation, refuse to apply it rather than quietly charge somebody.

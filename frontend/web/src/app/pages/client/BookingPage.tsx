@@ -996,8 +996,9 @@ export function BookingPage() {
                           <br />
                           • Mỗi ngày đặt tối đa 2 buổi (tính cả buổi đang chờ PT xác nhận).
                           <br />
-                          • Hủy lịch trong vòng 24 giờ sẽ tính là 1 buổi đã
-                          dùng.
+                          • Hủy buổi đã xác nhận sẽ mất 1 buổi trong hợp đồng
+                          (PT vẫn được tính buổi). Nếu cần đổi giờ, hãy dùng
+                          Đổi lịch — miễn phí khi PT đồng ý.
                           <br />• Vắng mặt cũng sẽ tính là 1 buổi đã dùng.
                         </p>
                       </div>
@@ -1123,9 +1124,10 @@ export function BookingPage() {
                         </div>
                       </div>
                     </div>
-                    {hoursUntil < 24 && hoursUntil > 0 && (
+                    {/* Owner decision 20/11/2026: no 24h grace - cancelling a CONFIRMED session always costs the client the session. */}
+                    {s.status === "CONFIRMED" && hoursUntil > 0 && (
                       <div className="mt-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1.5">
-                        Hủy lúc này sẽ tính là 1 buổi đã dùng (còn dưới 24 giờ)
+                        Huỷ buổi đã xác nhận sẽ mất 1 buổi trong hợp đồng (PT vẫn được tính buổi). Nếu cần đổi giờ, hãy dùng Đổi lịch — miễn phí khi PT đồng ý.
                       </div>
                     )}
                     {/* Money-flow plan 3.3: gate on the actual pending-request list, not the
@@ -1491,6 +1493,11 @@ export function BookingPage() {
               <p className="text-sm text-zinc-400">
                 Vui lòng cho biết lý do hủy lịch tập này.
               </p>
+              {(upcomingSessions as Session[]).find((x) => x.id === cancelId)?.status === "CONFIRMED" && (
+                <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1.5">
+                  Huỷ buổi đã xác nhận sẽ mất 1 buổi trong hợp đồng (PT vẫn được tính buổi). Nếu cần đổi giờ, hãy dùng Đổi lịch — miễn phí khi PT đồng ý.
+                </p>
+              )}
               <textarea
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}

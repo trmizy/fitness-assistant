@@ -114,19 +114,18 @@ export const PT_TERMS_SECTIONS: readonly PtTermsSection[] = [
     id: "client-cancel",
     title: "4. Khi khách hủy",
     body: [
-      "Khách hủy một buổi trước giờ hẹn từ 24 giờ trở lên: buổi được trả lại để đặt lại, không ai bị tính phí.",
-      "Khách hủy buổi trong vòng 24 giờ trước giờ hẹn: khách mất buổi đó và bạn vẫn nhận tiền của buổi đó.",
+      "Khách hủy một buổi đã xác nhận (vào bất kỳ thời điểm nào trước giờ hẹn): khách mất buổi đó và bạn vẫn nhận tiền của buổi đó.",
+      "Nếu khách cần đổi giờ, khách dùng chức năng Đổi lịch: việc dời lịch miễn phí khi bạn đồng ý, không bên nào bị tính phí.",
       "Khách tự chấm dứt hợp đồng giữa chừng: khách được hoàn 90% giá trị phần chưa dùng; 10% còn lại được chia cho các bên theo tỷ lệ của hợp đồng đó.",
     ],
     source:
-      "session-outcome.ts rows 1-2 (SESSION_LATE_CANCEL_HOURS=24); contract-money.ts CLIENT_CANCEL_REFUND_RATE=0.90 (D4)",
+      "session-outcome.ts (client cancel = DEDUCT + PT payout at any notice; owner decision 20/11/2026, no 24h grace); contract-money.ts CLIENT_CANCEL_REFUND_RATE=0.90 (D4)",
   },
   {
     id: "pt-cancel",
     title: "5. Khi bạn hủy, vắng mặt hoặc vào phòng học muộn",
     body: [
-      "Bạn hủy buổi hoặc chặn ngày trước giờ hẹn từ 24 giờ trở lên: buổi được dời sang lịch khác, không ai bị tính phí.",
-      "Bạn hủy hoặc chặn ngày trong vòng 24 giờ trước giờ hẹn, hoặc không có mặt ở buổi đã hẹn: buổi đó được đóng là «không diễn ra» và khách được hoàn giá trị của buổi đó (giá hợp đồng chia cho tổng số buổi) vào ví. Bạn không nhận tiền của buổi đó.",
+      "Bạn hủy một buổi đã xác nhận hoặc chặn ngày nghỉ có buổi đã xác nhận (vào bất kỳ thời điểm nào trước giờ hẹn), hoặc không có mặt ở buổi đã hẹn: buổi đó được đóng là «không diễn ra» và khách được hoàn giá trị của buổi đó (giá hợp đồng chia cho tổng số buổi) vào ví. Bạn không nhận tiền của buổi đó.",
       "Cần phân biệt hai khái niệm: «buổi được tính vào số buổi đã xử lý của gói» và «buổi bạn đã cung cấp dịch vụ». Buổi «không diễn ra» thuộc loại thứ nhất: nó được trừ vào số buổi của gói và hệ thống không tạo buổi bù. Nhưng đó không phải là buổi bạn đã dạy: nó không bao giờ được hiển thị là đã hoàn thành và không tạo thu nhập cho bạn.",
       "Khoản hoàn được lấy từ chính tiền của hợp đồng đó, không lấy từ tiền của hợp đồng khác. Gymini không cam kết mọi khoản còn thiếu đều được hoàn ngay; trên từng buổi, ứng dụng hiển thị đúng trường hợp đang xảy ra: (a) tiền của hợp đồng đủ — khách được hoàn đủ vào ví, buổi hiện «đã hoàn tiền»; (b) chỉ đủ một phần — khách được hoàn phần đó vào ví, phần còn lại được ghi nhận là khoản đang được đối soát giữa các bên, buổi hiện «đã hoàn một phần, còn … đang chờ xử lý»; (c) chưa hoàn được — toàn bộ khoản đang được đối soát, buổi hiện «chưa hoàn, đang chờ xử lý». Phần đang đối soát chỉ được coi là đã hoàn khi đã được xử lý xong, và không tự động trở thành khoản nợ của bạn.",
       "Buổi học trực tuyến mà bạn vào phòng học muộn hơn 15 phút so với giờ bắt đầu đã hẹn, trong khi khách cũng có mặt: buổi vẫn được tính là buổi đã diễn ra, nhưng khách được bồi thường một nửa giá trị của buổi đó (một nửa của giá hợp đồng chia cho tổng số buổi). Khoản bồi thường này được trừ vào chính tiền của buổi đó: bạn, phòng gym (nếu có) và nền tảng mỗi bên chịu phần của mình theo đúng tỷ lệ chia của hợp đồng. Sau khi buổi được xác nhận, bạn nhận phần còn lại của buổi đó sau khi đã trừ phần bồi thường của bạn; các buổi khác không bị ảnh hưởng. Nếu khoản bồi thường chưa thực hiện được ngay, nó được ghi nhận là khoản đang được đối soát với khách và không tự động trở thành khoản nợ của bạn.",

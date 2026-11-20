@@ -12,6 +12,8 @@ import type {
 import { formatVND } from "../../utils/currency";
 import { Stars } from "../../components/gym/Stars";
 import { Modal, ModalTitle } from "../../components/ui/Modal";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { ptCancelNotice } from "./ptCancelNotice";
 import { PtTermsBanner } from "../../components/pt-terms/PtTerms";
 import { isPtTermsRefusal, PT_TERMS_REFUSAL_MESSAGE } from "../../utils/ptTerms";
 import { ptContractShare } from "../../utils/ptContractShare";
@@ -182,6 +184,7 @@ export function PTContractsPage() {
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [cancelId, setCancelId] = useState<string | null>(null);
+  const [sessionCancel, setSessionCancel] = useState<{ id: string; status: string; reason: string; name: string } | null>(null);
   // Roadmap P4.1 "Notifications/reminders" (§27) — PT feedback.
   const [feedbackId, setFeedbackId] = useState<string | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
@@ -742,10 +745,7 @@ export function PTContractsPage() {
                                         </button>
                                         <button
                                           onClick={() =>
-                                            cancelSessionMut.mutate({
-                                              id: s.id,
-                                              reason: "PT từ chối buổi tập",
-                                            })
+                                            setSessionCancel({ id: s.id, status: s.status, reason: "PT từ chối buổi tập", name: partyName(c) })
                                           }
                                           disabled={cancelSessionMut.isPending}
                                           className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
@@ -793,12 +793,10 @@ export function PTContractsPage() {
                                         )}
                                         <button
                                           onClick={() =>
-                                            cancelSessionMut.mutate({
-                                              id: s.id,
-                                              reason: "PT hủy buổi tập",
-                                            })
+                                            setSessionCancel({ id: s.id, status: s.status, reason: "PT hủy buổi tập", name: partyName(c) })
                                           }
                                           disabled={cancelSessionMut.isPending}
+                                          title="Huỷ buổi đã xác nhận (kể cả chặn ngày nghỉ) sẽ bồi thường cho học viên 1 buổi bằng tiền, trừ vào thu nhập của bạn. Nên dùng Đổi lịch nếu học viên đồng ý."
                                           className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
                                         >
                                           <X className="w-3 h-3" /> Hủy buổi
@@ -1127,6 +1125,19 @@ export function PTContractsPage() {
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        open={!!sessionCancel}
+        onOpenChange={(o) => !o && setSessionCancel(null)}
+        title="Huỷ buổi tập?"
+        description={sessionCancel ? ptCancelNotice(sessionCancel.status, sessionCancel.name) : undefined}
+        confirmLabel="Huỷ buổi"
+        cancelLabel="Không"
+        onConfirm={() => {
+          if (sessionCancel) cancelSessionMut.mutate({ id: sessionCancel.id, reason: sessionCancel.reason });
+          setSessionCancel(null);
+        }}
+      />
     </div>
   );
 }

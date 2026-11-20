@@ -1310,11 +1310,10 @@ export const bookingService = {
     // short transaction (all on `tx`); the lock is released BEFORE payment-service is called. The money step then runs
     // idempotently on the intent's key; a crash in between leaves the durable intent for the sweep / the ending to repeat.
     const outcome = await withRunningContract(session.contractId, async (tx) => {
-      const hoursBeforeStart = (session.scheduledStartAt.getTime() - Date.now()) / (60 * 60 * 1000);
+      // Owner decision 20/11/2026: no 24 h grace - the outcome no longer depends on how far away the session is.
       const decided = resolveSessionOutcome({
         actor: isClient ? (ptRestricted ? "FORCE_MAJEURE" : "CLIENT") : "PT",
         event: "CANCEL",
-        hoursBeforeStart,
       });
       const won = await sessionRepository.transitionStatus(
         sessionId,
@@ -1356,10 +1355,10 @@ export const bookingService = {
           ? outcome.ptPayout
             ? // B32: the late cancel by the client still pays the trainer for the session. The amount is not known at
               // this point (releaseSessionMoney reports nothing back, and a holdback can make the first one 0), so no number.
-              "Khách đã huỷ buổi tập sát giờ (dưới 24 giờ trước giờ bắt đầu). Buổi tập này vẫn được tính và bạn vẫn được thanh toán cho buổi tập."
+              "Khách đã huỷ một buổi tập đã xác nhận. Buổi tập này vẫn được tính và bạn vẫn được thanh toán cho buổi tập."
             : "Khách đã huỷ một buổi tập."
           : outcome.clientCompensation
-            ? ptFaultClientMessage("Huấn luyện viên đã huỷ buổi tập sát giờ.", readPtFaultMoney(cancelMoneyAnswer))
+            ? ptFaultClientMessage("Huấn luyện viên đã huỷ buổi tập đã xác nhận của bạn.", readPtFaultMoney(cancelMoneyAnswer))
             : "Huấn luyện viên đã huỷ một buổi tập.",
         eventType: "SESSION_CANCELLED",
         entityType: "SESSION",
@@ -1419,7 +1418,7 @@ export const bookingService = {
     // but this call site must still go through the SAME function as addException/cancelSession
     // rather than hardcoding the same values independently.
     if (!isClientNoShow) {
-      const outcome = resolveSessionOutcome({ actor: "PT", event: "NO_SHOW", hoursBeforeStart: 0 });
+      const outcome = resolveSessionOutcome({ actor: "PT", event: "NO_SHOW" });
 
       // F4 / D56: the CAS on the status that was read, the compensation and its counters are ONE critical section on
       // the contract (see cancelSession). A session called off / settled meanwhile is never overwritten (409

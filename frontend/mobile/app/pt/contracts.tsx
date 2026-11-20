@@ -46,6 +46,7 @@ import {
   type ContractTabKey,
   type PtContract,
   clientName,
+  ptCancelNotice,
   contractTabCounts,
   contractTabOf,
   contractsInTab,
@@ -349,7 +350,7 @@ export default function PtContractsScreen() {
                       )}
                     </Tappable>
 
-                    {isOpen ? <ContractSessions contractId={c.id} onChanged={refresh} /> : null}
+                    {isOpen ? <ContractSessions contractId={c.id} clientLabel={name} onChanged={refresh} /> : null}
                   </Card>
                 </StaggerItem>
               );
@@ -409,7 +410,7 @@ export default function PtContractsScreen() {
  * The sessions of one contract, with the same actions (and the same backend-derived guards) as
  * the Lịch dạy screen — `sessionActions` is the single place those rules live.
  */
-function ContractSessions({ contractId, onChanged }: { contractId: string; onChanged: () => void }) {
+function ContractSessions({ contractId, clientLabel, onChanged }: { contractId: string; clientLabel: string; onChanged: () => void }) {
   const accent = useWorkspaceAccent();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -484,6 +485,13 @@ function ContractSessions({ contractId, onChanged }: { contractId: string; onCha
 
   const busy = confirm.isPending || complete.isPending || noShow.isPending || cancel.isPending;
 
+  // A CONFIRMED session costs the PT a cash compensation, so it is never a one-tap action (same Alert as Lịch dạy).
+  const askCancel = (id: string, status: string) =>
+    Alert.alert("Huỷ buổi tập?", ptCancelNotice(status, clientLabel), [
+      { text: "Không", style: "cancel" },
+      { text: "Huỷ buổi", style: "destructive", onPress: () => cancel.mutate(id) },
+    ]);
+
   if (query.isLoading) return <ActivityIndicator className="py-3" color={accent.primary} />;
   if (query.isError) {
     return <Text className="py-2 font-body text-xs text-destructive">Không tải được buổi tập.</Text>;
@@ -533,7 +541,7 @@ function ContractSessions({ contractId, onChanged }: { contractId: string; onCha
                   </Button>
                 ) : null}
                 {actions.includes("cancel") ? (
-                  <Button size="sm" variant="ghost" disabled={busy} onPress={() => cancel.mutate(s.id)}>
+                  <Button size="sm" variant="ghost" disabled={busy} onPress={() => askCancel(s.id, s.status)}>
                     Huỷ
                   </Button>
                 ) : null}
