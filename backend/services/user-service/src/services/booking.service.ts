@@ -26,6 +26,7 @@ import { availabilityRepository } from "../repositories/availability.repository"
 import { profileRepository } from "../repositories/profile.repository";
 import { notificationService } from "./notification.service";
 import { contractService, getRemainingEntitlements } from "./contract.service";
+import { toPtVisibleClientProfile } from "./contract-dto";
 import { auditService } from "./audit.service";
 import { ptFaultClientMessage, ptFaultPtMessage, readPtFaultMoney } from "./pt-fault-session-wording";
 import { attachRefundStates } from "./session-refund-state";
@@ -1805,7 +1806,13 @@ export const bookingService = {
     return sessions.map((s) => {
       const otherId = s.ptUserId === userId ? s.clientUserId : s.ptUserId;
       const key = s.ptUserId === userId ? "clientProfile" : "ptProfile";
-      return { ...s, [key]: profileMap.get(otherId) ?? null };
+      const other = profileMap.get(otherId) ?? null;
+      if (key !== "clientProfile") return { ...s, [key]: other };
+      // Privacy: a PT works with the client's name, avatar and goal, never their contact e-mail (same shaping as GET /contracts/pt) -
+      // not on the profile, and not on the contract row that rides along (the e-sign address the client gave).
+      const contract = (s as { contract?: Record<string, unknown> | null }).contract;
+      const ptSafeContract = contract && typeof contract === "object" ? (({ clientSignerEmail: _drop, ...rest }) => rest)(contract) : contract;
+      return { ...s, ...(contract !== undefined ? { contract: ptSafeContract } : {}), [key]: toPtVisibleClientProfile(other) };
     });
   },
 

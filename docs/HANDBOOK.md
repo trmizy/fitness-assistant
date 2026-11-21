@@ -106,16 +106,16 @@ Phạt tính trên `remaining` (phần chưa dùng) chứ không trên tổng gi
 - Năm trạng thái còn **giữ quyền lợi** khi đếm số buổi được đặt: `REQUESTED, CONFIRMED, PENDING_CLIENT_CONFIRMATION, DISPUTED, PT_NO_SHOW_REPORTED`.
 - Đặt buổi và dời lịch chạy dưới khoá advisory theo PT (`pg_advisory_xact_lock`) để không double-book; kiểm số buổi còn lại + trùng giờ + tạo buổi nằm trong **một** transaction. Giờ kết thúc luôn tính ở server từ `sessionDurationMinutes` của hợp đồng.
 
-| # | Ai | Sự kiện | Báo trước | Kết quả buổi | Quota | Bồi thường khách | PT được trả |
-|---|---|---|---|---|---|---|---|
-| 1 | Khách | Huỷ | ≥ 24h | `CANCELLED` | giữ | không | không |
-| 2 | Khách | Huỷ | < 24h | `CANCELLED` | **trừ** | không | **có** |
-| 3 | PT | Huỷ/chặn ngày | ≥ 24h | `CANCELLED` | giữ | không | không |
-| 4 | PT | Huỷ/chặn ngày | < 24h | `NO_SHOW` | giữ | **có** | không |
-| 5 | PT | Không tới | — | `NO_SHOW` | giữ | **có** | không |
-| 6 | Bất khả kháng | Huỷ | bất kỳ | `CANCELLED` | giữ | không | không |
+Quy tắc huỷ buổi hiện hành (chủ sở hữu chốt 20/11/2026 — **không còn mốc 24 giờ**): huỷ buổi `CONFIRMED` luôn tốn kém cho bên huỷ, vào bất kỳ thời điểm nào trước giờ hẹn. Huỷ buổi `REQUESTED` (chưa xác nhận) miễn phí, không tiền, không trừ quota (`cancelSession` xử lý nhánh này riêng). Dời lịch miễn phí, tối đa 2 lần dời được chấp nhận/buổi, không được gửi trong vòng 12 giờ trước giờ hẹn cũ, giờ mới phải cách hiện tại ≥ 24 giờ (xem §2.4).
 
-Nguồn duy nhất: `resolveSessionOutcome()` ở `user-service/src/services/session-outcome.ts`, mốc trễ `SESSION_LATE_CANCEL_HOURS = 24`. Mọi đường huỷ/vắng (`addException`, `cancelSession`, `markNoShow`, phòng online) phải đi qua hàm này, không tự tính.
+| # | Ai | Sự kiện | Kết quả buổi | Quota | Bồi thường khách | PT được trả |
+|---|---|---|---|---|---|---|
+| 1 | Khách | Huỷ buổi `CONFIRMED` | `CANCELLED` | **trừ 1 buổi** | không | **có** (trọn buổi) |
+| 2 | PT | Huỷ buổi `CONFIRMED` / chặn ngày có buổi đã xác nhận | `NO_SHOW` | buổi được tính là đã xử lý (`compensatedSessions` + 1) | **có** — 1 buổi bằng tiền, PT chịu | không |
+| 3 | PT | Không tới | `NO_SHOW` | như dòng 2 | **có** | không |
+| 4 | Bất khả kháng (PT đang bị hạn chế) | Huỷ | `CANCELLED` | giữ | không | không |
+
+Nguồn duy nhất: `resolveSessionOutcome()` ở `user-service/src/services/session-outcome.ts` (không còn tham số báo trước / `SESSION_LATE_CANCEL_HOURS`). Mọi đường huỷ/vắng (`addException`, `cancelSession`, `markNoShow`, phòng online) phải đi qua hàm này, không tự tính.
 
 **Khiếu nại buổi (đường cũ một admin)** chỉ phát sinh từ hai hướng (khách khiếu nại `PENDING_CLIENT_CONFIRMATION`; PT phủ nhận `PT_NO_SHOW_REPORTED`); admin chọn một trong ba kết luận: `COMPLETED` (trừ quota, PT được trả), `CANCELLED` (giữ quota, không ai được trả), `PT_NO_SHOW_CONFIRMED` (giữ quota, **bồi thường khách** qua đúng công thức PT vắng). Khi cờ T0 của V2.1 bật, mọi phán quyết phải qua hồ sơ (§2.7).
 
@@ -272,7 +272,7 @@ Trạng thái hồ sơ (năm trục độc lập, **không gộp**): vòng đờ
 
 - Văn bản 9 điều một nguồn (`user-service/src/services/pt-terms.ts`), hiện mã `2026-10-pt-draft-1` với `PT_TERMS_IS_DRAFT = true` — **vẫn là bản nháp**, chờ chủ dự án duyệt nguyên văn rồi phát hành dưới mã chính thức mới (mọi PT phải xác nhận lại).
 - Cổng trung tâm `assertPtTermsForNewContract`: PT **chưa xác nhận đúng phiên bản đang phục vụ thì không nhận được hợp đồng mới** (409 `PT_TERMS_NOT_ACCEPTED`), áp cho cả `acceptContract` và nhánh admin; hợp đồng `ACTIVE` đã có không đổi. Xác nhận lưu ở bảng `pt_terms_acceptances` (nguồn `APPLICATION` hoặc `RECONFIRM`); API `POST /pt-applications/terms/accept`, `GET /pt-applications/terms`.
-- Điều khoản dẫn chiếu thẳng các hằng số thật (hạn thanh toán 12 giờ, mốc huỷ 24 giờ, hoàn 90% khi khách huỷ…), và chốt phát hành `check-pt-terms-release` ngăn phát hành nhầm bản nháp. Holdback 10% chỉ được bật khi điều khoản đã phát hành chính thức và PT đã xác nhận đúng bản đó (§2.6).
+- Điều khoản dẫn chiếu thẳng các hằng số thật (hạn thanh toán 12 giờ, khách huỷ buổi đã xác nhận thì mất buổi và PT vẫn được trả, PT huỷ thì bồi thường khách 1 buổi, hoàn 90% khi khách chấm dứt hợp đồng…), và chốt phát hành `check-pt-terms-release` ngăn phát hành nhầm bản nháp. Holdback 10% chỉ được bật khi điều khoản đã phát hành chính thức và PT đã xác nhận đúng bản đó (§2.6).
 - Chưa xong: Điều 5 (nguồn tiền bồi hoàn) chờ quyết định; lưu IP/user-agent chờ chính sách quyền riêng tư; cảnh báo cho khách khi PT chưa xác nhận.
 
 ### 2.12 Mâu thuẫn tài liệu cũ so với mã (ghi nhận khi đối chiếu)

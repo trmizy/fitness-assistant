@@ -20,11 +20,11 @@ test("the CURRENT build is internally consistent: draft flag <=> draft version i
   assert.equal(publicPtTerms().isDraft, PT_TERMS_IS_DRAFT);
 });
 
-test("owner release 11/11/2026: the CURRENT build is the OFFICIAL 2026-11-pt-v1 - not a draft, releasable even in production", () => {
-  assert.equal(PT_TERMS_VERSION, "2026-11-pt-v1");
+test("owner release 22/11/2026: the CURRENT build is the OFFICIAL 2026-11-pt-v2 (sections 4-5 reworded 20/11) - not a draft, releasable even in production", () => {
+  assert.equal(PT_TERMS_VERSION, "2026-11-pt-v2");
   assert.equal(PT_TERMS_IS_DRAFT, false);
   assert.equal(isDraftTermsVersionId(PT_TERMS_VERSION), false);
-  assert.equal(publicPtTerms().version, "2026-11-pt-v1");
+  assert.equal(publicPtTerms().version, "2026-11-pt-v2");
   assert.equal(publicPtTerms().isDraft, false);
   assert.equal(ptTermsReleaseProblem({ NODE_ENV: "production" }), null);
   assert.equal(ptTermsReleaseProblem({ NODE_ENV: "development" }), null);
@@ -52,7 +52,7 @@ test("draft terms are refused for production and allowed elsewhere", () => {
 test("the pre-deploy script check: the official terms pass in production and elsewhere (ok=true -> exit 0)", () => {
   const prod = checkPtTermsRelease({ NODE_ENV: "production" });
   assert.equal(prod.ok, true);
-  assert.match(prod.message, /version 2026-11-pt-v1 \(official\)/);
+  assert.match(prod.message, /version 2026-11-pt-v2 \(official\)/);
   assert.equal(checkPtTermsRelease({ NODE_ENV: "development" }).ok, true);
 });
 
@@ -63,7 +63,7 @@ test("a confirmation of the draft id does not match any other id (draft rows can
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-6", "a draft-6 row no longer matches the current version, so those PTs must re-confirm");
 });
 
-test("Điều 3 says an online session is recorded by the system when the room closes (room-close-resolution runs it without the PT reporting) - draft-4 text, unchanged in 2026-11-pt-v1", () => {
+test("Điều 3 says an online session is recorded by the system when the room closes (room-close-resolution runs it without the PT reporting) - draft-4 text, unchanged since", () => {
   const clause = PT_TERMS_SECTIONS.find((s) => s.id === "sessions");
   assert.ok(clause, "clause 3 exists");
   assert.match(clause.title, /^3\./);
@@ -81,7 +81,7 @@ test("Điều 5 states DQ-2(a)/DQ-1/D77 and the text was re-versioned (draft-5 a
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-4");
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-5");
   assert.notEqual(PT_TERMS_VERSION, "2026-10-pt-draft-6");
-  assert.equal(PT_TERMS_VERSION, "2026-11-pt-v1");
+  assert.equal(PT_TERMS_VERSION, "2026-11-pt-v2");
   assert.equal(PT_TERMS_IS_DRAFT, false);
   const clause = PT_TERMS_SECTIONS.find((s) => s.id === "pt-cancel");
   assert.ok(clause, "clause 5 exists");
@@ -116,8 +116,8 @@ test("Điều 5 states DQ-2(a)/DQ-1/D77 and the text was re-versioned (draft-5 a
   assert.deepEqual(publicPtTerms().sections.map((s) => s.title.slice(0, 2)), ["1.", "2.", "3.", "4.", "5.", "6.", "7.", "8.", "9.", "10"]);
 });
 
-test("2026-11-pt-v1 (privacy notice from draft-5): clause 10 is the PT privacy notice (purpose, data, who sees it, 12-month retention with the dispute exception, rights) and every client renders it as an ordinary section", () => {
-  assert.equal(PT_TERMS_VERSION, "2026-11-pt-v1");
+test("2026-11-pt-v2 (privacy notice from draft-5): clause 10 is the PT privacy notice (purpose, data, who sees it, 12-month retention with the dispute exception, rights) and every client renders it as an ordinary section", () => {
+  assert.equal(PT_TERMS_VERSION, "2026-11-pt-v2");
   assert.equal(PT_TERMS_IS_DRAFT, false, "official since the owner's release (11/11/2026)");
   const clause = PT_TERMS_SECTIONS.find((s) => s.id === "privacy-notice");
   assert.ok(clause, "clause 10 exists");
@@ -141,7 +141,7 @@ test("2026-11-pt-v1 (privacy notice from draft-5): clause 10 is the PT privacy n
   assert.equal(JSON.stringify(publicPtTerms()).includes("PtTermsAcceptance"), false, "the server-side source note is never served");
 });
 
-test("2026-11-pt-v1: Điều 1 states the gym-linked contract rule (fixed duration + a membership that covers it, checked at request / accept / pay)", () => {
+test("2026-11-pt-v2: Điều 1 states the gym-linked contract rule (fixed duration + a membership that covers it, checked at request / accept / pay)", () => {
   const text = PT_TERMS_SECTIONS.find((s) => s.id === "contract-flow")!.body.join(" ");
   assert.match(text, /Hợp đồng gắn với một phòng gym phải có thời hạn cố định/);
   assert.match(text, /gói hội viên đang có của khách tại gym đó phải còn hiệu lực đủ dài để bao phủ toàn bộ thời hạn của hợp đồng/);
@@ -149,7 +149,7 @@ test("2026-11-pt-v1: Điều 1 states the gym-linked contract rule (fixed durati
   assert.match(text, /trước khi có bất kỳ khoản tiền nào được chuyển/);
 });
 
-test("2026-11-pt-v1: Điều 2 states the holdback exactly as the ledger runs it - amount on the PT's EXPECTED income, collection, nature, release after end + reconciliation (no fixed date), use only for a VERIFIED PT-responsible obligation of the SAME contract (PT share, PENDING first, not automatic), reserve + review deadline, decision outcomes, non-retroactive", () => {
+test("2026-11-pt-v2: Điều 2 states the holdback exactly as the ledger runs it - amount on the PT's EXPECTED income, collection, nature, release after end + reconciliation (no fixed date), use only for a VERIFIED PT-responsible obligation of the SAME contract (PT share, PENDING first, not automatic), reserve + review deadline, decision outcomes, non-retroactive", () => {
   const clause = PT_TERMS_SECTIONS.find((s) => s.id === "revenue-split")!;
   assert.match(clause.title, /^2\. Chia tiền của hợp đồng và khoản tạm giữ một phần thu nhập$/);
   const text = clause.body.join(" ");
@@ -188,4 +188,12 @@ test("2026-11-pt-v1: Điều 2 states the holdback exactly as the ledger runs it
   assert.doesNotMatch(JSON.stringify(publicPtTerms()), /bản nháp|đang chờ rà soát pháp lý/, "no served paragraph carries a draft notice");
   assert.equal(PT_TERMS_SECTIONS.length, 10, "numbering is unchanged: the holdback lives in clause 2, the privacy notice stays clause 10");
   assert.ok(PT_TERMS_SECTIONS.some((s) => s.id === "privacy-notice"));
+});
+
+test("22/11/2026: sections 4-5 were reworded on 20/11 (no 24h grace) so the id moved on from the 2026-11-pt-v1 that PTs confirmed - those rows no longer match the current version", () => {
+  assert.notEqual(PT_TERMS_VERSION, "2026-11-pt-v1");
+  assert.equal(isDraftTermsVersionId("2026-11-pt-v1"), false, "v1 stays a recognised OFFICIAL (historical) id, never a draft");
+  const text = (id: string) => PT_TERMS_SECTIONS.find((s) => s.id === id)!.body.join(" ");
+  assert.match(text("client-cancel"), /vào bất kỳ thời điểm nào/, "section 4 states the no-grace rule");
+  assert.match(text("pt-cancel"), /vào bất kỳ thời điểm nào/, "section 5 states the no-grace rule");
 });
