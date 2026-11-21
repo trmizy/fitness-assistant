@@ -196,7 +196,13 @@ export function PTDiscoveryPage() {
   }, [pendingFilters.q]);
 
   // Clear local search region & GPS state immediately when logged-in account changes
+  const selectionOwnerRef = useRef(userId);
   useEffect(() => {
+    // Keep a PT opened by a deep link (`?ptId=` from the AI coach card or a notification) when the session
+    // merely finishes loading (undefined -> id); drop it only on a real switch to ANOTHER account.
+    const previousUser = selectionOwnerRef.current;
+    selectionOwnerRef.current = userId;
+    const switchedAccount = Boolean(previousUser) && previousUser !== userId;
     hydratedUserRef.current = null;
     userChangedRegionRef.current = false;
     setProvinceCode(null);
@@ -206,7 +212,7 @@ export function PTDiscoveryPage() {
     setGpsCoords(null);
     setGpsStatus("idle");
     setWards([]);
-    setSelectedId(null);
+    if (switchedAccount) setSelectedId(null);
     setActiveFilter("All");
     setActiveFilters(emptyPriceFilters);
     setPendingFilters(emptyPriceFilters);
