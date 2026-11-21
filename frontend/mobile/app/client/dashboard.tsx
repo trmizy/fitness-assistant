@@ -9,6 +9,7 @@ import {
   Apple,
   BarChart3,
   Bell,
+  CalendarClock,
   Beef,
   CalendarCheck,
   ChevronRight,
@@ -26,6 +27,7 @@ import {
 import {
   Avatar,
   Badge,
+  Button,
   Card,
   CountUp,
   EmptyState,
@@ -39,9 +41,11 @@ import {
 import { useApp } from "../../src/context/AppContext";
 import { fullName, givenName } from "../../src/lib/personName";
 import {
+  contractService,
   inbodyService,
   nutritionService,
   profileService,
+  sessionService,
   statsService,
   workoutService,
 } from "../../src/services/api";
@@ -74,6 +78,9 @@ import {
   workoutDateLabel,
   type TrendPoint,
 } from "../../src/features/dashboard/dashboardBody";
+import { pickNextPtSession } from "../../src/features/services/nextPtSession";
+import { normalizeContracts } from "../../src/features/services/contracts";
+import { mergeSessionSources, normalizeSessions, SESSION_STATUS } from "../../src/features/services/sessions";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { designTokens } from "../../src/theme/colors";
 
@@ -401,6 +408,9 @@ export default function ClientDashboardScreen() {
           </Card>
         </StaggerItem>
 
+        {/* Shortcut to "Lịch tập luyện" with the PT — only while a session is still ahead. */}
+        <NextPtSessionCard />
+
         {/* 14B.7 (PG-C1) — web "Kế hoạch đang dùng". */}
         {activeProgram ? (
           <StaggerItem>
@@ -639,6 +649,83 @@ export default function ClientDashboardScreen() {
 // Week bars, streak, next/later schedules and change labels: src/features/dashboard/dashboardWeek.ts.
 
 /** Small line of one InBody field over the last measurements (oldest → newest), newest value + change. */
+const WEEKDAY_SHORT = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
+/**
+ * "Buổi tập với PT" — the nearest REQUESTED/CONFIRMED/PENDING_CLIENT_CONFIRMATION session. Reads the
+ * same queries (same keys) as the booking screen, so the cache is shared; the whole cache is cleared on
+ * account switch (AppContext). Renders nothing while loading, on error or with no upcoming session, so it
+ * can never break the home screen.
+ */
+function NextPtSessionCard() {
+  const upcomingQuery = useQuery({
+    queryKey: ["sessions-upcoming"],
+    queryFn: () => sessionService.getMyUpcoming(),
+  });
+  const pendingQuery = useQuery({
+    queryKey: ["sessions-pending-confirmation"],
+    queryFn: () => sessionService.listPendingConfirmation(),
+  });
+  const contractsQuery = useQuery({
+    queryKey: ["client-contracts"],
+    queryFn: () => contractService.getByClient(),
+  });
+
+  const sessions = useMemo(() => {
+    try {
+      return mergeSessionSources(normalizeSessions(upcomingQuery.data), normalizeSessions(pendingQuery.data));
+    } catch {
+      return [];
+    }
+  }, [upcomingQuery.data, pendingQuery.data]);
+  const next = useMemo(() => pickNextPtSession(sessions, new Date()), [sessions]);
+
+  if (upcomingQuery.isLoading || upcomingQuery.isError || !next) return null;
+  const start = next.startAt ? new Date(next.startAt) : null;
+  if (!start || Number.isNaN(start.getTime())) return null;
+  const end = next.endAt ? new Date(next.endAt) : null;
+  const when = `${WEEKDAY_SHORT[start.getDay()]} ${String(start.getDate()).padStart(2, "0")}/${String(start.getMonth() + 1).padStart(2, "0")} · ${hhmm(start)}${
+    end && !Number.isNaN(end.getTime()) ? `–${hhmm(end)}` : ""
+  }`;
+  let ptName = "";
+  try {
+    ptName = normalizeContracts(contractsQuery.data).find((c) => c.ptUserId === next.ptUserId)?.ptName ?? "";
+  } catch {
+    ptName = "";
+  }
+  const status = SESSION_STATUS[next.status];
+  const awaiting = sessions.some((s) => s.status === "PENDING_CLIENT_CONFIRMATION");
+
+  return (
+    <StaggerItem>
+      <Card className="gap-3 p-4">
+        <View className="flex-row items-center justify-between gap-2">
+          <View className="flex-1 flex-row items-center gap-2">
+            <CalendarClock size={18} color="#8b9299" />
+            <Text className="font-body-semibold text-sm text-foreground">Buổi tập với PT</Text>
+          </View>
+          {status ? <Badge tone={status.tone}>{status.label}</Badge> : null}
+        </View>
+        <View>
+          <Text className="font-body-semibold text-base text-foreground">{when}</Text>
+          {ptName ? (
+            <Text className="font-body text-xs text-muted-foreground" numberOfLines={1}>
+              {ptName}
+            </Text>
+          ) : null}
+        </View>
+        {awaiting ? (
+          <Text className="font-body text-xs text-muted-foreground">Có buổi chờ bạn xác nhận</Text>
+        ) : null}
+        <Button variant="secondary" size="sm" icon={CalendarClock} onPress={() => router.push("/client/services/booking")}>
+          Xem lịch
+        </Button>
+      </Card>
+    </StaggerItem>
+  );
+}
+
 function TrendLine({
   title,
   unit,
