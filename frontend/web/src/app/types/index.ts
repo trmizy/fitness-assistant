@@ -178,6 +178,8 @@ export interface Contract {
   /** Attached on `/contracts/pt` — this client's aggregate rating from OTHER PTs' past
    * sessions with them (ClientReview, the mirror-image of a PT's own SessionReview rating). */
   clientRating?: { avgRating: number | null; ratingCount: number };
+  /** Attached on `/contracts/pt` — public name + address of the gym branch the client chose (null: none / unknown). */
+  gymInfo?: { id: string; name: string; address?: string | null; city?: string | null } | null;
 }
 
 // ── Session types ────────────────────────────────────────────────

@@ -29,6 +29,7 @@ import { ptTermsService } from "./pt-terms.service";
 import { PT_TERMS_VERSION } from "./pt-terms";
 import { assertClientMayRequestGymContract, assertGymContractStillCovered, hasFixedDuration, GYM_CONTRACT_REQUIRES_FIXED_DURATION } from "./contract-gym-membership.service";
 import { toPublicPtPackageDto } from "./pt-public-dto";
+import { fetchContractGymInfo } from "../clients/gym-summary.client";
 import { recordClientCompatEvent } from "./client-compat.service";
 import {
   INDEPENDENT_VENUE_ACK_REQUIRED,
@@ -1364,8 +1365,13 @@ export const contractService = {
       clientReviewRepository.aggregateForClients(clientIds),
     ]);
 
+    // Where the sessions run (the branch the client chose): name + address from gym-service, one lookup per distinct branch.
+    const gymIds = [...new Set(contracts.map((c) => c.gymId).filter((g): g is string => !!g))];
+    const gymInfoMap = new Map(await Promise.all(gymIds.map(async (g) => [g, await fetchContractGymInfo(g)] as const)));
+
     return contracts.map((c) => ({
       ...c,
+      gymInfo: c.gymId ? (gymInfoMap.get(c.gymId) ?? null) : null,
       clientProfile: profileMap.get(c.clientUserId) ?? null,
       clientRating: ratingMap.get(c.clientUserId) ?? {
         avgRating: null,

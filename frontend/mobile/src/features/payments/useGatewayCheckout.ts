@@ -5,6 +5,7 @@ import { useMutation, useQueryClient, type QueryKey } from "@tanstack/react-quer
 import { useToast } from "../../components/ui";
 import { useApp } from "../../context/AppContext";
 import { openPaymentGateway } from "./openGateway";
+import { rememberPaymentReturn } from "./paymentReturnStore";
 import { checkoutErrorMessage, isSyntheticCheckoutError, readCheckout, resultHref } from "./payments";
 
 /**
@@ -27,10 +28,13 @@ import { checkoutErrorMessage, isSyntheticCheckoutError, readCheckout, resultHre
 export function useGatewayCheckout<T>({
   start,
   invalidate,
+  returnTo,
 }: {
   start: (target: T, provider: string) => Promise<unknown>;
   /** Lists that now hold a new pending transaction/row — refetched as soon as the checkout exists. */
   invalidate: QueryKey[];
+  /** In-app path to offer on the result screen once this checkout ends (e.g. back to the PT request step). */
+  returnTo?: string | null;
 }) {
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -50,6 +54,7 @@ export function useGatewayCheckout<T>({
             url: checkout.redirectUrl,
             transactionId: checkout.transactionId,
             userId: user?.id,
+            returnTo,
           });
         } catch {
           toast.show("Không mở được trang thanh toán — thử lại.", "danger");
@@ -57,6 +62,7 @@ export function useGatewayCheckout<T>({
         return;
       }
       if (checkout.alreadyPaid && checkout.transactionId) {
+        if (returnTo) await rememberPaymentReturn(checkout.transactionId, user?.id, returnTo);
         router.navigate(resultHref(checkout.transactionId) as never);
         return;
       }

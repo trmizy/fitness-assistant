@@ -42,6 +42,7 @@ import { BranchMap } from "../../../../src/features/services/BranchMap";
 import { isInVietnam } from "../../../../src/utils/geo";
 import { Notice, PaymentMethodSheet } from "../../../../src/components/payment/PaymentMethodSheet";
 import { useGatewayCheckout } from "../../../../src/features/payments/useGatewayCheckout";
+import { sanitizeReturnTo } from "../../../../src/features/payments/paymentReturn";
 import { AmenityBadgeGroups } from "../../../../src/features/gymListing/AmenityWidgets";
 import { GymPhotoGallery } from "../../../../src/features/services/GymPhotoGallery";
 import { PhotoAttribution } from "../../../../src/features/services/PhotoAttribution";
@@ -98,11 +99,13 @@ export default function GymDetailScreen() {
   const accent = useWorkspaceAccent();
   const insets = useSafeAreaInsets();
   const toast = useToast();
-  const { id, referral: referralParam, coverUntil: coverUntilParam } = useLocalSearchParams<{
+  const { id, referral: referralParam, coverUntil: coverUntilParam, returnTo: returnToParam } = useLocalSearchParams<{
     id: string;
     referral?: string;
     /** From a PT contract screen: ISO last day of the contract. A hint for sorting/marking plans, never a requirement. */
     coverUntil?: string;
+    /** From a PT request: in-app path to come back to after paying (sanitised before use). */
+    returnTo?: string;
   }>();
   const coverUntilRaw = String(Array.isArray(coverUntilParam) ? (coverUntilParam[0] ?? "") : (coverUntilParam ?? ""));
   const coverUntil = coverUntilRaw && !Number.isNaN(new Date(coverUntilRaw).getTime()) ? new Date(coverUntilRaw) : null;
@@ -203,6 +206,8 @@ export default function GymDetailScreen() {
         target.acknowledged,
       ),
     invalidate: [["my-memberships"], ["contract-gym-options"]],
+    // Opened from a trainer's request: the result screen offers "Quay lại đặt gói PT" (only an in-app path is kept).
+    returnTo: sanitizeReturnTo(Array.isArray(returnToParam) ? returnToParam[0] : returnToParam),
   });
 
   // The public gym payload carries no sample-data flag, so the only signal is the server's refusal

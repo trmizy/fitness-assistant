@@ -139,3 +139,14 @@ test("terminate settlement: the client keeps refund/remaining/reason only; the P
   assert.equal(redactSettlementForViewer(settlement, { userId: PT, role: "PT" }, PT), settlement);
   assert.equal(redactSettlementForViewer(null, { userId: CLIENT }, PT), null);
 });
+
+test("toContractGymInfo keeps only public gym fields and rejects rows without id/name", async () => {
+  const { toContractGymInfo } = await import("../services/contract-dto");
+  assert.deepEqual(
+    toContractGymInfo({ id: "g1", name: " Mekong An Khánh ", address: "58 Mai Chí Thọ", city: "TP.HCM", email: "x@y.z", phone: "0123" }),
+    { id: "g1", name: "Mekong An Khánh", address: "58 Mai Chí Thọ", city: "TP.HCM" },
+  );
+  assert.deepEqual(toContractGymInfo({ id: "g2", name: "A" }), { id: "g2", name: "A", address: null, city: null });
+  assert.equal(toContractGymInfo({ id: "g3" }), null);
+  assert.equal(toContractGymInfo(null), null);
+});

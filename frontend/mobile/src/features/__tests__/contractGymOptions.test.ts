@@ -17,6 +17,7 @@ import {
   PT_RECHECK_COPY,
   checkoutWarnings,
   eligibilityCopy,
+  formatGymDistanceLabel,
   formatDateVi,
   gymsReasonCopy,
   membershipLabel,
@@ -370,5 +371,29 @@ describe("checkout context", () => {
   it("returns null for an empty body and tolerates a missing amount", () => {
     assert.equal(normalizeCheckoutContext(null), null);
     assert.equal(normalizeCheckoutContext(ctx({ amount: undefined }))?.amount, null);
+  });
+});
+
+describe("gym distance (additive distanceKm)", () => {
+  it("formats ~X km with a decimal comma and rounds to 0.1", () => {
+    assert.equal(formatGymDistanceLabel(1.84), "~1,8 km");
+    assert.equal(formatGymDistanceLabel(12), "~12,0 km");
+    assert.equal(formatGymDistanceLabel(0), "~0,0 km");
+  });
+  it("missing / null / garbage / negative distance shows nothing", () => {
+    for (const bad of [undefined, null, "3", NaN, Infinity, -1]) assert.equal(formatGymDistanceLabel(bad), null);
+  });
+  it("normalizeGymOptions keeps server order and reads distanceKm; an old backend without it still works", () => {
+    const view = normalizeGymOptions(
+      options([
+        gymRow({ gymId: "near", name: "Go Vap", distanceKm: 2.46 }),
+        gymRow({ gymId: "far", name: "Q7", distanceKm: 15 }),
+        gymRow({ gymId: "nopin", name: "No pin", distanceKm: null }),
+        gymRow({ gymId: "old", name: "Old API" }),
+      ]),
+    );
+    assert.deepEqual(view.gyms.map((g) => g.gymId), ["near", "far", "nopin", "old"]);
+    assert.deepEqual(view.gyms.map((g) => g.distanceLabel), ["~2,5 km", "~15,0 km", null, null]);
+    assert.deepEqual(view.gyms.map((g) => g.distanceKm), [2.46, 15, null, null]);
   });
 });

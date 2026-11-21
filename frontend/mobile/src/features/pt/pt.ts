@@ -103,6 +103,8 @@ export type PtContract = ClientRef & {
   /** ONLINE | OFFLINE | HYBRID, and the Gymini gym the contract runs at (null = a venue outside the Gymini system). */
   sessionMode?: string | null;
   gymId?: string | null;
+  /** Public name + address of that gym branch (null when none or unknown) — "Nơi tập" on the card. */
+  gymInfo?: { id: string; name: string; address?: string | null; city?: string | null } | null;
   startDate?: string | null;
   endDate?: string | null;
   createdAt?: string | null;

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { CheckCircleIcon as CheckCircle2, XCircleIcon as XCircle, CircleNotchIcon as Loader2, ClockIcon as Clock, ArrowRightIcon as ArrowRight } from "@phosphor-icons/react";
 import { paymentService } from "../../services/api";
+import { clearPaymentReturn, peekPaymentReturn } from "../../utils/paymentReturn";
 
 type Phase = "checking" | "paid" | "pending" | "failed" | "error";
 type RelatedEntityType = "GYM_MEMBERSHIP" | "PT_CONTRACT" | string | null;
@@ -61,6 +62,14 @@ export function PaymentResultPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txnId]);
 
+  // Bought from inside a PT contract request: a way back to that request (same trainer / package / branch). Only ever an
+  // in-app path remembered by this tab before the gateway trip; navigation only - the verdict above still comes from the server.
+  const returnTarget = phase === "checking" ? null : peekPaymentReturn(txnId);
+  const goBackToRequest = () => {
+    if (!returnTarget) return;
+    clearPaymentReturn(txnId);
+    navigate(returnTarget.path);
+  };
   const dest = destinationFor(relatedEntityType);
   const retryDest = retryDestinationFor(relatedEntityType);
 
@@ -89,6 +98,15 @@ export function PaymentResultPage() {
               Kiểm tra lại
             </button>
           )}
+          {returnTarget && (
+            <button
+              data-testid="payment-result-return"
+              onClick={goBackToRequest}
+              className="flex-1 min-h-11 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+            >
+              {returnTarget.label} <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
           {phase !== "paid" && phase !== "checking" && retryDest ? (
             <>
               <button
@@ -110,7 +128,11 @@ export function PaymentResultPage() {
             <button
               data-testid="payment-result-primary"
               onClick={() => navigate(phase === "paid" ? dest.path : "/client/wallet")}
-              className="flex-1 min-h-11 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+              className={`flex-1 min-h-11 py-2.5 text-sm rounded-lg transition-all flex items-center justify-center gap-2 ${
+                returnTarget
+                  ? "border border-zinc-700/60 text-zinc-300 font-semibold hover:bg-zinc-800"
+                  : "bg-green-500 hover:bg-green-400 text-black font-bold"
+              }`}
             >
               {phase === "paid" ? dest.label : "Về Ví"} <ArrowRight className="w-4 h-4" />
             </button>

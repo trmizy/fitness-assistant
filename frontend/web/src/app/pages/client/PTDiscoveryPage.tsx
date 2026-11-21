@@ -52,6 +52,7 @@ import { QUICK_FILTERS } from "../../constants/specialties";
 import { optionLabel, TARGET_GROUP_OPTIONS, TRAINING_GOAL_OPTIONS } from "../../utils/ptListing";
 import { Stars } from "../../components/gym/Stars";
 import { GymDetailModal } from "../../components/gym/GymDetailModal";
+import { buildPtRequestResumePath, parsePtRequestResume } from "../../utils/paymentReturn";
 import {
   normalizeGymOptions,
   pickableGym,
@@ -539,6 +540,27 @@ export function PTDiscoveryPage() {
     queryFn: () => ptServicePackageService.getPackagesForPT(selectedId!),
     enabled: !!selectedId,
   });
+
+  // Back from buying a gym membership (see PaymentResultPage "Quay lại đặt gói PT"): reopen THIS trainer, THIS package's request step and the
+  // same branch. Runs once; the server re-validates the branch (pickableGym drops it if it is still not selectable).
+  const resumeRef = useRef(parsePtRequestResume(searchParams));
+  const resumeSelectedRef = useRef(false);
+  useEffect(() => {
+    const r = resumeRef.current;
+    if (!r || !userId || resumeSelectedRef.current) return;
+    resumeSelectedRef.current = true;
+    setSelectedId(r.ptId);
+  }, [userId]);
+  useEffect(() => {
+    const r = resumeRef.current;
+    if (!r || !userId || !resumeSelectedRef.current || selectedId !== r.ptId || !Array.isArray(packagesData)) return;
+    resumeRef.current = null;
+    const pkg = packagesData.find((p: any) => p.id === r.packageId);
+    if (!pkg) return;
+    handleRequestCoaching(pkg);
+    if (r.gymId) setSelectedGymId(r.gymId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, selectedId, packagesData]);
 
   // Only carries what the list row doesn't already have — recentReviews — but fetched
   // whenever a PT is opened since the list endpoint has no comments at all.
@@ -1875,6 +1897,11 @@ export function PTDiscoveryPage() {
                                 {g.name}
                                 {g.city ? ` — ${g.city}` : ""}
                               </span>
+                              {g.distanceLabel && (
+                                <span className="block text-[11px] font-semibold text-green-400 mt-0.5" data-testid="gym-option-distance">
+                                  {g.distanceLabel}
+                                </span>
+                              )}
                               <span className="block text-[11px] text-zinc-500 mt-0.5">
                                 {g.membershipLabel}
                               </span>
@@ -2022,6 +2049,8 @@ export function PTDiscoveryPage() {
           gymId={membershipGymId}
           initialTab="pricing"
           initialReferralCode={gymOptionsView?.ptReferralCode ?? undefined}
+          // After paying (gateway round trip) the result page offers a way back to this request step: same trainer, package and branch.
+          returnTo={selectedId && selectedPackage?.id ? buildPtRequestResumePath({ ptId: selectedId, packageId: selectedPackage.id, gymId: membershipGymId }) : undefined}
           // Hint only: plans that keep the membership running through the end of this PT contract are marked "Đủ cho hợp đồng PT".
           coverUntil={
             gymOptionsView?.gyms.find((g) => g.gymId === membershipGymId)?.contractEndsAt ??

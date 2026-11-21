@@ -39,6 +39,7 @@ import { shortDate } from "../../src/features/wallet/wallet";
 import { ptContractShare } from "../../src/features/pt/ptContractShare";
 import { INDEPENDENT_VENUE_NOTE, isIndependentVenue } from "../../src/features/services/ptDiscovery";
 import { designTokens } from "../../src/theme/colors";
+import { contractPlaceLabel } from "../../src/features/pt/contractPlace";
 import { StarInput, StarRow } from "../../src/features/plans/PlanWidgets";
 import {
   CONTRACT_TABS,
@@ -268,6 +269,12 @@ export default function PtContractsScreen() {
 
                     {st.note ? (
                       <Text className="font-body text-xs text-muted-foreground">{st.note}</Text>
+                    ) : null}
+
+                    {contractPlaceLabel(c.gymInfo) ? (
+                      <Text className="font-body text-xs text-muted-foreground" testID="pt-contract-place">
+                        Nơi tập: {contractPlaceLabel(c.gymInfo)}
+                      </Text>
                     ) : null}
 
                     {isIndependentVenue(c.sessionMode, c.gymId) ? (

@@ -19,6 +19,7 @@ import { AmenityIcon } from "../listing/AmenityIcon";
 import { AMENITY_CATEGORY_LABEL } from "../../utils/amenityIcons";
 import { galleryPhotosOf, groupedPublicAmenities, isPublicGymGone } from "../../utils/gymPublic";
 import { openPaymentGateway } from "../../services/paymentGateway";
+import { rememberPaymentReturn } from "../../utils/paymentReturn";
 import { toast } from "sonner";
 import type { Gym, GymMembershipPlan } from "../../types";
 import { formatVND } from "../../utils/currency";
@@ -60,6 +61,7 @@ export function GymDetailModal({
   initialReferralCode,
   initialTab,
   coverUntil,
+  returnTo,
 }: {
   gymId: string;
   onClose: () => void;
@@ -72,6 +74,11 @@ export function GymDetailModal({
    * được xếp trước và gắn nhãn "Đủ cho hợp đồng PT"; không bắt buộc mua gói đó.
    */
   coverUntil?: string | null;
+  /**
+   * Mở từ luồng đăng ký PT: đường dẫn trong app (vd. "/client/services?ptId=...&resume=request") để quay lại sau khi thanh toán.
+   * Chỉ nhận đường dẫn nội bộ (sanitizeReturnTo), lưu theo mã giao dịch qua lần chuyển sang cổng thanh toán.
+   */
+  returnTo?: string;
 }) {
   const navigate = useNavigate();
   const { user } = useApp();
@@ -162,10 +169,12 @@ export function GymDetailModal({
       if (payment?.status === "PAID") {
         toast.success("Đã mua gói — chúc bạn tập luyện vui vẻ!");
         onClose();
-        navigate("/client/gym-memberships");
+        // Opened from a PT request: stay on that page (it re-reads the memberships on close) instead of leaving for the list.
+        if (!returnTo) navigate("/client/gym-memberships");
         return;
       }
       if (payment?.redirectUrl) {
+        rememberPaymentReturn(payment.transactionId, returnTo);
         void openPaymentGateway({ url: payment.redirectUrl, transactionId: payment.transactionId, navigate });
         return;
       }

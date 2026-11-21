@@ -63,6 +63,7 @@ import {
   type ServicePackage,
 } from "../../../../src/features/services/ptDiscovery";
 import { usePtArea } from "../../../../src/features/services/usePtArea";
+import { buildPtRequestReturnPath } from "../../../../src/features/payments/paymentReturn";
 import { GymPhotoGallery } from "../../../../src/features/services/GymPhotoGallery";
 import { PhotoAttribution } from "../../../../src/features/services/PhotoAttribution";
 import { contractRequestError } from "../../../../src/features/services/contracts";
@@ -102,12 +103,14 @@ export default function TrainerDetailScreen() {
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, packageId: packageIdParam, gymId: gymIdParam } = useLocalSearchParams<{ id: string; packageId?: string; gymId?: string }>();
   const ptUserId = String(id ?? "");
 
-  const [segment, setSegment] = useState(SEGMENTS[0]);
-  const [packageId, setPackageId] = useState<string | null>(null);
-  const [gymId, setGymId] = useState<string | null>(null);
+  // Coming back from buying a gym plan (result screen "Quay lại đặt gói PT"): reopen the same package and branch. The
+  // server still decides whether that branch is selectable (pickableGym drops it otherwise).
+  const [segment, setSegment] = useState(packageIdParam ? "Gói dịch vụ" : SEGMENTS[0]);
+  const [packageId, setPackageId] = useState<string | null>(typeof packageIdParam === "string" && packageIdParam ? packageIdParam : null);
+  const [gymId, setGymId] = useState<string | null>(typeof gymIdParam === "string" && gymIdParam ? gymIdParam : null);
   const [message, setMessage] = useState("");
   const [lowAvailability, setLowAvailability] = useState<LowAvailability | null>(null);
   // N15M-14: the venue is outside Gymini -> the client must press "Tôi đồng ý" before the request can be sent.
@@ -161,6 +164,8 @@ export default function TrainerDetailScreen() {
       pathname: "/client/services/gyms/[id]",
       params: {
         id: targetGymId,
+        // After paying, the result screen offers a way back to THIS request (same package, this branch).
+        ...(selected ? { returnTo: buildPtRequestReturnPath({ ptUserId, packageId: selected.id, gymId: targetGymId }) } : {}),
         ...(gymOptions?.ptReferralCode ? { referral: gymOptions.ptReferralCode } : {}),
         ...(coverUntil ? { coverUntil } : {}),
       },
@@ -752,6 +757,11 @@ function GymOptionCard({
           {gym.city ? (
             <Text className="font-body text-xs text-muted-foreground" numberOfLines={1}>
               {gym.city}
+            </Text>
+          ) : null}
+          {gym.distanceLabel ? (
+            <Text className="font-body text-xs font-semibold text-primary" testID="gym-option-distance">
+              {gym.distanceLabel}
             </Text>
           ) : null}
           {!independentVenue || gym.membership.hasActiveMembership ? (

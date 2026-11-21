@@ -96,6 +96,10 @@ export type GymOption = {
   name: string;
   city: string | null;
   isPtTrainingLocation: boolean;
+  /** Straight-line km from the client's saved search area (server-computed); null = unknown, show nothing. */
+  distanceKm: number | null;
+  /** "~3,2 km" or null. */
+  distanceLabel: string | null;
   membership: GymMembershipFact;
   eligibility: GymEligibility;
   /** The branch can be chosen for the request. */
@@ -157,6 +161,12 @@ export function gymsReasonCopy(code: string | null | undefined): string | null {
   return GYMS_REASON_COPY[code] ?? null;
 }
 
+/** "~3,2 km" (Vietnamese decimal comma, 0.1 km); null for a missing / non-finite / negative distance. */
+export function formatGymDistanceLabel(km: unknown): string | null {
+  if (typeof km !== "number" || !Number.isFinite(km) || km < 0) return null;
+  return `~${(Math.round(km * 10) / 10).toFixed(1).replace(".", ",")} km`;
+}
+
 export function membershipLabel(m: GymMembershipFact): string {
   if (!m.hasActiveMembership) return "Chưa có gói hội viên";
   const until = formatDateVi(m.endDate);
@@ -215,12 +225,15 @@ function normalizeGymOption(raw: any): GymOption | null {
   const blockedCopy = eligibility.canRequest
     ? null
     : (eligibilityCopy(eligibility.reason) ?? ELIGIBILITY_UNKNOWN_BLOCK_COPY);
+  const distanceKm = typeof raw?.distanceKm === "number" && Number.isFinite(raw.distanceKm) && raw.distanceKm >= 0 ? raw.distanceKm : null;
   const needsRenewal = eligibility.canRequest && eligibility.coverage?.coversContract === false;
   return {
     gymId,
     name: String(raw?.name ?? "Phòng gym"),
     city: typeof raw?.city === "string" && raw.city ? raw.city : null,
     isPtTrainingLocation: raw?.isPtTrainingLocation === true,
+    distanceKm,
+    distanceLabel: formatGymDistanceLabel(distanceKm),
     membership,
     eligibility,
     selectable: eligibility.canRequest,
@@ -233,7 +246,7 @@ function normalizeGymOption(raw: any): GymOption | null {
   };
 }
 
-/** `GET /contracts/gym-options`. The server's order (training locations first) is preserved. */
+/** `GET /contracts/gym-options`. The server's order (nearest first when distances are known, else training locations first) is preserved. */
 export function normalizeGymOptions(raw: any): GymOptionsView {
   const code = typeof raw?.requestBlockedReason === "string" ? raw.requestBlockedReason : null;
   const gymsReason = typeof raw?.gymsReason === "string" ? raw.gymsReason : null;

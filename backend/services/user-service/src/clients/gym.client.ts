@@ -30,7 +30,7 @@ export interface ActiveCollaborationRates {
 /** One row of gym-service `GET /pt/:ptUserId/gyms` (the fields user-service reads). */
 export interface AcceptedGymForPt {
   collaborationId: string;
-  gym: { id: string; name: string; city?: string | null };
+  gym: { id: string; name: string; city?: string | null; latitude?: number | null; longitude?: number | null };
   rates?: { ptRate: string; gymRate: string; platformRate: string };
 }
 

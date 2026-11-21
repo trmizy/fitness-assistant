@@ -3,6 +3,8 @@ import { contractRepository } from "../repositories/contract.repository";
 import { profileRepository } from "../repositories/profile.repository";
 import { ptServicePackageRepository } from "../repositories/pt_service_package.repository";
 import { trainingLocationRepository } from "../repositories/training_location.repository";
+import { resolveReferencePoint } from "./agentic-pt-location";
+import { gymDistanceKm, sortByDistanceNullsLast } from "./contract-gym-distance";
 import { gymClient, GymServiceUnavailableError } from "../clients/gym.client";
 import { assertPtAcceptsNewBusiness, PtRestrictionError } from "./pt-restriction.service";
 import { CLIENT_PT_LIMIT_REACHED, MAX_LIVE_PTS_PER_CLIENT } from "./contract.service";
@@ -57,6 +59,11 @@ export interface GymOption {
   brandId: string | null;
   /** The trainer lists this branch among their own training locations (plan ordering rule). */
   isPtTrainingLocation: boolean;
+  /**
+   * Straight-line km from the client's saved search ward to this branch (0.1 km). Null when the client has no ward
+   * saved or the branch has no map pin - then nothing is shown and the order is the old one. Additive field.
+   */
+  distanceKm: number | null;
   membership: {
     /** Active membership at the brand of this branch (valid at every branch of the brand). */
     hasActiveMembership: boolean;
@@ -103,6 +110,16 @@ async function mapLimited<T, R>(items: T[], limit: number, fn: (item: T) => Prom
   };
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
   return out;
+}
+
+/** The pre-distance ordering (plan P3.4); still the tie-break between equal / unknown distances. */
+export function compareGymOptions(a: GymOption, b: GymOption): number {
+  return (
+    Number(b.isPtTrainingLocation) - Number(a.isPtTrainingLocation) ||
+    Number(b.membership.purchasedHere) - Number(a.membership.purchasedHere) ||
+    a.name.localeCompare(b.name) ||
+    (a.gymId < b.gymId ? -1 : a.gymId > b.gymId ? 1 : 0)
+  );
 }
 
 export const contractGymOptionsService = {
@@ -158,6 +175,21 @@ export const contractGymOptionsService = {
     try {
       const now = new Date();
       const candidates = await gymClient.listAcceptedGymsForPt(ptUserId);
+      const clientProfile = await profileRepository.findByUserId(clientUserId);
+      // Client reference point = the SAME saved search ward the PT / gym search pages use. Optional: a failure here
+      // must never break the branch list - it just means "no distance".
+      let refPoint: { lat: number | null; lng: number | null } | null = null;
+      try {
+        refPoint = await resolveReferencePoint(
+          {
+            searchProvinceCode: (clientProfile as any)?.searchProvinceCode ?? null,
+            searchWardCode: (clientProfile as any)?.searchWardCode ?? null,
+          },
+          {},
+        );
+      } catch {
+        refPoint = null;
+      }
       const trainingGymIds = new Set(
         (await trainingLocationRepository.findByPtUserId(ptUserId))
           .filter((l: any) => l.isActive && l.gymId)
@@ -187,6 +219,7 @@ export const contractGymOptionsService = {
           city: c.gym.city ?? null,
           brandId: collab.brandId ?? lookup.brandId ?? null,
           isPtTrainingLocation: trainingGymIds.has(gymId),
+          distanceKm: gymDistanceKm(refPoint, c.gym),
           membership: {
             hasActiveMembership: !!m,
             membershipId: m?.membershipId ?? null,
@@ -200,19 +233,16 @@ export const contractGymOptionsService = {
 
       const gyms = resolved.filter((g): g is GymOption => g !== null);
       // Plan P3.4 ordering: the trainer's own training locations first, then the branch the client
-      // bought the membership at, then name (id as the final tiebreaker). No other preference.
-      gyms.sort(
-        (a, b) =>
-          Number(b.isPtTrainingLocation) - Number(a.isPtTrainingLocation) ||
-          Number(b.membership.purchasedHere) - Number(a.membership.purchasedHere) ||
-          a.name.localeCompare(b.name) ||
-          (a.gymId < b.gymId ? -1 : a.gymId > b.gymId ? 1 : 0),
-      );
+      // bought the membership at, then name (id as the final tiebreaker).
+      gyms.sort(compareGymOptions);
+      // Owner request 21/11/2026: when distances are known the NEAREST branch comes first (unknown last); the
+      // order above only breaks ties. With no distance at all the order above is untouched.
+      const ordered = sortByDistanceNullsLast(gyms, compareGymOptions);
       return {
         ...base,
         requestBlockedReason: null,
-        gymsReason: gyms.length === 0 ? "NO_GYM_AGREEMENT" : null,
-        gyms,
+        gymsReason: ordered.length === 0 ? "NO_GYM_AGREEMENT" : null,
+        gyms: ordered,
       };
     } catch (e) {
       if (e instanceof GymServiceUnavailableError) throw unavailable();
