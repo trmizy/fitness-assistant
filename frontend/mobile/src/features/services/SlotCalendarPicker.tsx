@@ -29,7 +29,8 @@ import {
   toDateKey,
   type MonthRef,
 } from "./bookingCalendar";
-import { normalizeSlots } from "./sessions";
+import { SESSION_STATUS, normalizeSlots } from "./sessions";
+import { sessionTimeRange, sessionsOnDay, type DaySession } from "./daySessions";
 import { DAY_FULL_HINT } from "./batchBooking";
 
 /**
@@ -53,6 +54,8 @@ export function SlotCalendarPicker({
   onChange,
   emptyDayText,
   fullDays,
+  ownSessions,
+  onOpenSession,
 }: {
   ptUserId: string | null | undefined;
   leadHours: number;
@@ -64,6 +67,9 @@ export function SlotCalendarPicker({
   emptyDayText: string;
   /** Days on which the client already holds the daily maximum of sessions: greyed out, not tappable (client-side hint; server decides). */
   fullDays?: ReadonlySet<string>;
+  /** The client's own sessions: the ones on the chosen day are listed above the free slots (a held session is not a free slot). `ptName` only when worth showing. */
+  ownSessions?: ReadonlyArray<DaySession & { ptName?: string }>;
+  onOpenSession?: (sessionId: string) => void;
 }) {
   const accent = useWorkspaceAccent();
 
@@ -127,6 +133,8 @@ export function SlotCalendarPicker({
     () => (date ? freeSlotsOfDay(normalizeSlots(selectedQuery.data), date, slotRules) : []),
     [selectedQuery.data, date, slotRules],
   );
+
+  const daySessions = useMemo(() => sessionsOnDay(ownSessions ?? [], date), [ownSessions, date]);
 
   const grid = useMemo(() => monthGrid(shown), [shown.year, shown.month]);
   const prevOk = canGoPrev(shown, range);
@@ -247,6 +255,26 @@ export function SlotCalendarPicker({
             : "Chỉ những ngày được tô màu mới còn khung giờ trống. Chấm nhỏ là hôm nay."}
         </Text>
       </View>
+
+      {date && daySessions.length > 0 ? (
+        <View className="gap-1 rounded-xl border border-primary/30 bg-primary/10 p-3" testID="own-sessions-panel">
+          <Text className="font-body-medium text-xs text-muted-foreground">Buổi của bạn trong ngày này</Text>
+          {daySessions.map((s) => (
+            <Tappable
+              key={s.id}
+              className="min-h-10 flex-row flex-wrap items-center gap-x-2 gap-y-1 py-1"
+              disabled={!onOpenSession}
+              accessibilityLabel={`Buổi ${sessionTimeRange(s)}, ${SESSION_STATUS[s.status]?.label ?? s.status}`}
+              onPress={() => onOpenSession?.(s.id)}
+            >
+              <Text className="font-body-medium text-sm text-foreground">{sessionTimeRange(s)}</Text>
+              <Text className="font-body text-xs text-muted-foreground">
+                {`· ${SESSION_STATUS[s.status]?.label ?? s.status}${s.ptName ? ` · ${s.ptName}` : ""}`}
+              </Text>
+            </Tappable>
+          ))}
+        </View>
+      ) : null}
 
       {date ? (
         <View className="gap-2">

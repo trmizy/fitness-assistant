@@ -28,6 +28,8 @@ import {
 } from "../../utils/batchBooking";
 import { readMembershipNotCovered, type MembershipNotCovered } from "../../utils/membershipRenewal";
 import { MembershipNotCoveredNotice } from "../../components/gym/MembershipNotCoveredNotice";
+import { bookedDayKeys, localDayKey, sessionTabFor, sessionTimeRange, sessionsOnDay } from "../../utils/daySessions";
+import { fullName } from "../../utils/fullName";
 
 const DAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const MONTHS = [
@@ -276,14 +278,8 @@ export function BookingPage() {
   // identical to a free day — you could otherwise only discover an existing booking by
   // clicking each date or switching tabs. Keyed by local Y-M-D because the timestamps are
   // UTC and the calendar is drawn in the viewer's own timezone.
-  const bookedDays = new Set<string>(
-    ([...(upcomingSessions as Session[]), ...(contractSessions as Session[])] || [])
-      .filter((s) => s.status !== "CANCELLED")
-      .map((s) => {
-        const d = new Date(s.scheduledStartAt);
-        return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-      }),
-  );
+  const ownSessions = [...(upcomingSessions as Session[]), ...(contractSessions as Session[])];
+  const bookedDays = bookedDayKeys(ownSessions);
 
   // Money-flow plan 4.3: a CONFIRMED session whose time has already passed and that the PT
   // never touched (never reported complete, never no-showed) used to be invisible everywhere
@@ -312,6 +308,25 @@ export function BookingPage() {
   const selectedDateStr = selectedDate
     ? `${year}-${String(month + 1).padStart(2, "0")}-${String(selectedDate).padStart(2, "0")}`
     : null;
+
+  // The client's own sessions on the clicked day (same rule as the calendar dot), shown next to the free slots: a session
+  // the client already holds is not a "free slot", so without this the day looks like it has nothing booked.
+  const daySessions = sessionsOnDay(ownSessions, selectedDateStr);
+  const ptNameById = new Map<string, string>();
+  for (const c of contracts as Contract[]) {
+    const name = fullName(c.ptProfile, "");
+    if (name) ptNameById.set(c.ptUserId, name);
+  }
+  // Name the trainer only when the client has more than one (otherwise it is noise).
+  const showPtNames =
+    new Set((contracts as Contract[]).map((c) => c.ptUserId)).size > 1 ||
+    new Set(daySessions.map((s) => s.ptUserId)).size > 1;
+  const openOwnSession = (s: Session) => {
+    const target = sessionTabFor(s);
+    // The "past" tab lists the selected contract's sessions only.
+    if (target === "past") setSelectedContractId(s.contractId);
+    setTab(target);
+  };
 
   const { data: availableSlots, isLoading: loadingSlots } = useQuery({
     queryKey: ["available-slots", selectedContract?.ptUserId, selectedDateStr],
@@ -743,9 +758,7 @@ export function BookingPage() {
                         selectedContract?.endDate &&
                         dateObj > new Date(selectedContract.endDate);
                       const disabled = isPast || !!isPastEndDate;
-                      const hasSession = bookedDays.has(
-                        `${year}-${month}-${day}`,
-                      );
+                      const hasSession = bookedDays.has(localDayKey(dateObj));
                       // Highlighted = the PT works that weekday AND the last one-hour start of
                       // their working window is at least 24h from now (the booking lead rule),
                       // so a highlighted day always has hours to pick; the slot list then shows
@@ -806,6 +819,49 @@ export function BookingPage() {
                 <div className="space-y-3">
                   {selectedDate ? (
                     <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 shadow-xl">
+                      {daySessions.length > 0 && (
+                        <div
+                          data-testid="booking-own-sessions"
+                          className="mb-4 rounded-lg border border-emerald-400/30 bg-emerald-500/10 p-3"
+                        >
+                          <h4 className="text-xs font-bold text-emerald-300 mb-1.5">
+                            Buổi của bạn trong ngày này
+                          </h4>
+                          <ul className="space-y-1">
+                            {daySessions.map((s) => {
+                              const cfg = SESSION_STATUS_CONFIG[s.status];
+                              const ptName = showPtNames ? ptNameById.get(s.ptUserId) : undefined;
+                              return (
+                                <li key={s.id}>
+                                  <button
+                                    type="button"
+                                    data-testid={`booking-own-session-${s.id}`}
+                                    onClick={() => openOwnSession(s)}
+                                    className="flex w-full min-h-10 flex-wrap items-center gap-x-2 gap-y-1 rounded-md px-1 py-1.5 text-left transition-colors hover:bg-emerald-500/10"
+                                  >
+                                    <span className="text-sm font-semibold text-zinc-100">
+                                      {sessionTimeRange(s)}
+                                    </span>
+                                    {cfg && (
+                                      <span
+                                        className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.color}`}
+                                      >
+                                        {cfg.label}
+                                      </span>
+                                    )}
+                                    {ptName && (
+                                      <span className="min-w-0 truncate text-xs text-zinc-400">
+                                        · {ptName}
+                                      </span>
+                                    )}
+                                    <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-zinc-500" />
+                                  </button>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      )}
                       <h4 className="text-sm font-bold text-zinc-200 mb-1">
                         Khung giờ trống – ngày {selectedDate} {MONTHS[month].toLowerCase()}
                       </h4>
