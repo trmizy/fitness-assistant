@@ -83,6 +83,7 @@ import { normalizeContracts } from "../../src/features/services/contracts";
 import { mergeSessionSources, normalizeSessions, SESSION_STATUS } from "../../src/features/services/sessions";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { designTokens } from "../../src/theme/colors";
+import { anchorOptionsFor } from "../../src/config/returnPath";
 
 /**
  * CL-01 — client dashboard.
@@ -718,7 +719,7 @@ function NextPtSessionCard() {
         {awaiting ? (
           <Text className="font-body text-xs text-muted-foreground">Có buổi chờ bạn xác nhận</Text>
         ) : null}
-        <Button variant="secondary" size="sm" icon={CalendarClock} onPress={() => router.push("/client/services/booking")}>
+        <Button variant="secondary" size="sm" icon={CalendarClock} onPress={() => router.push("/client/services/booking" as never, anchorOptionsFor("/client/services/booking"))}>
           Xem lịch
         </Button>
       </Card>
