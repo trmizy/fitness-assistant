@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { contractService } from "../../services/api";
 import { newIdempotencyKey, planReviewErrorMessage, planReviewService, type PlanReviewItem } from "../../services/planReviewApi";
+import { fullName } from "../../utils/fullName";
 
 const STATUS_LABEL: Record<string, { label: string; className: string }> = {
   PENDING_REVIEW: { label: "Đang chờ PT duyệt", className: "border-amber-500/30 bg-amber-500/10 text-amber-400" },
@@ -36,7 +37,7 @@ export function PlanReviewPanel({ programId, programName, programVersion }: { pr
     () =>
       ((contracts.data ?? []) as any[]).map((c) => ({
         userId: c.ptUserId as string,
-        name: `${c.ptProfile?.firstName ?? ""} ${c.ptProfile?.lastName ?? ""}`.trim() || "PT của bạn",
+        name: fullName(c.ptProfile, "PT của bạn"),
       })),
     [contracts.data],
   );

@@ -7,6 +7,7 @@
  * them with mock data).
  */
 import type { RealtimeChatMessage } from "../../realtime/events";
+import { fullName } from "../../lib/personName";
 
 export type Conversation = {
   id: string;
@@ -68,8 +69,7 @@ export function mergeMessage(list: ChatMessage[] | undefined, m: ChatMessage): C
 
 export function peerName(c: Conversation | null | undefined): string {
   const u = c?.otherUser;
-  const name = [u?.firstName, u?.lastName].filter(Boolean).join(" ").trim();
-  return name || "Người dùng";
+  return fullName(u, "Người dùng");
 }
 
 export function peerRoleLabel(role: string | null | undefined): string {

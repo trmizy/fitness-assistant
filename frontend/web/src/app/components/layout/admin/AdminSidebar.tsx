@@ -17,6 +17,7 @@ import { AdminLink } from "./AdminLink";
 import { ADMIN_NAV, findActiveNavItem, formatBadge, type AdminNavItem } from "./adminNav";
 import { ADMIN_NAV_ICONS } from "./adminNavIcons";
 import { useAdminNavBadges } from "./useAdminNavBadges";
+import { fullName } from "../../../utils/fullName";
 
 const FOCUS_RING =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-focus)]";
@@ -37,7 +38,7 @@ interface AdminSidebarProps {
 
 function displayName(user: { firstName?: string; lastName?: string; email?: string } | null | undefined): string {
   if (!user) return "Quản trị viên";
-  const full = `${user.firstName || ""} ${user.lastName || ""}`.trim();
+  const full = fullName(user);
   return full || user.email?.split("@")[0] || "Quản trị viên";
 }
 

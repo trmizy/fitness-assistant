@@ -28,6 +28,9 @@ import {
 } from "../../utils/batchBooking";
 import { readMembershipNotCovered, type MembershipNotCovered } from "../../utils/membershipRenewal";
 import { MembershipNotCoveredNotice } from "../../components/gym/MembershipNotCoveredNotice";
+import { cancelSuccessText, rescheduleBlockedReason, rescheduleErrorMessage, rescheduleSubmitHint } from "../../utils/reschedule";
+import { useAcceptedMoves } from "../../hooks/useAcceptedMoves";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { bookedDayKeys, localDayKey, sessionTabFor, sessionTimeRange, sessionsOnDay } from "../../utils/daySessions";
 import { fullName } from "../../utils/fullName";
 
@@ -257,6 +260,9 @@ export function BookingPage() {
     queryFn: () => sessionService.getMyUpcoming(),
   });
 
+  // Moves already used per session (history read up front), so "đã dời 2 lần" is known before the form is filled.
+  const acceptedMovesFor = useAcceptedMoves(upcomingSessions as Session[]);
+
   // Money-flow plan 4.1: sessions the PT reported as done and the client still has to
   // confirm or dispute. Distinct from "upcoming" — these are already in the past.
   const { data: pendingConfirmSessions = [], isLoading: loadingPendingConfirm } = useQuery({
@@ -410,8 +416,9 @@ export function BookingPage() {
   const cancelMutation = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       sessionService.cancelSession(id, reason),
-    onSuccess: () => {
-      toast.success("Đã hủy lịch tập");
+    onSuccess: (_data, vars) => {
+      const cancelled = (upcomingSessions as Session[]).find((x) => x.id === vars.id);
+      toast.success(cancelSuccessText(cancelled?.status ?? ""));
       setCancelId(null);
       setCancelReason("");
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
@@ -491,6 +498,9 @@ export function BookingPage() {
   const [acceptMembershipRefusal, setAcceptMembershipRefusal] = useState<{ requestId: string; refusal: MembershipNotCovered } | null>(null);
   const [rescheduleSlot, setRescheduleSlot] = useState<DateSlotValue | null>(null);
   const [rescheduleReason, setRescheduleReason] = useState<string>("");
+  // The server's reason for refusing (12 h cut-off, 2 moves used, PT hours...), kept INSIDE the modal: a toast alone vanishes
+  // in seconds and, on a phone, sits behind the sheet's dimmed backdrop.
+  const [rescheduleError, setRescheduleError] = useState<string | null>(null);
 
   const rescheduleMutation = useMutation({
     mutationFn: ({
@@ -510,18 +520,41 @@ export function BookingPage() {
         proposedEndAt,
         reason
       ),
-    onMutate: () => setRescheduleMembershipRefusal(null),
+    onMutate: () => {
+      setRescheduleMembershipRefusal(null);
+      setRescheduleError(null);
+    },
     onSuccess: () => {
       toast.success("Đã gửi yêu cầu dời lịch!");
       setRescheduleMembershipRefusal(null);
+      setRescheduleError(null);
       setRescheduleTarget(null);
       setRescheduleSlot(null);
       setRescheduleReason("");
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
+      queryClient.invalidateQueries({ queryKey: ["session-reschedule-history"] });
     },
     onError: (err: any) => {
-      setRescheduleMembershipRefusal(readMembershipNotCovered(err));
-      toast.error(err?.response?.data?.error || "Không thể yêu cầu dời lịch");
+      const refusal = readMembershipNotCovered(err);
+      setRescheduleMembershipRefusal(refusal);
+      const message = rescheduleErrorMessage(err, "Không thể yêu cầu dời lịch");
+      if (!refusal) setRescheduleError(message);
+      toast.error(message);
+      // The refusal usually means the list is out of date (a proposal opened meanwhile, a move already used): reload it.
+      queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
+    },
+  });
+
+  // Withdrawing the client's own open proposal (confirmed in a dialog first; server: proposer only, only while PENDING).
+  const [withdrawRequestId, setWithdrawRequestId] = useState<string | null>(null);
+  const withdrawMutation = useMutation({
+    mutationFn: (requestId: string) => sessionService.cancelReschedule(requestId),
+    onSuccess: () => toast.success("Đã rút lại đề nghị dời lịch — buổi giữ nguyên giờ cũ"),
+    onError: (err: any) => toast.error(rescheduleErrorMessage(err, "Không thể rút lại đề nghị")),
+    // Success or refusal (usually: the PT answered meanwhile) - reload so the card shows the real state.
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
+      queryClient.invalidateQueries({ queryKey: ["session-reschedule-history"] });
     },
   });
 
@@ -1163,7 +1196,7 @@ export function BookingPage() {
                           );
                         })()}
                         <div className="flex gap-1.5">
-                          {hoursUntil >= 12 && (
+                          {!rescheduleBlockedReason(s, { acceptedMoves: acceptedMovesFor(s.id) }) && (
                             <button
                               onClick={() => setRescheduleTarget(s)}
                               className="flex items-center gap-1 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
@@ -1180,6 +1213,12 @@ export function BookingPage() {
                         </div>
                       </div>
                     </div>
+                    {/* "Dời lịch" is simply absent when the session cannot be moved - say why (an open proposal is explained by its own card below). */}
+                    {(!s.rescheduleRequests || s.rescheduleRequests.length === 0) && rescheduleBlockedReason(s, { acceptedMoves: acceptedMovesFor(s.id) }) && hoursUntil > 0 && (
+                      <p className="mt-2 text-xs text-zinc-500" data-testid="reschedule-blocked-reason">
+                        Chưa dời lịch được: {rescheduleBlockedReason(s, { acceptedMoves: acceptedMovesFor(s.id) })}
+                      </p>
+                    )}
                     {/* Owner decision 20/11/2026: no 24h grace - cancelling a CONFIRMED session always costs the client the session. */}
                     {s.status === "CONFIRMED" && hoursUntil > 0 && (
                       <div className="mt-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1.5">
@@ -1193,7 +1232,20 @@ export function BookingPage() {
                     {s.rescheduleRequests && s.rescheduleRequests.length > 0 && (
                       <div className="mt-2 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
                         {s.rescheduleRequests[0].requestedBy === "CLIENT" ? (
-                          <div className="text-amber-400 font-medium">Bạn đã gửi yêu cầu dời lịch sang {formatDateTime(s.rescheduleRequests[0].proposedStartAt)}. Đang chờ PT xác nhận.</div>
+                          <div className="flex flex-col gap-2">
+                            <div className="text-amber-400 font-medium">Bạn đã gửi yêu cầu dời lịch sang {formatDateTime(s.rescheduleRequests[0].proposedStartAt)}. Đang chờ PT xác nhận.</div>
+                            <div>
+                              <button
+                                type="button"
+                                data-testid="withdraw-reschedule"
+                                onClick={() => setWithdrawRequestId(s.rescheduleRequests![0].id)}
+                                disabled={withdrawMutation.isPending}
+                                className="min-h-9 px-3 py-1.5 border border-amber-500/40 text-amber-300 hover:bg-amber-500/10 text-xs font-bold rounded-lg transition-colors"
+                              >
+                                Rút lại đề nghị
+                              </button>
+                            </div>
+                          </div>
                         ) : (
                           <div className="flex flex-col gap-2">
                             <div className="text-amber-400 font-medium">PT yêu cầu dời lịch sang {formatDateTime(s.rescheduleRequests[0].proposedStartAt)}</div>
@@ -1649,6 +1701,19 @@ export function BookingPage() {
         )}
       </Modal>
 
+      <ConfirmDialog
+        open={!!withdrawRequestId}
+        onOpenChange={(o) => !o && setWithdrawRequestId(null)}
+        title="Rút lại đề nghị dời lịch?"
+        description="Buổi tập giữ nguyên giờ cũ. Bạn có thể gửi một đề nghị mới sau."
+        confirmLabel="Rút lại"
+        cancelLabel="Không"
+        onConfirm={() => {
+          if (withdrawRequestId) withdrawMutation.mutate(withdrawRequestId);
+          setWithdrawRequestId(null);
+        }}
+      />
+
       {/* ─── DỜI LỊCH ─── */}
       <Modal
         open={!!(rescheduleTarget)}
@@ -1657,6 +1722,7 @@ export function BookingPage() {
           setRescheduleSlot(null);
           setRescheduleReason("");
           setRescheduleMembershipRefusal(null);
+          setRescheduleError(null);
         }}
         closeOnBackdrop={false}
         placement="sheet"
@@ -1677,7 +1743,10 @@ export function BookingPage() {
               <DateSlotPicker
                 ptUserId={rescheduleTarget.ptUserId}
                 value={rescheduleSlot}
-                onChange={setRescheduleSlot}
+                onChange={(v) => {
+                  setRescheduleSlot(v);
+                  setRescheduleError(null);
+                }}
                 fullDays={fullSessionDays(
                   [...(upcomingSessions as Session[]), ...(contractSessions as Session[])],
                   rescheduleTarget.id,
@@ -1697,6 +1766,20 @@ export function BookingPage() {
                 <MembershipNotCoveredNotice refusal={rescheduleMembershipRefusal} />
               )}
             </div>
+            {rescheduleError && (
+              <div
+                role="alert"
+                data-testid="reschedule-error"
+                className="mx-5 mb-3 shrink-0 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300"
+              >
+                {rescheduleError}
+              </div>
+            )}
+            {rescheduleSubmitHint({ dateStr: rescheduleSlot?.dateStr, slot: rescheduleSlot?.slot, reason: rescheduleReason }) && (
+              <p className="px-5 pb-2 shrink-0 text-center text-xs text-zinc-500" data-testid="reschedule-submit-hint">
+                {rescheduleSubmitHint({ dateStr: rescheduleSlot?.dateStr, slot: rescheduleSlot?.slot, reason: rescheduleReason })}
+              </p>
+            )}
             <div className="p-5 border-t border-white/10 flex gap-3 shrink-0 bg-white/5 backdrop-blur-md">
               <button
                 type="button"
@@ -1705,6 +1788,7 @@ export function BookingPage() {
                   setRescheduleSlot(null);
                   setRescheduleReason("");
                   setRescheduleMembershipRefusal(null);
+                  setRescheduleError(null);
                 }}
                 className="min-h-10 flex-1 py-2.5 border border-white/10 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors"
               >

@@ -5473,6 +5473,16 @@ export const sessionService = {
     });
     return data;
   },
+  /** Every proposal made on a session (either party may read it): used to know how many moves were already accepted. */
+  getRescheduleHistory: async (sessionId: string) => {
+    const { data } = await api.get(`/sessions/${sessionId}/reschedule-history`);
+    return data as Array<{ id: string; status: string; requestedBy: string }>;
+  },
+  /** The proposer withdraws their own PENDING proposal (server: proposer only, 409 once it was answered). */
+  cancelReschedule: async (requestId: string) => {
+    const { data } = await api.delete(`/sessions/reschedules/${requestId}`);
+    return data;
+  },
   respondToReschedule: async (requestId: string, action: "ACCEPT" | "REJECT", responseNote?: string) => {
     const { data } = await api.post(`/sessions/reschedules/${requestId}/respond`, {
       action,

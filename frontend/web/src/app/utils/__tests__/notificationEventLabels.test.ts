@@ -37,6 +37,7 @@ describe("ptTermsVersionLabel", () => {
   it("turns the internal id into a readable label", () => {
     assert.equal(ptTermsVersionLabel("2026-10-pt-draft-6"), "Điều khoản PT tháng 10/2026 (bản nháp 6)");
     assert.equal(ptTermsVersionLabel("2026-10-pt-2"), "Điều khoản PT tháng 10/2026 (bản 2)");
+    assert.equal(ptTermsVersionLabel("2026-11-pt-v2"), "Điều khoản PT tháng 11/2026 (bản 2)");
   });
   it("never echoes an unknown id", () => {
     assert.equal(ptTermsVersionLabel("abc-xyz"), "Bản điều khoản PT");

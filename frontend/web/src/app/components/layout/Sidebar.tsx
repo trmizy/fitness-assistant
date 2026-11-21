@@ -32,6 +32,7 @@ import {
   GyminiWalletIcon,
   GyminiWorkoutIcon,
 } from "../brand/GyminiLucide";
+import { fullName } from "../../utils/fullName";
 
 // ─── Navigation definitions ────────────────────────────────────────────────
 
@@ -416,7 +417,7 @@ export function Sidebar() {
           <div className="flex-1 min-w-0">
             <div className="text-xs text-zinc-100 font-semibold truncate">
               {user
-                ? `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                ? fullName(user) ||
                   user.email.split("@")[0]
                 : "Thành viên"}
             </div>

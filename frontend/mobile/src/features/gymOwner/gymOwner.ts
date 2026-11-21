@@ -14,6 +14,7 @@ import type { PartnerAccessState } from "../../services/api";
 import { canRespondAs, collabStatusFor, type CollabRow } from "../collaboration/collaboration";
 import { awaitingMyReplyCount, partneredPtCount } from "../collaboration/brandPartnership";
 import { fullAddress } from "../services/gymDirectory";
+import { fullName } from "../../lib/personName";
 export { withdrawableCeiling } from "../wallet/wallet";
 
 // ── Access state: who may see the operational workspace ────────────────────────────────────
@@ -764,8 +765,7 @@ export function pendingManagerInvites(raw: unknown): PartnerInvitationRow[] {
 }
 
 export function managerName(a: PartnerAccountRow): string {
-  const name = [a.identity?.firstName, a.identity?.lastName].filter(Boolean).join(" ").trim();
-  return name || a.identity?.email || "Người quản lý";
+  return fullName(a.identity) || a.identity?.email || "Người quản lý";
 }
 
 /**

@@ -21,7 +21,9 @@ import { fullName } from "../../lib/personName";
 
 /** Both shapes the backend uses: the joined profile, or the legacy flat name. */
 export type ClientRef = {
-  clientProfile?: { firstName?: string | null; lastName?: string | null; email?: string | null } | null;
+  clientProfile?: { firstName?: string | null; lastName?: string | null; email?: string | null; photoUrl?: string | null } | null;
+  /** The client's photo on `GET /contracts/pt` (same value as `clientProfile.photoUrl`). */
+  clientAvatarUrl?: string | null;
   clientName?: string | null;
 };
 
@@ -30,6 +32,12 @@ export function clientName(ref: ClientRef | null | undefined, fallback = "Học 
   const name = fullName(ref?.clientProfile);
   if (name) return name;
   return ref?.clientName?.trim() || fallback;
+}
+
+/** The client's photo (a signed URL), or null so the Avatar falls back to initials. */
+export function clientAvatarUri(ref: ClientRef | null | undefined): string | null {
+  const url = ref?.clientAvatarUrl ?? ref?.clientProfile?.photoUrl;
+  return typeof url === "string" && url.trim() !== "" ? url : null;
 }
 
 /** Initials for the avatar. Never renders an id — "?" is better than a uuid fragment. */
@@ -654,6 +662,11 @@ Buổi với ${name} sẽ bị huỷ và học viên sẽ nhận được thông
     : `Buổi với ${name} sẽ bị huỷ. Học viên sẽ nhận được thông báo.`;
 }
 
+/** The success toast after a PT cancelled a session: says what actually happened (a confirmed one compensates the client). */
+export function ptCancelDoneMessage(status: string): string {
+  return status === "CONFIRMED" ? "Đã huỷ buổi — học viên được bồi thường 1 buổi" : "Đã huỷ buổi tập";
+}
+
 /** How many CONFIRMED sessions sit on `dateStr` (`YYYY-MM-DD`, local day - the server blocks by the local day too). */
 export function confirmedSessionsOnDate(sessions: PtSession[], dateStr: string): number {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((dateStr ?? "").trim());
@@ -721,7 +734,8 @@ export function ptOutgoingReschedule(session: any): PtReschedule | null {
 export const RESCHEDULE_MIN_NOTICE_HOURS = 12;
 
 export function canProposeReschedule(session: any, now: Date = new Date()): boolean {
-  if (session?.status !== "CONFIRMED" && session?.status !== "REQUESTED") return false;
+  // The server moves only a CONFIRMED session ("RESCHEDULE_REQUIRES_CONFIRMED"); a REQUESTED one is simply confirmed at another time.
+  if (session?.status !== "CONFIRMED") return false;
   if (ptPendingReschedule(session)) return false;
   const start = new Date(session?.scheduledStartAt ?? "").getTime();
   if (!Number.isFinite(start)) return false;

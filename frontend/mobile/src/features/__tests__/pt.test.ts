@@ -35,6 +35,7 @@ import {
   planSchedule,
   planTitle,
   ptAlerts,
+  ptCancelDoneMessage,
   ptCancelNotice,
   ptBlockDayNotice,
   confirmedSessionsOnDate,
@@ -452,6 +453,7 @@ describe("reschedule proposals & no-show reports, trainer side", () => {
       "trong v\u00f2ng 12 gi\u1edd th\u00ec server t\u1eeb ch\u1ed1i",
     );
     assert.equal(canProposeReschedule({ ...base, status: "COMPLETED" }, now), false);
+    assert.equal(canProposeReschedule({ ...base, status: "REQUESTED" }, now), false, "server: RESCHEDULE_REQUIRES_CONFIRMED");
     assert.equal(canProposeReschedule({ ...base, scheduledStartAt: "r\u00e1c" }, now), false);
   });
 
@@ -554,5 +556,12 @@ describe("PT block-day confirm", () => {
     const text = ptBlockDayNotice(2);
     assert.match(text, /2 buổi đã xác nhận/);
     assert.match(text, /bồi thường cho học viên 1 buổi bằng tiền/);
+  });
+});
+
+describe("ptCancelDoneMessage", () => {
+  it("names the compensation after a CONFIRMED cancel and stays plain for a REQUESTED one", () => {
+    assert.equal(ptCancelDoneMessage("CONFIRMED"), "Đã huỷ buổi — học viên được bồi thường 1 buổi");
+    assert.equal(ptCancelDoneMessage("REQUESTED"), "Đã huỷ buổi tập");
   });
 });

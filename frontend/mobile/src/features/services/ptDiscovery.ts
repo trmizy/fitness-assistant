@@ -15,6 +15,7 @@
  *    anything else instead of quietly falling back to the independent rate.
  */
 import { displaySpecialty } from "../../constants/specialties";
+import { fullName as personFullName } from "../../lib/personName";
 
 export type PtPhysiquePhoto = { id: string; url: string; isCover: boolean; sortOrder: number };
 
@@ -82,8 +83,7 @@ export function cardPricePerSession(raw: any): number | null {
 
 function fullName(raw: any): string {
   // Never the e-mail: the public DTO no longer carries one, and an address is not a name to show anyone.
-  const name = [raw?.firstName, raw?.lastName].filter(Boolean).join(" ").trim();
-  return name || "Huấn luyện viên";
+  return personFullName(raw, "Huấn luyện viên");
 }
 
 function normalizePhysiquePhotos(raw: any): PtPhysiquePhoto[] {

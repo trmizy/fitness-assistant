@@ -5487,6 +5487,11 @@ export const sessionService = {
     });
     return data;
   },
+  /** The proposer withdraws their own PENDING proposal (server: proposer only, 409 once it has been answered). */
+  cancelReschedule: async (requestId: string) => {
+    const { data } = await api.delete(`/sessions/reschedules/${requestId}`);
+    return data;
+  },
   joinSession: async (id: string) => {
     const { data } = await api.post(`/sessions/${id}/join`);
     return data as {

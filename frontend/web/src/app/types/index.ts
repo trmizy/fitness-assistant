@@ -175,6 +175,8 @@ export interface Contract {
   ptProfile?: ContractPartyProfile | null;
   /** Attached on `/contracts/pt` — who the client is. */
   clientProfile?: ContractPartyProfile | null;
+  /** The client's photo on `GET /contracts/pt` (same value as `clientProfile.photoUrl`). */
+  clientAvatarUrl?: string | null;
   /** Attached on `/contracts/pt` — this client's aggregate rating from OTHER PTs' past
    * sessions with them (ClientReview, the mirror-image of a PT's own SessionReview rating). */
   clientRating?: { avgRating: number | null; ratingCount: number };

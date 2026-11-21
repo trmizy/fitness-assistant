@@ -13,6 +13,11 @@ export function ptCancelNotice(status: string, name: string): string {
     : `Buổi với ${name} sẽ bị huỷ. Học viên sẽ nhận được thông báo.`;
 }
 
+/** The success toast after a PT cancelled a session: says what actually happened (a confirmed one compensates the client). */
+export function ptCancelDoneMessage(status: string): string {
+  return status === "CONFIRMED" ? "Đã huỷ buổi — học viên được bồi thường 1 buổi" : "Đã huỷ buổi tập";
+}
+
 /** How many CONFIRMED sessions sit on `dateStr` (`YYYY-MM-DD`, local day - the server blocks by the local day too). */
 export function confirmedSessionsOnDate(
   sessions: ReadonlyArray<{ status?: string; scheduledStartAt?: string }>,
