@@ -521,6 +521,14 @@ export default function BookingScreen() {
         key={booking ? "booking-open" : "booking-closed"}
         open={booking}
         contracts={activeContracts}
+        sessions={sessions}
+        onOpenSession={(target) => {
+          // Close the sheet and show that session (its list group + detail), instead of leaving it only as a missing slot.
+          setBooking(false);
+          const group = (Object.keys(groups) as (keyof typeof groups)[]).find((k) => groups[k].some((x) => x.id === target.id));
+          if (group) setSegment(group);
+          setOpenSession(target);
+        }}
         onClose={() => setBooking(false)}
         onBooked={(count) => {
           setBooking(false);
@@ -886,11 +894,15 @@ function ReviewSheet({
 function BookingSheet({
   open,
   contracts,
+  sessions,
+  onOpenSession,
   onClose,
   onBooked,
 }: {
   open: boolean;
   contracts: ReturnType<typeof normalizeContracts>;
+  sessions: SessionRow[];
+  onOpenSession: (session: SessionRow) => void;
   onClose: () => void;
   onBooked: (count: number) => void;
 }) {
@@ -912,6 +924,12 @@ function BookingSheet({
   const contract = contracts.find((c) => c.id === contractId) ?? contracts[0] ?? null;
   const left = contract ? sessionsLeft(contract) : 0;
   const current: PickedSlot | null = date && time ? { date, time } : null;
+  // Own sessions for the "Buổi của bạn" panel; the trainer's name only when the client works with more than one.
+  const ownSessions = useMemo(() => {
+    const names = new Map(contracts.map((c) => [c.ptUserId, c.ptName]));
+    const several = names.size > 1;
+    return sessions.map((s) => ({ ...s, ptName: several ? names.get(s.ptUserId) : undefined }));
+  }, [sessions, contracts]);
 
   const blocked = contract
     ? bookingBlockedReason({
@@ -1105,6 +1123,11 @@ function BookingSheet({
                 setDate(nextDate);
                 setTime(nextTime);
                 setPickError(null);
+              }}
+              ownSessions={ownSessions}
+              onOpenSession={(id) => {
+                const target = sessions.find((x) => x.id === id);
+                if (target) onOpenSession(target);
               }}
               emptyDayText={`Không còn khung giờ đặt được trong ngày này. Buổi tập cần đặt trước ít nhất ${BOOKING_LEAD_HOURS} giờ.`}
             />

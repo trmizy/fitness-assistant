@@ -20,6 +20,7 @@ import { ptContractShare } from "../../utils/ptContractShare";
 import { withRefundLabel } from "../../utils/sessionRefund";
 import { INDEPENDENT_VENUE_NOTE, isIndependentVenue } from "../../utils/independentVenue";
 import { fullName } from "../../utils/fullName";
+import { contractPlaceLabel } from "../../utils/contractPlace";
 
 const SESSION_STATUS: Record<
   SessionStatus,
@@ -537,6 +538,11 @@ export function PTContractsPage() {
                           <span className="flex items-center gap-1">
                             <DollarSign className="w-3 h-3" />{" "}
                             {formatPrice(c.price)}
+                          </span>
+                        )}
+                        {contractPlaceLabel(c.gymInfo) && (
+                          <span className="min-w-0 break-words text-zinc-400" data-testid="pt-contract-place">
+                            Nơi tập: {contractPlaceLabel(c.gymInfo)}
                           </span>
                         )}
                         {isIndependentVenue(c.sessionMode, c.gymId) && (

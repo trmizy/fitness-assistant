@@ -43,6 +43,9 @@ interface FakeGym {
   name: string;
   city?: string;
   brandId: string | null;
+  /** The branch's map pin (gym-service sends it with the picker rows; absent = no pin). */
+  latitude?: number | null;
+  longitude?: number | null;
   /** What getActiveCollaboration answers (the accept-time view). null = request/accept would refuse. */
   collab?: "OK" | null;
   /** The client's active membership at this gym's brand (the P3.1 answer), if any. */
@@ -64,6 +67,9 @@ interface World {
   calls: { list: number; collab: number; membership: string[] };
   listFails?: boolean;
   membershipFails?: boolean;
+  /** The client's saved search region (UserProfile.searchProvinceCode / searchWardCode). */
+  clientProvinceCode?: number | null;
+  clientWardCode?: number | null;
 }
 
 function newWorld(over: Partial<World> & { gyms: FakeGym[] }): World {
@@ -95,8 +101,10 @@ function install(w: World): () => void {
       const row = (await ptServicePackageRepository.findById(id)) as any;
       return row ? { version: 1, ...row } : null;
     }),
-    patch(profileRepository, "findByUserId", async () => ({
+    patch(profileRepository, "findByUserId", async (userId: string) => ({
       isPT: true, ptSuspended: false, isAcceptingClients: w.accepting ?? true, referralCode: w.referralCode ?? null,
+      searchProvinceCode: userId === w.clientUserId ? (w.clientProvinceCode ?? null) : null,
+      searchWardCode: userId === w.clientUserId ? (w.clientWardCode ?? null) : null,
     })),
     patch(trainingLocationRepository, "findByPtUserId", async () =>
       (w.trainingGymIds ?? []).map((gymId) => ({ gymId, isActive: true })),
@@ -108,7 +116,7 @@ function install(w: World): () => void {
       if (w.listFails) throw new GymServiceUnavailableError(new Error("ECONNREFUSED"));
       return w.gyms
         .filter((g) => g.listed !== false)
-        .map((g) => ({ collaborationId: `agr-${g.id}`, gym: { id: g.id, name: g.name, city: g.city }, rates: { ...RATES } }));
+        .map((g) => ({ collaborationId: `agr-${g.id}`, gym: { id: g.id, name: g.name, city: g.city, latitude: g.latitude ?? null, longitude: g.longitude ?? null }, rates: { ...RATES } }));
     }),
     patch(gymClient, "getActiveCollaboration", async (gymId: string) => {
       w.calls.collab++;
@@ -178,7 +186,7 @@ dbTest("PT with 1 gym, client WITH an active membership: facts annotated, no rev
     const { eligibility, ...rest } = r.gyms[0];
     assert.deepEqual([rest], [
       {
-        gymId: "gym-a1", name: "Alpha Quan 1", city: "HCM", brandId: "brand-a", isPtTrainingLocation: false,
+        gymId: "gym-a1", name: "Alpha Quan 1", city: "HCM", brandId: "brand-a", isPtTrainingLocation: false, distanceKm: null,
         membership: { hasActiveMembership: true, membershipId: "mem-1", planName: "Thang", endDate: MEMBERSHIP_END, purchasedHere: true },
       },
     ]);
@@ -244,6 +252,94 @@ dbTest("several gyms across brands: per-brand membership, brand-wide membership 
   } finally {
     restore();
     await cleanup(w);
+  }
+});
+
+// ── distance from the client (owner request 21/11/2026) ─────────────────────────────────────────
+// Reference point = centroid of the client's saved search ward (real vietnam_ward_geo rows seeded in the *_test DB).
+
+const DIST_TAG = Date.now() % 1_000_000;
+const DIST_PROV = 99_700_000 + DIST_TAG;
+const DIST_WARD_GEO = DIST_PROV * 10 + 1; // has a centroid
+const DIST_WARD_NO_GEO = DIST_PROV * 10 + 2; // ward without a centroid row
+// Ward centre ~ Phuong Go Vap. The pins: Go Vap (~0.2 km), Gia Dinh (~4 km), Quan 7 (~10 km).
+const GOVAP = { latitude: 10.8344, longitude: 106.6733 };
+const GIADINH = { latitude: 10.79972, longitude: 106.69559 };
+const Q7 = { latitude: 10.73, longitude: 106.72 };
+
+async function seedDistanceWards() {
+  await prisma.vietnamProvince.create({ data: { code: DIST_PROV, name: `Test Dist ${DIST_TAG}`, nameNormalized: `test dist ${DIST_TAG}` } });
+  await prisma.vietnamWard.createMany({
+    data: [
+      { code: DIST_WARD_GEO, provinceCode: DIST_PROV, name: `Phuong Dist A ${DIST_TAG}`, nameNormalized: `phuong dist a ${DIST_TAG}` },
+      { code: DIST_WARD_NO_GEO, provinceCode: DIST_PROV, name: `Phuong Dist B ${DIST_TAG}`, nameNormalized: `phuong dist b ${DIST_TAG}` },
+    ],
+  });
+  await prisma.vietnamWardGeo.create({
+    data: { wardCode: DIST_WARD_GEO, provinceCode: DIST_PROV, centroidLat: 10.833429, centroidLng: 106.672562, minLat: 10.82, maxLat: 10.85, minLng: 106.66, maxLng: 106.69 },
+  });
+}
+async function dropDistanceWards() {
+  await prisma.vietnamWardGeo.deleteMany({ where: { wardCode: { in: [DIST_WARD_GEO, DIST_WARD_NO_GEO] } } });
+  await prisma.vietnamWard.deleteMany({ where: { code: { in: [DIST_WARD_GEO, DIST_WARD_NO_GEO] } } });
+  await prisma.vietnamProvince.deleteMany({ where: { code: DIST_PROV } });
+}
+
+dbTest("client WITH a saved ward: each branch has distanceKm and the list is nearest first (beats the old order)", { skip }, async () => {
+  await seedDistanceWards();
+  // Old order would be: PT training location (gym-q7) first, then the branch the membership was bought at (gym-gd), then name.
+  const w = newWorld({
+    gyms: [
+      { ...A1, id: "gym-q7", name: "Alpha Quan 7", ...Q7 },
+      { ...A1, id: "gym-gd", name: "Alpha Gia Dinh", ...GIADINH, membership: { ...ownMembership, purchaseGymId: "gym-gd" } },
+      { ...A1, id: "gym-gv", name: "Alpha Go Vap", ...GOVAP },
+      { ...A1, id: "gym-nopin", name: "Alpha No Pin" },
+    ],
+    trainingGymIds: ["gym-q7"],
+    clientProvinceCode: DIST_PROV,
+    clientWardCode: DIST_WARD_GEO,
+  });
+  const restore = install(w);
+  try {
+    const r = await contractGymOptionsService.getGymOptions(w.clientUserId, opts(w));
+    assert.deepEqual(r.gyms.map((g) => g.gymId), ["gym-gv", "gym-gd", "gym-q7", "gym-nopin"]);
+    const km = Object.fromEntries(r.gyms.map((g) => [g.gymId, g.distanceKm]));
+    assert.ok(km["gym-gv"]! >= 0 && km["gym-gv"]! < 1, `Go Vap ${km["gym-gv"]}`);
+    assert.ok(km["gym-gd"]! > 3 && km["gym-gd"]! < 5, `Gia Dinh ${km["gym-gd"]}`);
+    assert.ok(km["gym-q7"]! > 11 && km["gym-q7"]! < 14, `Q7 ${km["gym-q7"]}`);
+    assert.equal(km["gym-nopin"], null);
+  } finally {
+    restore();
+    await cleanup(w);
+    await dropDistanceWards();
+  }
+});
+
+dbTest("client with NO saved location (or a ward without centroid, or province only): distanceKm null everywhere, old order kept", { skip }, async () => {
+  await seedDistanceWards();
+  const gyms = (): FakeGym[] => [
+    { ...A1, id: "gym-q7", name: "Alpha Quan 7", ...Q7 },
+    { ...A1, id: "gym-gv", name: "Alpha Go Vap", ...GOVAP },
+  ];
+  try {
+    for (const region of [
+      { clientProvinceCode: null, clientWardCode: null },
+      { clientProvinceCode: DIST_PROV, clientWardCode: null },
+      { clientProvinceCode: DIST_PROV, clientWardCode: DIST_WARD_NO_GEO },
+    ]) {
+      const w = newWorld({ gyms: gyms(), trainingGymIds: ["gym-q7"], ...region });
+      const restore = install(w);
+      try {
+        const r = await contractGymOptionsService.getGymOptions(w.clientUserId, opts(w));
+        assert.ok(r.gyms.every((g) => g.distanceKm === null), JSON.stringify(region));
+        assert.deepEqual(r.gyms.map((g) => g.gymId), ["gym-q7", "gym-gv"], "old order (PT training location first) untouched");
+      } finally {
+        restore();
+        await cleanup(w);
+      }
+    }
+  } finally {
+    await dropDistanceWards();
   }
 });
 

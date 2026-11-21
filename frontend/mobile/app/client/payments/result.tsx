@@ -21,6 +21,8 @@ import { useGatewayCheckout } from "../../../src/features/payments/useGatewayChe
 import { normalizeMemberships } from "../../../src/features/services/gymDirectory";
 import { normalizeContracts } from "../../../src/features/services/contracts";
 import { clearPendingCheckout } from "../../../src/features/payments/pendingCheckout";
+import { clearPaymentReturn, peekPaymentReturn } from "../../../src/features/payments/paymentReturnStore";
+import { useApp } from "../../../src/context/AppContext";
 import { darkColors, designTokens } from "../../../src/theme/colors";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 
@@ -62,6 +64,8 @@ export default function PaymentResultScreen() {
   const { txnId: rawTxnId, gw } = useLocalSearchParams<{ txnId?: string; gw?: string }>();
   const txnId = typeof rawTxnId === "string" ? rawTxnId : "";
 
+  const { user } = useApp();
+  const [returnPath, setReturnPath] = useState<string | null>(null);
   const [phase, setPhase] = useState<ResultPhase>("checking");
   const [sync, setSync] = useState<unknown>(null);
   // The same result can arrive twice (deep link + the tab's promise); one sync per id is enough.
@@ -93,6 +97,19 @@ export default function PaymentResultScreen() {
     void clearPendingCheckout();
     void confirm();
   }, [confirm, txnId]);
+
+  // Bought a gym plan from inside a PT request: a way back to that request (same package / branch). Navigation only —
+  // the verdict above is still the server's. Only a path this user's own checkout remembered is ever offered.
+  useEffect(() => {
+    if (phase === "checking" || !txnId) return;
+    let alive = true;
+    void peekPaymentReturn(txnId, user?.id).then((path) => {
+      if (alive) setReturnPath(path);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [phase, txnId, user?.id]);
 
   // N17M-03 — the gateway's own return link said the checkout did not complete (e.g. "Hủy giao dịch" at ZaloPay,
   // which keeps its order open ~15 minutes). The server still says pending, so this is only the wording; a
@@ -159,6 +176,18 @@ export default function PaymentResultScreen() {
         ) : null}
 
         <View className="w-full gap-2 pt-2">
+          {returnPath ? (
+            <Button
+              full
+              onPress={() => {
+                const path = returnPath;
+                void clearPaymentReturn();
+                router.navigate(path as never);
+              }}
+            >
+              Quay lại đặt gói PT
+            </Button>
+          ) : null}
           {retryAction && retryTarget ? (
             <Button
               full
@@ -179,7 +208,7 @@ export default function PaymentResultScreen() {
           ) : null}
           <Button
             full
-            variant={retryAction ? "secondary" : "primary"}
+            variant={retryAction || returnPath ? "secondary" : "primary"}
             disabled={phase === "checking"}
             onPress={() => router.replace((phase === "paid" ? dest.href : "/client/services") as never)}
           >

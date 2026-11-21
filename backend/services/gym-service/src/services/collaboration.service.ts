@@ -98,6 +98,8 @@ const RESOLUTION_GYM_SELECT = {
   id: true,
   name: true,
   city: true,
+  latitude: true,
+  longitude: true,
   ownerId: true,
   brandId: true,
   status: true,
@@ -936,7 +938,8 @@ export const collaborationService = {
 
     return offered.map(({ resolved, gym }) => ({
       collaborationId: resolved.id,
-      gym: { id: gym.id, name: gym.name, city: gym.city },
+      // latitude/longitude are additive (null = branch has no pin); user-service uses them for "distance from the client".
+      gym: { id: gym.id, name: gym.name, city: gym.city, latitude: gym.latitude, longitude: gym.longitude },
       rates: { ptRate: resolved.ptRate, gymRate: resolved.gymRate, platformRate: resolved.platformRate },
     }));
   },

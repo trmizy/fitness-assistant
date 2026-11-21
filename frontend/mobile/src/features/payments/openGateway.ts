@@ -3,6 +3,7 @@ import { router } from "expo-router";
 
 import { PAYMENT_RETURN_PREFIX, resultHref, returnHintFromUrl, txnIdFromReturnUrl } from "./payments";
 import { clearPendingCheckout, rememberPendingCheckout } from "./pendingCheckout";
+import { rememberPaymentReturn } from "./paymentReturnStore";
 
 /**
  * Phase 14.1 — opens a gateway's checkout page (web: services/paymentGateway.ts).
@@ -25,11 +26,14 @@ export async function openPaymentGateway({
   url,
   transactionId,
   userId,
+  returnTo,
 }: {
   url: string;
   transactionId: string | null;
   /** Who started the checkout — the resume record is only ever shown back to them. */
   userId: string | null | undefined;
+  /** In-app path the result screen offers a way back to (e.g. the PT request step). Sanitised when stored and when read. */
+  returnTo?: string | null;
 }): Promise<void> {
   // One tab at a time: a second tap while the first is still opening would start a second
   // checkout page for the same transaction.
@@ -37,6 +41,7 @@ export async function openPaymentGateway({
   open = true;
   try {
     if (transactionId && userId) await rememberPendingCheckout(transactionId, userId);
+    if (returnTo) await rememberPaymentReturn(transactionId, userId, returnTo);
     const result = await WebBrowser.openAuthSessionAsync(url, PAYMENT_RETURN_PREFIX);
     // Back in the same app process: the tab's own outcome is enough to land on the result screen.
     await clearPendingCheckout();

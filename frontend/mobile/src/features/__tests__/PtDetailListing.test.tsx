@@ -302,7 +302,7 @@ describe("trainer detail — gợi ý mua gói hội viên (regression UI-03 ẩ
     await press(view.getByText("Mua gói hội viên"));
     expect(router.push).toHaveBeenCalledWith({
       pathname: "/client/services/gyms/[id]",
-      params: { id: "mekong-1", referral: "QGT7KPJW" },
+      params: { id: "mekong-1", returnTo: "/client/services/pt/pt-1?packageId=pkg-1&gymId=mekong-1", referral: "QGT7KPJW" },
     });
   });
 
@@ -360,7 +360,7 @@ describe("trainer detail — gợi ý mua gói hội viên (regression UI-03 ẩ
     await press(view.getByText("Gia hạn"));
     expect(router.push).toHaveBeenCalledWith({
       pathname: "/client/services/gyms/[id]",
-      params: { id: "mekong-1", referral: "QGT7KPJW", coverUntil: "2027-01-30T00:00:00.000Z" },
+      params: { id: "mekong-1", returnTo: "/client/services/pt/pt-1?packageId=pkg-1&gymId=mekong-1", referral: "QGT7KPJW", coverUntil: "2027-01-30T00:00:00.000Z" },
     });
   });
 });

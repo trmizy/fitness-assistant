@@ -130,3 +130,21 @@ export function redactSettlementForViewer<T>(settlement: T, viewer: ContractView
   for (const field of ["reason", "remaining", "refund"]) if (field in settlement) out[field] = settlement[field];
   return out as unknown as T;
 }
+
+/** Where a contract's sessions run, as shown on the PT's contract card: public gym fields only (no email / phone). */
+export interface ContractGymInfo {
+  id: string;
+  name: string;
+  address: string | null;
+  city: string | null;
+}
+
+/** Maps gym-service's public gym row to the small card above. Null when the row has no usable id/name. */
+export function toContractGymInfo(raw: unknown): ContractGymInfo | null {
+  if (!isPlainObject(raw)) return null;
+  const str = (v: unknown) => (typeof v === "string" && v.trim() !== "" ? v.trim() : null);
+  const id = str(raw.id);
+  const name = str(raw.name);
+  if (!id || !name) return null;
+  return { id, name, address: str(raw.address), city: str(raw.city) };
+}
