@@ -23,7 +23,7 @@ import { GoalSuggestion } from "../../components/GoalSuggestion";
 
 const inp =
   "w-full px-3 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 placeholder-zinc-600 transition-all";
-const lbl = "text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block font-semibold";
+const lbl = "text-xs text-zinc-500 mb-1.5 block font-semibold";
 
 const steps = [
   { key: "level", label: "Trình độ & Mục tiêu", icon: Target },
@@ -498,6 +498,8 @@ export function OnboardingWizardPage() {
                 key={s.key}
                 type="button"
                 onClick={() => i < currentStep && setCurrentStep(i)}
+                aria-current={i === currentStep ? "step" : undefined}
+                aria-label={s.label}
                 className="flex flex-col items-center gap-1.5 flex-1 min-w-0 sm:min-w-[60px] group transition-all"
               >
                 <div
@@ -544,6 +546,7 @@ export function OnboardingWizardPage() {
                       key={lvl.key}
                       type="button"
                       onClick={() => setExperienceLevel(lvl.key)}
+                      aria-pressed={experienceLevel === lvl.key}
                       className={`text-left p-3 rounded-xl border-2 transition-all ${
                         experienceLevel === lvl.key
                           ? "border-green-500 bg-green-500/10"
@@ -574,6 +577,7 @@ export function OnboardingWizardPage() {
                       key={g.key}
                       type="button"
                       onClick={() => setGoal(g.key)}
+                      aria-pressed={goal === g.key}
                       className={`flex flex-col items-center gap-1 px-3 py-3 border-2 rounded-xl text-sm transition-all ${
                         goal === g.key
                           ? "border-green-500 bg-green-500/10 text-green-400 font-semibold"
@@ -956,7 +960,7 @@ function ReviewRow({ label, value, onEdit }: { label: string; value?: string; on
   return (
     <div className="flex items-center justify-between gap-2 bg-zinc-800/40 rounded-lg px-3 py-2">
       <div>
-        <div className="text-[11px] text-zinc-600 uppercase tracking-wider">{label}</div>
+        <div className="text-[11px] text-zinc-600">{label}</div>
         <div className="text-zinc-200">{value || "—"}</div>
       </div>
       <button type="button" onClick={onEdit} className="text-[11px] text-green-400 hover:text-green-300 flex-shrink-0">
