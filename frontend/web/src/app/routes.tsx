@@ -1,10 +1,10 @@
 import { createBrowserRouter, Navigate, Outlet } from "react-router";
 import { lazy, Suspense } from "react";
 import { AppProvider } from "./context/AppContext";
-// Frontend 2.0 / mobile LCP (owner D2, option A): the signed-in shell (motion, Sidebar/Topbar,
-// AI Coach FAB, menus) is not needed before authentication, so it is no longer in the entry chunk.
-// Root already wraps <Outlet /> in a PageSkeleton Suspense boundary.
-const AppShell = lazy(() => import("./components/layout/AppShell").then((m) => ({ default: m.AppShell })));
+// R3 (owner decision): AppShell stays in the entry chunk. Lazy-loading it (option A, bb73065f) made /login faster
+// but delayed the shell ~0.5 s for RETURNING users (warm cache), measured in 4 rounds. /login keeps only the
+// LoginPage-chunk preload from vite.config.ts.
+import { AppShell } from "./components/layout/AppShell";
 import { LegacyAdminRedirect } from "./components/layout/admin/LegacyAdminRedirect";
 import { PageSkeleton } from "./components/layout/PageSkeleton";
 

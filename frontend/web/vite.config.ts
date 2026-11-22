@@ -44,7 +44,7 @@ const extraAllowedHosts = (process.env.VITE_EXTRA_ALLOWED_HOSTS || "")
 // painted only after entry JS -> router -> lazy LoginPage chunk. Start downloading that chunk (and
 // the small chunks it needs that the entry does not already preload) in parallel with the entry,
 // only when the first URL is "/" or "/login". Build-only; dev is unchanged. No pre-render/hydration.
-// Measured (CDP slow-4G, 4x CPU, cold, median of 5): 3.02 s (lazy shell only) -> 2.62 s.
+// R3: kept WITHOUT the lazy shell (option A reverted). See FRONTEND2_REMEDIATION_REPORT.md for the measurements.
 function preloadLoginChunk(): Plugin {
   let base = "/";
   return {
@@ -69,7 +69,10 @@ function preloadLoginChunk(): Plugin {
         const inEntry = closure(entry);
         const js = [...closure(login)].filter((f) => !inEntry.has(f)).map((f) => base + f);
         const css = [...(login.viteMetadata?.importedCss ?? [])].map((f) => base + f);
-        const script = `<script>(function(){if(!/^\\/(login\\/?)?$/.test(location.pathname))return;var h=document.head;` +
+        // R3: skip when a web session is already stored ("/" then redirects to the workspace, so the Login chunk
+        // would be wasted, ~33 KB measured). Capacitor native keeps the token in Preferences, not localStorage; there
+        // the files come from the APK, so a miss costs no network.
+        const script = `<script>(function(){if(!/^\\/(login\\/?)?$/.test(location.pathname))return;try{if(localStorage.getItem("CapacitorStorage.accessToken"))return}catch(e){}var h=document.head;` +
           `${JSON.stringify(js)}.forEach(function(f){var l=document.createElement("link");l.rel="modulepreload";l.href=f;h.appendChild(l)});` +
           `${JSON.stringify(css)}.forEach(function(f){var l=document.createElement("link");l.rel="preload";l.as="style";l.href=f;h.appendChild(l)})})();</script>`;
         return html.replace("</head>", `    ${script}\n  </head>`);
