@@ -2,9 +2,19 @@ import { createBrowserRouter, Navigate, Outlet } from "react-router";
 import { lazy, Suspense } from "react";
 import { AppProvider } from "./context/AppContext";
 import { AppShell } from "./components/layout/AppShell";
-import { AdminShell } from "./components/layout/admin/AdminShell";
 import { LegacyAdminRedirect } from "./components/layout/admin/LegacyAdminRedirect";
 import { PageSkeleton } from "./components/layout/PageSkeleton";
+
+// Batch 0b — admin-only shell (and its nav badges' reconciliation/finance utils) is no longer in
+// every visitor's entry chunk. Same PageSkeleton fallback as the page-level Suspense.
+const AdminShellLazy = lazy(() => import("./components/layout/admin/AdminShell").then((m) => ({ default: m.AdminShell })));
+function AdminShell() {
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <AdminShellLazy />
+    </Suspense>
+  );
+}
 
 /**
  * Vòng 4 / Phase D2 — every page below used to be a static import (61 of them at last count),

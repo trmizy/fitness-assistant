@@ -1,15 +1,19 @@
 import { Outlet, useNavigate, useLocation } from "react-router";
-import { Suspense, useEffect } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useApp } from "../../context/AppContext";
+import { useCall } from "../../context/CallContext";
 import { useNativeBackNavigation } from "../../hooks/useNativeBackNavigation";
 import { useNativeStatusBar } from "../../hooks/useNativeStatusBar";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { Drawer } from "../ui/Modal";
 import { PageSkeleton } from "./PageSkeleton";
-import { CallOverlay } from "../call/CallOverlay";
-import { PartnerOnboardingWizard } from "../auth/PartnerOnboardingWizard";
+// Batch 0b — kept out of the entry chunk: the call UI is only drawn while a call exists, and the
+// partner wizard only for a gym owner who has not finished onboarding. Their static import used
+// to pull gym/PT listing utils, amenity icons and the WebRTC call UI into every first load.
+const CallOverlay = lazy(() => import("../call/CallOverlay").then((m) => ({ default: m.CallOverlay })));
+const PartnerOnboardingWizard = lazy(() => import("../auth/PartnerOnboardingWizard").then((m) => ({ default: m.PartnerOnboardingWizard })));
 import { useQuery } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { AICoachFloatingButton } from "./AICoachFloatingButton";
@@ -25,6 +29,7 @@ const bgGym = "/bg-gym.webp";
 
 export function AppShell() {
   const { isAuthenticated, isPT, setActiveView, role } = useApp();
+  const { state: callState } = useCall();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -71,12 +76,20 @@ export function AppShell() {
   // Chỉ chặn khi đã biết chắc CHƯA hoàn tất (query đã có dữ liệu và completed === false). Đang tải hoặc
   // lỗi mạng thì cho qua, không khoá cả app vì một request chưa kịp trả lời.
   if (role === "gym_owner" && onboardingQuery.data && onboardingQuery.data.completed === false) {
-    return <PartnerOnboardingWizard onComplete={() => onboardingQuery.refetch()} />;
+    return (
+      <Suspense fallback={<PageSkeleton />}>
+        <PartnerOnboardingWizard onComplete={() => onboardingQuery.refetch()} />
+      </Suspense>
+    );
   }
 
   return (
     <>
-      <CallOverlay />
+      {callState.uiState !== "idle" && (
+        <Suspense fallback={null}>
+          <CallOverlay />
+        </Suspense>
+      )}
       <AICoachFloatingButton />
       <AICoachFloatingPanel />
       <AppShellInner />
