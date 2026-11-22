@@ -185,7 +185,7 @@ export function LoginPage() {
         </div>
 
         {/* ── Right panel: form ── */}
-        <div className="bg-zinc-900 p-8 sm:p-10 flex flex-col justify-center border-l border-zinc-800/60">
+        <div className="bg-zinc-900 p-6 sm:p-10 flex flex-col justify-center border-l border-zinc-800/60">
           {/* Mobile brand */}
           <AppLogo className="lg:hidden mb-6" imgClassName="h-16 w-32 object-left" />
 
@@ -279,14 +279,16 @@ export function LoginPage() {
             Chưa có tài khoản?{" "}
             <Link
               to="/register"
-              className="text-green-400 font-semibold hover:text-green-300 transition-colors"
+              className="whitespace-nowrap text-green-400 font-semibold hover:text-green-300 transition-colors"
             >
               Tạo tài khoản
             </Link>
-            <span className="mx-2 text-zinc-600" aria-hidden>·</span>
+          </p>
+          {/* R2: on its own line — sharing the sign-up sentence made it wrap mid-phrase at 360–390px. */}
+          <p className="mt-2 text-center text-sm">
             <Link
               to="/gioi-thieu"
-              className="text-zinc-400 font-semibold hover:text-zinc-200 transition-colors"
+              className="inline-flex min-h-6 items-center whitespace-nowrap text-zinc-400 font-semibold hover:text-zinc-200 transition-colors"
             >
               Tìm hiểu Gymini
             </Link>
