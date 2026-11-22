@@ -99,7 +99,7 @@ export function InlineAmenityPicker({
 
       {existing.length > 0 || proposals.length > 0 ? (
         <div className="space-y-2 border-t border-zinc-800/70 pt-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Đề xuất của bạn</p>
+          <p className="text-xs font-semibold text-zinc-500">Đề xuất của bạn</p>
           <ul className="flex flex-wrap gap-2">
             {existing.map((p) => {
               const kept = keptIds.includes(p.id);

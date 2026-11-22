@@ -1573,7 +1573,7 @@ function PersonalizedServiceDetailModal({ id, onClose }: { id: string; onClose: 
             {svc.description && <p className="text-sm text-zinc-400">{svc.description}</p>}
 
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-zinc-600 font-semibold mb-1.5">Bạn sẽ nhận</p>
+              <p className="text-[11px] text-zinc-600 font-semibold mb-1.5">Bạn sẽ nhận</p>
               <ul className="space-y-1">
                 {svc.deliverables.map((d) => (
                   <li key={d} className="text-sm text-zinc-300 flex items-center gap-2">
@@ -1595,7 +1595,7 @@ function PersonalizedServiceDetailModal({ id, onClose }: { id: string; onClose: 
             </div>
 
             <div className="rounded-lg border border-zinc-700/40 p-2.5 space-y-1">
-              <p className="text-[11px] uppercase tracking-wider text-zinc-600 font-semibold">Bảo vệ người mua</p>
+              <p className="text-[11px] text-zinc-600 font-semibold">Bảo vệ người mua</p>
               <p className="text-[11px] text-zinc-500">✓ PT đã xác minh · ✓ Chính sách chỉnh sửa rõ ràng · ✓ Deadline giao có hạn · ✓ Lịch sử chat · ✓ Hỗ trợ khiếu nại</p>
             </div>
 
@@ -1821,7 +1821,7 @@ export function PlanMarketplacePage() {
         </p>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="flex gap-2 overflow-x-auto g-scroll-x pb-1">
         {visibleTabs.map((t) => (
           <button
             key={t.value}

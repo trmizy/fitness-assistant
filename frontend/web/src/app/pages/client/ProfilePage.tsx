@@ -239,7 +239,7 @@ export function ProfilePage() {
         <button
           onClick={() => (editing ? handleSave() : setEditing(true))}
           disabled={updateMutation.isPending}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg ${
+          className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg ${
             editing
               ? "bg-green-500 text-black shadow-green-500/25 hover:bg-green-400"
               : "bg-zinc-800 text-zinc-300 border border-zinc-700/60 hover:bg-zinc-700 hover:text-zinc-100 shadow-none"
@@ -272,7 +272,7 @@ export function ProfilePage() {
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
-              <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1">
+              <p className="text-[11px] text-zinc-600 mb-1">
                 Cân nặng bắt đầu
               </p>
               <p className="text-lg font-bold text-zinc-200">
@@ -280,7 +280,7 @@ export function ProfilePage() {
               </p>
             </div>
             <div>
-              <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1">
+              <p className="text-[11px] text-zinc-600 mb-1">
                 Hiện tại
               </p>
               <p className="text-lg font-bold text-zinc-200">
@@ -288,7 +288,7 @@ export function ProfilePage() {
               </p>
             </div>
             <div>
-              <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1">
+              <p className="text-[11px] text-zinc-600 mb-1">
                 Mục tiêu
               </p>
               <p className="text-lg font-bold text-zinc-200">
@@ -296,7 +296,7 @@ export function ProfilePage() {
               </p>
             </div>
             <div>
-              <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1">
+              <p className="text-[11px] text-zinc-600 mb-1">
                 Đã thay đổi
               </p>
               <p
@@ -427,7 +427,7 @@ export function ProfilePage() {
                 },
               ].map((f) => (
                 <div key={f.label}>
-                  <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">
+                  <label className="text-xs text-zinc-600 mb-1 block">
                     {f.label}
                   </label>
                   {editing && f.setter ? (
@@ -451,7 +451,7 @@ export function ProfilePage() {
                   `weight` state stays canonical cm/kg and handleSave sends cm/kg
                   unchanged, exactly like before this preference existed. */}
               <div>
-                <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">
+                <label className="text-xs text-zinc-600 mb-1 block">
                   Chiều cao {unitSystem === "metric" ? "(cm)" : "(ft-in)"}
                 </label>
                 {editing ? (
@@ -504,7 +504,7 @@ export function ProfilePage() {
                 )}
               </div>
               <div>
-                <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">
+                <label className="text-xs text-zinc-600 mb-1 block">
                   Cân nặng {unitSystem === "metric" ? "(kg)" : "(lb)"}
                 </label>
                 {editing ? (
@@ -535,7 +535,7 @@ export function ProfilePage() {
               </div>
 
               <div>
-                <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">
+                <label className="text-xs text-zinc-600 mb-1 block">
                   Giới tính
                 </label>
                 {editing ? (
@@ -610,7 +610,7 @@ export function ProfilePage() {
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">
+                <label className="text-xs text-zinc-600 mb-1.5 block">
                   Mức độ hoạt động
                 </label>
                 {editing ? (
@@ -637,7 +637,7 @@ export function ProfilePage() {
                 )}
               </div>
               <div>
-                <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">
+                <label className="text-xs text-zinc-600 mb-1.5 block">
                   Trình độ tập luyện
                 </label>
                 {editing ? (
@@ -677,7 +677,7 @@ export function ProfilePage() {
                 </p>
               </div>
               <div>
-                <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">
+                <label className="text-xs text-zinc-600 mb-1.5 block">
                   Chế độ ăn
                 </label>
                 {editing ? (
@@ -697,7 +697,7 @@ export function ProfilePage() {
                 )}
               </div>
               <div className="sm:col-span-2">
-                <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">
+                <label className="text-xs text-zinc-600 mb-1.5 block">
                   Ghi chú sức khỏe
                 </label>
                 {editing ? (

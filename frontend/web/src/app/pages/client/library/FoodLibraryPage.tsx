@@ -115,7 +115,7 @@ export function FoodLibraryPage() {
           / fat-rich" allowance — not a fabricated food-group filter). Only
           meaningful for the browse list, not the fuzzy search results. */}
       {!isSearching && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div className="flex gap-2 overflow-x-auto g-scroll-x pb-1">
           {(
             [
               { value: "name", label: "Tên A-Z" },

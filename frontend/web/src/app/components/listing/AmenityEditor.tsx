@@ -19,7 +19,7 @@ import {
 } from "../../utils/gymListing";
 import type { AmenityCategory } from "../../types";
 
-const sectionLabel = "text-xs font-semibold uppercase tracking-wider text-zinc-500";
+const sectionLabel = "text-xs font-semibold text-zinc-500";
 
 /** Amenities grouped by the four categories, each a toggle chip with its icon. A selected DISABLED one is flagged so it can be removed. */
 export function AmenityChipGroups({
