@@ -5,7 +5,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-import { confirmedSessionsOnDate, ptBlockDayNotice, ptCancelNotice } from "../ptCancelNotice";
+import { confirmedSessionsOnDate, ptBlockDayNotice, ptCancelDoneMessage, ptCancelNotice } from "../ptCancelNotice";
 
 describe("ptCancelNotice", () => {
   it("warns about the cash compensation for a CONFIRMED session", () => {
@@ -36,5 +36,12 @@ describe("block-day confirm", () => {
   });
   it("includes the count and the compensation notice", () => {
     assert.match(ptBlockDayNotice(2), /2 buổi đã xác nhận.*bồi thường/);
+  });
+});
+
+describe("ptCancelDoneMessage", () => {
+  it("names the compensation after a CONFIRMED cancel and stays plain for a REQUESTED one", () => {
+    assert.equal(ptCancelDoneMessage("CONFIRMED"), "Đã huỷ buổi — học viên được bồi thường 1 buổi");
+    assert.equal(ptCancelDoneMessage("REQUESTED"), "Đã huỷ buổi tập");
   });
 });

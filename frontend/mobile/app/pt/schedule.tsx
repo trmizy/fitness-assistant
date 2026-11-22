@@ -33,7 +33,8 @@ import { availabilityService, sessionService } from "../../src/services/api";
 import { useApp } from "../../src/context/AppContext";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { SlotCalendarPicker } from "../../src/features/services/SlotCalendarPicker";
-import { RESCHEDULE_LEAD_HOURS } from "../../src/features/services/sessions";
+import { RESCHEDULE_LEAD_HOURS, rescheduleErrorMessage, rescheduleSubmitHint } from "../../src/features/services/sessions";
+import { InlineRefusal } from "../../src/features/services/InlineRefusal";
 import { JoinSessionButton } from "../../src/features/call/JoinSessionButton";
 import { darkColors, designTokens } from "../../src/theme/colors";
 import {
@@ -54,6 +55,7 @@ import {
   ptSessionStatus,
   relativeDayLabel,
   sessionActions,
+  ptCancelDoneMessage,
   ptCancelNotice,
   PT_CANCEL_CONFIRMED_NOTICE,
   ptBlockDayNotice,
@@ -127,6 +129,10 @@ export default function PtScheduleScreen() {
   const [proposeDate, setProposeDate] = useState<string | null>(null);
   const [proposeTime, setProposeTime] = useState<string | null>(null);
   const [proposeReason, setProposeReason] = useState("");
+  // Refusals shown INSIDE the sheets: a sheet is a native Modal window and a toast sits under it, never seen.
+  const [proposeError, setProposeError] = useState<string | null>(null);
+  const [denyError, setDenyError] = useState<string | null>(null);
+  const proposeHint = rescheduleSubmitHint({ date: proposeDate, time: proposeTime, reason: proposeReason });
   const exceptions: any[] = Array.isArray(exceptionsQuery.data) ? exceptionsQuery.data : [];
 
   const invalidateSessions = () => {
@@ -162,9 +168,9 @@ export default function PtScheduleScreen() {
     onError: (e) => fail(e, "Không báo vắng mặt được"),
   });
   const cancel = useMutation({
-    mutationFn: (id: string) => sessionService.cancelSession(id, "PT huỷ buổi tập"),
-    onSuccess: () => {
-      toast.show("Đã huỷ buổi tập", "success");
+    mutationFn: ({ id }: { id: string; status: string }) => sessionService.cancelSession(id, "PT huỷ buổi tập"),
+    onSuccess: (_data, vars) => {
+      toast.show(ptCancelDoneMessage(vars.status), "success");
       invalidateSessions();
     },
     onError: (e) => fail(e, "Không huỷ được buổi tập"),
@@ -201,8 +207,33 @@ export default function PtScheduleScreen() {
       setProposeFor(null);
       invalidateSessions();
     },
-    onError: (e) => fail(e, "Không gửi được đề nghị dời lịch"),
+    onMutate: () => setProposeError(null),
+    onError: (e) => {
+      const message = rescheduleErrorMessage(e, "Không gửi được đề nghị dời lịch");
+      setProposeError(message);
+      toast.show(message, "danger");
+      // A refusal usually means the list is stale (the client already proposed, a move was used): reload it.
+      invalidateSessions();
+    },
   });
+
+  // The trainer withdraws their own open proposal (confirmed first; server: proposer only, only while PENDING).
+  const withdrawReschedule = useMutation({
+    mutationFn: (requestId: string) => sessionService.cancelReschedule(requestId),
+    onSuccess: () => {
+      toast.show("Đã rút lại đề nghị dời lịch — buổi giữ nguyên giờ cũ", "success");
+      invalidateSessions();
+    },
+    onError: (e) => {
+      toast.show(rescheduleErrorMessage(e, "Không rút lại được đề nghị"), "danger");
+      invalidateSessions(); // most often the client answered in the meantime
+    },
+  });
+  const askWithdraw = (requestId: string) =>
+    Alert.alert("Rút lại đề nghị dời lịch?", "Buổi tập giữ nguyên giờ cũ. Bạn có thể gửi một đề nghị mới sau.", [
+      { text: "Không", style: "cancel" },
+      { text: "Rút lại", style: "destructive", onPress: () => withdrawReschedule.mutate(requestId) },
+    ]);
 
   const respondNoShow = useMutation({
     mutationFn: ({ id, response, note }: { id: string; response: "AGREE" | "DENY"; note?: string }) =>
@@ -213,7 +244,12 @@ export default function PtScheduleScreen() {
       setDenyNote("");
       invalidateSessions();
     },
-    onError: (e) => fail(e, "Không gửi được phản hồi"),
+    onMutate: () => setDenyError(null),
+    onError: (e) => {
+      const message = rescheduleErrorMessage(e, "Không gửi được phản hồi");
+      setDenyError(message);
+      toast.show(message, "danger");
+    },
   });
 
   const askAgreeNoShow = (s2: any) =>
@@ -229,7 +265,7 @@ export default function PtScheduleScreen() {
   const askCancel = (id: string, name: string, status: string) =>
     Alert.alert("Huỷ buổi tập?", ptCancelNotice(status, name), [
       { text: "Không", style: "cancel" },
-      { text: "Huỷ buổi", style: "destructive", onPress: () => cancel.mutate(id) },
+      { text: "Huỷ buổi", style: "destructive", onPress: () => cancel.mutate({ id, status }) },
     ]);
   const askNoShow = (id: string, name: string) =>
     Alert.alert("Báo học viên vắng?", `${name} sẽ bị tính là vắng mặt và mất một buổi trong gói.`, [
@@ -302,6 +338,7 @@ export default function PtScheduleScreen() {
                         disabled={respondNoShow.isPending}
                         onPress={() => {
                           setDenyNote("");
+                          setDenyError(null);
                           setDenyFor(r);
                         }}
                       >
@@ -445,10 +482,22 @@ export default function PtScheduleScreen() {
                         </View>
                       </View>
                     ) : ptOutgoingReschedule(s) ? (
-                      <Text className="font-body text-xs text-muted-foreground">
-                        Bạn đã xin dời sang {relativeDayLabel(ptOutgoingReschedule(s)!.proposedStartAt)}{" "}
-                        {sessionTimeLabel(ptOutgoingReschedule(s)!.proposedStartAt)} — chờ học viên trả lời.
-                      </Text>
+                      <View className="gap-2">
+                        <Text className="font-body text-xs text-muted-foreground">
+                          Bạn đã xin dời sang {relativeDayLabel(ptOutgoingReschedule(s)!.proposedStartAt)}{" "}
+                          {sessionTimeLabel(ptOutgoingReschedule(s)!.proposedStartAt)} — chờ học viên trả lời.
+                        </Text>
+                        <View className="flex-row">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={withdrawReschedule.isPending}
+                            onPress={() => askWithdraw(ptOutgoingReschedule(s)!.id)}
+                          >
+                            Rút lại đề nghị
+                          </Button>
+                        </View>
+                      </View>
                     ) : null}
 
                     {actions.length > 0 || canProposeReschedule(s) ? (
@@ -478,6 +527,7 @@ export default function PtScheduleScreen() {
                               setProposeDate(null);
                               setProposeTime(null);
                               setProposeReason("");
+                              setProposeError(null);
                               setProposeFor(s);
                             }}
                           >
@@ -512,6 +562,7 @@ export default function PtScheduleScreen() {
           <Text className="font-body text-sm text-muted-foreground">
             Viết rõ bạn có mặt thế nào. Quản trị viên sẽ đọc giải trình này và phân xử.
           </Text>
+          <InlineRefusal message={denyError} testID="deny-error" />
           <Input label="Giải trình *" value={denyNote} onChangeText={setDenyNote} placeholder="Tôi đến đúng giờ, có tin nhắn trên ứng dụng lúc…" multiline />
           <Button
             full
@@ -542,21 +593,16 @@ export default function PtScheduleScreen() {
             onChange={(d, t) => {
               setProposeDate(d);
               setProposeTime(t);
+              setProposeError(null);
             }}
             emptyDayText={"Bạn không còn khung giờ trống trong ngày này. Dời lịch cần cách hiện tại ít nhất " + RESCHEDULE_LEAD_HOURS + " giờ."}
           />
           <Input label="Lý do" value={proposeReason} onChangeText={setProposeReason} placeholder="Tôi bận đột xuất giờ đó…" multiline />
-          <Button
-            full
-            disabled={
-              !proposeDate ||
-              !proposeTime ||
-              proposeReschedule.isPending
-            }
-            onPress={() => proposeReschedule.mutate()}
-          >
+          <InlineRefusal message={proposeError} testID="propose-error" />
+          <Button full disabled={proposeHint !== null || proposeReschedule.isPending} onPress={() => proposeReschedule.mutate()}>
             {proposeReschedule.isPending ? "Đang gửi…" : "Gửi đề nghị"}
           </Button>
+          {proposeHint ? <Text className="text-center font-body text-xs text-muted-foreground">{proposeHint}</Text> : null}
         </View>
         </ScrollView>
       </BottomSheet>
@@ -596,6 +642,7 @@ function AvailabilityTab({
   const [sheet, setSheet] = useState(false);
   const [blockDate, setBlockDate] = useState("");
   const [blockReason, setBlockReason] = useState("");
+  const [blockError, setBlockError] = useState<string | null>(null);
 
   const save = useMutation({
     mutationFn: () => availabilityService.setAvailability(current),
@@ -617,8 +664,12 @@ function AvailabilityTab({
       setBlockReason("");
       void queryClient.invalidateQueries({ queryKey: ["pt-exceptions", uid] });
     },
-    onError: (e: any) =>
-      toast.show(e?.response?.data?.error?.message || e?.response?.data?.error || "Không thêm được ngày nghỉ", "danger"),
+    onMutate: () => setBlockError(null),
+    onError: (e: any) => {
+      const message = rescheduleErrorMessage(e, "Không thêm được ngày nghỉ");
+      setBlockError(message); // inside the sheet: a toast sits under its native Modal window
+      toast.show(message, "danger");
+    },
   });
 
   const removeException = useMutation({
@@ -757,6 +808,7 @@ function AvailabilityTab({
           <Input label="Ngày (YYYY-MM-DD)" value={blockDate} onChangeText={setBlockDate} placeholder="2026-10-01" />
           <Input label="Lý do (tuỳ chọn)" value={blockReason} onChangeText={setBlockReason} placeholder="Nghỉ cá nhân" />
           {dateError ? <Text className="font-body text-xs text-destructive">{dateError}</Text> : null}
+          <InlineRefusal message={blockError} testID="block-day-error" />
           <Text className="font-body text-xs text-muted-foreground">
             {PT_CANCEL_CONFIRMED_NOTICE}
           </Text>

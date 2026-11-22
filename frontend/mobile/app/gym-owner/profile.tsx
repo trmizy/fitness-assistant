@@ -30,7 +30,6 @@ import {
   brandProfileError,
   brandProfileFrom,
   brandProfilePayload,
-  isBrandOwner,
   passwordChangeError,
   payoutDirty,
   payoutError,
@@ -43,6 +42,7 @@ import {
   type PayoutForm,
 } from "../../src/features/gymOwner/gymOwner";
 import { staffRoleLabel } from "../../src/features/gymOwner/staffRoles";
+import { hasPartnerPermission } from "../../src/features/gymOwner/permissions";
 
 /**
  * WB-18 — "Hồ sơ". Web gọi là `GymOwnerProfilePage`; Figma không vẽ màn này.
@@ -71,12 +71,13 @@ export default function GymOwnerProfileScreen() {
   const brandsQuery = useQuery({
     queryKey: ["owned-brands", uid],
     queryFn: () => gymService.listOwnedBrands(),
-    enabled: statusQuery.isSuccess && isBrandOwner(statusQuery.data),
+    enabled: statusQuery.isSuccess && hasPartnerPermission(statusQuery.data, "brand.write"),
   });
 
   const progress = (statusQuery.data ?? null) as OnboardingProgress | null;
   const brand = theBrand(brandsQuery.data) as any;
-  const isOwner = isBrandOwner(statusQuery.data);
+  // Item 2: FAIL-CLOSED — an unknown role (loading / error / old server) is NOT the owner; brand.write is the owner-only permission.
+  const isOwner = hasPartnerPermission(statusQuery.data, "brand.write");
 
   const fail = (e: any, fallback: string) =>
     toast.show(e?.response?.data?.error?.message || fallback, "danger");

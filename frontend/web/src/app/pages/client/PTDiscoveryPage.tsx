@@ -21,6 +21,7 @@ import {
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { mergeUniquePages, nextCursorParam } from "../../utils/ptPaging";
 import { isSafeHttpUrl } from "../../utils/safeUrl";
+import { fullName } from "../../utils/fullName";
 import { useApp } from "../../context/AppContext";
 import { SearchRegionBar, type GpsStatus, type RegionItem } from "../../components/location/SearchRegionBar";
 import {
@@ -932,7 +933,7 @@ export function PTDiscoveryPage() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-bold text-zinc-200 truncate">
-                              {pt.firstName} {pt.lastName}
+                              {fullName(pt)}
                             </span>
                             <Award className="w-3.5 h-3.5 text-green-400 shrink-0" />
                           </div>
@@ -1123,7 +1124,7 @@ export function PTDiscoveryPage() {
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 flex-wrap">
                           <ModalTitle className="text-zinc-100">
-                            {selectedPT.firstName} {selectedPT.lastName}
+                            {fullName(selectedPT)}
                           </ModalTitle>
                           <span className="flex items-center gap-1 text-xs bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20">
                             <Award className="w-3 h-3" /> Đã xác minh
@@ -1743,7 +1744,7 @@ export function PTDiscoveryPage() {
                 </div>
                 <div>
                   <div className="text-sm font-bold text-zinc-200">
-                    {selectedPT.firstName} {selectedPT.lastName}
+                    {fullName(selectedPT)}
                   </div>
                   <div className="text-xs text-zinc-500">
                     {/* `requestType` was referenced here with no declaration anywhere in this

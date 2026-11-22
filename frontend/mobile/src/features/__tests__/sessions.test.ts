@@ -16,6 +16,7 @@ import {
   buildBookingPayload,
   buildReschedulePayload,
   cancelCostsSession,
+  cancelSuccessText,
   cancelWarning,
   canReportNoShow,
   clientActions,
@@ -35,6 +36,8 @@ import {
   proposalOutcomeText,
   proposalSummary,
   rescheduleBlockedReason,
+  rescheduleErrorMessage,
+  rescheduleSubmitHint,
   reviewBlockedReason,
   sessionDurationMinutes,
   sessionStatus,
@@ -528,5 +531,31 @@ describe("lịch sử đổi lịch đọc riêng", () => {
     const session = at("CONFIRMED");
     assert.equal(withRescheduleHistory(session, []), session);
     assert.deepEqual(normalizeRescheduleHistory(null), []);
+  });
+});
+
+describe("đổi lịch: lý do nút chưa bấm được và lời từ chối của máy chủ", () => {
+  it("nói thiếu gì, theo thứ tự ngày - giờ - lý do", () => {
+    assert.equal(rescheduleSubmitHint({ date: null, time: null, reason: "" }), "Chọn ngày mới.");
+    assert.equal(rescheduleSubmitHint({ date: "2026-12-01", time: null, reason: "bận việc" }), "Chọn khung giờ mới.");
+    assert.match(rescheduleSubmitHint({ date: "2026-12-01", time: "08:00", reason: "  ab " })!, /ít nhất 5 ký tự/);
+    assert.equal(rescheduleSubmitHint({ date: "2026-12-01", time: "08:00", reason: "Bận việc đột xuất" }), null);
+  });
+
+  it("lấy câu của user-service, câu lồng của gateway, hoặc báo mất mạng - không bao giờ trả về object", () => {
+    const refuse = (data: unknown) => ({ response: { status: 409, data } });
+    assert.equal(rescheduleErrorMessage(refuse({ error: "Buổi tập này đã dời 2 lần — chỉ còn cách huỷ" }), "x"), "Buổi tập này đã dời 2 lần — chỉ còn cách huỷ");
+    assert.equal(rescheduleErrorMessage(refuse({ success: false, error: { code: "RATE_LIMITED", message: "Quá nhiều yêu cầu" } }), "x"), "Quá nhiều yêu cầu");
+    assert.equal(rescheduleErrorMessage(refuse({ message: "Không hợp lệ" }), "x"), "Không hợp lệ");
+    assert.equal(rescheduleErrorMessage(refuse({ error: { code: "X" } }), "Không gửi được"), "Không gửi được");
+    assert.match(rescheduleErrorMessage(new Error("Network Error"), "x"), /Không kết nối được máy chủ/);
+  });
+});
+
+describe("lời báo sau khi khách huỷ buổi", () => {
+  it("nói đúng cái giá của từng trường hợp", () => {
+    assert.equal(cancelSuccessText("CONFIRMED"), "Đã huỷ buổi — bạn mất 1 buổi trong hợp đồng");
+    assert.equal(cancelSuccessText("REQUESTED"), "Đã huỷ yêu cầu đặt buổi");
+    assert.equal(cancelSuccessText("SOMETHING_ELSE"), "Đã huỷ buổi tập");
   });
 });

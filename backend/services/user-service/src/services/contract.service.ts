@@ -30,6 +30,7 @@ import { PT_TERMS_VERSION } from "./pt-terms";
 import { assertClientMayRequestGymContract, assertGymContractStillCovered, hasFixedDuration, GYM_CONTRACT_REQUIRES_FIXED_DURATION } from "./contract-gym-membership.service";
 import { toPublicPtPackageDto } from "./pt-public-dto";
 import { fetchContractGymInfo } from "../clients/gym-summary.client";
+import { clientAvatarOf, toPtVisibleClientProfile } from "./contract-dto";
 import { recordClientCompatEvent } from "./client-compat.service";
 import {
   INDEPENDENT_VENUE_ACK_REQUIRED,
@@ -1372,7 +1373,11 @@ export const contractService = {
     return contracts.map((c) => ({
       ...c,
       gymInfo: c.gymId ? (gymInfoMap.get(c.gymId) ?? null) : null,
-      clientProfile: profileMap.get(c.clientUserId) ?? null,
+      // The PT sees the client's name / avatar / goal, never their e-mail.
+      clientProfile: toPtVisibleClientProfile(profileMap.get(c.clientUserId) ?? null),
+      clientAvatarUrl: clientAvatarOf(profileMap.get(c.clientUserId)),
+      // The e-sign copy of the client's e-mail on the contract row is not the PT's to see either (undefined drops it from the JSON).
+      clientSignerEmail: undefined,
       clientRating: ratingMap.get(c.clientUserId) ?? {
         avgRating: null,
         ratingCount: 0,

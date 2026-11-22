@@ -30,6 +30,8 @@ import {
   useToast,
 } from "../../src/components/ui";
 import { contractService, sessionService } from "../../src/services/api";
+import { InlineRefusal } from "../../src/features/services/InlineRefusal";
+import { rescheduleErrorMessage } from "../../src/features/services/sessions";
 import { useApp } from "../../src/context/AppContext";
 import { PtTermsBanner } from "../../src/features/ptTerms/PtTerms";
 import { isPtTermsRefusal, PT_TERMS_REFUSAL_MESSAGE } from "../../src/features/ptTerms/ptTermsModel";
@@ -46,7 +48,9 @@ import {
   REJECT_REASONS,
   type ContractTabKey,
   type PtContract,
+  clientAvatarUri,
   clientName,
+  ptCancelDoneMessage,
   ptCancelNotice,
   contractTabCounts,
   contractTabOf,
@@ -140,6 +144,12 @@ export default function PtContractsScreen() {
     },
   });
 
+  // A refusal shown INSIDE the reject / feedback sheet: a sheet is a native Modal window and the toast sits under it, never seen.
+  const [sheetError, setSheetError] = useState<string | null>(null);
+  useEffect(() => {
+    setSheetError(null);
+  }, [rejectFor, feedbackFor]);
+
   const reject = useMutation({
     mutationFn: () => contractService.rejectContract(rejectFor!.id, rejectReason.trim()),
     onSuccess: () => {
@@ -148,7 +158,12 @@ export default function PtContractsScreen() {
       setRejectReason("");
       refresh();
     },
-    onError: (e) => fail(e, "Không từ chối được yêu cầu"),
+    onMutate: () => setSheetError(null),
+    onError: (e) => {
+      const message = rescheduleErrorMessage(e, "Không từ chối được yêu cầu");
+      setSheetError(message);
+      toast.show(message, "danger");
+    },
   });
 
   const feedback = useMutation({
@@ -158,7 +173,12 @@ export default function PtContractsScreen() {
       setFeedbackFor(null);
       setFeedbackText("");
     },
-    onError: (e) => fail(e, "Không gửi được phản hồi"),
+    onMutate: () => setSheetError(null),
+    onError: (e) => {
+      const message = rescheduleErrorMessage(e, "Không gửi được phản hồi");
+      setSheetError(message);
+      toast.show(message, "danger");
+    },
   });
 
   const terminate = useMutation({
@@ -247,7 +267,7 @@ export default function PtContractsScreen() {
                 <StaggerItem key={c.id}>
                   <Card className={`gap-3 p-4 ${c.id === contractIdParam ? "border-primary bg-primary/5" : ""}`}>
                     <View className="flex-row items-center gap-3">
-                      <Avatar name={name} size={44} />
+                      <Avatar uri={clientAvatarUri(c)} name={name} size={44} />
                       <View className="min-w-0 flex-1">
                         <Text className="font-body-semibold text-sm text-foreground" numberOfLines={1}>
                           {name}
@@ -386,6 +406,7 @@ export default function PtContractsScreen() {
             ))}
           </View>
           <Input label="Hoặc viết lý do khác" value={rejectReason} onChangeText={setRejectReason} placeholder="Lý do từ chối" />
+          <InlineRefusal message={sheetError} testID="reject-error" />
           <Button full disabled={!rejectReason.trim() || reject.isPending} onPress={() => reject.mutate()}>
             {reject.isPending ? "Đang gửi…" : "Từ chối yêu cầu"}
           </Button>
@@ -404,6 +425,7 @@ export default function PtContractsScreen() {
             placeholder="Buổi vừa rồi em giữ nhịp tốt, tuần sau tăng tạ…"
             multiline
           />
+          <InlineRefusal message={sheetError} testID="feedback-error" />
           <Button full disabled={!feedbackText.trim() || feedback.isPending} onPress={() => feedback.mutate()}>
             {feedback.isPending ? "Đang gửi…" : "Gửi phản hồi"}
           </Button>
@@ -462,9 +484,9 @@ function ContractSessions({ contractId, clientLabel, onChanged }: { contractId: 
     onError: (e) => fail(e, "Không báo vắng được"),
   });
   const cancel = useMutation({
-    mutationFn: (id: string) => sessionService.cancelSession(id, "PT huỷ buổi tập"),
-    onSuccess: () => {
-      toast.show("Đã huỷ buổi tập", "success");
+    mutationFn: ({ id }: { id: string; status: string }) => sessionService.cancelSession(id, "PT huỷ buổi tập"),
+    onSuccess: (_data, vars) => {
+      toast.show(ptCancelDoneMessage(vars.status), "success");
       done();
     },
     onError: (e) => fail(e, "Không huỷ được buổi tập"),
@@ -475,7 +497,9 @@ function ContractSessions({ contractId, clientLabel, onChanged }: { contractId: 
   const [reviewFor, setReviewFor] = useState<string | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const closeReview = () => {
+    setReviewError(null);
     setReviewFor(null);
     setReviewRating(5);
     setReviewComment("");
@@ -487,7 +511,12 @@ function ContractSessions({ contractId, clientLabel, onChanged }: { contractId: 
       closeReview();
       done();
     },
-    onError: (e) => fail(e, "Không gửi được đánh giá"),
+    onMutate: () => setReviewError(null),
+    onError: (e) => {
+      const message = rescheduleErrorMessage(e, "Không gửi được đánh giá");
+      setReviewError(message); // inside the sheet: a toast sits under its native Modal window
+      toast.show(message, "danger");
+    },
   });
 
   const busy = confirm.isPending || complete.isPending || noShow.isPending || cancel.isPending;
@@ -496,7 +525,7 @@ function ContractSessions({ contractId, clientLabel, onChanged }: { contractId: 
   const askCancel = (id: string, status: string) =>
     Alert.alert("Huỷ buổi tập?", ptCancelNotice(status, clientLabel), [
       { text: "Không", style: "cancel" },
-      { text: "Huỷ buổi", style: "destructive", onPress: () => cancel.mutate(id) },
+      { text: "Huỷ buổi", style: "destructive", onPress: () => cancel.mutate({ id, status }) },
     ]);
 
   if (query.isLoading) return <ActivityIndicator className="py-3" color={accent.primary} />;
@@ -570,6 +599,7 @@ function ContractSessions({ contractId, clientLabel, onChanged }: { contractId: 
               style={{ minHeight: 72, textAlignVertical: "top" }}
             />
           </View>
+          <InlineRefusal message={reviewError} testID="pt-review-error" />
           <View className="w-full flex-row gap-2">
             <Button className="flex-1" variant="secondary" onPress={closeReview}>
               Bỏ qua

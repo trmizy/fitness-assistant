@@ -319,6 +319,54 @@ export function rescheduleBlockedReason(session: SessionRow, now: Date = new Dat
   return null;
 }
 
+/** The reason a reschedule needs: the server only insists it is not empty, the sheet asks for a few words. */
+export const RESCHEDULE_REASON_MIN_CHARS = 5;
+
+/**
+ * Why "Gửi đề nghị" cannot be pressed yet, in plain words (null = ready). The button used to sit greyed out, or - on the
+ * trainer's side - go through with an empty reason and be refused with nothing visible, so say what is missing.
+ */
+export function rescheduleSubmitHint(input: {
+  date: string | null;
+  time: string | null;
+  reason: string;
+}): string | null {
+  if (!input.date) return "Chọn ngày mới.";
+  if (!input.time) return "Chọn khung giờ mới.";
+  if (input.reason.trim().length < RESCHEDULE_REASON_MIN_CHARS) {
+    return `Viết ngắn gọn lý do (ít nhất ${RESCHEDULE_REASON_MIN_CHARS} ký tự) để bên kia dễ đồng ý.`;
+  }
+  return null;
+}
+
+/**
+ * The words to show when the server refuses a reschedule or an answer to one. user-service answers `{ error: "…" }`, but a
+ * gateway-level refusal (expired session, rate limit) is `{ error: { code, message } }` - never hand an object to a <Text>.
+ * No response at all means the request never arrived.
+ */
+export function rescheduleErrorMessage(error: unknown, fallback: string): string {
+  const e = error as { response?: { data?: { error?: unknown; message?: unknown } } } | null | undefined;
+  if (!e?.response) return "Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.";
+  const data = e.response.data;
+  const nested = (data?.error as { message?: unknown } | undefined)?.message;
+  for (const candidate of [data?.error, nested, data?.message]) {
+    if (typeof candidate === "string" && candidate.trim()) return candidate;
+  }
+  return fallback;
+}
+
+/**
+ * The success line after the client cancels. The two cases cost differently, so the toast says which one happened
+ * (owner decision 20/11/2026: a CONFIRMED session is never free to cancel, a REQUESTED one is).
+ */
+export function cancelSuccessText(status: string): string {
+  return status === "CONFIRMED"
+    ? "Đã huỷ buổi — bạn mất 1 buổi trong hợp đồng"
+    : status === "REQUESTED"
+      ? "Đã huỷ yêu cầu đặt buổi"
+      : "Đã huỷ buổi tập";
+}
+
 export type SessionAction =
   | "cancel"
   | "reschedule"

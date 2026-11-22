@@ -20,10 +20,13 @@
  * to release draft terms to production (scripts/check-pt-terms-release.ts, post-deploy-state-check T-01) - it is never evaluated at
  * service start, so a running production service cannot be taken down by it.
  *
- * Released as OFFICIAL 2026-11-pt-v1 by the owner's approval (11/11/2026)
+ * Released as OFFICIAL 2026-11-pt-v1 by the owner's approval (11/11/2026).
+ * 2026-11-pt-v2 (owner, after the demo, 22/11/2026): sections 4-5 were reworded on 20/11 (cancelling a confirmed session always costs
+ * the canceller, no 24h grace) without a version bump - v2 makes every PT confirm the text that actually runs. It is still OFFICIAL;
+ * the holdback stays OFF (PT_HOLDBACK_NEW_CONTRACTS_ENABLED) and, were it ever switched on, PT_HOLDBACK_TERMS_VERSION must be set to v2.
  */
 
-export const PT_TERMS_VERSION = "2026-11-pt-v1";
+export const PT_TERMS_VERSION = "2026-11-pt-v2";
 export const PT_TERMS_IS_DRAFT = false;
 
 /** A version id that marks a draft text. */

@@ -2,7 +2,7 @@
  * Mã phiên bản điều khoản PT (vd "2026-10-pt-draft-6") là mã nội bộ — người đọc chỉ cần biết tháng và số bản.
  * N13J-05(e): tab Bằng chứng/tranh chấp từng hiện nguyên mã.
  */
-const VERSION_RE = /^(\d{4})-(\d{1,2})-pt(-draft)?-?(\d+)?$/i;
+const VERSION_RE = /^(\d{4})-(\d{1,2})-pt(-draft)?-?v?(\d+)?$/i;
 
 export function ptTermsVersionLabel(raw: string | null | undefined): string {
   const v = typeof raw === "string" ? raw.trim() : "";

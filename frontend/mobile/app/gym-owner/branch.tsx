@@ -10,7 +10,8 @@ import { gymService } from "../../src/services/api";
 import { useApp } from "../../src/context/AppContext";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { darkColors, designTokens } from "../../src/theme/colors";
-import { branchAddress, branchName, branchStatus, isBrandOwner, operationalStatus, showsBranchStats } from "../../src/features/gymOwner/gymOwner";
+import { branchAddress, branchName, branchStatus, operationalStatus, showsBranchStats } from "../../src/features/gymOwner/gymOwner";
+import { useStaffPermissions } from "../../src/features/gymOwner/useStaffPermissions";
 import { closedLine } from "../../src/features/gymOwner/branchManage";
 import {
   AboutSection,
@@ -49,10 +50,15 @@ export default function BranchScreen() {
   const keys = branchKeys(uid, id);
 
   const gymQuery = useQuery({ queryKey: keys.gym, queryFn: () => gymService.getOwnedGym(id), enabled: !!id });
-  const statusQuery = useQuery({ queryKey: ["partner-onboarding-status", uid], queryFn: () => gymService.getOnboardingStatus() });
-  const isOwner = isBrandOwner(statusQuery.data);
+  // Item 5 (Ngài chốt): every write control is shown only when the server's permissions[] lists the permission its route enforces
+  // (owner.routes.ts). Fail-closed: unknown role / no permissions => no settings tabs, no owner links; the page stays readable ("Vận hành").
+  const { can, isLoading: statusLoading } = useStaffPermissions();
+  const canEditBranch = can("branch.write"); // PATCH /gyms/:id, hours, documents (requirePartnerOwner)
+  const canManageListing = can("listing.manage");
+  const canManageCollab = can("collaboration.manage");
+  const canViewPlans = can("plan.view");
   const [tab, setTab] = useState<Tab>("Thông tin");
-  const activeTab: Tab = isOwner ? tab : "Vận hành";
+  const activeTab: Tab = canEditBranch ? tab : "Vận hành";
 
   const gym: any = gymQuery.data;
   const back = () => (router.canGoBack() ? router.back() : router.replace("/gym-owner/gyms"));
@@ -60,7 +66,7 @@ export default function BranchScreen() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title={gym ? branchName(gym) : "Chi nhánh"} onBack={back} />
-      {gymQuery.isLoading || statusQuery.isLoading ? (
+      {gymQuery.isLoading || statusLoading ? (
         <ActivityIndicator className="mt-10" color={accent.primary} />
       ) : !gym ? (
         <Text className="mt-6 px-5 font-body text-sm text-destructive">Không tải được chi nhánh này.</Text>
@@ -74,12 +80,12 @@ export default function BranchScreen() {
         >
           <BranchHeader gym={gym} />
 
-          {isOwner ? <Segmented options={[...OWNER_TABS]} value={tab} onChange={(v) => setTab(v as Tab)} /> : null}
+          {canEditBranch ? <Segmented options={[...OWNER_TABS]} value={tab} onChange={(v) => setTab(v as Tab)} /> : null}
 
           {activeTab === "Thông tin" ? (
             <>
               {/* Listing Management (M2): description, amenities and photos of an approved branch are edited as a reviewed listing. */}
-              {isOwner && (gym.status === "APPROVED" || gym.status === "SUSPENDED") ? (
+              {canManageListing && (gym.status === "APPROVED" || gym.status === "SUSPENDED") ? (
                 <Card className="p-1">
                   <LinkRow icon={ListChecks} label="Tin đăng & tiện ích" last onPress={() => router.push({ pathname: "/gym-owner/listing", params: { gymId: gym.id } } as never)} />
                 </Card>
@@ -105,12 +111,12 @@ export default function BranchScreen() {
               <OperationsSection uid={uid} gym={gym} />
               {showsBranchStats(gym) ? (
                 <Card className="p-1">
-                  <LinkRow icon={QrCode} label="Mã QR check-in" last={!isOwner} onPress={() => router.push({ pathname: "/gym-owner/checkin-qr", params: { gymId: gym.id, name: branchName(gym) } })} />
-                  {isOwner ? (
-                    <>
-                      <LinkRow icon={Handshake} label="Cộng tác huấn luyện viên" onPress={() => router.push("/gym-owner/collaborations")} />
-                      <LinkRow icon={CreditCard} label="Gói hội viên (chung cho cả thương hiệu)" onPress={() => router.push("/gym-owner/plans")} last />
-                    </>
+                  <LinkRow icon={QrCode} label="Mã QR check-in" last={!canManageCollab && !canViewPlans} onPress={() => router.push({ pathname: "/gym-owner/checkin-qr", params: { gymId: gym.id, name: branchName(gym) } })} />
+                  {canManageCollab ? (
+                    <LinkRow icon={Handshake} label="Cộng tác huấn luyện viên" last={!canViewPlans} onPress={() => router.push("/gym-owner/collaborations")} />
+                  ) : null}
+                  {canViewPlans ? (
+                    <LinkRow icon={CreditCard} label="Gói hội viên (chung cho cả thương hiệu)" onPress={() => router.push("/gym-owner/plans")} last />
                   ) : null}
                 </Card>
               ) : null}

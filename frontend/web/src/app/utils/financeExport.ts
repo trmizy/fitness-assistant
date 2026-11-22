@@ -22,6 +22,8 @@ export type WithdrawalRow = {
   status: string;
   bankReference?: string | null;
   payoutInfo?: string | null;
+  /** Lý do admin từ chối (chỉ có khi status = REJECTED). */
+  rejectionReason?: string | null;
   createdAt?: string | null;
   paidAt?: string | null;
 };

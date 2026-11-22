@@ -189,19 +189,20 @@ export const membershipController = {
   async listForOwner(req: Request, res: Response) {
     try {
       const ownerId = principalId(req);
-      const list = await membershipService.listForOwner(req.params.gymId, ownerId);
+      // Additive pagination: `data` stays a plain array (old callers keep working); `meta` carries hasMore / nextCursor.
+      const { items: list, meta } = await membershipService.listPageForOwner(req.params.gymId, ownerId, req.query as Record<string, unknown>);
       // D15: lễ tân thấy hạn/lượt, kế toán thấy doanh số (không có danh tính hội viên), chủ/quản lý thấy đủ.
       // N13I-04: tên hiển thị chỉ tra cho chủ / quản lý (xem đủ danh tính hội viên); lễ tân và kế toán không nhận tên.
       const role = req.partner?.role;
       const wantsNames = !role || role === 'OWNER' || role === 'MANAGER';
       const names = wantsNames ? await resolveDisplayNamesBatch(list.map((m: any) => m.clientId)) : undefined;
       if (!req.partner) {
-        res.json({ success: true, data: list.map((m: any) => (names!.has(m.clientId) ? { ...m, clientName: names!.get(m.clientId) } : m)) });
+        res.json({ success: true, data: list.map((m: any) => (names!.has(m.clientId) ? { ...m, clientName: names!.get(m.clientId) } : m)), meta });
         return;
       }
-      res.json({ success: true, data: membershipsFor(req.partner.role, list, names) });
+      res.json({ success: true, data: membershipsFor(req.partner.role, list, names), meta });
     } catch (e: any) {
-      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+      res.status(e.status || 500).json({ success: false, error: { ...(e.code ? { code: e.code } : {}), message: e.message } });
     }
   },
 };

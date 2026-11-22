@@ -46,7 +46,7 @@ test.before(async () => {
     if (req.method === 'POST' && req.url === '/auth/verify') {
       const ok = String(req.headers.authorization || '') === 'Bearer w12-client-token';
       res.writeHead(ok ? 200 : 401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(ok ? { user: { id: 'W12-user', email: 'w12@example.com', role: 'CLIENT' } } : { error: 'invalid token' }));
+      res.end(JSON.stringify(ok ? { user: { id: 'W12-user', email: 'w12@example.com', role: 'CUSTOMER' } } : { error: 'invalid token' }));
       return;
     }
     res.statusCode = 404;
@@ -225,7 +225,8 @@ test('internal wallet-transfer: InsufficientBalanceError / WalletNotActiveError 
 });
 
 // (b) withdrawals on both surfaces (internal gym proxy and /me).
-const WITHDRAW = { amount: '100000', payoutInfo: 'W12 bank' };
+// payoutSource + requestedByUserId: the internal GYM route requires them since 22/11/2026 (registered payout account); /me ignores them.
+const WITHDRAW = { amount: '100000', payoutInfo: 'W12 bank', payoutSource: 'REGISTERED_ACCOUNT', requestedByUserId: 'W12-requester' };
 const WITHDRAW_SURFACES: Array<{ name: string; path: string; headers: Record<string, string> }> = [
   { name: 'internal /withdrawals/gym/:id', path: '/internal/withdrawals/gym/W12-gym', headers: SERVICE },
   { name: 'me /withdrawals', path: '/me/withdrawals', headers: CLIENT },

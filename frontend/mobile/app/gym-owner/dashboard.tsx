@@ -43,6 +43,7 @@ import {
   todayCheckinCount,
 } from "../../src/features/gymOwner/gymOwner";
 import { canUseOperationsDashboard, staffHomeRoute } from "../../src/features/gymOwner/staffRoles";
+import { hasPartnerPermission } from "../../src/features/gymOwner/permissions";
 
 /**
  * GY-01 — "Tổng quan" of the gym owner workspace: web's `GymOwnerDashboard`, same seven reads,
@@ -62,7 +63,7 @@ import { canUseOperationsDashboard, staffHomeRoute } from "../../src/features/gy
  * NE-13 / N15M-07 — the operations dashboard reads memberships and plans, which gym-service answers 403 for a
  * receptionist and an accountant. Drawing "0 hội viên / 0 gói / Chưa có hội viên" from those 403s would be a false
  * report, so these two roles never reach it: each is sent to its own home (Quầy lễ tân / Tài chính) BEFORE any
- * of its reads fire. Owner, manager — and an unreadable role, which the server still polices — see the dashboard.
+ * of its reads fire. Only owner and manager see the dashboard; a role that could not be read gets a retry message (fail-closed).
  */
 export default function GymOwnerDashboardScreen() {
   const { user } = useApp();
@@ -75,6 +76,14 @@ export default function GymOwnerDashboardScreen() {
     return (
       <View className="flex-1 items-center justify-center bg-background">
         <ActivityIndicator color={accent.primary} />
+      </View>
+    );
+  }
+  // Fail-closed (22/11/2026): a role that could not be read is not "owner" — say so instead of redirecting to this same screen.
+  if (!statusQuery.data) {
+    return (
+      <View className="flex-1 bg-background px-5 pt-16">
+        <EmptyState icon={Building2} title="Chưa kiểm tra được quyền" description="Mở lại ứng dụng hoặc kéo xuống để thử lại." />
       </View>
     );
   }
@@ -104,7 +113,8 @@ function OperationsDashboard() {
     queryFn: () => gymService.getOnboardingStatus(),
   });
   const manager = isManagerAccount(statusQuery.data);
-  const ownerKnown = statusQuery.isSuccess && !manager;
+  // Fail-closed: wallet / collaboration reads fire only when the server's permissions[] says this role may read the wallet (owner).
+  const ownerKnown = hasPartnerPermission(statusQuery.data, "finance.wallet.view");
 
   const walletQuery = useQuery({
     queryKey: ["owned-gym-wallet", activeId],

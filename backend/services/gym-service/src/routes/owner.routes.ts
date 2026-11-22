@@ -18,11 +18,13 @@ import { planController } from '../controllers/plan.controller';
 import { membershipController } from '../controllers/membership.controller';
 import { affiliationController } from '../controllers/affiliation.controller';
 import { checkinController } from '../controllers/checkin.controller';
+import { gymStatsController } from '../controllers/gym-stats.controller';
 import { assistedCheckinController } from '../controllers/assisted-checkin.controller';
 import { noStorePrivate } from '../middleware/no-store.middleware';
 import { financeController } from '../controllers/finance.controller';
 import { collaborationController } from '../controllers/collaboration.controller';
 import { paymentClient } from '../clients/payment.client';
+import { PayoutAccountRequiredError, resolveRegisteredPayoutInfo } from '../services/withdrawal-payout.service';
 import { gymService } from '../services/gym.service';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { validateBody } from '../middleware/validate.middleware';
@@ -180,6 +182,9 @@ router.patch('/brands/:brandId/plans/:planId', requirePartnerOwner, validateBody
 // Một route, hai cách nhìn theo vai trò (staff-views.ts): đủ (chủ/quản lý), doanh số không clientId (kế toán).
 // Lễ tân KHÔNG có danh sách hội viên (D15b) - chỉ có /front-desk/today bên dưới.
 router.get('/gyms/:gymId/memberships', requirePermission(['membership.full', 'membership.sales'], { gymParam: 'gymId' }), asyncHandler(membershipController.listForOwner));
+// Item 4 — KPI cho dashboard: đếm check-in theo NGÀY VN + số hội viên đang chạy / sắp hết hạn ngay trong DB (không tải danh sách).
+// Cổng any-of cùng quyền với hai route láng giềng (checkins, memberships); từng khối trả về chỉ khi vai trò có quyền tương ứng (xem controller).
+router.get('/gyms/:gymId/stats', requirePermission(['checkin.list', 'membership.full', 'membership.sales'], { gymParam: 'gymId' }), asyncHandler(gymStatsController.get));
 
 // Phase 4 — the gym displays this QR at the desk; members scan it to check themselves in.
 router.get('/gyms/:gymId/checkin-qr', requirePermission('checkin.qr', { gymParam: 'gymId' }), asyncHandler(checkinController.getGymQr));
@@ -240,8 +245,21 @@ router.post('/gyms/:gymId/withdrawals', requirePartnerOwner, asyncHandler(async 
     // Phase 5 mục 5.1 — "Yêu cầu rút tiền ❌ đóng băng", điểm quan trọng nhất của tạm khoá:
     // tiền vẫn được ghi nhận vào ví bình thường, chỉ không rút ra được trong lúc điều tra.
     await partnerGuard.assertWithdrawalsAllowed(ownerId);
-    const { amount, payoutInfo } = req.body ?? {};
-    const request = await paymentClient.requestGymWithdrawal(gym.id, amount, payoutInfo, gym.dataOrigin);
+    // Owner decision 22/11/2026 (handoff item 1): the destination is ALWAYS the partner's registered payout account, read here from
+    // GymPartner.payoutBank*. A `payoutInfo` in the body is ignored (it can no longer decide where money goes). No registered account -> 409.
+    const { amount } = req.body ?? {};
+    let payout: Awaited<ReturnType<typeof resolveRegisteredPayoutInfo>>;
+    try {
+      payout = await resolveRegisteredPayoutInfo(gym);
+    } catch (pe: any) {
+      if (pe instanceof PayoutAccountRequiredError) {
+        res.status(409).json({ success: false, error: { code: pe.code, message: pe.message } });
+        return;
+      }
+      throw pe;
+    }
+    // Who asked = the authenticated user (a body field would never be trusted); payment-service stores it on the request.
+    const request = await paymentClient.requestGymWithdrawal(gym.id, amount, { payoutInfo: payout.payoutInfo, requestedByUserId: req.user!.userId }, gym.dataOrigin);
     res.status(201).json({ success: true, data: request });
   } catch (e: any) {
     const status = e.response?.status || e.status || 500;

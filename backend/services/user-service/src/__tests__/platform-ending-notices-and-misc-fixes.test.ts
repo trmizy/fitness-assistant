@@ -114,7 +114,7 @@ function upcomingFixtures(profiles: any[], authUsers: any[]) {
     patch(sessionRepository, "findUpcomingByUser", async () => [
       { id: "s1", ptUserId: "pt-1", clientUserId: "cl-nameless", scheduledStartAt: new Date() },
       { id: "s2", ptUserId: "pt-1", clientUserId: "cl-norow", scheduledStartAt: new Date() },
-      { id: "s3", ptUserId: "pt-1", clientUserId: "cl-named", scheduledStartAt: new Date() },
+      { id: "s3", ptUserId: "pt-1", clientUserId: "cl-named", scheduledStartAt: new Date(), contract: { id: "c1", clientSignerEmail: "clientsigner@x.test", ptSignerEmail: "ptsigner@x.test" } },
     ]),
     patch(profileRepository, "findByUserIds", async () => profiles),
     patch(authServiceClient, "internalPost", async (_path: string, body: any) => ({
@@ -160,5 +160,34 @@ test("NE-05: an auth-service outage leaves the sessions readable (names stay emp
     assert.equal(rows[0].clientProfile.firstName, null);
   } finally {
     restores.reverse().forEach((r) => r());
+  }
+});
+
+test("privacy: a PT's upcoming sessions carry the client's profile WITHOUT the e-mail (profile and auth-service), the client still sees the PT's", async () => {
+  const restores = upcomingFixtures(
+    [{ userId: "cl-named", firstName: "Hồ Sơ", lastName: "Tên", email: "named@x.test" }],
+    [{ id: "cl-nameless", firstName: "Lan", lastName: "Phạm", email: "lan@x.test" }],
+  );
+  try {
+    const rows: any[] = await bookingService.getMyUpcoming("pt-1");
+    for (const r of rows) assert.equal("email" in r.clientProfile, false, "no e-mail key on the PT's view of " + r.id);
+    const s3: any = rows.find((r) => r.id === "s3");
+    assert.equal("clientSignerEmail" in s3.contract, false, "the client's e-sign address is not handed to the PT either");
+    assert.equal(s3.contract.id, "c1");
+    assert.equal(JSON.stringify(rows).includes("named@x.test") || JSON.stringify(rows).includes("lan@x.test") || JSON.stringify(rows).includes("clientsigner@x.test"), false);
+    assert.equal(rows.find((r) => r.id === "s3").clientProfile.firstName, "Hồ Sơ", "the name still reaches the PT");
+  } finally {
+    restores.reverse().forEach((r) => r());
+  }
+  const clientView = [
+    patch(sessionRepository, "findUpcomingByUser", async () => [{ id: "s9", ptUserId: "pt-1", clientUserId: "cl-1", scheduledStartAt: new Date() }]),
+    patch(profileRepository, "findByUserIds", async () => [{ userId: "pt-1", firstName: "PT", lastName: "Một", email: "pt@x.test" }]),
+    patch(authServiceClient, "internalPost", async () => ({ status: 200, data: { users: [] } })),
+  ];
+  try {
+    const rows: any[] = await bookingService.getMyUpcoming("cl-1");
+    assert.equal(rows[0].ptProfile.firstName, "PT");
+  } finally {
+    clientView.reverse().forEach((r) => r());
   }
 });

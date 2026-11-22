@@ -113,6 +113,21 @@ export function normalizeExceptions(raw: unknown): { canApprove: boolean; except
   };
 }
 
+/**
+ * Item 6: số yêu cầu ngoại lệ ĐANG CHỜ DUYỆT mà người dùng này duyệt được, cộng dồn qua các chi nhánh (huy hiệu ở menu).
+ * Chỉ tính khi server nói `canApprove` (chủ/quản lý) và bỏ yêu cầu do chính mình tạo (không tự duyệt được — bốn mắt).
+ * Mỗi phần tử là phản hồi THÔ của GET …/front-desk/exceptions cho một chi nhánh; phản hồi lỗi/sai dạng tính là 0.
+ */
+export function countPendingExceptions(rawLists: readonly unknown[]): number {
+  let n = 0;
+  for (const raw of rawLists) {
+    const { canApprove, exceptions } = normalizeExceptions(raw);
+    if (!canApprove) continue;
+    n += exceptions.filter((e) => e.status === "PENDING" && !e.mine).length;
+  }
+  return n;
+}
+
 /** Chuẩn hoá mã hội viên người dùng gõ: bỏ ký tự lạ, IN HOA, chèn gạch giữa nếu đủ 8 ký tự. */
 export function formatCodeInput(v: string): string {
   const c = v.replace(/[^0-9A-Za-z]/g, "").toUpperCase().slice(0, 8);

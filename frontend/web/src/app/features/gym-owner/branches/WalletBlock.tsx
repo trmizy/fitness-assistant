@@ -1,7 +1,8 @@
 /**
  * Compact wallet block of a branch (batch G2). Reads the same endpoints as the legacy GymManagePage (wallet, withdrawals, the
  * saved payout hint) with the same query keys, and keeps the withdrawal request HERE until the Tài chính batch (G5) takes it over:
- * `useRequestWithdrawal` = gymService.requestGymWithdrawal(gymId, amount, payoutInfo), owner-only on the server.
+ * `useRequestWithdrawal` = gymService.requestGymWithdrawal(gymId, amount), owner-only on the server. The destination is always the
+ * partner's REGISTERED payout account, shown read-only (no free-text field); "Có thể rút" is the server's `withdrawable`.
  *
  * Honesty: a wallet that has not loaded (or failed) is never drawn as 0. Money digits are never animated (06 section 4).
  * Motion: 01 card-resize (the withdrawal form and the open requests reveal in place), 04 text-states-swap on the submit button,
@@ -14,6 +15,7 @@ import { gymService } from "../../../services/api";
 import type { Wallet } from "../../../types";
 import { formatVND } from "../../../utils/currency";
 import { canUseFeature, type PartnerRole } from "../../../utils/gymStaffRole";
+import { registeredPayoutText, reservedPendingOf, withdrawableOf } from "../../../utils/gymWithdrawal";
 import { GoReveal } from "../../../components/layout/gym-owner/GoAccordion";
 import { GoLink } from "../../../components/layout/gym-owner/GoLink";
 import { SuccessCheck, TextStates, useShake } from "../../../components/layout/gym-owner/motion";
@@ -36,12 +38,13 @@ export function WalletBlock({ gymId, role, canWithdraw }: { gymId: string; role:
     queryFn: () => gymService.getOnboardingStatus(),
   });
   const payout = onboardingQ.data?.payout;
-  const savedPayout = payout?.accountNumber ? [payout.bankName, payout.accountNumber, payout.accountHolder].filter(Boolean).join(" — ") : "";
+  // `payout` is only present for the OWNER (null for other roles); an owner who has not filled it in gets an object with missing fields.
+  const savedPayout = registeredPayoutText(payout);
+  const payoutMissing = !!payout && !savedPayout;
 
   const withdraw = useRequestWithdrawal(gymId);
   const [showForm, setShowForm] = useState(false);
   const [amount, setAmount] = useState("");
-  const [payoutInfo, setPayoutInfo] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
   const { ref: formRef, shake } = useShake<HTMLDivElement>();
@@ -55,15 +58,19 @@ export function WalletBlock({ gymId, role, canWithdraw }: { gymId: string; role:
   async function submit() {
     setError(null);
     try {
-      await withdraw.mutateAsync({ amount, payoutInfo });
+      await withdraw.mutateAsync({ amount });
       setShowForm(false);
       setAmount("");
-      setPayoutInfo("");
       setSent(true);
       if (sentTimer.current) clearTimeout(sentTimer.current);
       sentTimer.current = setTimeout(() => setSent(false), 3500);
     } catch (err) {
-      setError(apiMessage(err, "Không thể tạo yêu cầu rút tiền"));
+      const e = err as { response?: { data?: { error?: { code?: unknown } } } } | null;
+      setError(
+        e?.response?.data?.error?.code === "PAYOUT_ACCOUNT_REQUIRED"
+          ? "Chưa có tài khoản nhận tiền đã đăng ký. Hãy khai báo trong Hồ sơ đối tác rồi gửi lại yêu cầu."
+          : apiMessage(err, "Không thể tạo yêu cầu rút tiền"),
+      );
       shake();
     }
   }
@@ -90,9 +97,12 @@ export function WalletBlock({ gymId, role, canWithdraw }: { gymId: string; role:
       {wallet && (
         <div className="go-wallet-grid">
           <div className="go-money" data-kind="available">
-            <span className="go-money-label">Khả dụng</span>
-            <span className="go-money-num" data-testid="gym-wallet-available-balance" data-value={wallet.availableBalance ?? "0"}>{formatVND(Number(wallet.availableBalance ?? 0))}</span>
-            <span className="go-money-hint">Số tiền rút tối đa do máy chủ tính khi bạn gửi yêu cầu</span>
+            <span className="go-money-label">Có thể rút</span>
+            <span className="go-money-num" data-testid="gym-wallet-available-balance" data-value={String(withdrawableOf(wallet))}>{formatVND(withdrawableOf(wallet))}</span>
+            <span className="go-money-hint">
+              Số tiền rút tối đa do máy chủ tính
+              {reservedPendingOf(wallet) > 0 && <span data-testid="gym-wallet-reserved-pending"> · Đang giữ cho yêu cầu rút chờ duyệt: {formatVND(reservedPendingOf(wallet))}</span>}
+            </span>
           </div>
           <div className="go-money" data-kind="pending">
             <span className="go-money-label">Đang chờ</span>
@@ -113,7 +123,6 @@ export function WalletBlock({ gymId, role, canWithdraw }: { gymId: string; role:
             onClick={() => {
               setShowForm((v) => !v);
               setError(null);
-              if (!payoutInfo) setPayoutInfo(savedPayout);
             }}
           >
             <Banknote aria-hidden="true" width={14} height={14} /> Yêu cầu rút tiền
@@ -128,8 +137,19 @@ export function WalletBlock({ gymId, role, canWithdraw }: { gymId: string; role:
         <GoReveal open={showForm}>
           <div className="go-withdraw-form" ref={formRef} data-error={error ? "true" : undefined}>
             <input data-testid="gym-withdraw-amount-input" aria-label="Số tiền (VNĐ)" className="go-input" type="number" value={amount} onChange={(e) => { setAmount(e.target.value); setError(null); }} placeholder="Số tiền (VNĐ)" />
-            <input data-testid="gym-withdraw-payout-info-input" aria-label="Tài khoản nhận tiền" className="go-input" value={payoutInfo} onChange={(e) => { setPayoutInfo(e.target.value); setError(null); }} placeholder="Số tài khoản / ngân hàng nhận tiền" />
-            <p className="go-muted-text">Tài khoản nhận tiền do bạn nhập. Máy chủ kiểm tra số tiền khi bạn gửi.</p>
+            {savedPayout ? (
+              <div data-testid="gym-withdraw-registered-payout">
+                <p className="go-muted-text">Chuyển khoản tới tài khoản nhận tiền đã đăng ký</p>
+                <p style={{ overflowWrap: "anywhere" }}>{savedPayout}</p>
+                <GoLink to="/gym-owner/profile" className="go-btn go-btn-sm" data-testid="gym-withdraw-change-payout-link">Đổi tài khoản trong Hồ sơ đối tác</GoLink>
+              </div>
+            ) : payoutMissing ? (
+              <div className="go-notice" data-tone="warn" data-testid="gym-withdraw-payout-missing">
+                <span>Chưa có tài khoản nhận tiền đã đăng ký. Tiền rút luôn được chuyển tới tài khoản này, nên cần khai báo trước.</span>
+                <GoLink to="/gym-owner/profile" className="go-btn go-btn-sm" data-testid="gym-withdraw-add-payout-link">Khai báo trong Hồ sơ đối tác</GoLink>
+              </div>
+            ) : null}
+            <p className="go-muted-text">Máy chủ kiểm tra số tiền khi bạn gửi.</p>
             {error && <p className="go-error" role="alert" data-testid="go-withdraw-error">{error}</p>}
             <div className="go-form-actions">
               <button type="button" className="go-btn go-btn-sm" onClick={() => setShowForm(false)}>Huỷ</button>
@@ -139,7 +159,7 @@ export function WalletBlock({ gymId, role, canWithdraw }: { gymId: string; role:
                 data-variant="primary"
                 data-testid="gym-withdraw-submit-button"
                 onClick={() => void submit()}
-                disabled={!amount || !payoutInfo.trim() || withdraw.isPending}
+                disabled={!amount || !savedPayout || withdraw.isPending}
               >
                 <TextStates value={withdraw.isPending ? "Đang gửi" : "Gửi yêu cầu"} />
               </button>

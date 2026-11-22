@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import { ABOUT_MAX, AboutCounter } from "../../components/gym/AboutCounter";
 import { BarbellIcon as Dumbbell, CircleNotchIcon as Loader2, ArrowLeftIcon as ArrowLeft, WalletIcon, UsersIcon as Users, MoneyIcon as Banknote, GearSixIcon as Settings, LockIcon as Lock, LockOpenIcon as Unlock, WarningIcon as AlertTriangle, CaretDownIcon as ChevronDown } from "@phosphor-icons/react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { toast } from "sonner";
 import type { Gym, GymBrand, GymMembershipContract, Wallet, GymReviewsResponse, GymOperatingHoursDay } from "../../types";
 import { branchAvailability, normalizeBranchSelection } from "../../utils/gymListing";
 import { AmenityChipGroups } from "../../components/listing/AmenityEditor";
 import { formatVND } from "../../utils/currency";
+import { registeredPayoutText, reservedPendingOf, withdrawableOf } from "../../utils/gymWithdrawal";
 import { Stars } from "../../components/gym/Stars";
 import { GymCheckinPanel } from "../../components/gym/GymCheckinPanel";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
@@ -18,6 +19,7 @@ import { StepOpeningHours } from "../../components/gym/AddBranchWizard/StepOpeni
 import { StepPhotos } from "../../components/gym/AddBranchWizard/StepPhotos";
 import { StepVerification } from "../../components/gym/AddBranchWizard/StepVerification";
 import { canViewWallet, normalizePartnerRole } from "../../utils/gymStaffRole";
+import { useStaffRole } from "../../hooks/useStaffRole";
 import { MEMBERSHIP_STATUS_VI, viLabel } from "../../utils/labels.vi";
 import { memberLabel } from "../../utils/memberLabel";
 
@@ -80,12 +82,18 @@ export function GymManagePage() {
     queryKey: ["partner-onboarding-status"],
     queryFn: () => gymService.getOnboardingStatus(),
   });
-  const isManagerAccount = partnerStatus?.role === "MANAGER";
+  // Item 5 (Ngài chốt): MANAGER sees this page READ-ONLY. Every write control below is shown only when the server's permissions[] lists the
+  // exact permission its route enforces (owner.routes.ts) — fail-closed: unknown role / no permissions => no write control at all.
+  const { can } = useStaffRole();
+  const canEditBranch = can("branch.write"); // PATCH /gyms/:id, PUT /hours, branch-documents (requirePartnerOwner)
+  const canClosePermanently = can("branch.status.permanent"); // closure-impact + gym.service.ts permanent-close rule (OWNER only)
+  const canChangeStatus = can("branch.status.temporary"); // PATCH /gyms/:id/operational-status (temporary close / reopen)
+  const canManageListing = can("listing.manage"); // listing / amenities / photos (owner-only routes)
+  const canManageCollab = can("collaboration.manage"); // cộng tác PT (owner-only)
   // ND-01: ví và yêu cầu rút tiền chỉ chủ/kế toán đọc được (finance.wallet.view) — quản lý không gọi để khỏi nhận 403.
   const canSeeWallet = canViewWallet(normalizePartnerRole(partnerStatus?.role));
   const [showWithdrawForm, setShowWithdrawForm] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [withdrawPayoutInfo, setWithdrawPayoutInfo] = useState("");
 
   // Vòng 4 / Phase C2/C3/C4 — settings section: name/address (pending-approval), operational
   // status, and brand reassignment.
@@ -149,7 +157,7 @@ export function GymManagePage() {
   const { data: closureImpact, isLoading: closureImpactLoading } = useQuery({
     queryKey: ["owned-gym-closure-impact", id],
     queryFn: () => gymService.getClosureImpact(id!),
-    enabled: !!id && closingMode === "PERMANENTLY_CLOSED",
+    enabled: !!id && closingMode === "PERMANENTLY_CLOSED" && canClosePermanently,
   });
 
   const { data: ownedBrands = [] } = useQuery<GymBrand[]>({
@@ -185,11 +193,20 @@ export function GymManagePage() {
     enabled: !!id && canSeeWallet,
   });
 
-  const { data: memberships = [] } = useQuery<GymMembershipContract[]>({
-    queryKey: ["owned-gym-memberships", id],
-    queryFn: () => gymService.listOwnedMemberships(id!),
+  // Item 4: danh sách hội viên phân trang (cursor, mới → cũ) — 50 dòng/lượt, "Xem thêm" tải tiếp; không tải cả danh sách một lần.
+  const {
+    data: membersData,
+    hasNextPage: hasMoreMembers,
+    fetchNextPage: fetchMoreMembers,
+    isFetchingNextPage: fetchingMoreMembers,
+  } = useInfiniteQuery({
+    queryKey: ["owned-gym-memberships", id, "pages"],
+    queryFn: ({ pageParam }) => gymService.listOwnedMembershipsPage(id!, { limit: 50, cursor: pageParam }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => (last.hasMore ? last.nextCursor : undefined),
     enabled: !!id,
   });
+  const memberships: GymMembershipContract[] = membersData?.pages.flatMap((p) => p.items) ?? [];
 
   const { data: reviews } = useQuery<GymReviewsResponse>({
     queryKey: ["gym-reviews", id],
@@ -210,18 +227,19 @@ export function GymManagePage() {
     queryKey: ["partner-onboarding-status"],
     queryFn: () => gymService.getOnboardingStatus(),
   });
-  const savedPayout = onboarding?.payout?.accountNumber
-    ? [onboarding.payout.bankName, onboarding.payout.accountNumber, onboarding.payout.accountHolder].filter(Boolean).join(" — ")
-    : "";
+  // Điểm đến của lệnh rút luôn là tài khoản nhận tiền ĐÃ ĐĂNG KÝ của đối tác (máy chủ tự lấy, 22/11/2026): chỉ hiển thị, không nhập tay.
+  // `payout` chỉ có với chủ sở hữu (null với vai trò khác); chủ chưa khai → có object nhưng thiếu trường → nút gửi bị khoá + đường dẫn tới Hồ sơ.
+  const savedPayout = registeredPayoutText(onboarding?.payout);
+  const ownerPayoutMissing = !!onboarding?.payout && !savedPayout;
 
   const withdrawMutation = useMutation({
-    mutationFn: () => gymService.requestGymWithdrawal(id!, withdrawAmount, withdrawPayoutInfo),
+    mutationFn: () => gymService.requestGymWithdrawal(id!, withdrawAmount),
     onSuccess: () => {
       toast.success("Đã gửi yêu cầu rút tiền");
       setShowWithdrawForm(false);
       setWithdrawAmount("");
-      setWithdrawPayoutInfo("");
       queryClient.invalidateQueries({ queryKey: ["owned-gym-withdrawals", id] });
+      queryClient.invalidateQueries({ queryKey: ["owned-gym-wallet", id] });
     },
     onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Không thể tạo yêu cầu rút tiền"),
   });
@@ -315,6 +333,11 @@ export function GymManagePage() {
       {/* Settings — Vòng 4 / Phase C2/C3/C4 */}
       {showSettings && (
         <div data-testid="gym-settings-panel" className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-5 space-y-5">
+          {!canEditBranch && (
+            <p data-testid="gym-settings-readonly-note" className="rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-xs text-zinc-400">
+              Bạn đang xem ở chế độ chỉ đọc — chỉ chủ sở hữu được sửa thông tin, giờ hoạt động, giấy tờ và đóng cửa vĩnh viễn của chi nhánh.
+            </p>
+          )}
           <div className="space-y-2">
             <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tên & địa chỉ</p>
             <p className="text-[11px] text-zinc-600">
@@ -323,17 +346,19 @@ export function GymManagePage() {
             </p>
             <input
               data-testid="gym-edit-name-input"
+              disabled={!canEditBranch}
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
             />
             <input
               data-testid="gym-edit-address-input"
+              disabled={!canEditBranch}
               value={editAddress}
               onChange={(e) => setEditAddress(e.target.value)}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
             />
-            <button
+            {canEditBranch && <button
               type="button"
               data-testid="gym-save-name-address-button"
               onClick={() => updateGymMutation.mutate({ name: editName, address: editAddress })}
@@ -341,7 +366,7 @@ export function GymManagePage() {
               className="px-4 py-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-40 text-black text-xs font-bold rounded-lg transition-all"
             >
               Lưu
-            </button>
+            </button>}
           </div>
 
           <div className="space-y-2 pt-3 border-t border-zinc-800/60">
@@ -352,6 +377,7 @@ export function GymManagePage() {
                 <textarea
                   data-testid="gym-edit-description-input"
                   aria-label="Giới thiệu chi nhánh"
+                  disabled={!canEditBranch}
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
                   rows={4}
@@ -366,13 +392,14 @@ export function GymManagePage() {
                 <p data-testid="gym-description-readonly" className="whitespace-pre-line rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-sm text-zinc-300">
                   {gym.description?.trim() || <span className="text-zinc-600">Chưa có phần giới thiệu.</span>}
                 </p>
-                <ListingManagedNotice gym={gym} canEdit={!isManagerAccount} what="Giới thiệu" />
+                <ListingManagedNotice gym={gym} canEdit={canManageListing} what="Giới thiệu" />
               </>
             )}
             <div className="grid gap-2 sm:grid-cols-2">
               <input
                 data-testid="gym-edit-phone-input"
                 aria-label="Điện thoại chi nhánh"
+                disabled={!canEditBranch}
                 value={editPhone}
                 onChange={(e) => setEditPhone(e.target.value)}
                 inputMode="tel"
@@ -383,6 +410,7 @@ export function GymManagePage() {
               <input
                 data-testid="gym-edit-email-input"
                 aria-label="Email chi nhánh"
+                disabled={!canEditBranch}
                 value={editEmail}
                 onChange={(e) => setEditEmail(e.target.value)}
                 inputMode="email"
@@ -391,7 +419,7 @@ export function GymManagePage() {
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
               />
             </div>
-            <button
+            {canEditBranch && <button
               type="button"
               data-testid="gym-save-about-button"
               onClick={() =>
@@ -405,7 +433,7 @@ export function GymManagePage() {
               className="px-4 py-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-40 text-black text-xs font-bold rounded-lg transition-all"
             >
               {gym.status === "DRAFT" ? "Lưu giới thiệu & liên hệ" : "Lưu liên hệ"}
-            </button>
+            </button>}
           </div>
 
           {/* GYM_BRANCH_FORM_SPEC.md §51/§79/§89 — read-only context, never a selector. A
@@ -420,7 +448,7 @@ export function GymManagePage() {
             </p>
           </div>
 
-          <div className="space-y-2 pt-3 border-t border-zinc-800/60">
+          {canEditBranch && <div className="space-y-2 pt-3 border-t border-zinc-800/60">
             <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Vị trí</p>
             <p className="text-[11px] text-zinc-600">
               Dùng để khách tìm được chi nhánh này theo tỉnh/thành và thấy đúng chi nhánh gần
@@ -445,11 +473,12 @@ export function GymManagePage() {
             >
               Lưu vị trí
             </button>
-          </div>
+          </div>}
 
           <CollapsibleSection title="Giờ hoạt động">
             <StepOpeningHours
               value={hours ?? defaultHours(id!)}
+              readOnly={!canEditBranch}
               onChange={(next) => setHoursMutation.mutate(next)}
             />
           </CollapsibleSection>
@@ -484,16 +513,20 @@ export function GymManagePage() {
                 </button>
               </div>
             ) : (
-              <ListingManagedNotice gym={gym} canEdit={!isManagerAccount} what="Tiện ích" />
+              <ListingManagedNotice gym={gym} canEdit={canManageListing} what="Tiện ích" />
             )}
           </CollapsibleSection>
 
           <CollapsibleSection title="Hình ảnh">
-            {gym.status === "DRAFT" ? <StepPhotos gymId={id!} /> : <ListingManagedNotice gym={gym} canEdit={!isManagerAccount} what="Ảnh" />}
+            {gym.status === "DRAFT" ? <StepPhotos gymId={id!} /> : <ListingManagedNotice gym={gym} canEdit={canManageListing} what="Ảnh" />}
           </CollapsibleSection>
 
           <CollapsibleSection title="Xác minh">
-            <StepVerification gymId={id!} />
+            {canEditBranch ? (
+              <StepVerification gymId={id!} />
+            ) : (
+              <p data-testid="gym-verification-owner-only" className="text-xs text-zinc-500">Giấy tờ xác minh chi nhánh chỉ chủ sở hữu xem và nộp.</p>
+            )}
           </CollapsibleSection>
 
           <div className="space-y-2 pt-3 border-t border-zinc-800/60">
@@ -571,7 +604,8 @@ export function GymManagePage() {
               </div>
             ) : gym.operationalStatus === "TEMPORARILY_CLOSED" ? (
               <div className="flex gap-2 flex-wrap">
-                <button
+                {canChangeStatus && (
+                  <button
                   type="button"
                   data-testid="gym-reopen-button"
                   onClick={() => setOperationalStatusMutation.mutate({ operationalStatus: "OPEN" })}
@@ -580,7 +614,9 @@ export function GymManagePage() {
                 >
                   <Unlock className="w-3.5 h-3.5" /> Mở lại
                 </button>
-                <button
+                )}
+                {canClosePermanently && (
+                  <button
                   type="button"
                   data-testid="gym-permanently-close-toggle"
                   onClick={() => setClosingMode("PERMANENTLY_CLOSED")}
@@ -588,10 +624,12 @@ export function GymManagePage() {
                 >
                   <Lock className="w-3.5 h-3.5" /> Đóng cửa vĩnh viễn
                 </button>
+                )}
               </div>
             ) : (
               <div className="flex gap-2 flex-wrap">
-                <button
+                {canChangeStatus && (
+                  <button
                   type="button"
                   data-testid="gym-temporarily-close-toggle"
                   onClick={() => setClosingMode("TEMPORARILY_CLOSED")}
@@ -599,7 +637,9 @@ export function GymManagePage() {
                 >
                   <Lock className="w-3.5 h-3.5" /> Tạm đóng cửa
                 </button>
-                <button
+                )}
+                {canClosePermanently && (
+                  <button
                   type="button"
                   data-testid="gym-permanently-close-toggle"
                   onClick={() => setClosingMode("PERMANENTLY_CLOSED")}
@@ -607,6 +647,7 @@ export function GymManagePage() {
                 >
                   <Lock className="w-3.5 h-3.5" /> Đóng cửa vĩnh viễn
                 </button>
+                )}
               </div>
             )}
           </div>
@@ -620,7 +661,10 @@ export function GymManagePage() {
           <WalletIcon className="w-5 h-5 text-green-400" />
           <div>
             <div className="text-xs text-zinc-400">Có thể rút</div>
-            <div data-testid="gym-wallet-available-balance" data-value={wallet?.availableBalance ?? "0"} className="text-xl font-bold text-zinc-100">{formatVND(Number(wallet?.availableBalance ?? 0))}</div>
+            <div data-testid="gym-wallet-available-balance" data-value={String(withdrawableOf(wallet))} className="text-xl font-bold text-zinc-100">{formatVND(withdrawableOf(wallet))}</div>
+            {reservedPendingOf(wallet) > 0 && (
+              <div data-testid="gym-wallet-reserved-pending" className="text-[11px] text-zinc-500">Đang giữ cho yêu cầu rút chờ duyệt: {formatVND(reservedPendingOf(wallet))}</div>
+            )}
           </div>
         </div>
         <div>
@@ -629,10 +673,7 @@ export function GymManagePage() {
         </div>
         <button
           data-testid="gym-request-withdrawal-toggle"
-          onClick={() => {
-            setShowWithdrawForm((v) => !v);
-            if (!withdrawPayoutInfo) setWithdrawPayoutInfo(savedPayout);
-          }}
+          onClick={() => setShowWithdrawForm((v) => !v)}
           className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
         >
           <Banknote className="w-3.5 h-3.5" /> Yêu cầu rút tiền
@@ -648,13 +689,22 @@ export function GymManagePage() {
               placeholder="Số tiền (VNĐ)"
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
             />
-            <input
-              data-testid="gym-withdraw-payout-info-input"
-              value={withdrawPayoutInfo}
-              onChange={(e) => setWithdrawPayoutInfo(e.target.value)}
-              placeholder="Số tài khoản / ngân hàng nhận tiền"
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200"
-            />
+            {savedPayout ? (
+              <div data-testid="gym-withdraw-registered-payout" className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2">
+                <div className="text-[11px] text-zinc-500">Chuyển khoản tới tài khoản nhận tiền đã đăng ký</div>
+                <div className="text-sm text-zinc-200 break-words">{savedPayout}</div>
+                <button type="button" data-testid="gym-withdraw-change-payout-link" onClick={() => navigate("/gym-owner/profile")} className="mt-1 text-[11px] font-semibold text-green-400 hover:text-green-300">
+                  Đổi tài khoản trong Hồ sơ đối tác →
+                </button>
+              </div>
+            ) : ownerPayoutMissing ? (
+              <div data-testid="gym-withdraw-payout-missing" className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                <div className="text-xs text-amber-300">Chưa có tài khoản nhận tiền đã đăng ký. Tiền rút luôn được chuyển tới tài khoản này, nên cần khai báo trước.</div>
+                <button type="button" data-testid="gym-withdraw-add-payout-link" onClick={() => navigate("/gym-owner/profile")} className="mt-1 text-[11px] font-semibold text-green-400 hover:text-green-300">
+                  Khai báo trong Hồ sơ đối tác →
+                </button>
+              </div>
+            ) : null}
             <div className="flex justify-end gap-2 pt-1">
               <button onClick={() => setShowWithdrawForm(false)} className="px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200">
                 Huỷ
@@ -662,7 +712,7 @@ export function GymManagePage() {
               <button
                 data-testid="gym-withdraw-submit-button"
                 onClick={() => withdrawMutation.mutate()}
-                disabled={!withdrawAmount || !withdrawPayoutInfo.trim() || withdrawMutation.isPending}
+                disabled={!withdrawAmount || !savedPayout || withdrawMutation.isPending}
                 className="px-4 py-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-40 disabled:cursor-not-allowed text-black text-xs font-bold rounded-lg transition-all"
               >
                 Gửi yêu cầu
@@ -690,7 +740,7 @@ export function GymManagePage() {
       {/* PT partnerships are agreed with the BRAND and apply to every open branch (D5/D72), so there
           is nothing branch-specific to manage here: the one place is "Quản lý cộng tác". Only the
           owner may read the terms (D14), so a branch manager gets no link. */}
-      {!isManagerAccount && (
+      {canManageCollab && (
         <div data-testid="gym-collab-brand-note" className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-5 space-y-2">
           <h3 className="text-zinc-100 font-bold text-sm">Hợp tác huấn luyện viên</h3>
           <p className="text-xs text-zinc-500 leading-snug">
@@ -722,7 +772,7 @@ export function GymManagePage() {
 
       {/* Memberships */}
       <div>
-        <h2 className="text-sm font-bold text-zinc-300 mb-2 flex items-center gap-1.5"><Users className="w-4 h-4" /> Hội viên ({memberships.length})</h2>
+        <h2 className="text-sm font-bold text-zinc-300 mb-2 flex items-center gap-1.5"><Users className="w-4 h-4" /> Hội viên ({memberships.length}{hasMoreMembers ? "+" : ""})</h2>
         {memberships.length === 0 ? (
           <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-6 text-center text-sm text-zinc-500">Chưa có hội viên</div>
         ) : (
@@ -749,6 +799,17 @@ export function GymManagePage() {
                 </div>
               </div>
             ))}
+            {hasMoreMembers && (
+              <button
+                type="button"
+                data-testid="gym-members-load-more"
+                onClick={() => fetchMoreMembers()}
+                disabled={fetchingMoreMembers}
+                className="w-full py-3 rounded-xl border border-zinc-700/60 bg-zinc-900 text-sm font-semibold text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors disabled:opacity-60"
+              >
+                {fetchingMoreMembers ? "Đang tải thêm…" : "Xem thêm"}
+              </button>
+            )}
           </div>
         )}
       </div>

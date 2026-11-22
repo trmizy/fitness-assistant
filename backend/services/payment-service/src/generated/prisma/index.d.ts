@@ -4739,6 +4739,8 @@ export namespace Prisma {
     payoutInfo: string | null
     bankReference: string | null
     rejectionReason: string | null
+    requestedByUserId: string | null
+    payoutSource: string | null
     reviewedBy: string | null
     reviewedAt: Date | null
     paidAt: Date | null
@@ -4756,6 +4758,8 @@ export namespace Prisma {
     payoutInfo: string | null
     bankReference: string | null
     rejectionReason: string | null
+    requestedByUserId: string | null
+    payoutSource: string | null
     reviewedBy: string | null
     reviewedAt: Date | null
     paidAt: Date | null
@@ -4773,6 +4777,8 @@ export namespace Prisma {
     payoutInfo: number
     bankReference: number
     rejectionReason: number
+    requestedByUserId: number
+    payoutSource: number
     reviewedBy: number
     reviewedAt: number
     paidAt: number
@@ -4800,6 +4806,8 @@ export namespace Prisma {
     payoutInfo?: true
     bankReference?: true
     rejectionReason?: true
+    requestedByUserId?: true
+    payoutSource?: true
     reviewedBy?: true
     reviewedAt?: true
     paidAt?: true
@@ -4817,6 +4825,8 @@ export namespace Prisma {
     payoutInfo?: true
     bankReference?: true
     rejectionReason?: true
+    requestedByUserId?: true
+    payoutSource?: true
     reviewedBy?: true
     reviewedAt?: true
     paidAt?: true
@@ -4834,6 +4844,8 @@ export namespace Prisma {
     payoutInfo?: true
     bankReference?: true
     rejectionReason?: true
+    requestedByUserId?: true
+    payoutSource?: true
     reviewedBy?: true
     reviewedAt?: true
     paidAt?: true
@@ -4938,6 +4950,8 @@ export namespace Prisma {
     payoutInfo: string
     bankReference: string | null
     rejectionReason: string | null
+    requestedByUserId: string | null
+    payoutSource: string | null
     reviewedBy: string | null
     reviewedAt: Date | null
     paidAt: Date | null
@@ -4974,6 +4988,8 @@ export namespace Prisma {
     payoutInfo?: boolean
     bankReference?: boolean
     rejectionReason?: boolean
+    requestedByUserId?: boolean
+    payoutSource?: boolean
     reviewedBy?: boolean
     reviewedAt?: boolean
     paidAt?: boolean
@@ -4992,6 +5008,8 @@ export namespace Prisma {
     payoutInfo?: boolean
     bankReference?: boolean
     rejectionReason?: boolean
+    requestedByUserId?: boolean
+    payoutSource?: boolean
     reviewedBy?: boolean
     reviewedAt?: boolean
     paidAt?: boolean
@@ -5010,6 +5028,8 @@ export namespace Prisma {
     payoutInfo?: boolean
     bankReference?: boolean
     rejectionReason?: boolean
+    requestedByUserId?: boolean
+    payoutSource?: boolean
     reviewedBy?: boolean
     reviewedAt?: boolean
     paidAt?: boolean
@@ -5047,6 +5067,17 @@ export namespace Prisma {
        */
       bankReference: string | null
       rejectionReason: string | null
+      /**
+       * WHO asked for the withdrawal (the authenticated user at the time). Null on rows created before this column
+       * existed and on PT / CLIENT rows (there the requester IS ownerId). For a GYM wallet ownerId is a branch id, so
+       * this is the only record of which person asked. Never taken from a request body.
+       */
+      requestedByUserId: string | null
+      /**
+       * Where payoutInfo came from. REGISTERED_ACCOUNT = the server copied it from the partner's registered payout
+       * account (GYM withdrawals, owner decision 22/11/2026); null = the requester typed it (PT / CLIENT, old rows).
+       */
+      payoutSource: string | null
       reviewedBy: string | null
       reviewedAt: Date | null
       paidAt: Date | null
@@ -5455,6 +5486,8 @@ export namespace Prisma {
     readonly payoutInfo: FieldRef<"WithdrawalRequest", 'String'>
     readonly bankReference: FieldRef<"WithdrawalRequest", 'String'>
     readonly rejectionReason: FieldRef<"WithdrawalRequest", 'String'>
+    readonly requestedByUserId: FieldRef<"WithdrawalRequest", 'String'>
+    readonly payoutSource: FieldRef<"WithdrawalRequest", 'String'>
     readonly reviewedBy: FieldRef<"WithdrawalRequest", 'String'>
     readonly reviewedAt: FieldRef<"WithdrawalRequest", 'DateTime'>
     readonly paidAt: FieldRef<"WithdrawalRequest", 'DateTime'>
@@ -19240,6 +19273,8 @@ export namespace Prisma {
     payoutInfo: 'payoutInfo',
     bankReference: 'bankReference',
     rejectionReason: 'rejectionReason',
+    requestedByUserId: 'requestedByUserId',
+    payoutSource: 'payoutSource',
     reviewedBy: 'reviewedBy',
     reviewedAt: 'reviewedAt',
     paidAt: 'paidAt',
@@ -20104,6 +20139,8 @@ export namespace Prisma {
     payoutInfo?: StringFilter<"WithdrawalRequest"> | string
     bankReference?: StringNullableFilter<"WithdrawalRequest"> | string | null
     rejectionReason?: StringNullableFilter<"WithdrawalRequest"> | string | null
+    requestedByUserId?: StringNullableFilter<"WithdrawalRequest"> | string | null
+    payoutSource?: StringNullableFilter<"WithdrawalRequest"> | string | null
     reviewedBy?: StringNullableFilter<"WithdrawalRequest"> | string | null
     reviewedAt?: DateTimeNullableFilter<"WithdrawalRequest"> | Date | string | null
     paidAt?: DateTimeNullableFilter<"WithdrawalRequest"> | Date | string | null
@@ -20122,6 +20159,8 @@ export namespace Prisma {
     payoutInfo?: SortOrder
     bankReference?: SortOrderInput | SortOrder
     rejectionReason?: SortOrderInput | SortOrder
+    requestedByUserId?: SortOrderInput | SortOrder
+    payoutSource?: SortOrderInput | SortOrder
     reviewedBy?: SortOrderInput | SortOrder
     reviewedAt?: SortOrderInput | SortOrder
     paidAt?: SortOrderInput | SortOrder
@@ -20143,6 +20182,8 @@ export namespace Prisma {
     payoutInfo?: StringFilter<"WithdrawalRequest"> | string
     bankReference?: StringNullableFilter<"WithdrawalRequest"> | string | null
     rejectionReason?: StringNullableFilter<"WithdrawalRequest"> | string | null
+    requestedByUserId?: StringNullableFilter<"WithdrawalRequest"> | string | null
+    payoutSource?: StringNullableFilter<"WithdrawalRequest"> | string | null
     reviewedBy?: StringNullableFilter<"WithdrawalRequest"> | string | null
     reviewedAt?: DateTimeNullableFilter<"WithdrawalRequest"> | Date | string | null
     paidAt?: DateTimeNullableFilter<"WithdrawalRequest"> | Date | string | null
@@ -20161,6 +20202,8 @@ export namespace Prisma {
     payoutInfo?: SortOrder
     bankReference?: SortOrderInput | SortOrder
     rejectionReason?: SortOrderInput | SortOrder
+    requestedByUserId?: SortOrderInput | SortOrder
+    payoutSource?: SortOrderInput | SortOrder
     reviewedBy?: SortOrderInput | SortOrder
     reviewedAt?: SortOrderInput | SortOrder
     paidAt?: SortOrderInput | SortOrder
@@ -20186,6 +20229,8 @@ export namespace Prisma {
     payoutInfo?: StringWithAggregatesFilter<"WithdrawalRequest"> | string
     bankReference?: StringNullableWithAggregatesFilter<"WithdrawalRequest"> | string | null
     rejectionReason?: StringNullableWithAggregatesFilter<"WithdrawalRequest"> | string | null
+    requestedByUserId?: StringNullableWithAggregatesFilter<"WithdrawalRequest"> | string | null
+    payoutSource?: StringNullableWithAggregatesFilter<"WithdrawalRequest"> | string | null
     reviewedBy?: StringNullableWithAggregatesFilter<"WithdrawalRequest"> | string | null
     reviewedAt?: DateTimeNullableWithAggregatesFilter<"WithdrawalRequest"> | Date | string | null
     paidAt?: DateTimeNullableWithAggregatesFilter<"WithdrawalRequest"> | Date | string | null
@@ -21778,6 +21823,8 @@ export namespace Prisma {
     payoutInfo: string
     bankReference?: string | null
     rejectionReason?: string | null
+    requestedByUserId?: string | null
+    payoutSource?: string | null
     reviewedBy?: string | null
     reviewedAt?: Date | string | null
     paidAt?: Date | string | null
@@ -21796,6 +21843,8 @@ export namespace Prisma {
     payoutInfo: string
     bankReference?: string | null
     rejectionReason?: string | null
+    requestedByUserId?: string | null
+    payoutSource?: string | null
     reviewedBy?: string | null
     reviewedAt?: Date | string | null
     paidAt?: Date | string | null
@@ -21812,6 +21861,8 @@ export namespace Prisma {
     payoutInfo?: StringFieldUpdateOperationsInput | string
     bankReference?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    requestedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutSource?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -21830,6 +21881,8 @@ export namespace Prisma {
     payoutInfo?: StringFieldUpdateOperationsInput | string
     bankReference?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    requestedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutSource?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -21847,6 +21900,8 @@ export namespace Prisma {
     payoutInfo: string
     bankReference?: string | null
     rejectionReason?: string | null
+    requestedByUserId?: string | null
+    payoutSource?: string | null
     reviewedBy?: string | null
     reviewedAt?: Date | string | null
     paidAt?: Date | string | null
@@ -21863,6 +21918,8 @@ export namespace Prisma {
     payoutInfo?: StringFieldUpdateOperationsInput | string
     bankReference?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    requestedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutSource?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -21880,6 +21937,8 @@ export namespace Prisma {
     payoutInfo?: StringFieldUpdateOperationsInput | string
     bankReference?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    requestedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutSource?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -23915,6 +23974,8 @@ export namespace Prisma {
     payoutInfo?: SortOrder
     bankReference?: SortOrder
     rejectionReason?: SortOrder
+    requestedByUserId?: SortOrder
+    payoutSource?: SortOrder
     reviewedBy?: SortOrder
     reviewedAt?: SortOrder
     paidAt?: SortOrder
@@ -23936,6 +23997,8 @@ export namespace Prisma {
     payoutInfo?: SortOrder
     bankReference?: SortOrder
     rejectionReason?: SortOrder
+    requestedByUserId?: SortOrder
+    payoutSource?: SortOrder
     reviewedBy?: SortOrder
     reviewedAt?: SortOrder
     paidAt?: SortOrder
@@ -23953,6 +24016,8 @@ export namespace Prisma {
     payoutInfo?: SortOrder
     bankReference?: SortOrder
     rejectionReason?: SortOrder
+    requestedByUserId?: SortOrder
+    payoutSource?: SortOrder
     reviewedBy?: SortOrder
     reviewedAt?: SortOrder
     paidAt?: SortOrder
@@ -26589,6 +26654,8 @@ export namespace Prisma {
     payoutInfo: string
     bankReference?: string | null
     rejectionReason?: string | null
+    requestedByUserId?: string | null
+    payoutSource?: string | null
     reviewedBy?: string | null
     reviewedAt?: Date | string | null
     paidAt?: Date | string | null
@@ -26605,6 +26672,8 @@ export namespace Prisma {
     payoutInfo: string
     bankReference?: string | null
     rejectionReason?: string | null
+    requestedByUserId?: string | null
+    payoutSource?: string | null
     reviewedBy?: string | null
     reviewedAt?: Date | string | null
     paidAt?: Date | string | null
@@ -26683,6 +26752,8 @@ export namespace Prisma {
     payoutInfo?: StringFilter<"WithdrawalRequest"> | string
     bankReference?: StringNullableFilter<"WithdrawalRequest"> | string | null
     rejectionReason?: StringNullableFilter<"WithdrawalRequest"> | string | null
+    requestedByUserId?: StringNullableFilter<"WithdrawalRequest"> | string | null
+    payoutSource?: StringNullableFilter<"WithdrawalRequest"> | string | null
     reviewedBy?: StringNullableFilter<"WithdrawalRequest"> | string | null
     reviewedAt?: DateTimeNullableFilter<"WithdrawalRequest"> | Date | string | null
     paidAt?: DateTimeNullableFilter<"WithdrawalRequest"> | Date | string | null
@@ -28623,6 +28694,8 @@ export namespace Prisma {
     payoutInfo: string
     bankReference?: string | null
     rejectionReason?: string | null
+    requestedByUserId?: string | null
+    payoutSource?: string | null
     reviewedBy?: string | null
     reviewedAt?: Date | string | null
     paidAt?: Date | string | null
@@ -28675,6 +28748,8 @@ export namespace Prisma {
     payoutInfo?: StringFieldUpdateOperationsInput | string
     bankReference?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    requestedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutSource?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -28691,6 +28766,8 @@ export namespace Prisma {
     payoutInfo?: StringFieldUpdateOperationsInput | string
     bankReference?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    requestedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutSource?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -28707,6 +28784,8 @@ export namespace Prisma {
     payoutInfo?: StringFieldUpdateOperationsInput | string
     bankReference?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    requestedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    payoutSource?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
     reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null

@@ -13,6 +13,7 @@
  *    repeated confirmed PT no-shows (PT_REPEATED_NO_SHOW, full refund) — and the server re-counts
  *    that second one itself rather than believing the app.
  */
+import { fullName } from "../../lib/personName";
 
 export type ContractRow = {
   id: string;
@@ -45,8 +46,7 @@ export type ContractRow = {
 
 function ptNameOf(raw: any): string {
   const p = raw?.ptProfile ?? raw?.pt ?? {};
-  const name = [p?.firstName, p?.lastName].filter(Boolean).join(" ").trim();
-  return name || "Huấn luyện viên";
+  return fullName(p, "Huấn luyện viên");
 }
 
 export function normalizeContract(raw: any): ContractRow {

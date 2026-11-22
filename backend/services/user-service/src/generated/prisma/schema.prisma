@@ -589,6 +589,10 @@ enum NotificationEventType {
   // notes or body data. DECIDED is gated by the existing ptFeedbackEnabled preference.
   PLAN_REVIEW_REQUESTED
   PLAN_REVIEW_DECIDED
+  // Gym front desk (owner decision, SECURITY_BUSINESS_HANDOFF item 6) - sent by gym-service via POST /internal/notifications (entity GYM_BRANCH, entityId = the branch id)
+  // to the branch's owner and the managers scoped to it when a receptionist/manager requests a check-in EXCEPTION that someone with approve rights must decide before the
+  // day ends. A duty notice tied to the recipient's own branch, so no opt-out preference entry.
+  GYM_CHECKIN_EXCEPTION_REQUESTED
 }
 
 enum NotificationEntityType {

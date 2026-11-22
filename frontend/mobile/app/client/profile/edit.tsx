@@ -25,6 +25,7 @@ import {
 } from "../../../src/features/profile/profile";
 import { unitPreferencesFromProfile, weightLabel } from "../../../src/features/profile/unitPreferences";
 import { cmFromFeetInches, feetInchesFromCm, kgFromLb, lbFromKg } from "../../../src/utils/units";
+import { fullName } from "../../../src/lib/personName";
 
 /**
  * CL-05 — "Chỉnh sửa hồ sơ": web's ProfilePage form (the design only drew the hub). Same fields,
@@ -96,7 +97,7 @@ export default function EditProfileScreen() {
     photo.mutate({ uri: a.uri, name: a.fileName ?? `avatar.${type.includes("png") ? "png" : "jpg"}`, type });
   };
 
-  const name = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Bạn";
+  const name = fullName(user, "Bạn");
   const dobError = form ? dateOfBirthError(form.dateOfBirth) : null;
   const back = () => (router.canGoBack() ? router.back() : router.replace("/client/profile"));
 

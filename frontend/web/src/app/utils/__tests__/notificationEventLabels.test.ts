@@ -19,6 +19,9 @@ describe("notificationEventLabel", () => {
     assert.equal(notificationEventLabel("GYM_BRANCH_TEMPORARILY_CLOSED"), "Chi nhánh tạm đóng cửa");
     assert.equal(notificationEventLabel("GYM_BRANCH_REOPENED"), "Chi nhánh mở cửa lại");
   });
+  it("labels the front-desk exception notice (item 6)", () => {
+    assert.equal(notificationEventLabel("GYM_CHECKIN_EXCEPTION_REQUESTED"), "Ngoại lệ check-in chờ duyệt");
+  });
   it("unknown / empty type falls back to a Vietnamese word, never the code", () => {
     assert.equal(notificationEventLabel("SOMETHING_NEW"), "Thông báo");
     assert.equal(notificationEventLabel(undefined), "Thông báo");
@@ -37,6 +40,7 @@ describe("ptTermsVersionLabel", () => {
   it("turns the internal id into a readable label", () => {
     assert.equal(ptTermsVersionLabel("2026-10-pt-draft-6"), "Điều khoản PT tháng 10/2026 (bản nháp 6)");
     assert.equal(ptTermsVersionLabel("2026-10-pt-2"), "Điều khoản PT tháng 10/2026 (bản 2)");
+    assert.equal(ptTermsVersionLabel("2026-11-pt-v2"), "Điều khoản PT tháng 11/2026 (bản 2)");
   });
   it("never echoes an unknown id", () => {
     assert.equal(ptTermsVersionLabel("abc-xyz"), "Bản điều khoản PT");

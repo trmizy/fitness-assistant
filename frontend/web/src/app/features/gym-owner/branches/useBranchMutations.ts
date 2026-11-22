@@ -60,14 +60,18 @@ export function useSetOperationalStatus(id: string) {
   });
 }
 
-/** Withdrawal request: only creates a PENDING row, no money moves until Gymini confirms a real bank transfer. */
+/**
+ * Withdrawal request: only creates a PENDING row, no money moves until Gymini confirms a real bank transfer. The destination is
+ * always the partner's REGISTERED payout account (the server picks it; no payout field is sent, 409 PAYOUT_ACCOUNT_REQUIRED if none).
+ */
 export function useRequestWithdrawal(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (v: { amount: string; payoutInfo: string }) => gymService.requestGymWithdrawal(id, v.amount, v.payoutInfo),
+    mutationFn: (v: { amount: string }) => gymService.requestGymWithdrawal(id, v.amount),
     onSuccess: () => {
       toast.success("Đã gửi yêu cầu rút tiền");
       queryClient.invalidateQueries({ queryKey: ["owned-gym-withdrawals", id] });
+      queryClient.invalidateQueries({ queryKey: ["owned-gym-wallet", id] });
     },
   });
 }

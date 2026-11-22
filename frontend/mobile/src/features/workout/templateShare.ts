@@ -3,6 +3,8 @@
  * coaching relationship to the user, in either direction (their clients when they coach, their PT when
  * they are coached). Same source as web TemplatesPage — never an open list of users, never a typed id.
  */
+import { fullName } from "../../lib/personName";
+
 export type ShareContact = { userId: string; name: string; role: "client" | "pt" };
 
 function rows(raw: unknown): any[] {
@@ -12,7 +14,7 @@ function rows(raw: unknown): any[] {
 }
 
 function personName(p: any, fallback: string): string {
-  return [p?.firstName, p?.lastName].filter(Boolean).join(" ").trim() || p?.email || fallback;
+  return fullName(p) || p?.email || fallback;
 }
 
 export function shareContacts(ptContracts: unknown, clientContracts: unknown, selfId?: string | null): ShareContact[] {

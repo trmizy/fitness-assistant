@@ -189,6 +189,13 @@ model WithdrawalRequest {
   /// manually, outside this system.
   bankReference   String?                 @map("bank_reference")
   rejectionReason String?                 @map("rejection_reason")
+  /// WHO asked for the withdrawal (the authenticated user at the time). Null on rows created before this column
+  /// existed and on PT / CLIENT rows (there the requester IS ownerId). For a GYM wallet ownerId is a branch id, so
+  /// this is the only record of which person asked. Never taken from a request body.
+  requestedByUserId String?               @map("requested_by_user_id")
+  /// Where payoutInfo came from. REGISTERED_ACCOUNT = the server copied it from the partner's registered payout
+  /// account (GYM withdrawals, owner decision 22/11/2026); null = the requester typed it (PT / CLIENT, old rows).
+  payoutSource    String?                 @map("payout_source")
   reviewedBy      String?                 @map("reviewed_by")
   reviewedAt      DateTime?               @map("reviewed_at")
   paidAt          DateTime?               @map("paid_at")

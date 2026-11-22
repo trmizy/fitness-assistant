@@ -3,6 +3,7 @@
  * message lists, what to call a conversation partner, and the Vietnamese text of a failed send.
  * Kept free of React so it runs under `node --test`.
  */
+import { fullName } from "./fullName";
 
 /** Same ceiling as chat-service's sendMessageSchema. */
 export const CHAT_MESSAGE_MAX_LENGTH = 5000;
@@ -71,10 +72,7 @@ export function chatRoleLabel(role: string | null | undefined): string {
 
 /** The partner's name, or their role when the account has no name (a gym owner signed up without one). */
 export function chatPartnerName(partner: Partner): string {
-  const full = [partner?.firstName, partner?.lastName]
-    .map((part) => (part ?? "").trim())
-    .filter(Boolean)
-    .join(" ");
+  const full = fullName(partner);
   if (full) return full;
   return partner?.role ? chatRoleLabel(partner.role) : "Người dùng";
 }

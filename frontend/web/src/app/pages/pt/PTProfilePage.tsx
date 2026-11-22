@@ -15,6 +15,7 @@ import {
 } from "../../services/api";
 import { ptApplicationService } from "../../services/ptApplicationService";
 import { CollaborationPanel } from "../../components/gym/CollaborationPanel";
+import { fullName } from "../../utils/fullName";
 
 type TrainingLoc = {
   id: string;
@@ -206,8 +207,7 @@ export function PTProfilePage() {
     queryFn: () => contractService.getEarnings(),
   });
 
-  const displayName =
-    `${myProfile?.profile?.firstName ?? ""} ${myProfile?.profile?.lastName ?? ""}`.trim();
+  const displayName = fullName(myProfile?.profile);
   // The application owns this list; `UserProfile.specialties` is a denormalized copy written by
   // pt_application.repository's "Sync search fields to UserProfile" step so discovery can filter
   // on it, and it goes stale whenever the application changed without a draft save (live example

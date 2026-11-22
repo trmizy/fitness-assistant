@@ -13,11 +13,13 @@ import type {
 import { DateSlotPicker, type DateSlotValue } from "../../components/booking/DateSlotPicker";
 import { Modal, ModalTitle } from "../../components/ui/Modal";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
-import { confirmedSessionsOnDate, ptBlockDayNotice, ptCancelNotice } from "./ptCancelNotice";
+import { confirmedSessionsOnDate, ptBlockDayNotice, ptCancelDoneMessage, ptCancelNotice } from "./ptCancelNotice";
 import { useNavigate } from "react-router";
 import { sessionsToClose, sessionWhenLabel } from "./sessionsToClose";
 import { formatDateTimeVi } from "../../utils/contractGymOptions"; // "19:00 25/11/2026" - the PT-11 fix: date shown, no seconds
 import { fullName } from "../../utils/fullName";
+import { rescheduleBlockedReason, rescheduleErrorMessage, rescheduleSubmitHint } from "../../utils/reschedule";
+import { useAcceptedMoves } from "../../hooks/useAcceptedMoves";
 
 // Mirrors booking.service.ts's own NO_SHOW_GRACE_MINUTES default (env-overridable server-side,
 // so this can drift by a few minutes from whatever the server actually enforces — harmless:
@@ -167,6 +169,8 @@ export function PTSchedulePage() {
     queryKey: ["sessions-upcoming"],
     queryFn: () => sessionService.getMyUpcoming(),
   });
+  // Moves already used per session (history read up front), so "đã dời 2 lần" is known before the form is filled.
+  const acceptedMovesFor = useAcceptedMoves(upcomingSessions as Session[]);
 
   // Money-flow plan 4.3: sessions a client reported this PT as a no-show for. A separate,
   // time-unfiltered query — these are already in the past, so they never appear in
@@ -261,10 +265,10 @@ export function PTSchedulePage() {
   });
 
   const cancelSessionMut = useMutation({
-    mutationFn: (id: string) =>
+    mutationFn: ({ id }: { id: string; status: string }) =>
       sessionService.cancelSession(id, "PT hủy buổi tập"),
-    onSuccess: () => {
-      toast.success("Đã hủy buổi tập");
+    onSuccess: (_data, vars) => {
+      toast.success(ptCancelDoneMessage(vars.status));
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
     },
     onError: (err: any) => toast.error(err?.response?.data?.error || "Thao tác không thành công"),
@@ -300,17 +304,40 @@ export function PTSchedulePage() {
   const [rescheduleTarget, setRescheduleTarget] = useState<Session | null>(null);
   const [rescheduleSlot, setRescheduleSlot] = useState<DateSlotValue | null>(null);
   const [rescheduleReason, setRescheduleReason] = useState("");
+  // The server's own reason for refusing, kept inside the modal (the toast alone vanishes in seconds).
+  const [rescheduleError, setRescheduleError] = useState<string | null>(null);
   const requestRescheduleMut = useMutation({
     mutationFn: ({ id, proposedStartAt, proposedEndAt, reason }: { id: string; proposedStartAt: string; proposedEndAt: string; reason: string }) =>
       sessionService.requestReschedule(id, proposedStartAt, proposedEndAt, reason),
+    onMutate: () => setRescheduleError(null),
     onSuccess: () => {
       toast.success("Đã gửi yêu cầu dời lịch — chờ khách xác nhận");
       setRescheduleTarget(null);
       setRescheduleSlot(null);
       setRescheduleReason("");
+      setRescheduleError(null);
+      queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
+      queryClient.invalidateQueries({ queryKey: ["session-reschedule-history"] });
+    },
+    onError: (err: any) => {
+      const message = rescheduleErrorMessage(err, "Không thể gửi yêu cầu dời lịch");
+      setRescheduleError(message);
+      toast.error(message);
+      // A refusal usually means the list is stale (the client proposed meanwhile, a move was used): reload it.
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error || "Không thể gửi yêu cầu dời lịch"),
+  });
+
+  // The PT withdraws their own open proposal (confirmed in a dialog first; server: proposer only, only while PENDING).
+  const [withdrawRequestId, setWithdrawRequestId] = useState<string | null>(null);
+  const withdrawMut = useMutation({
+    mutationFn: (requestId: string) => sessionService.cancelReschedule(requestId),
+    onSuccess: () => toast.success("Đã rút lại đề nghị dời lịch — buổi giữ nguyên giờ cũ"),
+    onError: (err: any) => toast.error(rescheduleErrorMessage(err, "Không thể rút lại đề nghị")),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
+      queryClient.invalidateQueries({ queryKey: ["session-reschedule-history"] });
+    },
   });
 
   // Money-flow plan 4.3 — PT responds to a client's no-show report.
@@ -732,8 +759,7 @@ export function PTSchedulePage() {
                               session (server rejects a second one anyway with a 409 — no
                               point letting the PT hit it) and inside the ≥12h cutoff
                               requestReschedule itself enforces. */}
-                          {(!s.rescheduleRequests || s.rescheduleRequests.length === 0) &&
-                            new Date(s.scheduledStartAt).getTime() - Date.now() >= 12 * 60 * 60 * 1000 && (
+                          {!rescheduleBlockedReason(s, { viewer: "PT", acceptedMoves: acceptedMovesFor(s.id) }) && (
                               <button
                                 onClick={() => setRescheduleTarget(s)}
                                 className="flex items-center gap-1 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
@@ -752,13 +778,33 @@ export function PTSchedulePage() {
                         </>
                       )}
                     </div>
+                    {/* "Đề xuất dời lịch" is simply absent when the session cannot be moved - say why (an open proposal is explained by its own card below). */}
+                    {s.status === "CONFIRMED" && (!s.rescheduleRequests || s.rescheduleRequests.length === 0) &&
+                      rescheduleBlockedReason(s, { viewer: "PT", acceptedMoves: acceptedMovesFor(s.id) }) && (
+                        <p className="mt-2 text-xs text-zinc-500" data-testid="reschedule-blocked-reason">
+                          Chưa dời lịch được: {rescheduleBlockedReason(s, { viewer: "PT", acceptedMoves: acceptedMovesFor(s.id) })}
+                        </p>
+                      )}
                     {/* Money-flow plan 3.3: gate on the pending-request list, not a session
                         status — the session stays CONFIRMED while a proposal is pending. */}
                     {s.rescheduleRequests && s.rescheduleRequests.length > 0 && (
                       <div className="mt-2 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
                         {s.rescheduleRequests[0].requestedBy === "PT" ? (
-                          <div className="text-amber-400 font-medium">
-                            Bạn đã gửi yêu cầu dời lịch sang {formatDateTimeVi(s.rescheduleRequests[0].proposedStartAt)}. Đang chờ khách xác nhận.
+                          <div className="flex flex-col gap-2">
+                            <div className="text-amber-400 font-medium">
+                              Bạn đã gửi yêu cầu dời lịch sang {formatDateTimeVi(s.rescheduleRequests[0].proposedStartAt)}. Đang chờ khách xác nhận.
+                            </div>
+                            <div>
+                              <button
+                                type="button"
+                                data-testid="withdraw-reschedule"
+                                onClick={() => setWithdrawRequestId(s.rescheduleRequests![0].id)}
+                                disabled={withdrawMut.isPending}
+                                className="min-h-9 px-3 py-1.5 border border-amber-500/40 text-amber-300 hover:bg-amber-500/10 text-xs font-bold rounded-lg transition-colors"
+                              >
+                                Rút lại đề nghị
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <div className="flex flex-col gap-2">
@@ -1033,10 +1079,26 @@ export function PTSchedulePage() {
         </div>
       )}
 
+      <ConfirmDialog
+        open={!!withdrawRequestId}
+        onOpenChange={(o) => !o && setWithdrawRequestId(null)}
+        title="Rút lại đề nghị dời lịch?"
+        description="Buổi tập giữ nguyên giờ cũ. Bạn có thể gửi một đề nghị mới sau."
+        confirmLabel="Rút lại"
+        cancelLabel="Không"
+        onConfirm={() => {
+          if (withdrawRequestId) withdrawMut.mutate(withdrawRequestId);
+          setWithdrawRequestId(null);
+        }}
+      />
+
       {/* ─── PT ĐỀ XUẤT DỜI LỊCH ─── */}
       <Modal
         open={!!(rescheduleTarget)}
-        onClose={() => setRescheduleTarget(null)}
+        onClose={() => {
+          setRescheduleTarget(null);
+          setRescheduleError(null);
+        }}
         closeOnBackdrop={false}
         placement="sheet"
         data-testid="pt-reschedule-modal"
@@ -1053,7 +1115,10 @@ export function PTSchedulePage() {
               <DateSlotPicker
                 ptUserId={rescheduleTarget.ptUserId}
                 value={rescheduleSlot}
-                onChange={setRescheduleSlot}
+                onChange={(v) => {
+                  setRescheduleSlot(v);
+                  setRescheduleError(null);
+                }}
               />
               <div>
                 <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Lý do dời lịch</label>
@@ -1066,6 +1131,20 @@ export function PTSchedulePage() {
                 />
               </div>
             </div>
+            {rescheduleError && (
+              <div
+                role="alert"
+                data-testid="reschedule-error"
+                className="mx-5 mb-3 shrink-0 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300"
+              >
+                {rescheduleError}
+              </div>
+            )}
+            {rescheduleSubmitHint({ dateStr: rescheduleSlot?.dateStr, slot: rescheduleSlot?.slot, reason: rescheduleReason }) && (
+              <p className="px-5 pb-2 shrink-0 text-center text-xs text-zinc-500" data-testid="reschedule-submit-hint">
+                {rescheduleSubmitHint({ dateStr: rescheduleSlot?.dateStr, slot: rescheduleSlot?.slot, reason: rescheduleReason })}
+              </p>
+            )}
             <div className="p-5 border-t border-white/10 flex gap-3 shrink-0 bg-white/5 backdrop-blur-md">
               <button
                 type="button"
@@ -1073,6 +1152,7 @@ export function PTSchedulePage() {
                   setRescheduleTarget(null);
                   setRescheduleSlot(null);
                   setRescheduleReason("");
+                  setRescheduleError(null);
                 }}
                 className="min-h-10 flex-1 py-2.5 border border-white/10 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors"
               >
@@ -1110,7 +1190,7 @@ export function PTSchedulePage() {
         confirmLabel="Huỷ buổi"
         cancelLabel="Không"
         onConfirm={() => {
-          if (cancelTarget) cancelSessionMut.mutate(cancelTarget.id);
+          if (cancelTarget) cancelSessionMut.mutate({ id: cancelTarget.id, status: cancelTarget.status });
           setCancelTarget(null);
         }}
       />
