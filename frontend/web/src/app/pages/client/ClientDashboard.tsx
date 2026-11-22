@@ -23,6 +23,7 @@ import {
 } from "../../services/api";
 import { bodyCompVerdict, goalDisplayName, type Verdict, type VerdictInput } from "../../utils/goalVerdict";
 import { PageSkeleton } from "../../components/layout/PageSkeleton";
+import { listDataState, DASHBOARD_ERROR_TEXT } from "../../utils/dashboardDataState";
 import { MedalIcon as Award, BellIcon as Bell, BrainIcon as Brain, CalendarIcon as Calendar, CaretRightIcon as ChevronRight, BarbellIcon as Dumbbell, FlameIcon as Flame, CircleNotchIcon as Loader2, ChatTextIcon as MessageSquare, TargetIcon as Target, TrendUpIcon as TrendingUp, UploadSimpleIcon as Upload, ScalesIcon as Scale, PersonSimpleIcon as PersonSimple, ArrowUpIcon as ArrowUp, ArrowDownIcon as ArrowDown, MinusIcon as Minus, InfoIcon as Info } from "@phosphor-icons/react";
 
 import { GoalCoherenceBanner } from "../../components/GoalCoherenceBanner";
@@ -124,10 +125,13 @@ export function ClientDashboard() {
     enabled: !!user?.id,
   });
 
-  const { data: inbodyHistory = [], isLoading: inbodyLoading } = useQuery({
+  // R1: keep the whole query so a failed request is never mistaken for "no InBody yet".
+  const inbodyQuery = useQuery({
     queryKey: ["inbody-history"],
     queryFn: inbodyService.getHistory,
   });
+  const inbodyLoading = inbodyQuery.isLoading;
+  const inbodyHistory: any[] = Array.isArray(inbodyQuery.data) ? inbodyQuery.data : [];
 
   const sortedInBodyHistory = useMemo(
     () =>
@@ -143,10 +147,12 @@ export function ClientDashboard() {
     [inbodyHistory],
   );
 
-  const { data: workoutHistory = [], isLoading: workoutLoading } = useQuery({
+  const workoutQuery = useQuery({
     queryKey: ["workout-history"],
     queryFn: () => workoutService.getHistory(1, 4),
   });
+  const workoutLoading = workoutQuery.isLoading;
+  const workoutHistory = workoutQuery.data ?? [];
 
   // "Buổi tập · 30 ngày qua" must count the real 30-day window. It used to be
   // workoutHistory.length — the 4-row page above — so the tile could never pass 4.
@@ -154,11 +160,13 @@ export function ClientDashboard() {
   monthAgo.setDate(monthAgo.getDate() - 30);
   const tomorrow = new Date(todayStart);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const { data: monthWorkouts, isLoading: monthLoading } = useQuery({
+  const monthQuery = useQuery({
     queryKey: ["workout-history", "30d", toDateInputValue(monthAgo)],
     queryFn: () =>
       workoutService.getInRange(toDateInputValue(monthAgo), toDateInputValue(tomorrow)),
   });
+  const monthWorkouts = monthQuery.data;
+  const monthLoading = monthQuery.isLoading;
 
   const { data: currentProgram = null, isLoading: programLoading } = useQuery({
     queryKey: ["current-workout-program"],
@@ -328,14 +336,16 @@ export function ClientDashboard() {
   //    1) next session  2) body metrics (+ D4 verdict)  3) trends  4) shortcuts  5) food  6) history.
   const card = "rounded-2xl border border-zinc-800/80 bg-zinc-950/85 backdrop-blur-md";
   const fmtNum = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v.toLocaleString("vi-VN", { maximumFractionDigits: 1 }) : null);
-  const hasInBody = sortedInBodyHistory.length > 0;
+  const bodyState = listDataState(inbodyQuery);
+  const recentState = listDataState(workoutQuery);
+  const monthState = listDataState(monthQuery);
   const lastMeasured = latest ? parseInBodyMeasurementDate(latest) : null;
   const lastMeasuredLabel = lastMeasured && !Number.isNaN(lastMeasured.getTime()) ? lastMeasured.toLocaleDateString("vi-VN") : null;
   const tiles = [
     { key: "weight", label: "Cân nặng", icon: Scale, value: fmtNum(latest?.weight), unit: "kg", change: prev ? `${calcChange(latest?.weight, prev?.weight)} kg` : null, verdict: kpis[0]?.verdict },
     { key: "muscle", label: "Cơ bắp", icon: PersonSimple, value: fmtNum(latest?.muscleMass), unit: "kg", change: prev ? `${calcChange(latest?.muscleMass, prev?.muscleMass)} kg` : null, verdict: kpis[1]?.verdict },
     { key: "fat", label: "Mỡ cơ thể", icon: Flame, value: fmtNum(latest?.bodyFatPct), unit: "%", change: prev ? `${calcChange(latest?.bodyFatPct, prev?.bodyFatPct)}%` : null, verdict: kpis[2]?.verdict },
-    { key: "sessions", label: "Buổi tập", icon: Dumbbell, value: Array.isArray(monthWorkouts) ? String(monthWorkouts.length) : null, unit: "", change: "trong 30 ngày qua", verdict: undefined },
+    { key: "sessions", label: "Buổi tập", icon: Dumbbell, value: monthState === "error" ? "—" : Array.isArray(monthWorkouts) ? String(monthWorkouts.length) : null, unit: "", change: monthState === "error" ? "Không tải được" : "trong 30 ngày qua", verdict: undefined },
   ];
   const shortcuts = [
     { label: "Nhật ký tập", icon: Dumbbell, to: "/client/workout" },
@@ -419,22 +429,36 @@ export function ClientDashboard() {
       <section aria-labelledby="dash-body" className="space-y-3">
         <div className="flex items-end justify-between gap-3">
           <h2 id="dash-body" className="text-sm font-semibold text-zinc-200">Chỉ số cơ thể</h2>
-          <button
+          {bodyState !== "error" && <button
             type="button"
             onClick={() => navigate("/client/inbody")}
             className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-green-400 transition-colors hover:bg-zinc-900 hover:text-green-300"
           >
             <Upload className="h-3.5 w-3.5" aria-hidden />
             Tải InBody
-          </button>
+          </button>}
         </div>
-        {!hasInBody && (
+        {bodyState === "empty" && (
           <p className="rounded-xl border border-zinc-800/80 bg-zinc-950/85 px-4 py-3 text-sm text-zinc-300 backdrop-blur-md">
             Chưa có kết quả InBody. Tải phiếu lên để theo dõi cân nặng, khối cơ và tỷ lệ mỡ.
           </p>
         )}
+        {bodyState === "error" && (
+          <div role="alert" data-testid="dash-body-error" className="flex flex-col gap-3 rounded-xl border border-st-warning-border bg-st-warning-bg px-4 py-3 text-sm text-st-warning sm:flex-row sm:items-center sm:justify-between">
+            <p>{DASHBOARD_ERROR_TEXT.body}</p>
+            <button
+              type="button"
+              onClick={() => inbodyQuery.refetch()}
+              disabled={inbodyQuery.isFetching}
+              className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg border border-current px-4 text-sm font-semibold disabled:opacity-60"
+            >
+              {inbodyQuery.isFetching ? DASHBOARD_ERROR_TEXT.retrying : DASHBOARD_ERROR_TEXT.retry}
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {tiles.map((t) => (
+          {/* On a load error the three InBody tiles are hidden: no "Chưa có", no fake 0. */}
+          {tiles.filter((t) => bodyState !== "error" || t.key === "sessions").map((t) => (
             <div key={t.key} className={`${card} flex flex-col p-4`}>
               <div className="flex items-center gap-2 text-xs font-medium text-zinc-400">
                 <t.icon className="h-4 w-4 text-zinc-500" aria-hidden />
@@ -545,7 +569,19 @@ export function ClientDashboard() {
               Xem tất cả
             </button>
           </div>
-          {recent.length > 0 ? (
+          {recentState === "error" ? (
+            <div role="alert" data-testid="dash-recent-error" className="flex flex-col items-center gap-3 px-4 py-6 text-center text-sm text-st-warning">
+              <p>{DASHBOARD_ERROR_TEXT.workouts}</p>
+              <button
+                type="button"
+                onClick={() => workoutQuery.refetch()}
+                disabled={workoutQuery.isFetching}
+                className="inline-flex min-h-10 items-center rounded-lg border border-current px-4 font-semibold disabled:opacity-60"
+              >
+                {workoutQuery.isFetching ? DASHBOARD_ERROR_TEXT.retrying : DASHBOARD_ERROR_TEXT.retry}
+              </button>
+            </div>
+          ) : recent.length > 0 ? (
             <ul className="divide-y divide-zinc-800/60">
               {recent.map((w: any, i: number) => (
                 <li key={w.id ?? i} className="flex items-center justify-between gap-3 px-4 py-3">
@@ -576,6 +612,8 @@ export function ClientDashboard() {
               <li className="rounded-lg bg-zinc-900/80 px-3 py-2">Cân nặng hiện tại của bạn là {fmtNum(latest.weight) ?? latest.weight} kg. Tiếp tục theo dõi sau mỗi lần đo.</li>
               <li className="rounded-lg bg-zinc-900/80 px-3 py-2">Khối cơ hiện tại {fmtNum(latest.muscleMass) ?? latest.muscleMass} kg. Bổ sung đủ đạm theo mục tiêu dinh dưỡng của bạn.</li>
             </ul>
+          ) : bodyState === "error" ? (
+            <p className="mt-3 text-sm text-zinc-400">Gợi ý sẽ hiện khi tải được chỉ số cơ thể.</p>
           ) : (
             <p className="mt-3 text-sm text-zinc-400">Tải kết quả InBody để nhận gợi ý theo chỉ số của bạn.</p>
           )}
