@@ -687,7 +687,19 @@
      were ~2:1 on light cards (InBody "12.5 kg", the "Thấp" badge). Same remap rule as N14T-11. */
   :root[data-theme="light"] .text-orange-300,
   :root[data-theme="light"] .text-orange-400 {
-    color: #c2410c;
+    color: #9a3412; /* #c2410c was only 4.21:1 on orange-tinted chips (muscle-heatmap range); this is 5.95:1 */
+  }
+
+  /* D-U1 follow-up: more dark-theme shades that only became measurable without the photo (light, 390px):
+     red-300/rose-300 error text + sort chip (1.5-1.8:1), amber-100/200 warning text (1.0-1.1:1). */
+  :root[data-theme="light"] .text-red-300,
+  :root[data-theme="light"] .text-rose-300 {
+    color: #be123c; /* 5.2-6.0:1 on the tinted and plain light surfaces */
+  }
+
+  :root[data-theme="light"] .text-amber-100,
+  :root[data-theme="light"] .text-amber-200 {
+    color: #92400e; /* 6.28:1 on the amber-tinted banner (#b45309 would be 4.45:1) */
   }
 
   :root[data-theme="light"] .text-sky-300,
