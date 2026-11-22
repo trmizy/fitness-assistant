@@ -317,7 +317,7 @@ if (-not $Execute) {
     Write-Host "3) Apply resolved target state to the stack (only the requested flag(s) change, everything else preserved)"
     if ($Backend) {
         Write-Host ""
-        Write-Host "8) Suspend DEV-pausable schedules (capture state to $SchedulerStateFile first), then stop Aurora"
+        Write-Host "8) Suspend DEV-pausable schedules (capture state to $SchedulerStateFile first), then stop Aurora, then close the app Lambdas (lib/lambda-gate.cjs close)"
     }
     Write-Host ""
     Write-Host "9) Run the cost leak check separately: ./scripts/aws/dev-cost-leak-check.ps1"
@@ -405,6 +405,19 @@ if ($Backend) {
     if (-not $auroraOk) {
         Write-Host "HARD STOP: Aurora did not reach stopped." -ForegroundColor Red
         exit 1
+    }
+
+    # Only after Aurora is really stopped (a failed stop must not leave the app closed while its database is up): reject every request
+    # to the HTTP-facing Lambdas at once instead of letting each one wait 30 s for a database that is not there (billed + error alarms,
+    # 2026-11-22). Warning-only: closing the gate is a cost/noise measure and must never turn a finished shutdown into a failure.
+    # dev-start -Backend opens it again right after Aurora is AVAILABLE.
+    Write-Host ""
+    Write-Host "2d) Closing the app Lambdas (reserved concurrency 0) until the next dev-start -Backend..."
+    try {
+        node (Join-Path $PSScriptRoot "lib/lambda-gate.cjs") close
+        if ($LASTEXITCODE -ne 0) { throw "lambda-gate exit $LASTEXITCODE" }
+    } catch {
+        Write-Host "   WARNING: Lambda gate was NOT fully closed: $($_.Exception.Message). Requests will reach the Lambdas and time out (small cost). Retry: node scripts/aws/lib/lambda-gate.cjs close" -ForegroundColor Yellow
     }
 }
 

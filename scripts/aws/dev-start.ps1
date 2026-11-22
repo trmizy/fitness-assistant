@@ -363,7 +363,7 @@ if (-not $Execute) {
     }
     if ($Backend) {
         Write-Host ""
-        Write-Host "8) Start Aurora, wait available, then restore schedules from $SchedulerStateFile"
+        Write-Host "8) Start Aurora, wait available, open the app Lambdas (lib/lambda-gate.cjs open), then restore schedules from $SchedulerStateFile"
     }
     Write-Host ""
     if ($AutoStopHours -gt 0) {
@@ -614,6 +614,16 @@ if ($Backend) {
         exit 1
     }
     Write-Host "   Aurora AVAILABLE." -ForegroundColor Green
+
+    # dev-stop -Backend closes the app Lambdas (reserved concurrency 0). Open them now that the database is up. A failure here is loud:
+    # the app would stay unreachable.
+    Write-Host ""
+    Write-Host "8a) Opening the app Lambdas (removing reserved concurrency 0 set by dev-stop)..."
+    node (Join-Path $PSScriptRoot "lib/lambda-gate.cjs") open
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "HARD STOP: could not open the app Lambdas - every request is rejected until this works. Retry: node scripts/aws/lib/lambda-gate.cjs open" -ForegroundColor Red
+        exit 1
+    }
 
     Write-Host ""
     Write-Host "8b) Restoring EventBridge schedules to their pre-freeze state..."
