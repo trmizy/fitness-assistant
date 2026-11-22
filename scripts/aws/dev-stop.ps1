@@ -68,7 +68,8 @@ param(
     [switch]$Backend,
     [switch]$Secrets,
     [switch]$Execute,
-    [switch]$FromAutoStop
+    [switch]$FromAutoStop,
+    [switch]$NoCostReport
 )
 
 $ErrorActionPreference = "Stop"
@@ -548,6 +549,18 @@ if ($Secrets) {
 
 Write-Host ""
 Write-Host "6) Run the cost leak check separately: ./scripts/aws/dev-cost-leak-check.ps1"
+
+# 7) Cost report: month-to-date + last days + top services (ONE Cost Explorer call, ~0.01 USD; skip with -NoCostReport).
+# Informational only - a failure here is one line and never changes the exit state of a finished shutdown.
+if (-not $NoCostReport) {
+    Write-Host ""
+    Write-Host "7) Cost report (AWS Cost Explorer, ~0.01 USD per run; -NoCostReport to skip)"
+    try {
+        node (Join-Path $PSScriptRoot "lib/cost-report.cjs")
+    } catch {
+        Write-Host "   cost report unavailable: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+}
 
 Write-Host ""
 Write-Host "Real execution complete." -ForegroundColor Green
