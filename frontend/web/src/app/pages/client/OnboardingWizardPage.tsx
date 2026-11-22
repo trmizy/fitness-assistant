@@ -477,7 +477,10 @@ export function OnboardingWizardPage() {
   }
 
   return (
-    <div className="w-full min-w-0 p-4 md:p-6 max-w-3xl mx-auto space-y-5">
+    // Hybrid (Codex idea, owner D3 prototype): two columns from lg — intro + stepper on the left (sticky), the step on
+    // the right. All logic, the step icons and the body-metric goal suggestion are unchanged; no photo (D-U1 neutral).
+    <div className="w-full min-w-0 p-4 md:p-6 max-w-3xl lg:max-w-6xl mx-auto space-y-5 lg:space-y-0 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)] lg:items-start lg:gap-6">
+      <aside className="space-y-5 lg:sticky lg:top-6">
       <div>
         <h1 className="text-zinc-100 flex items-center gap-2">
           <Dumbbell className="w-5 h-5 text-green-400" /> Thiết lập hồ sơ tập luyện
@@ -489,7 +492,9 @@ export function OnboardingWizardPage() {
 
       {/* Stepper */}
       <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
-        <div className="flex items-start gap-1 overflow-x-auto pb-1">
+        {/* Hybrid: from lg the stepper lives in the narrow left column, where six horizontal steps cut off
+            "Xem lại"; there it becomes a vertical list with full labels. Below lg it is unchanged. */}
+        <div className="flex items-start gap-1 overflow-x-auto pb-1 lg:flex-col lg:items-stretch lg:overflow-visible lg:pb-0">
           {steps.map((s, i) => {
             const done = i < currentStep;
             const active = i === currentStep;
@@ -500,7 +505,7 @@ export function OnboardingWizardPage() {
                 onClick={() => i < currentStep && setCurrentStep(i)}
                 aria-current={i === currentStep ? "step" : undefined}
                 aria-label={s.label}
-                className="flex flex-col items-center gap-1.5 flex-1 min-w-0 sm:min-w-[60px] group transition-all"
+                className="flex flex-col items-center gap-1.5 flex-1 min-w-0 sm:min-w-[60px] group transition-all lg:flex-row lg:flex-none lg:gap-3 lg:rounded-lg lg:px-2 lg:py-1.5 lg:text-left"
               >
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all flex-shrink-0 ${
@@ -514,7 +519,7 @@ export function OnboardingWizardPage() {
                   {done ? <Check className="w-4 h-4" /> : <s.icon className="w-4 h-4" />}
                 </div>
                 <span
-                  className={`text-[10px] text-center leading-tight hidden sm:block font-medium ${active ? "text-green-400" : done ? "text-zinc-400" : "text-zinc-600"}`}
+                  className={`text-[10px] text-center leading-tight hidden sm:block font-medium lg:text-sm lg:text-left ${active ? "text-green-400" : done ? "text-zinc-400" : "text-zinc-600"}`}
                 >
                   {s.label}
                 </span>
@@ -533,6 +538,7 @@ export function OnboardingWizardPage() {
           />
         </div>
       </div>
+      </aside>
 
       <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden flex flex-col min-h-[360px]">
         <div className="p-4 sm:p-6 flex-1 min-w-0 space-y-5">
