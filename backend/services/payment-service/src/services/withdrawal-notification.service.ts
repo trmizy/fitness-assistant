@@ -14,8 +14,13 @@ import { formatVnd } from './refund-notification.service';
  *
  * Rules (same as the refund notice): sent AFTER the money transaction committed, never inside it; best-effort and never throws, so a
  * user-service / auth-service outage cannot fail or roll back an approve / pay / reject; the caller sends one notice per REAL state
- * transition only (a replayed approve/pay/reject that changes nothing sends nothing). A GYM owner's request has no user id here
- * (ownerId is the gym id) so it gets no user notice.
+ * transition only (a replayed approve/pay/reject that changes nothing sends nothing).
+ *
+ * GYM withdrawals (Gym Owner handoff item 3, owner decision 22/11/2026): ownerId is a BRANCH id, not a user, so the recipients are
+ * resolved at notice time: gym-service (`POST /internal/gyms/:gymId/withdrawal-recipients`, the only service that knows who owns a
+ * branch's partner) returns the ACTIVE OWNER account(s) of the branch's partner, and the person who made the request
+ * (withdrawal_requests.requested_by_user_id, when known) is added. Resolved after the decision, not frozen at request time, so an
+ * owner added or removed in between is handled. If gym-service cannot answer, the requester alone is told (best-effort, never throws).
  */
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
@@ -32,20 +37,83 @@ export interface WithdrawalNoticeRequest {
   ownerType: string;
   ownerId: string;
   amount: { toString(): string };
+  /** Who asked (null on rows created before the column existed and on PT / CLIENT rows). */
+  requestedByUserId?: string | null;
+}
+
+export interface GymWithdrawalRecipients {
+  userIds: string[];
+  gymName: string | null;
 }
 
 const ADMIN_LINK = '/admin/finance/withdrawals';
 const OWNER_LINK: Record<string, string> = { CLIENT: '/client/wallet', PT: '/pt/wallet' };
+/** A GYM request's wallet lives on the branch page (the withdrawal panel + history), the same page the branch lifecycle notices open. */
+export function gymWithdrawalLink(gymId: string): string {
+  return `/gym-owner/gyms/${gymId}`;
+}
 
-export function withdrawalOwnerNoticeText(kind: 'APPROVED' | 'PAID' | 'REJECTED', amount: string, extra?: { reason?: string | null; bankReference?: string | null }): string {
+export function withdrawalOwnerNoticeText(
+  kind: 'APPROVED' | 'PAID' | 'REJECTED',
+  amount: string,
+  extra?: { reason?: string | null; bankReference?: string | null; ownerType?: string; gymName?: string | null },
+): string {
   const amt = formatVnd(amount);
-  if (kind === 'APPROVED') return `Yêu cầu rút ${amt} của bạn đã được duyệt. Khoản tiền đang được chuẩn bị chuyển vào tài khoản nhận của bạn.`;
+  const gym = extra?.ownerType === 'GYM';
+  const name = extra?.gymName?.trim();
+  const whose = gym ? `của chi nhánh${name ? ` ${name}` : ''}` : 'của bạn';
+  if (kind === 'APPROVED') {
+    return `Yêu cầu rút ${amt} ${whose} đã được duyệt. Khoản tiền đang được chuẩn bị chuyển vào ${gym ? 'tài khoản nhận đã đăng ký của đối tác' : 'tài khoản nhận của bạn'}.`;
+  }
   if (kind === 'PAID') {
     const ref = extra?.bankReference?.trim();
-    return `Yêu cầu rút ${amt} của bạn đã được chuyển khoản${ref ? ` (mã tham chiếu ${ref})` : ''}.`;
+    return `Yêu cầu rút ${amt} ${whose} đã được chuyển khoản${ref ? ` (mã tham chiếu ${ref})` : ''}.`;
   }
   const reason = extra?.reason?.trim();
-  return `Yêu cầu rút ${amt} của bạn đã bị từ chối${reason ? `. Lý do: ${reason.slice(0, 200)}` : ''}. Số tiền vẫn nằm trong ví của bạn.`;
+  return `Yêu cầu rút ${amt} ${whose} đã bị từ chối${reason ? `. Lý do: ${reason.slice(0, 200)}` : ''}. Số tiền vẫn nằm trong ví ${gym ? 'chi nhánh' : 'của bạn'}.`;
+}
+
+/** The people to tell about a GYM withdrawal: the branch's partner owner(s) from gym-service plus the requester, once each. Pure, unit-tested. */
+export function mergeGymRecipients(ownerUserIds: ReadonlyArray<unknown>, requestedByUserId?: string | null): string[] {
+  const out = new Set<string>();
+  for (const id of ownerUserIds) if (typeof id === 'string' && id.trim()) out.add(id.trim());
+  if (typeof requestedByUserId === 'string' && requestedByUserId.trim()) out.add(requestedByUserId.trim());
+  return [...out];
+}
+
+/** gym-service's answer (read-only POST, secret-gated) for who owns this branch's partner. Throws on any transport / shape failure. */
+async function fetchGymRecipients(gymId: string): Promise<GymWithdrawalRecipients> {
+  const res = await postServiceJson({
+    service: 'gym',
+    path: `/internal/gyms/${encodeURIComponent(gymId)}/withdrawal-recipients`,
+    headers: { 'x-service-secret': INTERNAL_SERVICE_SECRET },
+    timeoutMs: SEND_TIMEOUT_MS,
+    body: {},
+  });
+  const data = res?.data;
+  return {
+    userIds: Array.isArray(data?.userIds) ? data.userIds.filter((x: unknown): x is string => typeof x === 'string') : [],
+    gymName: typeof data?.gymName === 'string' ? data.gymName : null,
+  };
+}
+
+export type GymRecipientResolver = (gymId: string) => Promise<GymWithdrawalRecipients>;
+
+/**
+ * Recipients + branch name for a GYM request. A resolver failure is logged and degrades to the requester alone (never throws), so the
+ * decision the admin just made is never affected and a known requester is still told.
+ */
+export async function resolveGymWithdrawalRecipients(
+  request: Pick<WithdrawalNoticeRequest, 'id' | 'ownerId' | 'requestedByUserId'>,
+  resolver: GymRecipientResolver = fetchGymRecipients,
+): Promise<{ userIds: string[]; gymName: string | null }> {
+  let owners: GymWithdrawalRecipients = { userIds: [], gymName: null };
+  try {
+    owners = await resolver(request.ownerId);
+  } catch (e) {
+    logger.warn({ err: (e as Error).message, withdrawalId: request.id }, '[Withdrawal] could not resolve the gym owners (the requester alone is told)');
+  }
+  return { userIds: mergeGymRecipients(owners.userIds, request.requestedByUserId), gymName: owners.gymName };
 }
 
 export function withdrawalAdminNoticeText(amount: string): string {
@@ -53,6 +121,12 @@ export function withdrawalAdminNoticeText(amount: string): string {
 }
 
 const inFlight = new Set<Promise<unknown>>();
+
+/** Test hook: replaces how the gym owners are looked up (default: gym-service). Pass null to restore. */
+let gymRecipientResolver: GymRecipientResolver | undefined;
+export function setGymRecipientResolverForTest(resolver: GymRecipientResolver | null): void {
+  gymRecipientResolver = resolver ?? undefined;
+}
 
 /** Test hook: resolves once every notice started so far has finished (sent or failed). */
 export async function drainWithdrawalNotifications(): Promise<void> {
@@ -86,8 +160,20 @@ export async function notifyWithdrawalOwner(
   request: WithdrawalNoticeRequest,
   extra?: { reason?: string | null; bankReference?: string | null },
 ): Promise<void> {
+  if (request.ownerType === 'GYM') {
+    await bestEffort(`gym-owners:${kind}`, request.id, async () => {
+      const { userIds, gymName } = await resolveGymWithdrawalRecipients(request, gymRecipientResolver);
+      const text = withdrawalOwnerNoticeText(kind, request.amount.toString(), { ...extra, ownerType: 'GYM', gymName });
+      const results = await Promise.allSettled(
+        userIds.map((userId) => send({ userId, text, eventType: `WITHDRAWAL_${kind}`, entityId: request.id, link: gymWithdrawalLink(request.ownerId) })),
+      );
+      const failed = results.filter((r) => r.status === 'rejected').length;
+      if (failed > 0) logger.warn({ withdrawalId: request.id, failed, total: userIds.length }, '[Withdrawal] some gym-owner notifications could not be sent');
+    });
+    return;
+  }
   const link = OWNER_LINK[request.ownerType];
-  if (!link) return; // GYM: ownerId is a gym id, not a user
+  if (!link) return;
   await bestEffort(`owner:${kind}`, request.id, () =>
     send({
       userId: request.ownerId,

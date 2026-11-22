@@ -356,7 +356,7 @@ export function CheckinExceptionsPanel({ gymId }: { gymId: string }) {
 
   const decide = useMutation({
     mutationFn: async () => gymService.decideCheckinException(gymId, openId!, verb, reason.trim()),
-    onSuccess: () => { setOpenId(null); setReason(""); setErr(""); qc.invalidateQueries({ queryKey: ["frontdesk-exceptions", uid, gymId] }); },
+    onSuccess: () => { setOpenId(null); setReason(""); setErr(""); qc.invalidateQueries({ queryKey: ["frontdesk-exceptions", uid, gymId] }); qc.invalidateQueries({ queryKey: ["frontdesk-pending-exception-count"] }); },
     onError: (e) => setErr(assistedErrorText(e)),
   });
 

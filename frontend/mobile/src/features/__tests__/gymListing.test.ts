@@ -627,6 +627,14 @@ describe("notifications: gym listing events", () => {
   });
 });
 
+describe("notifications: front-desk exception request (item 6)", () => {
+  it("has its own Vietnamese title (warning) and opens the front desk screen, whatever branch the web link names", () => {
+    assert.equal(notificationMeta("GYM_CHECKIN_EXCEPTION_REQUESTED").title, "Ngoại lệ check-in chờ duyệt");
+    assert.equal(notificationMeta("GYM_CHECKIN_EXCEPTION_REQUESTED").tone, "warning");
+    assert.equal(notificationRoute({ link: `/gym-owner/front-desk?gymId=${G}`, entityType: "GYM_BRANCH" }), "/gym-owner/front-desk");
+  });
+});
+
 describe("notifications: gym branch lifecycle events (FIX3-NOTIFY)", () => {
   const types = ["GYM_BRANCH_SUSPENDED", "GYM_BRANCH_SUSPENSION_LIFTED", "GYM_BRANCH_TEMPORARILY_CLOSED", "GYM_BRANCH_REOPENED"];
 

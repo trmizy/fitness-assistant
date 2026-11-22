@@ -8,6 +8,7 @@ import internalMembershipRoutes from './internal-memberships.routes';
 import internalStatusRoutes from './internal-status.routes';
 import { createInternalDisputeEvidenceRoutes } from './internal-dispute-evidence.routes';
 import { internalDisputeEvidenceRepository } from '../repositories/internal-dispute-evidence.repository';
+import { withdrawalRecipientsForGym } from '../services/withdrawal-recipients.service';
 
 const router = Router();
 router.use(serviceSecretMiddleware);
@@ -30,6 +31,20 @@ router.post(
       }
       throw e;
     }
+  }),
+);
+
+// Gym Owner handoff item 3: payment-service asks who to notify (bell) about a GYM withdrawal decision. READ-ONLY (a POST only so it can travel the same
+// service-call helper as refund-guard). 200 { userIds, gymName }, 404 when the branch does not exist. userIds = the branch's owner + the partner's ACTIVE OWNER accounts.
+router.post(
+  '/gyms/:gymId/withdrawal-recipients',
+  asyncHandler(async (req, res) => {
+    const out = await withdrawalRecipientsForGym(String(req.params.gymId));
+    if (!out) {
+      res.status(404).json({ success: false, error: { code: 'GYM_NOT_FOUND', message: 'Gym not found' } });
+      return;
+    }
+    res.json({ success: true, data: out });
   }),
 );
 

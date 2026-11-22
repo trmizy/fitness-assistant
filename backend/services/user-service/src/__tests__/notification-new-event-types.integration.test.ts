@@ -52,6 +52,8 @@ const CASES: [eventType: string, entityType: string][] = [
   ["GYM_BRANCH_SUSPENSION_LIFTED", "GYM_BRANCH"],
   ["GYM_BRANCH_TEMPORARILY_CLOSED", "GYM_BRANCH"],
   ["GYM_BRANCH_REOPENED", "GYM_BRANCH"],
+  // item 6: gym-service front-desk exception request -> owner + scoped managers of the branch
+  ["GYM_CHECKIN_EXCEPTION_REQUESTED", "GYM_BRANCH"],
 ];
 
 test("every session-settlement / application-review notification type is stored", skipOpts, async () => {

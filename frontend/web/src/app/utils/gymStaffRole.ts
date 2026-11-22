@@ -91,3 +91,25 @@ export function canViewCollaborations(role: PartnerRole | undefined): boolean {
 export function canViewBrands(role: PartnerRole | undefined): boolean {
   return role === "OWNER" || role === "MANAGER" || role === "ACCOUNTANT";
 }
+
+/**
+ * Item 5 (Ngài chốt): MỘT nguồn sự thật cho nút GHI. Backend trả `permissions[]` của vai trò trong GET /owner/onboarding/status
+ * (gym-service partner-permissions.ts `permissionsOf`) và FE chỉ HỎI danh sách đó — không tự giữ bảng quyền thứ hai cho các nút ghi.
+ * Chưa biết vai trò, danh sách thiếu / sai kiểu / backend cũ chưa trả `permissions` → KHÔNG có quyền nào (fail-closed): chỉ làm nút ghi
+ * biến mất, trang vẫn xem được ở chế độ chỉ-đọc, và server vẫn là cổng thật.
+ */
+export type PartnerPermission =
+  | "staff.manage" | "brand.write" | "branch.write" | "branch.status.permanent" | "plan.write" | "collaboration.manage" | "finance.withdraw" | "listing.manage"
+  | "branch.view" | "brand.view" | "plan.view" | "membership.full" | "membership.sales" | "checkin.qr" | "checkin.list" | "ptCheckin.list" | "ptCheckin.today"
+  | "frontDesk.clients" | "member.search" | "checkin.assisted" | "checkin.exception.request" | "checkin.exception.approve" | "branch.status.temporary"
+  | "finance.wallet.view" | "finance.withdrawals.view" | "finance.export" | "finance.ptCommission.view";
+
+/** Danh sách quyền hợp lệ từ phản hồi server: không phải mảng → rỗng; phần tử không phải chuỗi bị bỏ. */
+export function normalizePermissions(value: unknown): readonly string[] {
+  return Array.isArray(value) ? value.filter((p): p is string => typeof p === "string") : [];
+}
+
+/** `role` phải là một vai trò đã biết VÀ `permissions` phải liệt kê đúng quyền đó. Mọi trường hợp khác → false. */
+export function hasPartnerPermission(role: unknown, permissions: unknown, permission: PartnerPermission): boolean {
+  return normalizePartnerRole(role) !== undefined && normalizePermissions(permissions).includes(permission);
+}

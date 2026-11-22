@@ -39,17 +39,22 @@ function timeToMinutes(t: string): number | null {
 export function StepOpeningHours({
   value,
   onChange,
+  readOnly = false,
 }: {
   value: GymOperatingHoursDay[];
   onChange: (next: GymOperatingHoursDay[]) => void;
+  /** Item 5: a viewer without `branch.write` (a MANAGER) sees the hours but cannot change them (the PUT is owner-only server-side). */
+  readOnly?: boolean;
 }) {
   const byDay = new Map(value.map((d) => [d.day, d]));
 
   function updateDay(day: WeekDay, patch: Partial<GymOperatingHoursDay>) {
+    if (readOnly) return;
     onChange(value.map((d) => (d.day === day ? { ...d, ...patch } : d)));
   }
 
   function applyMondayTo(days: WeekDay[]) {
+    if (readOnly) return;
     const monday = byDay.get("MONDAY");
     if (!monday) return;
     onChange(value.map((d) => (days.includes(d.day) ? { ...d, type: monday.type, openMinute: monday.openMinute, closeMinute: monday.closeMinute } : d)));
@@ -64,7 +69,7 @@ export function StepOpeningHours({
         <p className="text-sm text-zinc-500 mt-1">Đặt giờ mở/đóng cửa cho từng ngày trong tuần. Mỗi ngày chỉ một khung giờ liên tục.</p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      {!readOnly && <div className="flex flex-wrap gap-2">
         <button
           type="button"
           onClick={() => applyMondayTo(WEEKDAYS)}
@@ -79,7 +84,7 @@ export function StepOpeningHours({
         >
           Áp dụng giờ Thứ 2 cho tất cả các ngày
         </button>
-      </div>
+      </div>}
 
       <div className="space-y-2">
         {ALL_DAYS.map((day) => {
@@ -94,6 +99,7 @@ export function StepOpeningHours({
                   <button
                     key={opt.value}
                     type="button"
+                    disabled={readOnly}
                     onClick={() =>
                       updateDay(day, {
                         type: opt.value,
@@ -116,6 +122,7 @@ export function StepOpeningHours({
                   <input
                     aria-label={`${DAY_LABELS[day]} — giờ mở cửa`}
                     type="time"
+                    disabled={readOnly}
                     value={minutesToTime(row.openMinute)}
                     onChange={(e) => updateDay(day, { openMinute: timeToMinutes(e.target.value) })}
                     className="px-2.5 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
@@ -124,6 +131,7 @@ export function StepOpeningHours({
                   <input
                     aria-label={`${DAY_LABELS[day]} — giờ đóng cửa`}
                     type="time"
+                    disabled={readOnly}
                     value={minutesToTime(row.closeMinute)}
                     onChange={(e) => updateDay(day, { closeMinute: timeToMinutes(e.target.value) })}
                     className="px-2.5 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"

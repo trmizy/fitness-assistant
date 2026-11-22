@@ -143,6 +143,14 @@ export function notificationMeta(eventType: string | null): { title: string; ico
       return { title: "Chi nhánh tạm đóng cửa", icon: "alert", tone: "warning" };
     case "GYM_BRANCH_REOPENED":
       return { title: "Chi nhánh mở cửa lại", icon: "check", tone: "primary" };
+    // Front desk (item 6): a check-in exception request waits for the owner / manager to approve it (opens "Quầy lễ tân").
+    case "GYM_CHECKIN_EXCEPTION_REQUESTED":
+      return { title: "Ngoại lệ check-in chờ duyệt", icon: "alert", tone: "warning" };
+    // Plan review (PT <-> client): the client asked a PT to review a plan / the PT answered.
+    case "PLAN_REVIEW_REQUESTED":
+      return { title: "Yêu cầu duyệt kế hoạch", icon: "file", tone: "primary" };
+    case "PLAN_REVIEW_DECIDED":
+      return { title: "PT đã phản hồi kế hoạch", icon: "check", tone: "primary" };
     default:
       return { title: "Thông báo", icon: "bell", tone: "primary" };
   }
@@ -167,6 +175,8 @@ const LINK_MAP: Record<string, string> = {
   "/client/pt-application": "/client/profile/pt-application",
   // Listing Management (M1): the server links PT listing notifications to "/pt/listing".
   "/pt/listing": "/pt/listing",
+  // Front desk (item 6): gym-service links the exception notice to `/gym-owner/front-desk?gymId=<id>`; the mobile screen has its own branch switcher.
+  "/gym-owner/front-desk": "/gym-owner/front-desk",
 };
 
 /**

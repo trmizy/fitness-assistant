@@ -158,11 +158,11 @@ test('GYM via the internal proxy POST /internal/withdrawals/gym/:gymId: below th
   const gymId = randomUUID();
   await fund('GYM', gymId, '800000', 'test gym earnings');
 
-  const low = await post(`/internal/withdrawals/gym/${gymId}`, { amount: '9999', payoutInfo: 'Bank GYM' }, SERVICE_SECRET);
+  const low = await post(`/internal/withdrawals/gym/${gymId}`, { amount: '9999', payoutInfo: 'Bank GYM', payoutSource: 'REGISTERED_ACCOUNT', requestedByUserId: 'test-owner' }, SERVICE_SECRET);
   assert.equal(low.status, 400);
   assert.equal(low.json.error.code, 'WITHDRAWAL_BELOW_MINIMUM');
 
-  const ok = await post(`/internal/withdrawals/gym/${gymId}`, { amount: '10000', payoutInfo: 'Bank GYM' }, SERVICE_SECRET);
+  const ok = await post(`/internal/withdrawals/gym/${gymId}`, { amount: '10000', payoutInfo: 'Bank GYM', payoutSource: 'REGISTERED_ACCOUNT', requestedByUserId: 'test-owner' }, SERVICE_SECRET);
   assert.equal(ok.status, 201);
 });
 

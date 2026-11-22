@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { onboardingService } from '../services/onboarding.service';
 import { principalId } from '../middleware/partner-context.middleware';
+import { permissionsOf } from '../services/partner-permissions';
 
 function fail(res: Response, e: any) {
   res.status(e.status || 500).json({ success: false, error: { ...(typeof e.code === 'string' ? { code: e.code } : {}), message: e.message || 'Đã có lỗi xảy ra' } });
@@ -21,7 +22,7 @@ export const onboardingController = {
     if (req.partner!.isLegacy) {
       res.json({
         success: true,
-        data: { role: 'OWNER', steps: { password: true, contact: true, brand: true, payout: true, terms: true }, completed: true, currentStep: 5, partnerId: null, hasPartnerAccount: false, contactPhone: null },
+        data: { role: 'OWNER', permissions: permissionsOf('OWNER'), steps: { password: true, contact: true, brand: true, payout: true, terms: true }, completed: true, currentStep: 5, partnerId: null, hasPartnerAccount: false, contactPhone: null },
       });
       return;
     }

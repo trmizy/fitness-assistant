@@ -158,6 +158,8 @@ exports.Prisma.WithdrawalRequestScalarFieldEnum = {
   payoutInfo: 'payoutInfo',
   bankReference: 'bankReference',
   rejectionReason: 'rejectionReason',
+  requestedByUserId: 'requestedByUserId',
+  payoutSource: 'payoutSource',
   reviewedBy: 'reviewedBy',
   reviewedAt: 'reviewedAt',
   paidAt: 'paidAt',

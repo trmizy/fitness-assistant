@@ -4,7 +4,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
-  assistedErrorText, canConfirm, formatCodeInput, initialsOf, isFullCode, newRequestId, normalizeConfig, normalizeExceptions, normalizeMembers,
+  assistedErrorText, canConfirm, countPendingExceptions, formatCodeInput, initialsOf, isFullCode, newRequestId, normalizeConfig, normalizeExceptions, normalizeMembers,
 } from "../assistedCheckin";
 
 describe("assistedCheckin", () => {
@@ -84,5 +84,19 @@ describe("assistedCheckin", () => {
   it("initials", () => {
     assert.equal(initialsOf("Nguyễn Văn An"), "NA");
     assert.equal(initialsOf(""), "HV");
+  });
+});
+
+describe("countPendingExceptions (item 6 menu badge)", () => {
+  const row = (id: string, status: string, mine = false) => ({ id, status, mine });
+  it("sums PENDING exceptions the viewer can approve across branches and skips the viewer's own requests", () => {
+    const a = { canApprove: true, exceptions: [row("1", "PENDING"), row("2", "PENDING", true), row("3", "APPROVED"), row("4", "EXPIRED")] };
+    const b = { canApprove: true, exceptions: [row("5", "PENDING"), row("6", "REJECTED")] };
+    assert.equal(countPendingExceptions([a, b]), 2);
+  });
+  it("a viewer who cannot approve (receptionist) always counts 0; failed / malformed branch responses count 0", () => {
+    assert.equal(countPendingExceptions([{ canApprove: false, exceptions: [row("1", "PENDING")] }]), 0);
+    assert.equal(countPendingExceptions([null, undefined, "x", {}, { canApprove: true }]), 0);
+    assert.equal(countPendingExceptions([]), 0);
   });
 });
