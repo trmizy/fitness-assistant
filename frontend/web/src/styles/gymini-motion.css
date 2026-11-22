@@ -1,0 +1,47 @@
+/*
+ * GYMINI MOTION DESIGN SYSTEM — v0 (prototype, Gate A)
+ * ---------------------------------------------------------------------------
+ * Scale mirrors transitions.dev `_root.css` 1:1 (same values, same usage notes)
+ * but every name carries a `--g-` prefix. Reason (verified, not stylistic):
+ * Tailwind v4 owns `--ease-out` / `--ease-in-out` in its theme namespace; pasting
+ * transitions.dev's unprefixed `:root` block into Gymini would silently re-time
+ * every `ease-out` / `ease-in-out` utility in the app.
+ *
+ * Gymini-specific tokens (route, press, data) are product rules that win over the
+ * transitions.dev defaults: route change 180ms (brief: 160–220ms), not 250ms.
+ * Colours are NOT defined here — motion reads the existing theme.css tokens only.
+ */
+:root {
+  /* ── Durations (transitions.dev scale) ── */
+  --g-dur-stagger: 40ms;   /* per-item stagger offset */
+  --g-dur-micro: 80ms;     /* press, tooltip delay, shake segment */
+  --g-dur-quick: 150ms;    /* close / exit, text swap, tooltip in */
+  --g-dur-fast: 250ms;     /* dropdown/modal open, tabs sliding, icon swap */
+  --g-dur-medium: 350ms;   /* panel / drawer close, toast close */
+  --g-dur-slow: 400ms;     /* drawer open, skeleton → content reveal */
+  --g-dur-emphasis: 500ms; /* headline reveal, success check — marketing + milestones only */
+
+  /* ── Gymini product rules ── */
+  --g-dur-route: 180ms;    /* route change (in-band 160–220ms); exit is instant */
+  --g-dur-hover: 140ms;    /* colour/surface hover */
+  --g-dur-ops: 120ms;      /* Gym Owner / Admin: feedback only, never decorative */
+  --g-dist-route: 6px;     /* route rise */
+
+  /* ── Easings ── */
+  --g-ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1); /* enter, open, position change */
+  --g-ease-route: cubic-bezier(0.22, 0.61, 0.36, 1);   /* = current AppShell curve, kept */
+  --g-ease-in-out: ease-in-out;                        /* swaps, reveals */
+  --g-ease-exit: cubic-bezier(0.4, 0, 1, 1);           /* close: fast start, no overshoot */
+  --g-ease-linear: linear;                             /* shimmer, spinner */
+  --g-ease-pop: cubic-bezier(0.34, 1.36, 0.64, 1);     /* badge / success pop — rare */
+
+  /* ── Distances / scales / blur ── */
+  --g-dist-micro: 4px;
+  --g-dist-base: 8px;
+  --g-dist-medium: 12px;
+  --g-scale-modal: 0.96;
+  --g-scale-dropdown: 0.97;
+  --g-scale-press: 0.97;
+  --g-blur-small: 2px;
+  --g-blur-medium: 3px;
+}
