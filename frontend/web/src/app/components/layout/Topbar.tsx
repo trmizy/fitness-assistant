@@ -162,7 +162,7 @@ export function Topbar() {
           type="button"
           aria-label="Mở menu"
           aria-haspopup="dialog"
-          className="lg:hidden p-2.5 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
+          className="lg:hidden p-3 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
           onClick={() => setSidebarOpen(true)}
         >
           <Menu className="w-5 h-5" aria-hidden="true" />
@@ -438,7 +438,7 @@ export function Topbar() {
             {/* PT: workspace switcher in dropdown */}
             {isPT && (
               <div className="px-3 py-2 border-b border-zinc-800">
-                <p className="text-xs text-zinc-600 font-semibold uppercase tracking-wider mb-1.5 px-1">
+                <p className="text-xs text-zinc-600 font-semibold mb-1.5 px-1">
                   <AutoText>Chuyển chế độ</AutoText>
                 </p>
                 <div className="flex gap-1.5">

@@ -27,7 +27,7 @@ function Chips({ items }: { items: string[] }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">{title}</h4>
+      <h4 className="text-xs font-semibold text-zinc-500">{title}</h4>
       {children}
     </div>
   );

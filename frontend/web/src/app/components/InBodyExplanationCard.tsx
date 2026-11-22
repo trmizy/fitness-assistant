@@ -83,7 +83,7 @@ export function InBodyExplanationCard({ entryId, autoStart = false, title = "Gi�
               <div key={m.key} className={`rounded-lg border px-3 py-2 ${STATUS_CLASS[m.status]}`}>
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-xs opacity-80">{m.labelVi}</span>
-                  <span className="text-[10px] uppercase tracking-wide opacity-70">{m.source === "MEASURED" ? "Máy đo" : "Tính toán"}</span>
+                  <span className="text-[10px] opacity-70">{m.source === "MEASURED" ? "Máy đo" : "Tính toán"}</span>
                 </div>
                 <div className="text-sm font-bold">
                   {m.value}{m.unit ? ` ${m.unit}` : ""}{m.statusVi ? <span className="font-normal text-xs"> · {m.statusVi}</span> : null}
@@ -127,7 +127,7 @@ export function InBodyExplanationCard({ entryId, autoStart = false, title = "Gi�
 
           {result?.explanation ? (
             <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 space-y-2">
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">AI giải thích</p>
+              <p className="text-[10px] text-zinc-500 font-semibold">AI giải thích</p>
               {result.explanation.split(/\n+/).filter((l) => l.trim()).map((line, i) => (
                 <p key={i} className="text-xs text-zinc-300 leading-relaxed"><RichLine text={line} /></p>
               ))}

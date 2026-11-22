@@ -185,7 +185,7 @@ export function LoginPage() {
         </div>
 
         {/* ── Right panel: form ── */}
-        <div className="bg-zinc-900 p-8 sm:p-10 flex flex-col justify-center border-l border-zinc-800/60">
+        <div className="bg-zinc-900 p-6 sm:p-10 flex flex-col justify-center border-l border-zinc-800/60">
           {/* Mobile brand */}
           <AppLogo className="lg:hidden mb-6" imgClassName="h-16 w-32 object-left" />
 
@@ -207,17 +207,19 @@ export function LoginPage() {
           )}
 
           {error && (
-            <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center">
+            <div role="alert" className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4 mb-6">
+          <form onSubmit={handleLogin} className="space-y-4 mb-6" aria-busy={loading}>
             <div>
-              <label className="text-xs font-semibold text-zinc-400 mb-1.5 block uppercase tracking-wider">
+              <label htmlFor="login-email" className="text-xs font-semibold text-zinc-400 mb-1.5 block">
                 Địa chỉ email
               </label>
               <input
+                id="login-email"
+                autoComplete="username"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -228,7 +230,7 @@ export function LoginPage() {
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                <label htmlFor="login-password" className="text-xs font-semibold text-zinc-400">
                   Mật khẩu
                 </label>
                 <Link
@@ -240,6 +242,8 @@ export function LoginPage() {
               </div>
               <div className="relative">
                 <input
+                  id="login-password"
+                  autoComplete="current-password"
                   type={showPw ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -249,7 +253,8 @@ export function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                  aria-label={showPw ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-zinc-500 hover:text-zinc-300 transition-colors"
                 >
                   {showPw ? (
                     <EyeOff className="w-4 h-4" />
@@ -266,7 +271,7 @@ export function LoginPage() {
               className="w-full bg-green-500 hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-500/25 hover:shadow-green-500/40 hover:scale-[1.01] active:scale-[0.99]"
             >
               {loading ? "Đang đăng nhập..." : "Đăng nhập"}{" "}
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight aria-hidden="true" className="w-4 h-4" />
             </button>
           </form>
 
@@ -274,9 +279,18 @@ export function LoginPage() {
             Chưa có tài khoản?{" "}
             <Link
               to="/register"
-              className="text-green-400 font-semibold hover:text-green-300 transition-colors"
+              className="whitespace-nowrap text-green-400 font-semibold hover:text-green-300 transition-colors"
             >
               Tạo tài khoản
+            </Link>
+          </p>
+          {/* R2: on its own line — sharing the sign-up sentence made it wrap mid-phrase at 360–390px. */}
+          <p className="mt-2 text-center text-sm">
+            <Link
+              to="/gioi-thieu"
+              className="inline-flex min-h-6 items-center whitespace-nowrap text-zinc-400 font-semibold hover:text-zinc-200 transition-colors"
+            >
+              Tìm hiểu Gymini
             </Link>
           </p>
 
@@ -287,6 +301,8 @@ export function LoginPage() {
             <button
               type="button"
               onClick={() => setShowServer((v) => !v)}
+              aria-expanded={showServer}
+              aria-controls={showServer ? "login-server-panel" : undefined}
               className="mx-auto flex items-center gap-1.5 text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
             >
               <ServerCog className="w-3.5 h-3.5" /> Cấu hình máy chủ
@@ -294,7 +310,7 @@ export function LoginPage() {
             )}
 
             {canConfigureServer && showServer && (
-              <div className="mt-3 rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-3">
+              <div id="login-server-panel" className="mt-3 rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-3">
                 <label
                   htmlFor="server-url"
                   className="block text-[11px] font-semibold text-zinc-400 mb-1.5"
@@ -322,7 +338,7 @@ export function LoginPage() {
                   địa chỉ mặc định của bản build.
                 </p>
                 {serverUrlError && (
-                  <p className="text-[11px] text-red-400 mt-2">{serverUrlError}</p>
+                  <p role="alert" className="text-[11px] text-red-400 mt-2">{serverUrlError}</p>
                 )}
                 <button
                   type="button"

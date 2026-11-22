@@ -19,6 +19,11 @@ describe("notificationEventLabel", () => {
     assert.equal(notificationEventLabel("GYM_BRANCH_TEMPORARILY_CLOSED"), "Chi nhánh tạm đóng cửa");
     assert.equal(notificationEventLabel("GYM_BRANCH_REOPENED"), "Chi nhánh mở cửa lại");
   });
+  it("labels the two Plan Review events; the decision label stays neutral (approve / changes / reject)", () => {
+    assert.equal(notificationEventLabel("PLAN_REVIEW_REQUESTED"), "Yêu cầu duyệt kế hoạch tập");
+    assert.equal(notificationEventLabel("PLAN_REVIEW_DECIDED"), "PT đã phản hồi kế hoạch tập");
+    assert.doesNotMatch(notificationEventLabel("PLAN_REVIEW_DECIDED"), /duyệt|chấp nhận|từ chối/i);
+  });
   it("unknown / empty type falls back to a Vietnamese word, never the code", () => {
     assert.equal(notificationEventLabel("SOMETHING_NEW"), "Thông báo");
     assert.equal(notificationEventLabel(undefined), "Thông báo");

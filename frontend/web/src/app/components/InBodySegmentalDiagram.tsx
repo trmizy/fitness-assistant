@@ -114,7 +114,7 @@ export function InBodySegmentalDiagram({
   return (
     <div>
       <h4
-        className={`text-xs font-bold uppercase tracking-wider mb-3 ${
+        className={`text-xs font-bold mb-3 ${
           tone === "muscle" ? "text-green-400/80" : "text-amber-400/80"
         }`}
       >

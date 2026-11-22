@@ -108,7 +108,7 @@ export function ExerciseLibraryPage() {
         />
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="flex gap-2 overflow-x-auto g-scroll-x pb-1">
         <select
           data-testid="exercise-library-filter-bodypart"
           value={bodyPart}

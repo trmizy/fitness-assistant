@@ -71,7 +71,7 @@ export function DayMacroQuickEstimate({ dateStr, variant = "page" }: { dateStr?:
     className="rounded-2xl border border-orange-500/30 bg-gradient-to-br from-orange-500/10 via-zinc-900/60 to-zinc-900/40 p-4 shadow-lg shadow-orange-500/5">
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
-        <h2 className={`font-bold text-zinc-100 ${compact ? "text-base" : "text-lg"}`}>🍽️ Hôm nay bạn đã ăn gì?</h2>
+        <h2 className={`font-bold text-zinc-100 ${compact ? "text-base" : "text-lg"}`}>Hôm nay bạn đã ăn gì?</h2>
         <p className="mt-0.5 text-xs text-zinc-400">Gõ như đang kể chuyện — mình tính calo, đạm, tinh bột, chất béo và so với mục tiêu của bạn.</p>
       </div>
       {!compact && <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}

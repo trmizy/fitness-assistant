@@ -212,7 +212,7 @@ export function EquipmentPicker({
         {grouped.map(({ category, items }) => (
           <div key={category} data-testid={`equipment-category-${category}`}>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+              <span className="text-[11px] font-semibold text-zinc-400">
                 {CATEGORY_LABELS[category] ?? category}
               </span>
               <div className="flex items-center gap-2">

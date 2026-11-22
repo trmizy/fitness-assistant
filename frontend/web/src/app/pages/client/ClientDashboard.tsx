@@ -17,9 +17,14 @@ import {
   profileService,
   inbodyService,
   workoutService,
+  fitnessRoadmapService,
+  trainingCycleService,
   type WorkoutScheduleRecord,
 } from "../../services/api";
-import { MedalIcon as Award, BellIcon as Bell, BrainIcon as Brain, CalendarIcon as Calendar, CaretRightIcon as ChevronRight, BarbellIcon as Dumbbell, FlameIcon as Flame, CircleNotchIcon as Loader2, ChatTextIcon as MessageSquare, TargetIcon as Target, TrendDownIcon as TrendingDown, TrendUpIcon as TrendingUp, UploadSimpleIcon as Upload } from "@phosphor-icons/react";
+import { bodyCompVerdict, goalDisplayName, type Verdict, type VerdictInput } from "../../utils/goalVerdict";
+import { PageSkeleton } from "../../components/layout/PageSkeleton";
+import { listDataState, DASHBOARD_ERROR_TEXT } from "../../utils/dashboardDataState";
+import { MedalIcon as Award, BellIcon as Bell, BrainIcon as Brain, CalendarIcon as Calendar, CaretRightIcon as ChevronRight, BarbellIcon as Dumbbell, FlameIcon as Flame, CircleNotchIcon as Loader2, ChatTextIcon as MessageSquare, TargetIcon as Target, TrendUpIcon as TrendingUp, UploadSimpleIcon as Upload, ScalesIcon as Scale, PersonSimpleIcon as PersonSimple, ArrowUpIcon as ArrowUp, ArrowDownIcon as ArrowDown, MinusIcon as Minus, InfoIcon as Info } from "@phosphor-icons/react";
 
 import { GoalCoherenceBanner } from "../../components/GoalCoherenceBanner";
 const tooltipStyle = {
@@ -91,7 +96,7 @@ const goalLabels: Record<string, string> = {
   WEIGHT_LOSS: "Giảm mỡ",
   MUSCLE_GAIN: "Tăng cơ",
   MAINTENANCE: "Duy trì",
-  ATHLETIC_PERFORMANCE: "Cải thiện sức khỏe",
+  ATHLETIC_PERFORMANCE: "Nâng cao thể lực", // aligned with utils/labels.vi.ts GOAL_VI (was "Cải thiện sức khỏe")
 };
 
 export function ClientDashboard() {
@@ -120,10 +125,13 @@ export function ClientDashboard() {
     enabled: !!user?.id,
   });
 
-  const { data: inbodyHistory = [], isLoading: inbodyLoading } = useQuery({
+  // R1: keep the whole query so a failed request is never mistaken for "no InBody yet".
+  const inbodyQuery = useQuery({
     queryKey: ["inbody-history"],
     queryFn: inbodyService.getHistory,
   });
+  const inbodyLoading = inbodyQuery.isLoading;
+  const inbodyHistory: any[] = Array.isArray(inbodyQuery.data) ? inbodyQuery.data : [];
 
   const sortedInBodyHistory = useMemo(
     () =>
@@ -139,10 +147,12 @@ export function ClientDashboard() {
     [inbodyHistory],
   );
 
-  const { data: workoutHistory = [], isLoading: workoutLoading } = useQuery({
+  const workoutQuery = useQuery({
     queryKey: ["workout-history"],
     queryFn: () => workoutService.getHistory(1, 4),
   });
+  const workoutLoading = workoutQuery.isLoading;
+  const workoutHistory = workoutQuery.data ?? [];
 
   // "Buổi tập · 30 ngày qua" must count the real 30-day window. It used to be
   // workoutHistory.length — the 4-row page above — so the tile could never pass 4.
@@ -150,11 +160,13 @@ export function ClientDashboard() {
   monthAgo.setDate(monthAgo.getDate() - 30);
   const tomorrow = new Date(todayStart);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const { data: monthWorkouts, isLoading: monthLoading } = useQuery({
+  const monthQuery = useQuery({
     queryKey: ["workout-history", "30d", toDateInputValue(monthAgo)],
     queryFn: () =>
       workoutService.getInRange(toDateInputValue(monthAgo), toDateInputValue(tomorrow)),
   });
+  const monthWorkouts = monthQuery.data;
+  const monthLoading = monthQuery.isLoading;
 
   const { data: currentProgram = null, isLoading: programLoading } = useQuery({
     queryKey: ["current-workout-program"],
@@ -171,6 +183,21 @@ export function ClientDashboard() {
         }),
     });
 
+  // D4: the goal the backend actually uses (roadmap phase decides, else profile) + the latest
+  // backend cycle verdict. Same query key as GoalCoherenceBanner, so it is one request.
+  const { data: coherence } = useQuery({
+    queryKey: ["goal-coherence"],
+    queryFn: fitnessRoadmapService.getGoalCoherence,
+    enabled: !!user?.id,
+    staleTime: 60_000,
+  });
+  const { data: recentCycles } = useQuery({
+    queryKey: ["training-cycles", "recent", 5],
+    queryFn: () => trainingCycleService.list(5),
+    enabled: !!user?.id,
+    staleTime: 60_000,
+  });
+
   const firstName = givenName(user);
   const isLoading =
     profileLoading ||
@@ -181,11 +208,9 @@ export function ClientDashboard() {
     schedulesLoading;
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
-      </div>
-    );
+    // Frontend 2.0: the same skeleton the route chunk shows, so data loading continues the
+    // loading state instead of swapping skeleton → spinner → content.
+    return <PageSkeleton />;
   }
 
   const latest = sortedInBodyHistory[0];
@@ -223,12 +248,27 @@ export function ClientDashboard() {
   const nextProgramDay = nextSchedule?.programDay;
   const nextExerciseCount = nextProgramDay?.exercises?.length ?? 0;
 
-  const kpis = [
+  // D4: the backend's cycle verdict for the effective goal. Most recent cycle that has signals.
+  const signalCycle = (Array.isArray(recentCycles) ? recentCycles : []).find((c) => c?.summary?.progressSignals);
+  const ps = signalCycle?.summary?.progressSignals;
+  const verdictInput: VerdictInput = {
+    effectiveGoal: coherence?.effectiveGoal?.goal ?? null,
+    phaseType: coherence?.effectiveGoal?.phaseType ?? null,
+    coherent: coherence ? coherence.coherent !== false : true,
+    cycle: signalCycle && ps
+      ? { goal: signalCycle.goal ?? null, bodyComposition: ps.signalBreakdown?.bodyComposition ?? null, deltaSMM: ps.deltaSMM ?? null, deltaPBF: ps.deltaPBF ?? null }
+      : null,
+  };
+  const goalName = goalDisplayName(verdictInput) ?? (profile?.goal ? goalLabels[profile.goal] : null);
+
+  const kpis: Array<{ label: string; value: string; change: string; icon: React.ElementType; color: string; bg: string; iconBg: string; border: string; verdict?: Verdict }> = [
     {
       label: "Cân nặng",
       value: latest?.weight ? `${latest.weight} kg` : "---",
       change: calcChange(latest?.weight, prev?.weight) + (prev ? " kg" : ""),
-      icon: TrendingDown,
+      // D4: a static "trending down" icon read as "down is good"; weight is never judged.
+      icon: Scale,
+      verdict: bodyCompVerdict("weight", verdictInput),
       color: "text-green-400",
       bg: "bg-green-500/10",
       iconBg: "bg-green-500/15",
@@ -239,7 +279,8 @@ export function ClientDashboard() {
       value: latest?.muscleMass ? `${latest.muscleMass} kg` : "---",
       change:
         calcChange(latest?.muscleMass, prev?.muscleMass) + (prev ? " kg" : ""),
-      icon: TrendingUp,
+      icon: PersonSimple,
+      verdict: bodyCompVerdict("muscle", verdictInput),
       color: "text-blue-400",
       bg: "bg-blue-500/10",
       iconBg: "bg-blue-500/15",
@@ -251,6 +292,7 @@ export function ClientDashboard() {
       change:
         calcChange(latest?.bodyFatPct, prev?.bodyFatPct) + (prev ? "%" : ""),
       icon: Flame,
+      verdict: bodyCompVerdict("fat", verdictInput),
       color: "text-orange-400",
       bg: "bg-orange-500/10",
       iconBg: "bg-orange-500/15",
@@ -288,413 +330,295 @@ export function ClientDashboard() {
     value: h.muscleMass,
   }));
 
-  const quickActions = [
-    {
-      label: "Tải InBody",
-      icon: Upload,
-      to: "/client/inbody",
-      color:
-        "bg-green-500/80 hover:bg-green-400/90 text-zinc-100 border border-green-500/50 backdrop-blur-md",
-    },
-    {
-      label: "Nhật ký tập",
-      icon: Dumbbell,
-      to: "/client/workout",
-      color:
-        "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-100 border border-zinc-700/50 backdrop-blur-md",
-    },
-    {
-      label: "Xem kế hoạch",
-      icon: Brain,
-      to: "/client/plans",
-      color:
-        "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-100 border border-zinc-700/50 backdrop-blur-md",
-    },
-    {
-      label: "Nhắn tin PT",
-      icon: MessageSquare,
-      to: "/client/chat",
-      color:
-        "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-100 border border-zinc-700/50 backdrop-blur-md",
-    },
-    {
-      label: "Đặt lịch",
-      icon: Calendar,
-      to: "/client/booking",
-      color:
-        "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-100 border border-zinc-700/50 backdrop-blur-md",
-    },
+  // ── Frontend 2.0 sample screen (visual polish groups: consistency/contrast, micro-interactions,
+  //    hierarchy, UI states, mobile). Data, queries, navigation targets and D4 logic unchanged;
+  //    only hierarchy and presentation. Order = what a client opens the app for:
+  //    1) next session  2) body metrics (+ D4 verdict)  3) trends  4) shortcuts  5) food  6) history.
+  const card = "rounded-2xl border border-zinc-800/80 bg-zinc-950/85 backdrop-blur-md";
+  const fmtNum = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v.toLocaleString("vi-VN", { maximumFractionDigits: 1 }) : null);
+  const bodyState = listDataState(inbodyQuery);
+  const recentState = listDataState(workoutQuery);
+  const monthState = listDataState(monthQuery);
+  const lastMeasured = latest ? parseInBodyMeasurementDate(latest) : null;
+  const lastMeasuredLabel = lastMeasured && !Number.isNaN(lastMeasured.getTime()) ? lastMeasured.toLocaleDateString("vi-VN") : null;
+  const tiles = [
+    { key: "weight", label: "Cân nặng", icon: Scale, value: fmtNum(latest?.weight), unit: "kg", change: prev ? `${calcChange(latest?.weight, prev?.weight)} kg` : null, verdict: kpis[0]?.verdict },
+    { key: "muscle", label: "Cơ bắp", icon: PersonSimple, value: fmtNum(latest?.muscleMass), unit: "kg", change: prev ? `${calcChange(latest?.muscleMass, prev?.muscleMass)} kg` : null, verdict: kpis[1]?.verdict },
+    { key: "fat", label: "Mỡ cơ thể", icon: Flame, value: fmtNum(latest?.bodyFatPct), unit: "%", change: prev ? `${calcChange(latest?.bodyFatPct, prev?.bodyFatPct)}%` : null, verdict: kpis[2]?.verdict },
+    { key: "sessions", label: "Buổi tập", icon: Dumbbell, value: monthState === "error" ? "—" : Array.isArray(monthWorkouts) ? String(monthWorkouts.length) : null, unit: "", change: monthState === "error" ? "Không tải được" : "trong 30 ngày qua", verdict: undefined },
   ];
+  const shortcuts = [
+    { label: "Nhật ký tập", icon: Dumbbell, to: "/client/workout" },
+    { label: "Kế hoạch", icon: Brain, to: "/client/plans" },
+    { label: "Nhắn tin PT", icon: MessageSquare, to: "/client/chat" },
+    { label: "Đặt lịch", icon: Calendar, to: "/client/booking" },
+  ];
+  const recent = Array.isArray(workoutHistory) ? workoutHistory.slice(0, 5) : [];
 
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto">
+    <div className="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-6">
       <GoalCoherenceBanner />
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-zinc-50 drop-shadow-md">Xin chào, {firstName}</h1>
-          <p className="text-zinc-300 text-sm mt-0.5 drop-shadow-sm">
-            {today} · Phiên hoạt động
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 bg-green-500/10 text-green-400 text-xs font-semibold rounded-full flex items-center gap-1.5 border border-green-500/20">
-            <div className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
-            Thành viên
-          </span>
-          <span className="px-3 py-1 bg-zinc-800 text-zinc-400 text-xs font-semibold rounded-full flex items-center gap-1.5 border border-zinc-700/50">
-            <Target className="w-3 h-3" />
-            Mục tiêu: {profile?.goal ? goalLabels[profile.goal] : "Thể dục"}
-          </span>
-        </div>
-      </div>
 
-      {sortedInBodyHistory.length === 0 && (
-        <div className="flex items-start gap-3 px-4 py-3 rounded-xl text-sm border bg-amber-500/8 border-amber-500/20 text-amber-300">
-          <Bell className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <span>
-            Bạn chưa tải lên dữ liệu InBody nào. Tải lên ngay để nhận phân tích
-            từ AI!
-          </span>
+      {/* Header: greeting + date; one neutral goal chip (no glowing status dot, no "Phiên hoạt động" filler). */}
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm text-zinc-400 first-letter:">{today}</p>
+          <h1 className="mt-0.5 text-zinc-50">Xin chào, {firstName}</h1>
         </div>
+        {goalName && (
+          <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-zinc-700/70 bg-zinc-900/80 px-3 py-1.5 text-xs font-semibold text-zinc-300">
+            <Target className="h-3.5 w-3.5 text-green-400" aria-hidden />
+            Mục tiêu: {goalName}
+          </span>
+        )}
+      </header>
+
+      {/* 1) The one thing to do today. */}
+      <section aria-labelledby="dash-next" className={`${card} p-5`}>
+        <div className="flex items-start gap-4">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-green-500/25 bg-green-500/10">
+            <Calendar className="h-5 w-5 text-green-400" aria-hidden />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 id="dash-next" className="text-xs font-medium text-zinc-400">
+              {nextSchedule ? "Buổi tập tiếp theo" : "Lịch tập"}
+            </h2>
+            {nextSchedule ? (
+              <>
+                <p className="mt-1 truncate text-lg font-semibold text-zinc-50">{nextProgramDay?.title || "Buổi tập"}</p>
+                <p className="mt-0.5 text-sm text-zinc-400">
+                  <span className="first-letter:">{formatScheduleDate(nextSchedule.date)}</span>
+                  {nextExerciseCount ? ` · ${nextExerciseCount} bài tập` : ""}
+                  {nextProgramDay?.program?.name ? ` · ${nextProgramDay.program.name}` : ""}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="mt-1 text-base font-semibold text-zinc-100">Chưa có buổi tập sắp tới</p>
+                <p className="mt-0.5 text-sm text-zinc-400">
+                  {currentProgram
+                    ? `Kế hoạch: ${currentProgram.name || "chương trình hiện tại"} · ${programDays.length || currentProgram.daysPerWeek || "–"} ngày · ${programExerciseCount || "–"} bài tập`
+                    : "Tạo kế hoạch bằng AI hoặc tự tạo trong nhật ký tập để bắt đầu."}
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => navigate("/client/workout")}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-green-500 px-5 text-sm font-semibold text-black transition-colors hover:bg-green-400"
+          >
+            {nextSchedule ? "Mở buổi tập" : currentProgram ? "Lên lịch trong nhật ký tập" : "Mở nhật ký tập"}
+            <ChevronRight className="h-4 w-4" aria-hidden />
+          </button>
+          {!currentProgram && !nextSchedule && (
+            <button
+              type="button"
+              onClick={() => navigate("/client/plans")}
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-zinc-700 px-5 text-sm font-semibold text-zinc-200 transition-colors hover:border-zinc-500 hover:bg-zinc-900"
+            >
+              Tạo kế hoạch AI
+            </button>
+          )}
+        </div>
+      </section>
+
+      {/* 2) Body metrics — neutral tiles (colour only for the D4 verdict), sentence-case labels. */}
+      <section aria-labelledby="dash-body" className="space-y-3">
+        <div className="flex items-end justify-between gap-3">
+          <h2 id="dash-body" className="text-sm font-semibold text-zinc-200">Chỉ số cơ thể</h2>
+          {bodyState !== "error" && <button
+            type="button"
+            onClick={() => navigate("/client/inbody")}
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-green-400 transition-colors hover:bg-zinc-900 hover:text-green-300"
+          >
+            <Upload className="h-3.5 w-3.5" aria-hidden />
+            Tải InBody
+          </button>}
+        </div>
+        {bodyState === "empty" && (
+          <p className="rounded-xl border border-zinc-800/80 bg-zinc-950/85 px-4 py-3 text-sm text-zinc-300 backdrop-blur-md">
+            Chưa có kết quả InBody. Tải phiếu lên để theo dõi cân nặng, khối cơ và tỷ lệ mỡ.
+          </p>
+        )}
+        {bodyState === "error" && (
+          <div role="alert" data-testid="dash-body-error" className="flex flex-col gap-3 rounded-xl border border-st-warning-border bg-st-warning-bg px-4 py-3 text-sm text-st-warning sm:flex-row sm:items-center sm:justify-between">
+            <p>{DASHBOARD_ERROR_TEXT.body}</p>
+            <button
+              type="button"
+              onClick={() => inbodyQuery.refetch()}
+              disabled={inbodyQuery.isFetching}
+              className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg border border-current px-4 text-sm font-semibold disabled:opacity-60"
+            >
+              {inbodyQuery.isFetching ? DASHBOARD_ERROR_TEXT.retrying : DASHBOARD_ERROR_TEXT.retry}
+            </button>
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {/* On a load error the three InBody tiles are hidden: no "Chưa có", no fake 0. */}
+          {tiles.filter((t) => bodyState !== "error" || t.key === "sessions").map((t) => (
+            <div key={t.key} className={`${card} flex flex-col p-4`}>
+              <div className="flex items-center gap-2 text-xs font-medium text-zinc-400">
+                <t.icon className="h-4 w-4 text-zinc-500" aria-hidden />
+                {t.label}
+              </div>
+              <div className="mt-2 text-2xl font-semibold text-zinc-50 tabular-nums">
+                {t.value ?? <span className="text-base font-medium text-zinc-500">Chưa có</span>}
+                {t.value && t.unit && <span className="ml-1 text-sm font-medium text-zinc-400">{t.unit}</span>}
+              </div>
+              {t.change && t.value && <p className="mt-0.5 text-xs text-zinc-500 tabular-nums">{t.key === "sessions" ? t.change : `${t.change} so với lần đo trước`}</p>}
+              {t.verdict?.label && (
+                <div
+                  data-testid="kpi-verdict"
+                  className={`mt-3 inline-flex max-w-full items-start gap-1.5 rounded-md border px-2 py-1 text-[11px] leading-snug ${
+                    t.verdict.tone === "success"
+                      ? "border-st-success-border bg-st-success-bg text-st-success"
+                      : t.verdict.tone === "warning"
+                        ? "border-st-warning-border bg-st-warning-bg text-st-warning"
+                        : "border-st-neutral-border bg-st-neutral-bg text-st-neutral"
+                  }`}
+                >
+                  {t.verdict.icon === "up" ? <ArrowUp className="mt-px h-3 w-3 shrink-0" aria-hidden /> : t.verdict.icon === "down" ? <ArrowDown className="mt-px h-3 w-3 shrink-0" aria-hidden /> : t.verdict.icon === "steady" ? <Minus className="mt-px h-3 w-3 shrink-0" aria-hidden /> : <Info className="mt-px h-3 w-3 shrink-0" aria-hidden />}
+                  <span>{t.verdict.label}</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        {lastMeasuredLabel && <p className="text-xs text-zinc-500">Lần đo gần nhất: {lastMeasuredLabel}</p>}
+        {verdictInput.phaseType === "RECOMPOSITION" && verdictInput.coherent && (
+          <p className="text-xs text-zinc-500" data-testid="recomp-note">
+            Giai đoạn tái cấu trúc cơ thể chưa có quy tắc đánh giá tiến độ riêng, nên Gymini chỉ hiển thị các chỉ số đo được.
+          </p>
+        )}
+      </section>
+
+      {/* 3) Trends — only when there is something to draw. The always-empty "Calories tuần này"
+             placeholder (device sync does not exist in the app) is not shown. */}
+      {(weightData.length > 1 || muscleData.length > 1) && (
+        <section aria-labelledby="dash-trends" className="space-y-3">
+          <h2 id="dash-trends" className="text-sm font-semibold text-zinc-200">Xu hướng</h2>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {weightData.length > 1 && (
+              <div className={`${card} p-4`}>
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-zinc-300">Cân nặng</h3>
+                  <span className="text-xs text-zinc-500 tabular-nums">{calcChange(latest?.weight, prev?.weight)} kg</span>
+                </div>
+                <ResponsiveContainer width="100%" height={120}>
+                  <AreaChart data={weightData}>
+                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#71717a" }} axisLine={false} tickLine={false} />
+                    <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} kg`, "Cân nặng"]} />
+                    <Area type="monotone" dataKey="value" stroke="#22c55e" strokeWidth={2} fill="#22c55e" fillOpacity={0.1} dot={false} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+            {muscleData.length > 1 && (
+              <div className={`${card} p-4`}>
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-zinc-300">Cơ bắp</h3>
+                  <span className="text-xs text-zinc-500 tabular-nums">{calcChange(latest?.muscleMass, prev?.muscleMass)} kg</span>
+                </div>
+                <ResponsiveContainer width="100%" height={120}>
+                  <LineChart data={muscleData}>
+                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#71717a" }} axisLine={false} tickLine={false} />
+                    <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} kg`, "Cơ bắp"]} />
+                    <Line type="monotone" dataKey="value" stroke="#60a5fa" strokeWidth={2} dot={{ fill: "#60a5fa", strokeWidth: 0, r: 3 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        </section>
       )}
 
-      <div>
-        <h3 className="text-zinc-400 text-xs font-semibold uppercase tracking-wider mb-2.5">
-          Thao tác nhanh
-        </h3>
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-          {quickActions.map((a) => (
+      {/* 4) Shortcuts — one line each, equal size, 2×2 on a phone (was 3+2 tiles with wrapping labels). */}
+      <section aria-labelledby="dash-shortcuts" className="space-y-3">
+        <h2 id="dash-shortcuts" className="text-sm font-semibold text-zinc-200">Lối tắt</h2>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {shortcuts.map((s) => (
             <button
-              key={a.label}
-              onClick={() => navigate(a.to)}
-              className={`${a.color} rounded-xl p-3 flex flex-col items-center gap-2 transition-all shadow-lg`}
+              key={s.label}
+              type="button"
+              onClick={() => navigate(s.to)}
+              className={`${card} flex min-h-12 items-center gap-3 px-3 text-left text-sm font-semibold text-zinc-100 transition-colors hover:border-zinc-600 hover:bg-zinc-900/90`}
             >
-              <a.icon className="w-5 h-5" />
-              <span className="text-xs font-semibold leading-tight text-center">
-                {a.label}
-              </span>
+              <s.icon className="h-5 w-5 shrink-0 text-green-400" aria-hidden />
+              <span className="truncate">{s.label}</span>
             </button>
           ))}
         </div>
-      </div>
+      </section>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {kpis.map((k) => (
-          <div
-            key={k.label}
-            className={`${k.bg} rounded-xl p-4 border ${k.border}`}
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div
-                className={`w-9 h-9 ${k.iconBg} rounded-lg flex items-center justify-center`}
-              >
-                <k.icon className={`w-4 h-4 ${k.color}`} />
-              </div>
-              <span
-                className={`text-xs font-bold ${k.color} bg-black/20 px-2 py-0.5 rounded-full`}
-              >
-                {k.change}
-              </span>
-            </div>
-            <div className="text-xl font-bold text-zinc-100">{k.value}</div>
-            <div className="text-xs text-zinc-500 mt-0.5">{k.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Quick "what did you eat today" macro estimate (same component as the Nutrition page; nothing saved until confirmed) */}
+      {/* 5) Food (shared component, unchanged). */}
       <DayMacroQuickEstimate variant="compact" />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        <div className="glass-panel rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-zinc-200">
-              Xu hướng cân nặng
-            </h4>
-            {weightData.length > 1 && (
-              <span
-                className={`text-xs font-bold px-2 py-0.5 rounded-full border ${parseFloat(calcChange(latest?.weight, prev?.weight)) <= 0 ? "text-green-400 bg-green-500/10 border-green-500/20" : "text-red-400 bg-red-500/10 border-red-500/20"}`}
-              >
-                {calcChange(latest?.weight, prev?.weight)} kg
-              </span>
-            )}
-          </div>
-          <ResponsiveContainer width="100%" height={120}>
-            <AreaChart data={weightData}>
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 10, fill: "#71717a" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip
-                {...tooltipStyle}
-                formatter={(v: number) => [`${v} kg`, "Cân nặng"]}
-              />
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke="#22c55e"
-                strokeWidth={2}
-                fill="#22c55e"
-                fillOpacity={0.12}
-                dot={false}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="glass-panel rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-zinc-200">Cơ bắp</h4>
-            {muscleData.length > 1 && (
-              <span
-                className={`text-xs font-bold px-2 py-0.5 rounded-full border ${parseFloat(calcChange(latest?.muscleMass, prev?.muscleMass)) >= 0 ? "text-blue-400 bg-blue-500/10 border-blue-500/20" : "text-amber-400 bg-amber-500/10 border-amber-500/20"}`}
-              >
-                {calcChange(latest?.muscleMass, prev?.muscleMass)} kg
-              </span>
-            )}
-          </div>
-          <ResponsiveContainer width="100%" height={120}>
-            <LineChart data={muscleData}>
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 10, fill: "#71717a" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip
-                {...tooltipStyle}
-                formatter={(v: number) => [`${v} kg`, "Cơ bắp"]}
-              />
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke="#60a5fa"
-                strokeWidth={2}
-                dot={{ fill: "#60a5fa", strokeWidth: 0, r: 3 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="glass-panel rounded-xl p-4 md:col-span-2 xl:col-span-1">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-zinc-200">
-              Calories tuần này
-            </h4>
-            <span className="text-xs text-zinc-500">Không có dữ liệu</span>
-          </div>
-          <div className="h-[120px] flex items-center justify-center border border-dashed border-zinc-800 rounded-lg">
-            <p className="text-[10px] text-zinc-600 italic">
-              Đồng bộ thiết bị tập luyện để xem dữ liệu calo
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="glass-panel rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-zinc-200">
-              Kế hoạch đang dùng
-            </h4>
-          </div>
-          {currentProgram ? (
+      {/* 6) History + tips. Rows instead of a 400px-min table that scrolled sideways on a phone. */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <section aria-labelledby="dash-recent" className={card}>
+          <div className="flex items-center justify-between border-b border-zinc-800/70 px-4 py-3">
+            <h2 id="dash-recent" className="text-sm font-semibold text-zinc-200">Tập luyện gần đây</h2>
             <button
+              type="button"
               onClick={() => navigate("/client/workout")}
-              className="w-full min-h-[100px] text-left rounded-lg border border-green-500/20 bg-green-500/8 p-4 hover:bg-green-500/12 transition-colors"
+              className="inline-flex min-h-9 items-center rounded-lg px-2 text-xs font-semibold text-green-400 transition-colors hover:bg-zinc-900 hover:text-green-300"
             >
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-lg bg-green-500/15 border border-green-500/20 flex items-center justify-center">
-                  <Dumbbell className="w-4 h-4 text-green-400" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-zinc-100 truncate">
-                    {currentProgram.name || "Chương trình tập hiện tại"}
-                  </p>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {programDays.length || currentProgram.daysPerWeek || "--"}{" "}
-                    ngày · {programExerciseCount || "--"} bài tập
-                  </p>
-                  <p className="mt-2 text-xs font-semibold text-green-400">
-                    Mở nhật ký tập
-                  </p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-zinc-500 mt-1" />
-              </div>
+              Xem tất cả
             </button>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-[100px] border border-dashed border-zinc-800 rounded-lg text-center p-4">
-              <Brain className="w-6 h-6 text-zinc-700 mb-2" />
-              <p className="text-[10px] text-zinc-500 italic">
-                Chưa có chương trình trong nhật ký tập. Tạo AI Plan hoặc tạo thủ
-                công để bắt đầu.
-              </p>
+          </div>
+          {recentState === "error" ? (
+            <div role="alert" data-testid="dash-recent-error" className="flex flex-col items-center gap-3 px-4 py-6 text-center text-sm text-st-warning">
+              <p>{DASHBOARD_ERROR_TEXT.workouts}</p>
               <button
-                onClick={() => navigate("/client/workout")}
-                className="mt-2 text-[10px] text-green-500 font-bold hover:underline"
+                type="button"
+                onClick={() => workoutQuery.refetch()}
+                disabled={workoutQuery.isFetching}
+                className="inline-flex min-h-10 items-center rounded-lg border border-current px-4 font-semibold disabled:opacity-60"
               >
-                Tạo trong nhật ký tập
+                {workoutQuery.isFetching ? DASHBOARD_ERROR_TEXT.retrying : DASHBOARD_ERROR_TEXT.retry}
               </button>
             </div>
-          )}
-        </div>
-
-        <div className="glass-panel rounded-xl p-4">
-          {nextSchedule ? (
-            <button
-              onClick={() => navigate("/client/workout")}
-              className="w-full h-full min-h-[132px] text-left flex flex-col justify-center rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 hover:border-green-500/30 hover:bg-green-500/8 transition-colors"
-            >
-              <div className="flex items-center gap-2 text-xs font-semibold text-green-400">
-                <Calendar className="w-4 h-4" />
-                Lịch tập sắp tới
-              </div>
-              <p className="mt-3 text-sm font-bold text-zinc-100">
-                {nextProgramDay?.title || "Buổi tập"}
-              </p>
-              <p className="mt-1 text-xs text-zinc-500">
-                {formatScheduleDate(nextSchedule.date)} ·{" "}
-                {nextExerciseCount || "--"} bài tập
-              </p>
-              {nextProgramDay?.program?.name && (
-                <p className="mt-1 text-xs text-zinc-600 truncate">
-                  {nextProgramDay.program.name}
-                </p>
-              )}
-              <p className="mt-3 text-xs font-semibold text-green-400">
-                Mở buổi tập
-              </p>
-            </button>
+          ) : recent.length > 0 ? (
+            <ul className="divide-y divide-zinc-800/60">
+              {recent.map((w: any, i: number) => (
+                <li key={w.id ?? i} className="flex items-center justify-between gap-3 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-zinc-100">{w.name || "Buổi tập"}</p>
+                    <p className="mt-0.5 text-xs text-zinc-500">{new Date(w.date).toLocaleDateString("vi-VN")}</p>
+                  </div>
+                  <p className="shrink-0 text-right text-xs text-zinc-400 tabular-nums">
+                    {w.duration ? `${w.duration} phút` : "–"}
+                    <span className="block">{Array.isArray(w.exercises) ? `${w.exercises.length} bài` : ""}</span>
+                  </p>
+                </li>
+              ))}
+            </ul>
           ) : (
-            <div className="h-full min-h-[132px] flex flex-col items-center justify-center text-center">
-              <Calendar className="w-8 h-8 text-zinc-700 mb-2" />
-              <p className="text-sm text-zinc-500 font-medium">
-                Không có lịch tập sắp tới
-              </p>
-              <button
-                onClick={() => navigate("/client/workout")}
-                className="mt-3 text-xs text-green-400 hover:underline"
-              >
-                Lên lịch trong nhật ký tập
-              </button>
-            </div>
+            <p className="px-4 py-8 text-center text-sm text-zinc-500">Chưa có buổi tập nào được ghi lại.</p>
           )}
-        </div>
+        </section>
 
-        <div className="glass-panel rounded-xl p-4 relative overflow-hidden">
-          <div className="absolute -top-10 -right-10 w-32 h-32 bg-green-500/5 rounded-full blur-2xl" />
-          <div className="flex items-center gap-2 mb-3 relative z-10">
-            <div className="w-7 h-7 bg-green-500/15 rounded-lg flex items-center justify-center border border-green-500/20">
-              <Brain className="w-4 h-4 text-green-400" />
-            </div>
-            <h4 className="text-sm font-semibold text-zinc-200">AI Insights</h4>
-            <span className="ml-auto text-xs text-green-400 font-semibold">
-              Trực tiếp
-            </span>
-          </div>
-          <div className="space-y-2.5 relative z-10">
-            {latest ? (
-              <>
-                <div className="flex items-start gap-2.5 bg-zinc-800/60 rounded-lg p-2.5 border border-zinc-700/40">
-                  <Award className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-400" />
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    Cân nặng hiện tại của bạn là {latest.weight}kg. Hãy tiếp tục
-                    theo dõi tiến độ!
-                  </p>
-                </div>
-                <div className="flex items-start gap-2.5 bg-zinc-800/60 rounded-lg p-2.5 border border-zinc-700/40">
-                  <TrendingUp className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-400" />
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    Cơ bắp của bạn là {latest.muscleMass}kg. Hãy bổ sung đủ
-                    protein.
-                  </p>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-xs text-zinc-500 italic">
-                  Chưa có dữ liệu AI Insights. Tải lên kết quả InBody để bắt
-                  đầu.
-                </p>
-              </div>
-            )}
-          </div>
-          <p className="text-xs text-zinc-600 mt-3 relative z-10">
-            *AI Insights chỉ mang tính tham khảo, không phải lời khuyên y tế.
-          </p>
-        </div>
-      </div>
-
-      <div className="glass-panel rounded-xl">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/60">
-          <h4 className="text-sm font-semibold text-zinc-200">
-            Tập luyện gần đây
-          </h4>
-          <button
-            onClick={() => navigate("/client/workout")}
-            className="text-xs text-green-400 hover:text-green-300 transition-colors"
-          >
-            Xem tất cả
-          </button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[400px]">
-            <thead>
-              <tr className="text-left text-xs text-zinc-600 border-b border-zinc-800/60 bg-zinc-800/30">
-                <th className="px-4 py-2 font-semibold uppercase tracking-wider">
-                  Buổi tập
-                </th>
-                <th className="px-4 py-2 font-semibold uppercase tracking-wider">
-                  Ngày
-                </th>
-                <th className="px-4 py-2 font-semibold uppercase tracking-wider">
-                  Thời gian
-                </th>
-                <th className="px-4 py-2 font-semibold uppercase tracking-wider">
-                  Bài tập
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {workoutHistory.length > 0 ? (
-                workoutHistory.map((w: any, i: number) => (
-                  <tr
-                    key={i}
-                    className="border-b border-zinc-800/40 last:border-0 hover:bg-zinc-800/40 transition-colors"
-                  >
-                    {/* fitness-service Workout is `name` + `duration` (minutes). This read
-                        `title`/`durationMinutes`, which do not exist, so every row printed
-                        "Buổi tập · -- phút" and a blanket "Hoàn thành" (an in-progress session
-                        has a Workout row too) — the status column is now the exercise count. */}
-                    <td className="px-4 py-2.5 text-sm font-semibold text-zinc-200">
-                      {w.name || "Buổi tập"}
-                    </td>
-                    <td className="px-4 py-2.5 text-sm text-zinc-500">
-                      {new Date(w.date).toLocaleDateString("vi-VN")}
-                    </td>
-                    <td className="px-4 py-2.5 text-sm text-zinc-500">
-                      {w.duration ? `${w.duration} phút` : "--"}
-                    </td>
-                    <td className="px-4 py-2.5 text-sm text-zinc-500">
-                      {Array.isArray(w.exercises) ? `${w.exercises.length} bài` : "--"}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-4 py-8 text-center text-xs text-zinc-600 italic"
-                  >
-                    Chưa có buổi tập nào được ghi lại.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        {/* Was "AI Insights · Trực tiếp": the text is a fixed template, not AI and not live — renamed, label removed. */}
+        <section aria-labelledby="dash-tips" className={`${card} p-4`}>
+          <h2 id="dash-tips" className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
+            <Brain className="h-4 w-4 text-green-400" aria-hidden />
+            Gợi ý
+          </h2>
+          {latest ? (
+            <ul className="mt-3 space-y-2 text-sm text-zinc-300">
+              <li className="rounded-lg bg-zinc-900/80 px-3 py-2">Cân nặng hiện tại của bạn là {fmtNum(latest.weight) ?? latest.weight} kg. Tiếp tục theo dõi sau mỗi lần đo.</li>
+              <li className="rounded-lg bg-zinc-900/80 px-3 py-2">Khối cơ hiện tại {fmtNum(latest.muscleMass) ?? latest.muscleMass} kg. Bổ sung đủ đạm theo mục tiêu dinh dưỡng của bạn.</li>
+            </ul>
+          ) : bodyState === "error" ? (
+            <p className="mt-3 text-sm text-zinc-400">Gợi ý sẽ hiện khi tải được chỉ số cơ thể.</p>
+          ) : (
+            <p className="mt-3 text-sm text-zinc-400">Tải kết quả InBody để nhận gợi ý theo chỉ số của bạn.</p>
+          )}
+          <p className="mt-3 text-xs text-zinc-500">Gợi ý chỉ mang tính tham khảo, không phải lời khuyên y tế.</p>
+        </section>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { Outlet, useNavigate, useLocation } from "react-router";
 import { Suspense, lazy, useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { useApp } from "../../context/AppContext";
 import { useCall } from "../../context/CallContext";
 import { useNativeBackNavigation } from "../../hooks/useNativeBackNavigation";
@@ -100,6 +100,8 @@ export function AppShell() {
 function AppShellInner() {
   const { sidebarOpen, setSidebarOpen, role } = useApp();
   const location = useLocation();
+  // Frontend 2.0: no rise for users who asked the OS for less motion (Codex RouteContent intent, re-applied on HEAD).
+  const reduceMotion = useReducedMotion();
   // The floating AI Coach button (client/PT) sits over the bottom-right corner of whatever page is open. Leave
   // room under the page equal to the button + its margin so the last row of any page can always be scrolled
   // clear of it. Not reserved where the button is not drawn (chat, AI Coach) - those pages fill the screen exactly.
@@ -118,7 +120,7 @@ function AppShellInner() {
 
   return (
     <div
-      className="flex h-screen overflow-hidden bg-cover bg-center bg-no-repeat relative"
+      className="flex h-screen supports-[height:100dvh]:h-dvh overflow-hidden bg-cover bg-center bg-no-repeat relative"
       style={{ backgroundImage: `url(${bgGym})` }}
     >
       <div className="absolute inset-0 app-theme-overlay pointer-events-none z-0"></div>
@@ -173,9 +175,9 @@ function AppShellInner() {
           <AnimatePresence mode="sync" initial={false}>
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 8 }}
+              initial={reduceMotion ? false : { opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.18, ease: [0.22, 0.61, 0.36, 1] }}
+              transition={{ duration: reduceMotion ? 0 : 0.18, ease: [0.22, 0.61, 0.36, 1] }}
               // flex-1 (not min-h-full): `<main>` is now the flex column, so this grows to
               // fill its remaining space exactly — a real, definite box height, which is what
               // a full-height descendant (e.g. ChatPage's own `h-full` root) needs to resolve
