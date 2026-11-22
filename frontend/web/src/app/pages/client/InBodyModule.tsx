@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
+import { ActivePill } from "../../components/ui/ActivePill";
 import {
   AreaChart,
   Area,
@@ -480,19 +481,22 @@ export function InBodyModule() {
       </div>
 
       {/* ── Tab navigation ── */}
-      <div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl overflow-x-auto w-full">
+      <div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl overflow-x-auto g-scroll-x w-full">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap flex-1 justify-center ${
+            aria-pressed={tab === t.key}
+            aria-label={t.label}
+            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap flex-1 justify-center ${
               tab === t.key
-                ? "bg-green-500 text-black shadow-sm"
+                ? "text-black"
                 : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
-            <t.icon className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t.label}</span>
+            {tab === t.key && <ActivePill group="inbody-tab" className="rounded-lg bg-green-500 shadow-sm" />}
+            <t.icon className="relative w-3.5 h-3.5" />
+            <span className="relative hidden sm:inline">{t.label}</span>
           </button>
         ))}
       </div>
@@ -708,7 +712,7 @@ export function InBodyModule() {
 
           {/* Recent history */}
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">
+            <h4 className="text-sm font-semibold text-zinc-400">
               Bản ghi gần đây
             </h4>
             <button
@@ -805,9 +809,9 @@ export function InBodyModule() {
               {/* Actions */}
               <form onSubmit={handleManualSave} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <SectionCard title="📅 Thông tin kiểm tra">
+                  <SectionCard title="Thông tin kiểm tra">
                     <div>
-                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">
+                      <label className="text-xs text-zinc-500 mb-1.5 block">
                         Ngày kiểm tra *
                       </label>
                       <input
@@ -820,10 +824,10 @@ export function InBodyModule() {
                     </div>
                   </SectionCard>
 
-                  <SectionCard title="⚖️ Số đo cơ bản">
+                  <SectionCard title="Số đo cơ bản">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">
+                        <label className="text-xs text-zinc-500 mb-1.5 block">
                           Cân nặng (kg) *
                         </label>
                         <input
@@ -837,7 +841,7 @@ export function InBodyModule() {
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">
+                        <label className="text-xs text-zinc-500 mb-1.5 block">
                           Chiều cao (cm)
                         </label>
                         <input
@@ -853,10 +857,10 @@ export function InBodyModule() {
                   </SectionCard>
                 </div>
 
-                <SectionCard title="💪 Thành phần cơ thể">
+                <SectionCard title="Thành phần cơ thể">
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">
+                      <label className="text-xs text-zinc-500 mb-1.5 block">
                         Cơ bắp (kg)
                       </label>
                       <input
@@ -868,7 +872,7 @@ export function InBodyModule() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">
+                      <label className="text-xs text-zinc-500 mb-1.5 block">
                         Mỡ cơ thể (kg)
                       </label>
                       <input
@@ -880,7 +884,7 @@ export function InBodyModule() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">
+                      <label className="text-xs text-zinc-500 mb-1.5 block">
                         % Mỡ cơ thể
                       </label>
                       <input
@@ -894,7 +898,7 @@ export function InBodyModule() {
                   </div>
                 </SectionCard>
 
-                <SectionCard title="🦵 Cơ theo vùng (kg)">
+                <SectionCard title="Cơ theo vùng (kg)">
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     <div>
                       <label className="text-xs text-zinc-500 mb-1 block">
@@ -1196,8 +1200,8 @@ export function InBodyModule() {
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                      📅 Ngày đo InBody
+                    <span className="text-xs font-bold text-zinc-400">
+                      Ngày đo InBody
                     </span>
                     {extractedData?.date ? (
                       <span className="text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
@@ -1225,7 +1229,7 @@ export function InBodyModule() {
 
                 {/* Basic Metrics */}
                 <div>
-                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                  <h4 className="text-xs font-bold text-zinc-400 mb-2">
                     Thông số cơ bản
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
@@ -1296,7 +1300,7 @@ export function InBodyModule() {
 
                 {/* Segmental Lean Analysis */}
                 <div>
-                  <h4 className="text-xs font-bold text-green-400/80 uppercase tracking-wider mb-2">
+                  <h4 className="text-xs font-bold text-green-400/80 mb-2">
                     Cơ theo vùng (kg)
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
@@ -1356,7 +1360,7 @@ export function InBodyModule() {
 
                 {/* Segmental Fat Analysis */}
                 <div>
-                  <h4 className="text-xs font-bold text-amber-400/80 uppercase tracking-wider mb-2">
+                  <h4 className="text-xs font-bold text-amber-400/80 mb-2">
                     Mỡ theo vùng (kg)
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
@@ -1546,7 +1550,7 @@ export function InBodyModule() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[620px]">
                 <thead>
-                  <tr className="text-left text-xs text-zinc-600 border-b border-zinc-800/60 bg-zinc-800/30 uppercase tracking-wider">
+                  <tr className="text-left text-xs text-zinc-600 border-b border-zinc-800/60 bg-zinc-800/30">
                     <th className="px-4 py-2.5">Ngày</th>
                     <th className="px-4 py-2.5">Cân nặng (kg)</th>
                     <th className="px-4 py-2.5">Cơ bắp (kg)</th>
@@ -1688,7 +1692,7 @@ export function InBodyModule() {
             <>
               <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
                 <div>
-                  <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">
+                  <label className="text-xs text-zinc-500 mb-1 block">
                     Bản ghi A
                   </label>
                   <select
@@ -1707,7 +1711,7 @@ export function InBodyModule() {
                   vs
                 </span>
                 <div>
-                  <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">
+                  <label className="text-xs text-zinc-500 mb-1 block">
                     Bản ghi B
                   </label>
                   <select
@@ -1743,7 +1747,7 @@ export function InBodyModule() {
                       key={key}
                       className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60"
                     >
-                      <div className="text-xs text-zinc-500 mb-2 uppercase tracking-wider">
+                      <div className="text-xs text-zinc-500 mb-2">
                         {label}
                       </div>
                       <div className="flex items-end justify-between">

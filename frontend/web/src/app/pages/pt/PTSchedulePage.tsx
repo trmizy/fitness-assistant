@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ActivePill } from "../../components/ui/ActivePill";
 import { CalendarIcon as Calendar, ClockIcon as Clock, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, XIcon as X, PlusIcon as Plus, CircleNotchIcon as Loader2, CheckIcon as Check, CheckCircleIcon as CheckCircle, XCircleIcon as XCircle, WarningOctagonIcon as AlertOctagon, ProhibitIcon as Ban, GearSixIcon as Settings } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sessionService, availabilityService, contractService } from "../../services/api";
@@ -537,9 +538,10 @@ export function PTSchedulePage() {
       <div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl w-full sm:w-auto sm:inline-flex">
         <button
           onClick={() => setTab("schedule")}
-          className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${tab === "schedule" ? "bg-green-500 text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}
+          className={`relative flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${tab === "schedule" ? "text-black" : "text-zinc-500 hover:text-zinc-300"}`}
         >
-          Buổi tập
+          {tab === "schedule" && <ActivePill group="pt-schedule-tab" className="rounded-lg bg-green-500 shadow-sm" />}
+          <span className="relative">Buổi tập</span>
         </button>
         <button
           onClick={() => navigate("/pt/listing")}
@@ -797,7 +799,7 @@ export function PTSchedulePage() {
 
             {/* All upcoming sidebar */}
             <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
-              <h4 className="text-xs font-bold text-zinc-600 mb-3 uppercase tracking-wider">
+              <h4 className="text-xs font-bold text-zinc-600 mb-3">
                 Sắp diễn ra
               </h4>
               {sessions.length === 0 ? (

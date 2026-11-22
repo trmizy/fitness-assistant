@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ActivePill } from "../../components/ui/ActivePill";
 import { FileTextIcon as FileText, MagnifyingGlassIcon as Search, CheckCircleIcon as CheckCircle, ClockIcon as Clock, XCircleIcon as XCircle, WarningIcon as AlertTriangle, UserIcon as User, CaretDownIcon as ChevronDown, CaretUpIcon as ChevronUp, CurrencyDollarIcon as DollarSign, BarbellIcon as Dumbbell, PlayCircleIcon as PlayCircle, ProhibitIcon as Ban, CircleNotchIcon as Loader2, CheckIcon as Check, CopyIcon as Copy, XIcon as X, ChatTextIcon as MessageSquare, CalendarIcon as Calendar, WarningOctagonIcon as AlertOctagon, StarIcon as Star } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { contractService, sessionService } from "../../services/api";
@@ -428,18 +429,20 @@ export function PTContractsPage() {
             className="flex-1 text-sm outline-none bg-transparent text-zinc-300 placeholder-zinc-600"
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto">
+        <div className="flex gap-2 overflow-x-auto g-scroll-x">
           {TABS.map((t) => (
             <button
               key={t.value}
               onClick={() => setTab(t.value)}
-              className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+              aria-pressed={tab === t.value}
+              className={`relative px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
                 tab === t.value
-                  ? "bg-green-500 text-black shadow-lg shadow-green-500/20"
+                  ? "text-black border border-transparent"
                   : "bg-zinc-900 border border-zinc-700/60 text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              {t.label}
+              {tab === t.value && <ActivePill group="pt-contracts-tab" className="rounded-xl bg-green-500 shadow-lg shadow-green-500/20" />}
+              <span className="relative">{t.label}</span>
               {t.value === "PENDING_REVIEW" && kpis.pending > 0 && (
                 <span className="ml-1.5 bg-amber-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                   {kpis.pending}
@@ -703,7 +706,7 @@ export function PTContractsPage() {
                     {(c.status === "ACTIVE" || c.status === "COMPLETED") &&
                       (expandedSessions as Session[]).length > 0 && (
                         <div>
-                          <div className="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                          <div className="text-xs text-zinc-500 font-semibold mb-2 flex items-center gap-1.5">
                             <Calendar className="w-3 h-3" /> Buổi tập (
                             {(expandedSessions as Session[]).length})
                           </div>

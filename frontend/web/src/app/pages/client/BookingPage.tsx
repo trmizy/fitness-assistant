@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ActivePill } from "../../components/ui/ActivePill";
 import { CalendarIcon as Calendar, ClockIcon as Clock, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, CheckCircleIcon as CheckCircle, WarningCircleIcon as AlertCircle, XCircleIcon as XCircle, CircleNotchIcon as Loader2, StarIcon as Star, MapPinIcon as MapPin, ChatTextIcon as MessageSquare, FileTextIcon as FileText, ArrowsClockwiseIcon as RefreshCw, XIcon as X } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -649,14 +650,15 @@ export function BookingPage() {
       ))}
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl w-full sm:w-auto sm:inline-flex">
+      <div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl w-full sm:w-auto sm:inline-flex overflow-x-auto g-scroll-x">
         {(["book", "upcoming", "confirm", "past"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`relative flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${tab === t ? "bg-green-500 text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}
+            className={`relative flex-auto sm:flex-none whitespace-nowrap px-2 sm:px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${tab === t ? "text-black" : "text-zinc-500 hover:text-zinc-300"}`}
           >
-            {tabLabels[t]}
+            {tab === t && <ActivePill group="booking-tab" className="rounded-lg bg-green-500 shadow-sm" />}
+            <span className="relative">{tabLabels[t]}</span>
             {t === "confirm" && (pendingConfirmSessions as Session[]).length > 0 && (
               <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                 {(pendingConfirmSessions as Session[]).length}
@@ -684,7 +686,7 @@ export function BookingPage() {
             <div className="space-y-4">
               {/* Contract selector */}
               {activeContracts.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto">
+                <div className="flex gap-2 overflow-x-auto g-scroll-x">
                   {activeContracts.map((c) => (
                     <button
                       key={c.id}
@@ -734,7 +736,7 @@ export function BookingPage() {
                     {DAYS.map((d) => (
                       <div
                         key={d}
-                        className="text-center text-[10px] text-zinc-600 uppercase tracking-tighter font-bold"
+                        className="text-center text-[10px] text-zinc-600 tracking-tighter font-bold"
                       >
                         {d}
                       </div>
@@ -1044,7 +1046,7 @@ export function BookingPage() {
                     <div className="flex items-start gap-2">
                       <AlertCircle className="w-4 h-4 text-zinc-600 flex-shrink-0 mt-0.5" />
                       <div className="space-y-1">
-                        <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">
+                        <p className="text-xs text-zinc-400 font-bold">
                           Quy tắc đặt lịch
                         </p>
                         <p className="text-xs text-zinc-500 leading-relaxed">
@@ -1414,7 +1416,7 @@ export function BookingPage() {
         <div>
           {/* Contract selector for past sessions */}
           {activeContracts.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto mb-4">
+            <div className="flex gap-2 overflow-x-auto g-scroll-x mb-4">
               {activeContracts.map((c) => (
                 <button
                   key={c.id}
