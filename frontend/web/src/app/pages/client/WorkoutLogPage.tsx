@@ -4520,7 +4520,7 @@ export function WorkoutLogPage() {
               >
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <s.icon className="w-3 h-3 text-emerald-500/60" />
-                  <span className="text-[10px] text-zinc-600 uppercase tracking-wider">
+                  <span className="text-[10px] text-zinc-600">
                     {s.label}
                   </span>
                 </div>
@@ -4621,7 +4621,7 @@ export function WorkoutLogPage() {
             </div>
 
             <div className="absolute bottom-0 left-0 right-0 p-6">
-              <span className="text-[10px] text-emerald-400 uppercase tracking-[0.2em] mb-1.5 block">
+              <span className="text-[10px] text-emerald-400 mb-1.5 block">
                 Chương trình
               </span>
               <h2 className="text-2xl text-white mb-2 tracking-tight">
@@ -5068,30 +5068,31 @@ export function WorkoutLogPage() {
                 return (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 pb-4 border-b border-zinc-800/40">
                     <div>
-                      <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">
+                      <p className="text-[10px] text-zinc-600 mb-0.5">
                         Bắt đầu
                       </p>
                       <p className="text-sm text-zinc-200">{startingWeight} kg</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">
+                      <p className="text-[10px] text-zinc-600 mb-0.5">
                         Hiện tại
                       </p>
                       <p className="text-sm text-zinc-200">{currentWeight} kg</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">
+                      <p className="text-[10px] text-zinc-600 mb-0.5">
                         Đã thay đổi
                       </p>
                       <p
-                        className={`text-sm ${changed > 0 ? "text-emerald-400" : changed < 0 ? "text-amber-400" : "text-zinc-400"}`}
+                        /* D4: weight change is described, never judged (was green when down / amber when up). */
+                        className="text-sm text-zinc-200 tabular-nums"
                       >
                         {changed > 0 ? "−" : changed < 0 ? "+" : ""}
                         {Math.abs(changed)} kg
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-0.5">
+                      <p className="text-[10px] text-zinc-600 mb-0.5">
                         Còn lại
                       </p>
                       <p className="text-sm text-zinc-200">
@@ -6384,7 +6385,7 @@ export function WorkoutLogPage() {
 
               {/* Overall progress bar */}
               <div className="rounded-xl bg-zinc-900/40 border border-zinc-800/30 p-3 flex items-center gap-4">
-                <span className="text-[10px] text-zinc-600 uppercase tracking-wider shrink-0">
+                <span className="text-[10px] text-zinc-600 shrink-0">
                   Tiến độ
                 </span>
                 <div className="flex-1 h-2 bg-zinc-800/50 rounded-full overflow-hidden">
@@ -6764,7 +6765,7 @@ export function WorkoutLogPage() {
                       data-testid="set-overview-table"
                       className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 overflow-hidden"
                     >
-                      <div className="px-4 pt-4 pb-1 text-xs text-zinc-600 uppercase tracking-wider">
+                      <div className="px-4 pt-4 pb-1 text-xs text-zinc-600">
                         Các set
                       </div>
                       <div className="overflow-x-auto">
@@ -6876,7 +6877,7 @@ export function WorkoutLogPage() {
 
                   {/* Log Entry */}
                   <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-6 space-y-4">
-                    <p className="text-xs text-zinc-600 uppercase tracking-wider">
+                    <p className="text-xs text-zinc-600">
                       Ghi chép
                       {curExSetRows && curExSetRows.length > 1 && activeSetRow && (
                         <span className="normal-case text-zinc-500"> — Set {activeSetRow.setNumber}/{curExSetRows.length}</span>
@@ -7383,7 +7384,7 @@ export function WorkoutLogPage() {
 
                   {/* Exercise list mini nav */}
                   <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-4">
-                    <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">
+                    <p className="text-[10px] text-zinc-600 mb-3">
                       Danh sách bài tập
                     </p>
                     <div className="space-y-1.5">
@@ -7661,7 +7662,7 @@ export function WorkoutLogPage() {
 
               {/* Description */}
               <div className="rounded-xl bg-zinc-800/30 border border-zinc-700/20 p-4">
-                <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-2">
+                <p className="text-[10px] text-zinc-600 mb-2">
                   Mô tả
                 </p>
                 <p className="text-sm text-zinc-300 leading-relaxed">
@@ -7672,7 +7673,7 @@ export function WorkoutLogPage() {
               {/* Muscles & Tips */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="rounded-xl bg-zinc-800/30 border border-zinc-700/20 p-4">
-                  <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">
+                  <p className="text-[10px] text-zinc-600 mb-3">
                     Cơ mục tiêu
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -7687,7 +7688,7 @@ export function WorkoutLogPage() {
                   </div>
                 </div>
                 <div className="rounded-xl bg-zinc-800/30 border border-zinc-700/20 p-4">
-                  <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">
+                  <p className="text-[10px] text-zinc-600 mb-3">
                     Mẹo hay
                   </p>
                   <ul className="space-y-2">
@@ -7716,7 +7717,7 @@ export function WorkoutLogPage() {
                   data-testid="exercise-muscle-map"
                   className="rounded-xl bg-zinc-800/30 border border-zinc-700/20 p-4"
                 >
-                  <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">
+                  <p className="text-[10px] text-zinc-600 mb-3">
                     Sơ đồ nhóm cơ
                   </p>
                   <ExerciseMuscleMap exerciseId={showExerciseDetail.dbId} />
@@ -8090,7 +8091,7 @@ export function WorkoutLogPage() {
 
             {/* ── Step 1: Weekday selection ── */}
             <div className="hidden">
-              <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">
+              <p className="text-[10px] text-zinc-600 mb-3">
                 1 · Ngày & giờ tập
               </p>
               <div className="space-y-2">
@@ -8171,7 +8172,7 @@ export function WorkoutLogPage() {
 
             {/* ── Step 2: Exceptions ── */}
             <div className="hidden">
-              <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-2">
+              <p className="text-[10px] text-zinc-600 mb-2">
                 2 · Ngoại lệ{" "}
                 <span className="normal-case text-zinc-700">
                   — bấm ngày để bỏ qua
@@ -8182,7 +8183,7 @@ export function WorkoutLogPage() {
                   {WD_LABELS.map((d) => (
                     <span
                       key={d}
-                      className="text-[9px] text-zinc-700 uppercase tracking-wider"
+                      className="text-[9px] text-zinc-700"
                     >
                       {d}
                     </span>
@@ -8283,7 +8284,7 @@ export function WorkoutLogPage() {
 
             {/* Metric type selector */}
             <div>
-              <p className="text-xs text-zinc-600 uppercase tracking-wider mb-3">
+              <p className="text-xs text-zinc-600 mb-3">
                 Loại chỉ số
               </p>
               <div className="grid grid-cols-2 gap-2">
@@ -8326,7 +8327,7 @@ export function WorkoutLogPage() {
 
             {/* Value input */}
             <div>
-              <p className="text-xs text-zinc-600 uppercase tracking-wider mb-2">
+              <p className="text-xs text-zinc-600 mb-2">
                 Giá trị
               </p>
               <div className="flex items-center gap-3">
@@ -8525,7 +8526,7 @@ export function WorkoutLogPage() {
               {Array.isArray(myCustomExercisesQuery.data) && myCustomExercisesQuery.data.length > 0 && (
                 <section data-testid="my-custom-exercises-section" className="space-y-2 mb-5">
                   <div className="sticky top-0 z-10 bg-zinc-900/95 backdrop-blur-sm py-1 flex items-center gap-2">
-                    <div className="text-[11px] uppercase tracking-wider text-sky-300 font-semibold">
+                    <div className="text-[11px] text-sky-300 font-semibold">
                       Của tôi
                     </div>
                     <div className="h-px flex-1 bg-zinc-800" />
@@ -8622,7 +8623,7 @@ export function WorkoutLogPage() {
                       return (
                         <section key={group} className="space-y-2">
                           <div className="sticky top-0 z-10 bg-zinc-900/95 backdrop-blur-sm py-1 flex items-center gap-2">
-                            <div className="text-[11px] uppercase tracking-wider text-emerald-300 font-semibold">
+                            <div className="text-[11px] text-emerald-300 font-semibold">
                               {group}
                             </div>
                             <div className="h-px flex-1 bg-zinc-800" />
@@ -8764,7 +8765,7 @@ function TimeFilterBar({
         <button
           key={v}
           onClick={() => onChange(v)}
-          className={`px-4 py-1.5 rounded-lg text-xs transition-all ${
+          className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-xs transition-all ${
             value === v
               ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/15 shadow-[0_0_8px_rgba(16,185,129,0.06)]"
               : "text-zinc-500 hover:text-zinc-400 border border-transparent"
@@ -8871,7 +8872,7 @@ function CalendarGrid({
         {dayLabels.map((d) => (
           <span
             key={d}
-            className="text-[10px] text-zinc-600 py-1 uppercase tracking-wider"
+            className="text-[10px] text-zinc-600 py-1"
           >
             {d}
           </span>
