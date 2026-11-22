@@ -420,6 +420,17 @@ if ($Backend) {
     } catch {
         Write-Host "   WARNING: Lambda gate was NOT fully closed: $($_.Exception.Message). Requests will reach the Lambdas and time out (small cost). Retry: node scripts/aws/lib/lambda-gate.cjs close" -ForegroundColor Yellow
     }
+
+    # Public entrances: API Gateway throttle 0 (api.gymini.vn answers 429 at once - a 4xx, so no apigw-5xx-high alarm) and the CloudFront
+    # distribution disabled (gymini.vn / www / the AI stream refuse every request; ~5-15 min to take effect). dev-start -Backend reopens both.
+    Write-Host ""
+    Write-Host "2e) Closing the public entrances (API Gateway throttle 0 + CloudFront disabled) until the next dev-start -Backend..."
+    try {
+        node (Join-Path $PSScriptRoot "lib/web-gate.cjs") close
+        if ($LASTEXITCODE -ne 0) { throw "web-gate exit $LASTEXITCODE" }
+    } catch {
+        Write-Host "   WARNING: public entrances were NOT fully closed: $($_.Exception.Message). Retry: node scripts/aws/lib/web-gate.cjs close" -ForegroundColor Yellow
+    }
 }
 
 Write-Host ""

@@ -398,6 +398,20 @@ if ($AutoStopHours -gt 0) {
 Write-Host "1) Aurora status (read-only; actual start happens in step 8 if -Backend):"
 Write-Host "   Aurora status: $($auroraForDisplay.Status)"
 
+# dev-stop -Backend disables the CloudFront distribution of gymini.vn. CloudFront needs ~5-15 min to roll out an enable, so do it FIRST: the
+# wait overlaps with the stack deploy and Aurora starting. Warning-only here (DEV itself can still start); the API entrance is opened
+# later, right after the Lambdas (step 8a).
+if ($Backend) {
+    Write-Host ""
+    Write-Host "1b) Enabling the CloudFront distribution of gymini.vn (rolls out in ~5-15 min while the rest starts)..."
+    try {
+        node (Join-Path $PSScriptRoot "lib/web-gate.cjs") open --only cdn
+        if ($LASTEXITCODE -ne 0) { throw "web-gate exit $LASTEXITCODE" }
+    } catch {
+        Write-Host "   WARNING: CloudFront was NOT enabled: $($_.Exception.Message). gymini.vn stays unreachable until: node scripts/aws/lib/web-gate.cjs open --only cdn" -ForegroundColor Yellow
+    }
+}
+
 Write-Host ""
 Write-Host "-Execute passed. Deploying gymini-dev-on-demand." -ForegroundColor Yellow
 
@@ -622,6 +636,12 @@ if ($Backend) {
     node (Join-Path $PSScriptRoot "lib/lambda-gate.cjs") open
     if ($LASTEXITCODE -ne 0) {
         Write-Host "HARD STOP: could not open the app Lambdas - every request is rejected until this works. Retry: node scripts/aws/lib/lambda-gate.cjs open" -ForegroundColor Red
+        exit 1
+    }
+    # Same for the API Gateway entrance (throttle 0 set by dev-stop -> every request would still get 429).
+    node (Join-Path $PSScriptRoot "lib/web-gate.cjs") open --only api
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "HARD STOP: could not open the API Gateway throttle - api.gymini.vn answers 429 until this works. Retry: node scripts/aws/lib/web-gate.cjs open --only api" -ForegroundColor Red
         exit 1
     }
 
