@@ -38,6 +38,7 @@ const GymManagementKitchenSink = lazy(() =>
 // Auth pages
 const LoginPage = lazy(() => import("./pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })));
 const AttributionsPage = lazy(() => import("./pages/public/AttributionsPage").then((m) => ({ default: m.AttributionsPage })));
+const LandingPage = lazy(() => import("./pages/public/LandingPage").then((m) => ({ default: m.LandingPage })));
 const PublicGymPage = lazy(() => import("./pages/public/PublicGymPage").then((m) => ({ default: m.PublicGymPage })));
 const ClientGymDeepLink = lazy(() => import("./pages/public/PublicGymPage").then((m) => ({ default: m.ClientGymDeepLink })));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage").then((m) => ({ default: m.RegisterPage })));
@@ -224,6 +225,8 @@ export const router = createBrowserRouter([
       { index: true, element: <RootRedirect /> },
       { path: "login", Component: LoginPage },
       { path: "attributions", Component: AttributionsPage },
+      // Frontend 2.0 (owner D2): public landing on its OWN route. "/" stays RootRedirect (Capacitor boots there).
+      { path: "gioi-thieu", Component: LandingPage },
       // Liên kết chia sẻ của chi tiết phòng gym (nút Chia sẻ): khách → /login rồi quay lại chi tiết; đã đăng nhập → chi tiết ngay.
       { path: "gyms/:id", Component: PublicGymPage },
       { path: "register", Component: RegisterPage },
