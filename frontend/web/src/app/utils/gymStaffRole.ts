@@ -30,7 +30,9 @@ export type StaffFeature =
   | "gymWizard"
   | "listings"
   | "plans"
+  | "members"
   | "collaborations"
+  | "partners"
   | "staff"
   | "frontDesk"
   | "finance"
@@ -45,7 +47,12 @@ const ALLOWED: Record<StaffFeature, readonly PartnerRole[]> = {
   // Listing Management D2 — gym-service owner-listing routes are requirePartnerOwner (a MANAGER gets 403).
   listings: ["OWNER"],
   plans: ["OWNER", "MANAGER"],
+  // G3 (Hội viên & gói, behind VITE_GYM_OWNER_V2): membership.full O,M / membership.sales O,A and plan.view O,M,A (audit/02). Plan writes stay owner-only.
+  members: ["OWNER", "MANAGER", "ACCOUNTANT"],
   collaborations: ["OWNER"],
+  // G4 (Đối tác PT, behind VITE_GYM_OWNER_V2 ONLY: routes.tsx and the new nav use it, the legacy page keeps "collaborations").
+  // OWNER agreements; MANAGER "PT check-in tại chi nhánh" (ptCheckin.list O,M); ACCOUNTANT "Hoa hồng PT" (finance.ptCommission.view O,A).
+  partners: ["OWNER", "MANAGER", "ACCOUNTANT"],
   staff: ["OWNER"],
   frontDesk: ["OWNER", "MANAGER", "RECEPTIONIST"],
   finance: ["OWNER", "ACCOUNTANT"],

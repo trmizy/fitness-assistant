@@ -206,7 +206,8 @@ export function MyGymsPage() {
     queryKey: ["partner-onboarding-status"],
     queryFn: () => gymService.getOnboardingStatus(),
   });
-  const isOwner = (onboardingStatus?.role ?? "OWNER") === "OWNER";
+  // Finding B (audit/02 section 5): only an explicit OWNER is an owner - an unknown/loading role must never unlock owner-only controls.
+  const isOwner = onboardingStatus?.role === "OWNER";
 
   const isLoading = gymsLoading || brandsLoading;
   const needsBrandSetup = !isLoading && brands.length === 0;

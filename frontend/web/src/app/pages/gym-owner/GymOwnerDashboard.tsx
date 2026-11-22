@@ -234,7 +234,9 @@ export function GymOwnerDashboard() {
     isLoading: checkinsLoading,
     isError: checkinsError,
   } = useQuery<{ id: string; createdAt: string }[]>({
-    queryKey: ["owned-gym-checkins", activeGymId],
+    // Finding C: one key for GET /owner/gyms/:id/checkins (was "owned-gym-checkins" here and "gym-checkins" in GymCheckinPanel),
+    // so AssistedCheckinPanel.invalidateQueries(["gym-checkins", gymId]) also refreshes this dashboard.
+    queryKey: ["gym-checkins", activeGymId],
     queryFn: () => gymService.listCheckins(activeGymId),
     enabled: !!activeGymId,
   });

@@ -241,3 +241,11 @@ export function canConfirm(p: {
   if (p.method === "MEMBER_OTP") return !!p.challengeId && /^\d{6}$/.test(p.otp);
   return !!p.exceptionId;
 }
+
+/**
+ * G3 - the panel's input counts as "typed but not sent" once a member is picked, an exception reason is typed or an OTP was sent.
+ * The new front-desk page asks before a branch switch / navigation takes that away. (A half-typed search code does not count.)
+ */
+export function assistedInputDirty(s: { selected: boolean; excReason: string; challengeSent: boolean }): boolean {
+  return s.selected || s.excReason.trim().length > 0 || s.challengeSent;
+}

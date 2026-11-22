@@ -79,7 +79,7 @@ export function GymOwnerProfilePage() {
   });
   const { data: gyms = [] } = useQuery<Gym[]>({ queryKey: ["owned-gyms"], queryFn: () => gymService.listOwnedGyms() });
   const brand = brands[0];
-  const isOwner = (status?.role ?? "OWNER") === "OWNER"; // quản lý/lễ tân/kế toán không thấy phần nhận tiền
+  const isOwner = status?.role === "OWNER"; // quản lý/lễ tân/kế toán không thấy phần nhận tiền
   const brandName = brand ? brand.approvedName ?? brand.name : null;
 
   // ── Thương hiệu ──

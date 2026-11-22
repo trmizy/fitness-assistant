@@ -7,7 +7,7 @@ import {
 import { gymService } from "../../services/api";
 import { useApp } from "../../context/AppContext";
 import {
-  assistedErrorCode, assistedErrorText, blockedText, canConfirm, EXCEPTION_STATUS_LABEL, formatCodeInput, formatExpiry, initialsOf,
+  assistedErrorCode, assistedErrorText, assistedInputDirty, blockedText, canConfirm, EXCEPTION_STATUS_LABEL, formatCodeInput, formatExpiry, initialsOf,
   isFullCode, newRequestId, normalizeConfig, normalizeExceptions, normalizeMembers, planTypeLabel, REASON_PRESETS, STATUS_LABEL,
   type AssistedMethod, type ExceptionRow, type MemberResult,
 } from "../../utils/assistedCheckin";
@@ -70,7 +70,13 @@ function MemberCard({ m, onPick, large }: { m: MemberResult; onPick?: () => void
   );
 }
 
-export function AssistedCheckinPanel({ gymId }: { gymId: string }) {
+export function AssistedCheckinPanel({ gymId, onDirtyChange, prefillCode }: {
+  gymId: string;
+  /** G3: told whenever the staff member has typed something that a branch switch would lose. */
+  onDirtyChange?: (dirty: boolean) => void;
+  /** G3: member code from "Xem tại quầy" (fills the code box only; nothing is searched until the staff member presses Tra cứu). */
+  prefillCode?: string;
+}) {
   const { user } = useApp();
   const uid = user?.id ?? "guest";
   const qc = useQueryClient();
@@ -94,8 +100,9 @@ export function AssistedCheckinPanel({ gymId }: { gymId: string }) {
 
   // Đổi chi nhánh hoặc tài khoản → bỏ sạch trạng thái cũ (không để dữ liệu hội viên của ca trước nằm lại).
   useEffect(() => {
-    setResults(null); setSelected(null); setDone(null); setCode(""); setName(""); setLast4(""); setSearchError("");
-  }, [gymId, uid]);
+    setResults(null); setSelected(null); setDone(null); setCode(prefillCode ? formatCodeInput(prefillCode) : ""); setName(""); setLast4(""); setSearchError("");
+    if (prefillCode) setMode("code");
+  }, [gymId, uid, prefillCode]);
 
   const canSearch = mode === "code" ? isFullCode(code) : name.trim().length >= 2 && last4.replace(/[^0-9A-Za-z]/g, "").length === 4;
   const search = useMutation({
@@ -194,6 +201,10 @@ export function AssistedCheckinPanel({ gymId }: { gymId: string }) {
     },
     onError: (e) => { setNotice(""); setActionError(assistedErrorText(e)); if (assistedErrorCode(e) === "OTP_ATTEMPTS_EXCEEDED" || assistedErrorCode(e) === "OTP_EXPIRED") setChallengeId(null); },
   });
+
+  const inputDirty = assistedInputDirty({ selected: !!selected, excReason, challengeSent: challengeId !== null });
+  useEffect(() => { onDirtyChange?.(inputDirty); }, [inputDirty]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => onDirtyChange?.(false), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const methodBtn = (m: AssistedMethod, label: string, hint: string, disabled: boolean, why?: string) => (
     <button

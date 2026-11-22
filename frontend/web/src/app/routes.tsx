@@ -3,6 +3,8 @@ import { lazy, Suspense } from "react";
 import { AppProvider } from "./context/AppContext";
 import { AppShell } from "./components/layout/AppShell";
 import { AdminShell } from "./components/layout/admin/AdminShell";
+import { GymOwnerShell } from "./components/layout/gym-owner/GymOwnerShell";
+import { isGymOwnerV2Enabled } from "./features/gym-owner/flag";
 import { LegacyAdminRedirect } from "./components/layout/admin/LegacyAdminRedirect";
 import { PageSkeleton } from "./components/layout/PageSkeleton";
 
@@ -102,6 +104,13 @@ const PTListingPage = lazy(() => import("./pages/pt/PTListingPage").then((m) => 
 
 // Gym owner pages
 const GymOwnerDashboard = lazy(() => import("./pages/gym-owner/GymOwnerDashboard").then((m) => ({ default: m.GymOwnerDashboard })));
+const TodayPage = lazy(() => import("./features/gym-owner/today/TodayPage").then((m) => ({ default: m.TodayPage })));
+const BranchesPage = lazy(() => import("./features/gym-owner/branches/BranchesPage").then((m) => ({ default: m.BranchesPage })));
+const BranchDetailPage = lazy(() => import("./features/gym-owner/branches/BranchDetailPage").then((m) => ({ default: m.BranchDetailPage })));
+const MembersPage = lazy(() => import("./features/gym-owner/members/MembersPage").then((m) => ({ default: m.MembersPage })));
+const PartnersPage = lazy(() => import("./features/gym-owner/partners/PartnersPage").then((m) => ({ default: m.PartnersPage })));
+const V2FrontDeskPage = lazy(() => import("./features/gym-owner/front-desk/FrontDeskPage").then((m) => ({ default: m.FrontDeskPage })));
+const ListingsEntryPage = lazy(() => import("./features/gym-owner/branches/ListingsEntryPage").then((m) => ({ default: m.ListingsEntryPage })));
 const MyGymsPage = lazy(() => import("./pages/gym-owner/MyGymsPage").then((m) => ({ default: m.MyGymsPage })));
 const GymOwnerProfilePage = lazy(() => import("./pages/gym-owner/GymOwnerProfilePage").then((m) => ({ default: m.GymOwnerProfilePage })));
 const GymListingsPage = lazy(() => import("./pages/gym-owner/GymListingsPage").then((m) => ({ default: m.GymListingsPage })));
@@ -360,7 +369,8 @@ export const router = createBrowserRouter([
         element: (
           <RequireRole allow={["gym_owner"]}>
             <RequireApprovedPartner>
-              <AppShell />
+              {/* VITE_GYM_OWNER_V2 (default off): the redesigned shell. Same guards, same child routes/pages. */}
+              {isGymOwnerV2Enabled() ? <GymOwnerShell /> : <AppShell />}
             </RequireApprovedPartner>
           </RequireRole>
         ),
@@ -368,15 +378,24 @@ export const router = createBrowserRouter([
           // D15 — mỗi trang khai báo vai trò nội bộ được vào (RequireStaffFeature); lễ tân/kế toán được đẩy về
           // trang chủ riêng. Chỉ là chặn UX — backend gym-service là cổng thật.
           { index: true, element: <Navigate to="/gym-owner/dashboard" replace /> },
-          { path: "dashboard", element: <RequireStaffFeature feature="dashboard"><GymOwnerDashboard /></RequireStaffFeature> },
-          { path: "gyms", element: <RequireStaffFeature feature="gyms"><MyGymsPage /></RequireStaffFeature> },
+          { path: "dashboard", element: <RequireStaffFeature feature="dashboard">{isGymOwnerV2Enabled() ? <TodayPage /> : <GymOwnerDashboard />}</RequireStaffFeature> },
+          { path: "gyms", element: <RequireStaffFeature feature="gyms">{isGymOwnerV2Enabled() ? <BranchesPage /> : <MyGymsPage />}</RequireStaffFeature> },
           { path: "gyms/wizard/:id?", element: <RequireStaffFeature feature="gymWizard"><AddBranchWizardPage /></RequireStaffFeature> },
-          { path: "gyms/:id", element: <RequireStaffFeature feature="gymManage"><GymManagePage /></RequireStaffFeature> },
-          { path: "listings", element: <RequireStaffFeature feature="listings"><GymListingsPage /></RequireStaffFeature> },
-          { path: "plans", element: <RequireStaffFeature feature="plans"><GymPlansPage /></RequireStaffFeature> },
-          { path: "collaborations", element: <RequireStaffFeature feature="collaborations"><GymCollaborationsPage /></RequireStaffFeature> },
+          { path: "gyms/:id", element: <RequireStaffFeature feature="gymManage">{isGymOwnerV2Enabled() ? <BranchDetailPage /> : <GymManagePage />}</RequireStaffFeature> },
+          { path: "listings", element: <RequireStaffFeature feature="listings">{isGymOwnerV2Enabled() ? <ListingsEntryPage /> : <GymListingsPage />}</RequireStaffFeature> },
+          // Flag off: this URL does not exist (legacy behaviour unchanged).
+          ...(isGymOwnerV2Enabled() ? [{ path: "members", element: <RequireStaffFeature feature="members"><MembersPage /></RequireStaffFeature> }] : []),
+          // Flag on: plans live in the Gói tab of Hội viên & gói (same URL keeps working as a redirect). Flag off: the legacy page, same guard.
+          isGymOwnerV2Enabled()
+            ? { path: "plans", element: <RequireStaffFeature feature="members"><Navigate to="/gym-owner/members?tab=plans" replace /></RequireStaffFeature> }
+            : { path: "plans", element: <RequireStaffFeature feature="plans"><GymPlansPage /></RequireStaffFeature> },
+          // G4: flag on = Đối tác PT by role (owner agreements, manager PT check-ins, accountant commission) behind the V2-only "partners" guard.
+          // Flag off = the legacy page behind the unchanged owner-only "collaborations" guard (no extra role gets in).
+          isGymOwnerV2Enabled()
+            ? { path: "collaborations", element: <RequireStaffFeature feature="partners"><PartnersPage /></RequireStaffFeature> }
+            : { path: "collaborations", element: <RequireStaffFeature feature="collaborations"><GymCollaborationsPage /></RequireStaffFeature> },
           { path: "managers", element: <RequireStaffFeature feature="staff"><ManageManagersPage /></RequireStaffFeature> },
-          { path: "front-desk", element: <RequireStaffFeature feature="frontDesk"><FrontDeskPage /></RequireStaffFeature> },
+          { path: "front-desk", element: <RequireStaffFeature feature="frontDesk">{isGymOwnerV2Enabled() ? <V2FrontDeskPage /> : <FrontDeskPage />}</RequireStaffFeature> },
           { path: "finance", element: <RequireStaffFeature feature="finance"><GymFinancePage /></RequireStaffFeature> },
           // ND-07: hồ sơ khiếu nại về chi nhánh — chủ và quản lý (đúng chi nhánh được giao) giải trình + gửi bằng chứng.
           { path: "complaint-cases", element: <RequireStaffFeature feature="complaintCases"><GymComplaintCasesPage /></RequireStaffFeature> },

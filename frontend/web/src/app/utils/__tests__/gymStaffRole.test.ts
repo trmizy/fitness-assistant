@@ -39,6 +39,20 @@ describe("gymStaffRole", () => {
   });
 });
 
+describe("G4 partners feature (Đối tác PT, VITE_GYM_OWNER_V2 only)", () => {
+  it("OWNER, MANAGER and ACCOUNTANT reach it; RECEPTIONIST and an unknown role never do (fail-closed)", () => {
+    for (const r of ["OWNER", "MANAGER", "ACCOUNTANT"] as PartnerRole[]) assert.equal(canUseFeature(r, "partners"), true, r);
+    assert.equal(canUseFeature("RECEPTIONIST", "partners"), false);
+    assert.equal(canUseFeature(undefined, "partners"), false);
+  });
+  it("the legacy `collaborations` feature (flag off) is NOT widened: still owner only, manager and accountant keep being bounced", () => {
+    assert.equal(canUseFeature("OWNER", "collaborations"), true);
+    for (const r of ["MANAGER", "ACCOUNTANT", "RECEPTIONIST"] as PartnerRole[]) assert.equal(canUseFeature(r, "collaborations"), false, r);
+    assert.equal(canViewCollaborations("MANAGER"), false);
+    assert.equal(canViewCollaborations("ACCOUNTANT"), false);
+  });
+});
+
 describe("gymStaffRole read-permission helpers (ND-01 / ND-02)", () => {
   it("manager never fires wallet or collaborations reads; receptionist never fires brands", () => {
     assert.equal(canViewWallet("MANAGER"), false);
