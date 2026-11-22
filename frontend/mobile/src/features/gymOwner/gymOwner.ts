@@ -150,7 +150,9 @@ export function accessStateText(state: PartnerAccessState | null | undefined) {
 export function isBrandOwner(onboardingStatus: unknown): boolean {
   const role = (onboardingStatus as any)?.role;
   // D15: only the OWNER names the brand / adds a branch — manager, receptionist and accountant all lose the controls.
-  return role == null || role === "OWNER";
+  // Fail-closed (22/11/2026): a role that is not known yet (loading / error / old server) is NOT the owner. A legacy owner row
+  // without a partner account still answers role OWNER (gym-service onboarding.controller), so nobody real is locked out.
+  return role === "OWNER";
 }
 
 /**
@@ -598,7 +600,14 @@ export function planPayload(f: PlanForm) {
 
 // ── Ví chi nhánh và rút tiền (GY-04) ───────────────────────────────────────────────────────
 
-export type WithdrawalRow = { id: string; amount?: string | number | null; status?: string | null; createdAt?: string | null };
+export type WithdrawalRow = {
+  id: string;
+  amount?: string | number | null;
+  status?: string | null;
+  createdAt?: string | null;
+  /** Admin's reason when the request was REJECTED (shown to the owner; the server also rings the bell). */
+  rejectionReason?: string | null;
+};
 
 export function withdrawalRows(raw: unknown): WithdrawalRow[] {
   const list = Array.isArray(raw) ? raw : ((raw as any)?.data ?? []);
@@ -613,13 +622,6 @@ export function withdrawalRows(raw: unknown): WithdrawalRow[] {
  */
 export function openWithdrawals(rows: WithdrawalRow[]): WithdrawalRow[] {
   return rows.filter((w) => w.status === "PENDING" || w.status === "APPROVED");
-}
-
-/** Tài khoản nhận tiền đã lưu ở bước thiết lập đối tác — điền sẵn để chủ gym khỏi gõ lại. */
-export function savedPayoutLine(onboardingStatus: unknown): string {
-  const p = (onboardingStatus as any)?.payout;
-  if (!p?.accountNumber) return "";
-  return [p.bankName, p.accountNumber, p.accountHolder].filter(Boolean).join(" — ");
 }
 
 // ── Hợp tác với huấn luyện viên, nhìn từ ghế chủ gym (GY-06) ───────────────────────────────

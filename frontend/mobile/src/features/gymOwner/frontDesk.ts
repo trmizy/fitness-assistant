@@ -122,6 +122,21 @@ export function normalizeExceptions(raw: unknown): { canApprove: boolean; except
   };
 }
 
+/**
+ * Item 6: số yêu cầu ngoại lệ check-in đang chờ DUYỆT, cho huy hiệu "Quầy lễ tân". Phản chiếu web `countPendingExceptions`:
+ * chỉ tính khi server nói `canApprove` (chủ/quản lý) và bỏ yêu cầu do chính mình tạo (không tự duyệt được — bốn mắt).
+ * Mỗi phần tử là phản hồi THÔ của GET …/front-desk/exceptions cho một chi nhánh; phản hồi lỗi/sai dạng tính là 0.
+ */
+export function countPendingExceptions(rawLists: readonly unknown[]): number {
+  let n = 0;
+  for (const raw of rawLists) {
+    const { canApprove, exceptions } = normalizeExceptions(raw);
+    if (!canApprove) continue;
+    n += exceptions.filter((e) => e.status === "PENDING" && !e.mine).length;
+  }
+  return n;
+}
+
 /** Member code as typed: strip stray characters, UPPERCASE, dash after 4 when 8 are present. */
 export function formatCodeInput(v: string): string {
   const c = v.replace(/[^0-9A-Za-z]/g, "").toUpperCase().slice(0, 8);

@@ -14,6 +14,7 @@ import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { designTokens } from "../../src/theme/colors";
 import { formatVND } from "../../src/utils/currency";
 import { branchName, ownedGyms } from "../../src/features/gymOwner/gymOwner";
+import { rejectionReasonLine } from "../../src/features/gymOwner/gymWithdrawal";
 import {
   COMMISSION_PRESET_LABEL,
   SALE_STATUS_LABEL,
@@ -102,7 +103,7 @@ export default function FinanceScreen() {
       queryKey: ["finance-withdrawals", uid, g.id],
       queryFn: async () => {
         const r = await gymService.listGymWithdrawals(g.id);
-        return (Array.isArray(r) ? r : []) as { id: string; amount?: string | number; status?: string; createdAt?: string; bankReference?: string; payoutInfo?: string }[];
+        return (Array.isArray(r) ? r : []) as { id: string; amount?: string | number; status?: string; createdAt?: string; bankReference?: string; payoutInfo?: string; rejectionReason?: string | null }[];
       },
     })),
   });
@@ -233,7 +234,11 @@ export default function FinanceScreen() {
             <StaggerItem>
               <View className="flex-row flex-wrap gap-3">
                 <Kpi label="Doanh số đã thanh toán" value={loading ? "…" : formatVND(recognized.total)} hint={`${recognized.count} thẻ (đang dùng + hết hạn)`} />
-                <Kpi label="Số dư khả dụng" value={loading ? "…" : formatVND(totals.available)} hint="Có thể rút" />
+                <Kpi
+                  label="Có thể rút"
+                  value={loading ? "…" : formatVND(totals.withdrawable)}
+                  hint={totals.reserved > 0 ? `Đã trừ ${formatVND(totals.reserved)} yêu cầu đang chờ duyệt` : "Đã trừ yêu cầu chờ duyệt và nợ nền tảng"}
+                />
                 <Kpi label="Chờ ghi nhận" value={loading ? "…" : formatVND(totals.pending)} hint="Giữ tới khi thẻ kết thúc" />
                 <Kpi label="Lượt rút tiền" value={loading ? "…" : String(withdrawals.length)} hint="Tất cả trạng thái" />
               </View>
@@ -381,6 +386,11 @@ export default function FinanceScreen() {
                         </Text>
                         <Badge tone={withdrawalTone(w.status)}>{WITHDRAWAL_STATUS_LABEL[w.status ?? ""] ?? w.status ?? "—"}</Badge>
                       </View>
+                      {rejectionReasonLine(w) ? (
+                        <Text className="font-body text-[11px] text-destructive" testID="finance-withdrawal-rejection-reason">
+                          {rejectionReasonLine(w)}
+                        </Text>
+                      ) : null}
                       {w.payoutInfo ? <Text className="font-body text-[11px] text-muted-foreground">{w.payoutInfo}</Text> : null}
                     </View>
                   ))

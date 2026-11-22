@@ -6544,8 +6544,10 @@ export const gymService = {
   },
   // Money-flow plan 5.3 — gym-service verifies gym ownership itself before proxying to
   // payment-service, same shape as getOwnedWallet above.
-  requestGymWithdrawal: async (gymId: string, amount: string, payoutInfo: string) => {
-    const { data } = await api.post(`/owner/gyms/${gymId}/withdrawals`, { amount, payoutInfo });
+  // 22/11/2026: the destination is the partner's REGISTERED payout account, resolved by gym-service (409 PAYOUT_ACCOUNT_REQUIRED
+  // when it is incomplete) — the client no longer sends `payoutInfo`.
+  requestGymWithdrawal: async (gymId: string, amount: string) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/withdrawals`, { amount });
     return data?.data ?? data;
   },
   listGymWithdrawals: async (gymId: string) => {

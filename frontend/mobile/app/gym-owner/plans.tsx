@@ -23,12 +23,12 @@ import {
 import { gymService } from "../../src/services/api";
 import { useApp } from "../../src/context/AppContext";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
+import { useStaffPermissions } from "../../src/features/gymOwner/useStaffPermissions";
 import { designTokens } from "../../src/theme/colors";
 import { formatVND } from "../../src/utils/currency";
 import {
   EMPTY_PLAN_FORM,
   brandDisplayName,
-  isBrandOwner,
   ownedPlans,
   planFormError,
   planLimitText,
@@ -59,12 +59,11 @@ export default function GymOwnerPlansScreen() {
   const [form, setForm] = useState<PlanForm>(EMPTY_PLAN_FORM);
 
   const brandsQuery = useQuery({ queryKey: ["owned-brands", uid], queryFn: () => gymService.listOwnedBrands() });
-  const statusQuery = useQuery({
-    queryKey: ["partner-onboarding-status", uid],
-    queryFn: () => gymService.getOnboardingStatus(),
-  });
+  // Item 5 (Ngài chốt): a MANAGER may VIEW plans but only the owner creates / stops them (POST/PATCH are requirePartnerOwner).
+  // Write controls show only when the server's permissions[] lists plan.write — fail-closed (unknown role / old server => read-only).
+  const { can } = useStaffPermissions();
+  const canWritePlans = can("plan.write");
   const brand = theBrand(brandsQuery.data);
-  const isOwner = isBrandOwner(statusQuery.data);
 
   const plansQuery = useQuery({
     queryKey: ["owned-brand-plans", brand?.id],
@@ -128,7 +127,7 @@ export default function GymOwnerPlansScreen() {
                   <Text className="font-body-semibold text-foreground">{brandDisplayName(brand)}</Text> — áp dụng cho
                   mọi chi nhánh. Khách check-in ở đâu cũng trừ chung một hạn mức lượt.
                 </Text>
-                {isOwner ? (
+                {canWritePlans ? (
                   <Button
                     icon={Plus}
                     onPress={() => {
@@ -153,7 +152,7 @@ export default function GymOwnerPlansScreen() {
                 <EmptyState
                   icon={Ticket}
                   title="Chưa có gói nào"
-                  description="Tạo gói đầu tiên để khách bắt đầu đăng ký hội viên."
+                  description={canWritePlans ? "Tạo gói đầu tiên để khách bắt đầu đăng ký hội viên." : "Chủ sở hữu chưa tạo gói nào."}
                 />
               </StaggerItem>
             ) : (
@@ -188,7 +187,7 @@ export default function GymOwnerPlansScreen() {
                       </View>
                       <View className="flex-row items-center justify-between border-t border-border pt-3">
                         <Badge tone={st.tone}>{st.label}</Badge>
-                        {isOwner ? (
+                        {canWritePlans ? (
                           <Tappable
                             accessibilityLabel={isActive ? "Ngừng bán gói này" : "Mở bán lại gói này"}
                             disabled={toggle.isPending}
@@ -216,7 +215,7 @@ export default function GymOwnerPlansScreen() {
         )}
       </ScrollView>
 
-      <BottomSheet open={open} onClose={() => setOpen(false)} title="Gói hội viên mới">
+      <BottomSheet open={open && canWritePlans} onClose={() => setOpen(false)} title="Gói hội viên mới">
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 12, paddingBottom: 8 }}>
           <Input
             label="Tên gói"

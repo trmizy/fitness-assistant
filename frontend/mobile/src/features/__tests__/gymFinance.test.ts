@@ -37,7 +37,18 @@ describe("gym finance (accountant)", () => {
       { availableBalance: "10", pendingBalance: 5, gymDebt: { openUnpaid: "3", recoveredTotal: 1 } },
       { availableBalance: null },
     ]);
-    assert.deepEqual(t, { available: 10, pending: 5, debtOpen: 3, debtRecovered: 1 });
+    // No `withdrawable` from an old server: "Có thể rút" falls back to availableBalance.
+    assert.deepEqual(t, { available: 10, withdrawable: 10, reserved: 0, pending: 5, debtOpen: 3, debtRecovered: 1 });
+  });
+
+  it("wallet totals: Có thể rút sums the server's withdrawable (already net of pending requests and debt), not availableBalance", () => {
+    const t = walletTotals([
+      { availableBalance: "1000", withdrawable: "700", reservedPending: "200", gymDebt: { openUnpaid: 100 } },
+      { availableBalance: "500", withdrawable: 0, reservedPending: "500" },
+    ]);
+    assert.equal(t.available, 1500);
+    assert.equal(t.withdrawable, 700);
+    assert.equal(t.reserved, 700);
   });
 
   it("commission: totals only, nothing per PT survives normalization", () => {

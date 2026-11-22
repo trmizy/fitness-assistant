@@ -22,6 +22,7 @@ import {
 } from "../gymListing/gymListing";
 import { InlineAmenityPicker, type InlineProposal } from "../gymListing/InlineAmenityPicker";
 import { useServerSeededState } from "../../hooks/useServerSeededState";
+import { useStaffPermissions } from "./useStaffPermissions";
 import { AmenityBadgeGroups } from "../gymListing/AmenityWidgets";
 import * as WebBrowser from "expo-web-browser";
 import { shareLocalFile } from "../../services/files";
@@ -56,7 +57,7 @@ import {
   isPdfToken,
   movedPhotoIds,
   nameAddressError,
-  operationalActions,
+  permittedOperationalActions,
   reopenDateError,
   sameFacilities,
   setDayType,
@@ -716,13 +717,17 @@ function DocumentPreview({ token, label }: { token: string; label: string }) {
 
 export function OperationsSection({ uid, gym }: { uid: string; gym: any }) {
   const toast = useToast();
+  // Item 5: each button is shown only when the server's permissions[] lists the permission its route enforces (fail-closed).
+  const { can } = useStaffPermissions();
+  const canTemporary = can("branch.status.temporary");
+  const canPermanent = can("branch.status.permanent");
   const qc = useQueryClient();
   const keys = branchKeys(uid, gym.id);
   const [mode, setMode] = useState<ClosingMode | null>(null);
   const [reason, setReason] = useState("");
   const [reopen, setReopen] = useState("");
-  const actions = operationalActions(gym.operationalStatus);
-  const impactQuery = useQuery({ queryKey: keys.impact, queryFn: () => gymService.getClosureImpact(gym.id), enabled: mode === "PERMANENTLY_CLOSED" });
+  const actions = permittedOperationalActions(gym.operationalStatus, { temporary: canTemporary, permanent: canPermanent });
+  const impactQuery = useQuery({ queryKey: keys.impact, queryFn: () => gymService.getClosureImpact(gym.id), enabled: mode === "PERMANENTLY_CLOSED" && canPermanent });
 
   const set = useMutation({
     mutationFn: (p: { operationalStatus: "OPEN" | ClosingMode; reason?: string; expectedReopenAt?: string }) =>
@@ -806,6 +811,8 @@ export function OperationsSection({ uid, gym }: { uid: string; gym: any }) {
             </View>
           </View>
         </View>
+      ) : !actions.reopen && !actions.closeTemporarily && !actions.closePermanently ? (
+        <Text className="font-body text-xs text-muted-foreground">Bạn đang xem ở chế độ chỉ đọc — không có thao tác đổi trạng thái nào cho tài khoản này.</Text>
       ) : (
         <View className="flex-row flex-wrap gap-2">
           {actions.reopen ? (

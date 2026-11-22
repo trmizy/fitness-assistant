@@ -6,6 +6,7 @@
  * the bank account masked, and only the TOTAL of PT commission per period. `normalizePtCommission` keeps only those
  * fields so nothing extra can be drawn.
  */
+import { reservedPendingOf, withdrawableOf } from "./gymWithdrawal";
 
 export interface SalesRow {
   id: string;
@@ -63,6 +64,10 @@ export function dateLabel(iso: string | null | undefined): string {
 
 export interface WalletLike {
   availableBalance?: string | number | null;
+  /** payment-service 22/11/2026: what a withdrawal request is really checked against (available − pending requests − platform debt). */
+  withdrawable?: string | number | null;
+  /** Sum of PENDING withdrawal requests holding money. */
+  reservedPending?: string | number | null;
   pendingBalance?: string | number | null;
   gymDebt?: {
     openUnpaid?: string | number | null;
@@ -79,6 +84,9 @@ const num = (v: unknown): number => {
 export function walletTotals(wallets: readonly WalletLike[]) {
   return {
     available: wallets.reduce((s, w) => s + num(w.availableBalance), 0),
+    // "Có thể rút": same number the server checks a request against; an old server (no `withdrawable`) falls back to availableBalance.
+    withdrawable: wallets.reduce((s, w) => s + withdrawableOf(w), 0),
+    reserved: wallets.reduce((s, w) => s + reservedPendingOf(w), 0),
     pending: wallets.reduce((s, w) => s + num(w.pendingBalance), 0),
     debtOpen: wallets.reduce((s, w) => s + num(w.gymDebt?.openUnpaid), 0),
     debtRecovered: wallets.reduce((s, w) => s + num(w.gymDebt?.recoveredTotal), 0),
