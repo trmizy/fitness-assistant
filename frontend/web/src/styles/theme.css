@@ -683,6 +683,33 @@
     color: #6d28d9;
   }
 
+  /* D-U1: once the photo + scrim are gone axe can measure these; the dark-theme orange / sky / cyan accents
+     were ~2:1 on light cards (InBody "12.5 kg", the "Thấp" badge). Same remap rule as N14T-11. */
+  :root[data-theme="light"] .text-orange-300,
+  :root[data-theme="light"] .text-orange-400 {
+    color: #c2410c;
+  }
+
+  :root[data-theme="light"] .text-sky-300,
+  :root[data-theme="light"] .text-sky-400,
+  :root[data-theme="light"] .text-cyan-300,
+  :root[data-theme="light"] .text-cyan-400 {
+    color: #0369a1;
+  }
+
+  /* D-U1 dark surface hierarchy. The translucent surfaces below were designed to sit on the gym photo; on the
+     flat Client/PT workspace (data-surface="neutral", AppShell) they collapse into the #0a0a0a page. Give them
+     the existing token steps instead: page --bg-color < card --card-bg < inset --panel-bg. Dark only (light already
+     has its own remaps); Gym Owner/Admin keep the photo and are not matched. */
+  :root:not([data-theme="light"]) [data-surface="neutral"] main :is(.glass-panel, .bg-zinc-950\/40, .bg-zinc-950\/50, .bg-zinc-950\/60, .bg-zinc-950\/70, .bg-zinc-950\/85) {
+    background-color: var(--card-bg);
+    backdrop-filter: none;
+  }
+
+  :root:not([data-theme="light"]) [data-surface="neutral"] main :is(.glass-panel, .bg-zinc-950\/40, .bg-zinc-950\/50, .bg-zinc-950\/60, .bg-zinc-950\/70, .bg-zinc-950\/85) :is(.glass-panel, .bg-zinc-950\/40, .bg-zinc-950\/50, .bg-zinc-950\/60, .bg-zinc-900\/30, .bg-zinc-900\/40, .bg-zinc-900\/50, .bg-zinc-900\/60) {
+    background-color: var(--panel-bg);
+  }
+
   :root[data-theme="light"] .hover\:text-zinc-300:hover,
   :root[data-theme="light"] .hover\:text-zinc-400:hover,
   :root[data-theme="light"] .hover\:text-zinc-500:hover {

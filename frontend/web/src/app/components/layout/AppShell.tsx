@@ -117,16 +117,21 @@ function AppShellInner() {
   }, [sidebarOpen, setSidebarOpen]);
 
   const reserveForAiFab = (role === "client" || role === "pt") && !isAiCoachFabHiddenOn(location.pathname);
+  // D-U1 PROTOTYPE (owner-approved trial, not for release yet): Client/PT workspaces use a neutral surface from the
+  // existing theme tokens instead of the full-screen gym photo. Gym Owner / Admin keep the photo (out of scope).
+  // The asset is not deleted: login/landing/offline and the other roles still use it.
+  const neutralSurface = role === "client" || role === "pt";
 
   return (
     <div
-      className="flex h-screen supports-[height:100dvh]:h-dvh overflow-hidden bg-cover bg-center bg-no-repeat relative"
-      style={{ backgroundImage: `url(${bgGym})` }}
+      className={`flex h-screen supports-[height:100dvh]:h-dvh overflow-hidden relative ${neutralSurface ? "bg-[var(--bg-color)]" : "bg-cover bg-center bg-no-repeat"}`}
+      style={neutralSurface ? undefined : { backgroundImage: `url(${bgGym})` }}
+      data-surface={neutralSurface ? "neutral" : "photo"}
     >
-      <div className="absolute inset-0 app-theme-overlay pointer-events-none z-0"></div>
+      {!neutralSurface && <div className="absolute inset-0 app-theme-overlay pointer-events-none z-0"></div>}
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 flex-shrink-0 border-r border-zinc-800/60 z-10 bg-zinc-950/40 backdrop-blur-md">
+      <aside className={`hidden lg:flex flex-col w-64 flex-shrink-0 border-r border-zinc-800/60 z-10 ${neutralSurface ? "bg-[var(--card-bg)]" : "bg-zinc-950/40 backdrop-blur-md"}`}>
         <Sidebar />
       </aside>
 
