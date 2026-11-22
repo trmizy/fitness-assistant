@@ -127,7 +127,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-zinc-950 flex items-stretch sm:items-center justify-center p-0 sm:p-4 relative overflow-hidden">
       {/* Background glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-60 -right-60 w-[500px] h-[500px] bg-green-500/5 rounded-full blur-3xl" />
@@ -141,7 +141,8 @@ export function LoginPage() {
         />
       </div>
 
-      <div className="relative w-full max-w-4xl grid lg:grid-cols-2 gap-0 rounded-2xl overflow-hidden shadow-2xl shadow-black/60 border border-zinc-800/60">
+      {/* Hybrid (Codex idea): below sm the form is full-bleed — no card inside the page; sm+ keeps the card. */}
+      <div className="relative w-full max-w-4xl grid lg:grid-cols-2 gap-0 overflow-hidden sm:rounded-2xl sm:shadow-2xl sm:shadow-black/60 sm:border sm:border-zinc-800/60">
         {/* ── Left panel ── */}
         <div className="hidden lg:flex flex-col justify-between bg-zinc-900 p-10 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 via-emerald-400 to-green-600" />
@@ -150,11 +151,11 @@ export function LoginPage() {
           <div className="relative z-10">
             <AppLogo className="mb-8" imgClassName="h-28 w-44 object-left" />
 
-            <h1 className="text-4xl font-bold leading-tight mb-4 text-white">
+            <p className="text-4xl font-bold leading-tight mb-4 text-white">
               Trợ lý tập luyện
               <br />
               <span className="text-green-400">thông minh của bạn</span>
-            </h1>
+            </p>
             <p className="text-zinc-400 leading-relaxed">
               Kế hoạch tập luyện từ AI, phân tích InBody thời gian thực, và huấn
               luyện chuyên gia — tất cả trong một nền tảng.
@@ -185,15 +186,16 @@ export function LoginPage() {
         </div>
 
         {/* ── Right panel: form ── */}
-        <div className="bg-zinc-900 p-6 sm:p-10 flex flex-col justify-center border-l border-zinc-800/60">
+        <div className="bg-zinc-900 px-6 py-10 sm:p-10 flex flex-col justify-center lg:border-l lg:border-zinc-800/60">
           {/* Mobile brand */}
           <AppLogo className="lg:hidden mb-6" imgClassName="h-16 w-32 object-left" />
 
-          <h2 className="text-2xl font-bold text-zinc-100 mb-1">
-            Chào mừng trở lại
-          </h2>
+          {/* Hybrid: one h1 on every width (the left-panel title was the only h1 and is hidden below lg). */}
+          <h1 className="text-3xl sm:text-2xl font-bold text-zinc-100 mb-1">
+            Đăng nhập
+          </h1>
           <p className="text-zinc-500 text-sm mb-6">
-            Đăng nhập vào tài khoản của bạn để tiếp tục
+            Chào mừng trở lại. Tiếp tục vào tài khoản Gymini của bạn.
           </p>
 
           {sessionNotice && (
