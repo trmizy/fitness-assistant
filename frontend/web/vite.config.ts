@@ -1,4 +1,5 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin, type Rollup } from "vite";
+type OutputChunk = Rollup.OutputChunk;
 import path from "path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
@@ -39,12 +40,51 @@ const extraAllowedHosts = (process.env.VITE_EXTRA_ALLOWED_HOSTS || "")
   .map((host) => host.trim())
   .filter(Boolean);
 
+// Frontend 2.0 / mobile LCP (owner D2, option "A + preload Login"): /login's LCP is its heading,
+// painted only after entry JS -> router -> lazy LoginPage chunk. Start downloading that chunk (and
+// the small chunks it needs that the entry does not already preload) in parallel with the entry,
+// only when the first URL is "/" or "/login". Build-only; dev is unchanged. No pre-render/hydration.
+// Measured (CDP slow-4G, 4x CPU, cold, median of 5): 3.02 s (lazy shell only) -> 2.62 s.
+function preloadLoginChunk(): Plugin {
+  let base = "/";
+  return {
+    name: "gymini-preload-login",
+    apply: "build",
+    configResolved(c) { base = c.base; },
+    transformIndexHtml: {
+      order: "post",
+      handler(html, ctx) {
+        const bundle = ctx.bundle;
+        if (!bundle) return html;
+        const chunks = Object.values(bundle).filter((c): c is OutputChunk => c.type === "chunk");
+        const login = chunks.find((c) => c.facadeModuleId?.replace(/\\/g, "/").endsWith("/src/app/pages/auth/LoginPage.tsx"));
+        const entry = chunks.find((c) => c.isEntry);
+        if (!login || !entry) return html;
+        const closure = (c: OutputChunk, acc = new Set<string>()) => {
+          if (acc.has(c.fileName)) return acc;
+          acc.add(c.fileName);
+          for (const i of c.imports) { const n = bundle[i]; if (n?.type === "chunk") closure(n, acc); }
+          return acc;
+        };
+        const inEntry = closure(entry);
+        const js = [...closure(login)].filter((f) => !inEntry.has(f)).map((f) => base + f);
+        const css = [...(login.viteMetadata?.importedCss ?? [])].map((f) => base + f);
+        const script = `<script>(function(){if(!/^\\/(login\\/?)?$/.test(location.pathname))return;var h=document.head;` +
+          `${JSON.stringify(js)}.forEach(function(f){var l=document.createElement("link");l.rel="modulepreload";l.href=f;h.appendChild(l)});` +
+          `${JSON.stringify(css)}.forEach(function(f){var l=document.createElement("link");l.rel="preload";l.as="style";l.href=f;h.appendChild(l)})})();</script>`;
+        return html.replace("</head>", `    ${script}\n  </head>`);
+      },
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
     // The React and Tailwind plugins are both required for Make, even if
     // Tailwind is not being actively used – do not remove them
     react(),
     tailwindcss(),
+    preloadLoginChunk(),
   ],
   resolve: {
     alias: {

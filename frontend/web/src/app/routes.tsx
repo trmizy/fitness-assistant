@@ -1,7 +1,10 @@
 import { createBrowserRouter, Navigate, Outlet } from "react-router";
 import { lazy, Suspense } from "react";
 import { AppProvider } from "./context/AppContext";
-import { AppShell } from "./components/layout/AppShell";
+// Frontend 2.0 / mobile LCP (owner D2, option A): the signed-in shell (motion, Sidebar/Topbar,
+// AI Coach FAB, menus) is not needed before authentication, so it is no longer in the entry chunk.
+// Root already wraps <Outlet /> in a PageSkeleton Suspense boundary.
+const AppShell = lazy(() => import("./components/layout/AppShell").then((m) => ({ default: m.AppShell })));
 import { LegacyAdminRedirect } from "./components/layout/admin/LegacyAdminRedirect";
 import { PageSkeleton } from "./components/layout/PageSkeleton";
 
