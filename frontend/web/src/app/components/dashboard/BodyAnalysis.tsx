@@ -16,8 +16,6 @@ import { Suspense, lazy, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowRightIcon, UploadSimpleIcon, ArrowClockwiseIcon, InfoIcon } from "@phosphor-icons/react";
-import { useSettings } from "../../context/SettingsContext";
-import SpotlightCard from "../reactbits/SpotlightCard/SpotlightCard";
 import { muscleCodeLabel } from "../../utils/labels.vi";
 import { isBackViewMuscle } from "../../constants/muscleRegionMap";
 import { DASHBOARD_ERROR_TEXT } from "../../utils/dashboardDataState";
@@ -82,7 +80,6 @@ export type BodyAnalysisProps = {
 export function BodyAnalysis({ state, latest, prev, measuredLabel, onRetry, retrying }: BodyAnalysisProps) {
   const navigate = useNavigate();
   const reduce = useReducedMotion();
-  const { effectiveTheme } = useSettings();
   const metrics = useMemo(() => (state === "ready" ? availableMetrics(latest) : []), [state, latest]);
   const modes: Mode[] = [...metrics, "anatomy"];
   const [modePick, setMode] = useState<Mode | null>(null);
@@ -125,17 +122,8 @@ export function BodyAnalysis({ state, latest, prev, measuredLabel, onRetry, retr
   );
 
   return (
-    <SpotlightCard
-      theme={effectiveTheme === "light" ? "light" : "dark"}
-      spotlightColor={effectiveTheme === "light" ? "#16a34a" : "#22c55e"}
-      intensity={0.05}
-      borderGlow={0.35}
-      spotlightSize={320}
-      proximity={0}
-      flare={false}
-      className="ob-glass ob-hero !rounded-[24px] !p-0"
-      style={{ "--spotlight-card-surface": "transparent", "--spotlight-card-border": "transparent", "--spotlight-card-shadow": "none" } as React.CSSProperties}
-    >
+    // Plain Obsidian glass surface (the pointer-light card wrapper was removed: same layout, no third-party licence).
+    <div className="ob-glass ob-hero relative isolate overflow-hidden">
       <section aria-labelledby="ob-body-h" className="p-5 md:p-6" aria-busy={state === "loading" || undefined}>
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
@@ -278,6 +266,6 @@ export function BodyAnalysis({ state, latest, prev, measuredLabel, onRetry, retr
           </button>
         )}
       </section>
-    </SpotlightCard>
+    </div>
   );
 }
