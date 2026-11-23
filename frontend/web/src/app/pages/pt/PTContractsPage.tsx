@@ -22,6 +22,11 @@ import { withRefundLabel } from "../../utils/sessionRefund";
 import { INDEPENDENT_VENUE_NOTE, isIndependentVenue } from "../../utils/independentVenue";
 import { fullName } from "../../utils/fullName";
 import { contractPlaceLabel } from "../../utils/contractPlace";
+import { FilterChips } from "../../components/ui/nav/FilterChips";
+import { isWebPresentation } from "../../utils/webPresentation";
+
+// WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
+const WEB_UI = isWebPresentation();
 
 const SESSION_STATUS: Record<
   SessionStatus,
@@ -429,6 +434,9 @@ export function PTContractsPage() {
             className="flex-1 text-sm outline-none bg-transparent text-zinc-300 placeholder-zinc-600"
           />
         </div>
+        {WEB_UI ? (
+          <FilterChips label="Lọc hợp đồng theo trạng thái" options={TABS.map((t) => ({ value: t.value, label: t.label, badge: t.value === "PENDING_REVIEW" ? kpis.pending : undefined }))} value={tab} onChange={(v) => setTab(v)} testId="pt-contracts-filter" />
+        ) : (
         <div className="flex gap-2 overflow-x-auto g-scroll-x">
           {TABS.map((t) => (
             <button
@@ -451,6 +459,7 @@ export function PTContractsPage() {
             </button>
           ))}
         </div>
+        )}
       </div>
 
       {/* Loading */}

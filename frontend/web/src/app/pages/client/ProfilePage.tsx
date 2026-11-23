@@ -10,6 +10,12 @@ import { fullName } from "../../utils/fullName";
 import { ACTIVITY_LEVELS } from "../../constants/activityLevels";
 
 import { GoalSuggestion } from "../../components/GoalSuggestion";
+import { RadioCards } from "../../components/ui/nav/RadioCards";
+import { FlameIcon, BarbellIcon as GoalBarbellIcon, TrendUpIcon, ScalesIcon, HeartbeatIcon } from "@phosphor-icons/react";
+import { isWebPresentation } from "../../utils/webPresentation";
+
+// WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
+const WEB_UI = isWebPresentation();
 // This page keeps its own goal keys; the suggestion speaks the backend enum. Only these three exist on this page.
 const GOAL_KEY_BY_ENUM: Record<string, string> = { WEIGHT_LOSS: "lose_fat", MUSCLE_GAIN: "gain_muscle", MAINTENANCE: "maintain" };
 const GOAL_ENUM_BY_KEY: Record<string, string> = { lose_fat: "WEIGHT_LOSS", gain_muscle: "MUSCLE_GAIN", maintain: "MAINTENANCE" };
@@ -21,6 +27,9 @@ const goals = [
   { key: "maintain", label: "Duy trì vóc dáng", emoji: "⚖️" },
   { key: "improve_health", label: "Cải thiện sức khỏe", emoji: "❤️" },
 ];
+
+// WEB UI: the goal cards use the app icon set instead of emoji.
+const GOAL_ICON: Record<string, React.ElementType> = { lose_fat: FlameIcon, gain_muscle: GoalBarbellIcon, gain_weight: TrendUpIcon, maintain: ScalesIcon, improve_health: HeartbeatIcon };
 
 const activityLevels = [
   "Ít vận động",
@@ -583,6 +592,9 @@ export function ProfilePage() {
                 onChoose={(g) => setGoal(GOAL_KEY_BY_ENUM[g] ?? goal)}
               />
             )}
+            {WEB_UI ? (
+            <RadioCards label="Mục tiêu" disabled={!editing} value={goal} onChange={setGoal} options={goals.map((g) => ({ value: g.key, label: g.label, icon: GOAL_ICON[g.key] }))} testId="profile-goal" />
+            ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {goals.map((g) => (
                 <button
@@ -601,6 +613,7 @@ export function ProfilePage() {
                 </button>
               ))}
             </div>
+            )}
           </div>
 
           {/* Preferences */}

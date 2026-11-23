@@ -13,6 +13,8 @@ import { ClientRoadmapCard } from "./ClientRoadmapCard";
 import { ClientProgressCard } from "./ClientProgressCard";
 import { AssignPlanModal } from "./AssignPlanModal";
 import { ActivePill } from "../../components/ui/ActivePill";
+import { ContentTabs, TabPanel } from "../../components/ui/nav/ContentTabs";
+import { isWebPresentation } from "../../utils/webPresentation";
 
 function getInitials(name: string | null | undefined) {
   if (!name) return "?";
@@ -197,6 +199,7 @@ export function PTClientDetail() {
   const { id: clientUserId } = useParams<{ id: string }>();
   const [showAssignPlan, setShowAssignPlan] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [webUi] = useState(isWebPresentation);
 
   // "Nhắn tin" opens the 1-1 conversation WITH this client, creating it the first time (idempotent endpoint;
   // chat-service re-checks the PT<->client contract server-side). It used to open the bare chat list.
@@ -310,90 +313,9 @@ export function PTClientDetail() {
     );
   }
 
-  return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5">
-      <button
-        onClick={() => navigate("/pt/clients")}
-        className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-200 transition-colors"
-      >
-        <ChevronLeft className="w-4 h-4" /> Tất cả học viên
-      </button>
-
-      {/* Client header */}
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-5">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-green-500/15 border border-green-500/20 rounded-2xl flex items-center justify-center text-xl font-bold text-green-400 flex-shrink-0 shadow-lg shadow-green-500/10">
-              {getInitials(clientName)}
-            </div>
-            <div>
-              <h1 className="text-zinc-100">{clientName}</h1>
-              <div className="flex flex-wrap gap-2 mt-1.5">
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
-                    contract.status === "ACTIVE"
-                      ? "bg-green-500/10 text-green-400 border-green-500/20"
-                      : contract.status === "PENDING_REVIEW"
-                        ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                        : "bg-zinc-700/60 text-zinc-400 border-zinc-600/40"
-                  }`}
-                >
-                  Hợp đồng{" "}
-                  {contractStatusLabel[contract.status] ?? "Không xác định"}
-                </span>
-                <span className="text-xs bg-violet-500/10 text-violet-400 border border-violet-500/20 px-2 py-0.5 rounded-full">
-                  Buổi {sessionsUsed} / {sessionsTotal}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-2 flex-wrap sm:flex-nowrap">
-            <button
-              onClick={() => clientUserId && openChatMutation.mutate()}
-              disabled={openChatMutation.isPending || !clientUserId}
-              className="flex min-h-10 items-center gap-1.5 px-3 py-2 bg-zinc-800 border border-zinc-700/60 text-zinc-300 rounded-xl text-sm font-medium hover:bg-zinc-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <MessageSquare className="w-4 h-4" /> {openChatMutation.isPending ? "Đang mở..." : "Nhắn tin"}
-            </button>
-            <button
-              onClick={() => navigate("/pt/schedule")}
-              className="flex items-center gap-1.5 px-3 py-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl text-sm font-medium hover:bg-blue-500/15 transition-colors"
-            >
-              <Calendar className="w-4 h-4" /> Đặt lịch
-            </button>
-            {isActive && (
-              <button
-                onClick={() => setShowAssignPlan(true)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-green-500/10 border border-green-500/20 text-green-400 rounded-xl text-sm font-medium hover:bg-green-500/15 transition-colors"
-              >
-                <ClipboardList className="w-4 h-4" /> Giao kế hoạch
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* One coaching workspace, tab-navigated (§7/§29) — not a page per
-          entity. Detailed sections load on tab activation (§32). */}
-      <div role="tablist" aria-label="Hồ sơ học viên" className="flex gap-1.5 overflow-x-auto g-scroll-x border-b border-zinc-800/60 pb-px">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`relative px-3.5 py-2 text-sm font-semibold whitespace-nowrap rounded-t-lg transition-colors border-b-2 border-transparent ${
-              activeTab === tab.key ? "text-green-400" : "text-zinc-500 hover:text-zinc-300"
-            }`}
-          >
-            {/* Frontend 2.0: the underline slides between tabs. */}
-            {activeTab === tab.key && <ActivePill group="pt-client-detail" className="top-auto -bottom-0.5 h-0.5 rounded-full bg-green-500" />}
-            <span className="relative">{tab.label}</span>
-          </button>
-        ))}
-      </div>
-
+  // The tab panels are shared by both presentations (only the active one renders, so per-tab lazy fetching is unchanged).
+  const tabPanels = (
+    <>
       {activeTab === "overview" && (
         <div className="space-y-4">
           {isActive && <AttentionSection clientId={clientUserId!} />}
@@ -627,6 +549,102 @@ export function PTClientDetail() {
             </div>
           )}
         </div>
+      )}
+    </>
+  );
+
+  return (
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5">
+      <button
+        onClick={() => navigate("/pt/clients")}
+        className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-200 transition-colors"
+      >
+        <ChevronLeft className="w-4 h-4" /> Tất cả học viên
+      </button>
+
+      {/* Client header */}
+      <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-5">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-green-500/15 border border-green-500/20 rounded-2xl flex items-center justify-center text-xl font-bold text-green-400 flex-shrink-0 shadow-lg shadow-green-500/10">
+              {getInitials(clientName)}
+            </div>
+            <div>
+              <h1 className="text-zinc-100">{clientName}</h1>
+              <div className="flex flex-wrap gap-2 mt-1.5">
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
+                    contract.status === "ACTIVE"
+                      ? "bg-green-500/10 text-green-400 border-green-500/20"
+                      : contract.status === "PENDING_REVIEW"
+                        ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                        : "bg-zinc-700/60 text-zinc-400 border-zinc-600/40"
+                  }`}
+                >
+                  Hợp đồng{" "}
+                  {contractStatusLabel[contract.status] ?? "Không xác định"}
+                </span>
+                <span className="text-xs bg-violet-500/10 text-violet-400 border border-violet-500/20 px-2 py-0.5 rounded-full">
+                  Buổi {sessionsUsed} / {sessionsTotal}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+            <button
+              onClick={() => clientUserId && openChatMutation.mutate()}
+              disabled={openChatMutation.isPending || !clientUserId}
+              className="flex min-h-10 items-center gap-1.5 px-3 py-2 bg-zinc-800 border border-zinc-700/60 text-zinc-300 rounded-xl text-sm font-medium hover:bg-zinc-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <MessageSquare className="w-4 h-4" /> {openChatMutation.isPending ? "Đang mở..." : "Nhắn tin"}
+            </button>
+            <button
+              onClick={() => navigate("/pt/schedule")}
+              className="flex items-center gap-1.5 px-3 py-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl text-sm font-medium hover:bg-blue-500/15 transition-colors"
+            >
+              <Calendar className="w-4 h-4" /> Đặt lịch
+            </button>
+            {isActive && (
+              <button
+                onClick={() => setShowAssignPlan(true)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-green-500/10 border border-green-500/20 text-green-400 rounded-xl text-sm font-medium hover:bg-green-500/15 transition-colors"
+              >
+                <ClipboardList className="w-4 h-4" /> Giao kế hoạch
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* One coaching workspace, tab-navigated (§7/§29) — not a page per
+          entity. Detailed sections load on tab activation (§32). */}
+      {/* WEB UI prototype: content tabs with tab<->panel ARIA + keyboard (web only); the packaged app keeps the old bar. */}
+      {webUi ? (
+        <ContentTabs label="Hồ sơ học viên" value={activeTab} tabs={TABS} onChange={setActiveTab} testId="pt-client-tabs">
+          <TabPanel tabKey={activeTab} className="space-y-4">{tabPanels}</TabPanel>
+        </ContentTabs>
+      ) : (
+        <>
+          <div role="tablist" aria-label="Hồ sơ học viên" className="flex gap-1.5 overflow-x-auto g-scroll-x border-b border-zinc-800/60 pb-px">
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`relative px-3.5 py-2 text-sm font-semibold whitespace-nowrap rounded-t-lg transition-colors border-b-2 border-transparent ${
+                  activeTab === tab.key ? "text-green-400" : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                {/* Frontend 2.0: the underline slides between tabs. */}
+                {activeTab === tab.key && <ActivePill group="pt-client-detail" className="top-auto -bottom-0.5 h-0.5 rounded-full bg-green-500" />}
+                <span className="relative">{tab.label}</span>
+              </button>
+            ))}
+          </div>
+          {tabPanels}
+        </>
       )}
 
       {showAssignPlan && clientUserId && (

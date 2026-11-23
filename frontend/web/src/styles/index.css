@@ -7,3 +7,5 @@
 @import './night-glass.css';
 /* OBSIDIAN prototype: re-points --ng-* to the Obsidian world + dashboard tokens. */
 @import './obsidian.css';
+/* WEB UI prototype: namespaced navigation design-system tokens (--gw-*). */
+@import './gymini-web-ui.css';

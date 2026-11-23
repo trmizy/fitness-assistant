@@ -21,6 +21,11 @@ import { bodyBalance, gaugePosition, type BalanceRow } from "./body-balance.util
 import { useApp } from "../../context/AppContext";
 import { InBodySegmentalDiagram } from "../../components/InBodySegmentalDiagram";
 import { InBodyExplanationCard } from "../../components/InBodyExplanationCard";
+import { ContentTabs, TabPanel } from "../../components/ui/nav/ContentTabs";
+import { isWebPresentation } from "../../utils/webPresentation";
+
+// WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
+const WEB_UI = isWebPresentation();
 
 /** Compact current-cycle summary — links to the full Chu kỳ tập luyện page for details/actions. */
 function CurrentCycleWidget() {
@@ -444,62 +449,9 @@ export function InBodyModule() {
     }
   };
 
-  return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5">
-      {/* ── Page header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-zinc-100 flex items-center gap-2">
-            <Activity className="w-5 h-5 text-green-400" />
-            InBody Analysis
-          </h1>
-          <p className="text-zinc-500 text-sm mt-0.5">
-            Theo dõi thành phần cơ thể · Chọn phương thức nhập liệu bên dưới
-          </p>
-        </div>
-        {/* Always-visible quick-add CTAs */}
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => {
-              setTab("manual");
-              setManualStep("form");
-            }}
-            className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/60 text-zinc-200 px-4 py-2.5 rounded-xl text-sm font-bold transition-all"
-          >
-            <ClipboardList className="w-4 h-4 text-green-400" /> Nhập thủ công
-          </button>
-          <button
-            onClick={() => {
-              setTab("upload");
-              setUploadStep("drop");
-            }}
-            className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/25"
-          >
-            <Upload className="w-4 h-4" /> Tải ảnh InBody
-          </button>
-        </div>
-      </div>
-
-      {/* ── Tab navigation ── */}
-      <div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl overflow-x-auto g-scroll-x w-full">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            aria-pressed={tab === t.key}
-            aria-label={t.label}
-            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap flex-1 justify-center ${
-              tab === t.key
-                ? "text-black"
-                : "text-zinc-500 hover:text-zinc-300"
-            }`}
-          >
-            {tab === t.key && <ActivePill group="inbody-tab" className="rounded-lg bg-green-500 shadow-sm" />}
-            <t.icon className="relative w-3.5 h-3.5" />
-            <span className="relative hidden sm:inline">{t.label}</span>
-          </button>
-        ))}
-      </div>
+  // Tab panels shared by both presentations (only the active one renders; per-tab loading unchanged).
+  const inbodyPanels = (
+    <>
 
       {/* ══════════════════════════════════════
           TAB: OVERVIEW
@@ -1824,6 +1776,74 @@ export function InBodyModule() {
             </>
           )}
         </div>
+      )}
+    </>
+  );
+
+  return (
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5">
+      {/* ── Page header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-zinc-100 flex items-center gap-2">
+            <Activity className="w-5 h-5 text-green-400" />
+            InBody Analysis
+          </h1>
+          <p className="text-zinc-500 text-sm mt-0.5">
+            Theo dõi thành phần cơ thể · Chọn phương thức nhập liệu bên dưới
+          </p>
+        </div>
+        {/* Always-visible quick-add CTAs */}
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => {
+              setTab("manual");
+              setManualStep("form");
+            }}
+            className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/60 text-zinc-200 px-4 py-2.5 rounded-xl text-sm font-bold transition-all"
+          >
+            <ClipboardList className="w-4 h-4 text-green-400" /> Nhập thủ công
+          </button>
+          <button
+            onClick={() => {
+              setTab("upload");
+              setUploadStep("drop");
+            }}
+            className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/25"
+          >
+            <Upload className="w-4 h-4" /> Tải ảnh InBody
+          </button>
+        </div>
+      </div>
+
+      {/* ── Tab navigation ── */}
+      {WEB_UI ? (
+        <ContentTabs label="Phân tích InBody" value={tab} tabs={tabs} onChange={setTab} testId="inbody-tabs">
+          <TabPanel tabKey={tab} className="space-y-4">{inbodyPanels}</TabPanel>
+        </ContentTabs>
+      ) : (
+        <>
+<div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl overflow-x-auto g-scroll-x w-full">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            aria-pressed={tab === t.key}
+            aria-label={t.label}
+            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap flex-1 justify-center ${
+              tab === t.key
+                ? "text-black"
+                : "text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            {tab === t.key && <ActivePill group="inbody-tab" className="rounded-lg bg-green-500 shadow-sm" />}
+            <t.icon className="relative w-3.5 h-3.5" />
+            <span className="relative hidden sm:inline">{t.label}</span>
+          </button>
+        ))}
+      </div>
+          {inbodyPanels}
+        </>
       )}
     </div>
   );
