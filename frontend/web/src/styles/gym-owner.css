@@ -604,6 +604,9 @@ html[data-workspace="gym-owner"] body {
   color: var(--go-ink);
   box-shadow: var(--go-shadow-pop);
 }
+.go-rowmenu { width: 220px; }
+/* Row menus open over the panel's own edge: the clip that rounds the corners would cut the last row's menu. */
+.go-panel.go-panel-menus { overflow: visible; }
 .go-usermenu-head { padding: var(--go-s2) var(--go-s3); border-bottom: 1px solid var(--go-line); margin-bottom: var(--go-s1); }
 .go-usermenu-item {
   display: flex;
@@ -1959,4 +1962,10 @@ html[data-workspace="gym-owner"] body {
 
 @media (prefers-reduced-motion: reduce) {
   .go-check, .go-seg button { transition: none !important; }
+}
+
+/* A11Y (light): the "Check-in hộ" badge (`bg-amber-500/10 text-amber-400`, 10px bold) read 4.05:1 once the generic remap turned the ink into #b45309
+   on its own tint. Same deep amber the Client/PT scope uses for tinted badges (>= 5.7:1); scoped to the Gym Owner workspace, no global token touched. */
+:root[data-theme="light"] [data-workspace="gym-owner"] :is(.bg-amber-500\/10, .bg-amber-500\/15, .bg-amber-500\/20):is(.text-amber-300, .text-amber-400) {
+  color: #92400e;
 }

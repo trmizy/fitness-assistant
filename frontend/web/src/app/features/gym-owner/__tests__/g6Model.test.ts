@@ -377,6 +377,15 @@ describe("G6 Thương hiệu: source audit (CODE AUDIT)", () => {
     assert.match(staff, /revokeInviteCopy\(/);
     assert.match(staff, /testId="go-staff-revoke"/);
   });
+  it("the revoke action is inside the row's ⋯ menu (no repeated Thu hồi button per row), and the menu is a real menu", () => {
+    const staff = files.find((x) => x.f === "StaffTab.tsx")!.text;
+    assert.equal((staff.match(/<GoRowMenu/g) ?? []).length, 2); // accounts + invitations
+    assert.doesNotMatch(staff, /className="go-btn go-btn-sm"\s+data-tone="risk"/);
+    const menu = src(feat("..", "..", "components", "layout", "gym-owner", "GoRowMenu.tsx"));
+    assert.match(menu, /role="menu"/);
+    assert.match(menu, /role="menuitem"/);
+    assert.match(menu, /aria-haspopup="menu"/);
+  });
   it("Chi nhánh keeps a link, not the brand editor: no rename form left on the branch page", () => {
     const branches = src(feat("branches", "BranchesPage.tsx"));
     assert.equal(/updateBrand|brand-rename-input|function BrandRow/.test(branches), false);
