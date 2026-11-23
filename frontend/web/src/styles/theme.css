@@ -722,6 +722,41 @@
     background-color: var(--panel-bg);
   }
 
+  /* FE2-FIX group A (BUG-1/2/3): contrast of the Client/PT workspace only. Every rule is scoped to
+     [data-surface="neutral"] (AppShell, role client/pt), so Gym Owner / Admin / public pages are untouched and no
+     global token changes. */
+
+  /* BUG-3 (light): tinted badges / avatar initials / calendar days. The generic remap above gives a green
+     or amber ink that is 4.1-4.4:1 on its own 10-20% tint of the same hue; the darker ink is >= 5.8:1. */
+  :root[data-theme="light"] [data-surface="neutral"] :is(.bg-green-500\/10, .bg-green-500\/15, .bg-green-500\/20, .bg-emerald-500\/10, .bg-emerald-500\/15, .bg-emerald-500\/20):is(.text-green-300, .text-green-400, .text-green-500, .text-emerald-300, .text-emerald-400, .text-emerald-500) {
+    color: #065f46;
+  }
+
+  :root[data-theme="light"] [data-surface="neutral"] :is(.bg-amber-500\/10, .bg-amber-500\/15, .bg-amber-500\/20):is(.text-amber-300, .text-amber-400) {
+    color: #92400e;
+  }
+
+  /* BUG-1 (light): amber hint banners/buttons (`bg-amber-950/20 text-amber-200/80`) were never remapped (the
+     alpha text colour and the alpha dark-amber ground both slip past the plain .text-amber-200 rule): 1.24:1.
+     Pale amber ground + the same deep amber ink the plain rule uses (>= 6:1). */
+  :root[data-theme="light"] [data-surface="neutral"] .bg-amber-950\/20 {
+    background-color: color-mix(in srgb, #f59e0b 14%, var(--card-bg));
+  }
+
+  :root[data-theme="light"] [data-surface="neutral"] .hover\:bg-amber-950\/30:hover {
+    background-color: color-mix(in srgb, #f59e0b 22%, var(--card-bg));
+  }
+
+  :root[data-theme="light"] [data-surface="neutral"] :is(.text-amber-200\/80, .text-amber-200\/90) {
+    color: #92400e;
+  }
+
+  /* BUG-2 (both themes): secondary lines `text-[11px] opacity-70` measured 2.76-3.40:1 (light) and 3.93:1 (dark).
+     90% keeps them visibly quieter than their title yet clears 4.5:1. */
+  [data-surface="neutral"] :is(.text-\[10px\], .text-\[11px\]).opacity-70 {
+    opacity: 0.9;
+  }
+
   :root[data-theme="light"] .hover\:text-zinc-300:hover,
   :root[data-theme="light"] .hover\:text-zinc-400:hover,
   :root[data-theme="light"] .hover\:text-zinc-500:hover {
