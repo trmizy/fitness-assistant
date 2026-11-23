@@ -27,8 +27,8 @@ export function RadioCards<T extends string>({
           <button key={o.value} ref={(el) => { refs.current[i] = el; }} type="button" role="radio" aria-checked={on} disabled={disabled} tabIndex={i === focusIdx ? 0 : -1} onClick={() => !disabled && onChange(o.value)} className="gw-radio-card" data-testid={o.testId}>
             {Icon && <span className="gw-radio-icon" aria-hidden="true"><Icon className="h-[18px] w-[18px]" weight={on ? "fill" : "regular"} /></span>}
             <span className="min-w-0 text-left">
-              <span className="block text-sm font-medium text-[var(--gw-text)]">{o.label}</span>
-              {o.description && <span className="block text-xs text-[var(--gw-text-3)]">{o.description}</span>}
+              <span className="block text-sm font-medium text-[var(--ob-text)]">{o.label}</span>
+              {o.description && <span className="block text-xs text-[var(--ob-text-3)]">{o.description}</span>}
             </span>
             <span className="gw-radio-dot" aria-hidden="true" />
           </button>

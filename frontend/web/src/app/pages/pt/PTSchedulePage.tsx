@@ -577,7 +577,7 @@ export function PTSchedulePage() {
       {WEB_UI ? (
         // Not a tab bar: this page has one view, and "Lịch làm việc" goes to another page — so it is a link.
         <div className="flex justify-end">
-          <a href="/pt/listing" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); navigate("/pt/listing"); }} className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--gw-r-md)] border border-[var(--gw-line-strong)] px-3 text-sm font-medium text-[var(--gw-text)] hover:bg-[var(--gw-hover)]" data-testid="pt-schedule-availability-link">
+          <a href="/pt/listing" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); navigate("/pt/listing"); }} className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--ob-r-md)] border border-[var(--ob-hair-strong)] px-3 text-sm font-medium text-[var(--ob-text)] hover:bg-[var(--ob-hover)]" data-testid="pt-schedule-availability-link">
             <Settings className="h-4 w-4" aria-hidden="true" /> Lịch làm việc
           </a>
         </div>

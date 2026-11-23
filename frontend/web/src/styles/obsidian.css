@@ -1,7 +1,7 @@
 /*
- * OBSIDIAN GLASS (design prototype, branch frontend2/obsidian-dashboard-prototype — not for aws-deploy).
- * Loaded after night-glass.css: it re-points the --ng-* navigation tokens (rail, tooltip, search) at the Obsidian
- * world and adds --ob-* tokens for the Client dashboard.
+ * OBSIDIAN GLASS: the ONE token set of the Client/PT workspace (--ob-*). Navigation surfaces (rail, tooltip, search
+ * palette, landing pill: night-glass.css) and the shared navigation patterns (gymini-web-ui.css) read these tokens;
+ * the former --ng-* / --gw-* sets no longer exist. Navigation-only values are --ob-nav-*.
  *
  * World: a gym at night — matte rubber, brushed steel, the InBody printout. Surfaces stay neutral graphite with a
  * hint of green-black; the brand green is the one accent and it only marks the selection, the primary action and
@@ -33,23 +33,30 @@
   --ob-body-hover: #2c3430;
   --ob-body-quiet: #161a18;
 
-  /* navigation (rail, tooltip, search) re-pointed from Night Glass blue-black to Obsidian */
-  --ng-glass: rgba(18, 21, 20, 0.66);
-  --ng-glass-strong: rgba(14, 17, 16, 0.9);
-  --ng-border: rgba(245, 245, 245, 0.1);
-  --ng-border-soft: rgba(245, 245, 245, 0.06);
-  --ng-highlight: rgba(255, 255, 255, 0.07);
-  --ng-text: #f5f5f5;
-  --ng-text-2: #a3a3a3;
-  --ng-icon: #9ca3a0;
-  --ng-accent: #4ade80;
-  --ng-accent-2: #22c55e;
-  --ng-pill: rgba(34, 197, 94, 0.12);
-  --ng-pill-border: rgba(34, 197, 94, 0.3);
-  --ng-glow: 0 0 0 0 transparent;
-  --ng-hover: rgba(245, 245, 245, 0.05);
-  --ng-elevated: #252b28;
-  --ng-focus: #4ade80;
+  --ob-hover: rgba(245, 245, 245, 0.05);
+
+  /* navigation (rail, tooltip, search palette, landing pill bar) */
+  --ob-nav-glass: rgba(18, 21, 20, 0.66);
+  --ob-nav-glass-strong: rgba(14, 17, 16, 0.9);
+  --ob-nav-line: rgba(245, 245, 245, 0.1);
+  --ob-nav-line-soft: rgba(245, 245, 245, 0.06);
+  --ob-nav-highlight: rgba(255, 255, 255, 0.07);
+  --ob-nav-icon: #9ca3a0;
+  --ob-nav-pill-line: rgba(34, 197, 94, 0.3);
+  --ob-nav-glow: 0 0 0 0 transparent;
+  --ob-nav-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.75), 0 2px 6px -2px rgba(0, 0, 0, 0.4);
+
+  /* radii / rows / motion scales (theme-independent) */
+  --ob-r-sm: 8px;
+  --ob-r-md: 10px;
+  --ob-r-lg: 14px;
+  --ob-r-xl: 18px;
+  --ob-row: 40px; /* navigation row on fine pointers */
+  --ob-row-touch: 48px; /* navigation row on touch */
+  --ob-dur-hover: 140ms;
+  --ob-dur-indicator: 220ms;
+  --ob-dur-panel: 220ms;
+  --ob-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 .light,
 :root[data-theme="light"] {
@@ -76,21 +83,17 @@
   --ob-body-hover: #cfd6d2;
   --ob-body-quiet: #eef1ef;
 
-  --ng-glass: rgba(255, 255, 255, 0.7);
-  --ng-glass-strong: rgba(255, 255, 255, 0.9);
-  --ng-border: rgba(11, 15, 13, 0.1);
-  --ng-border-soft: rgba(11, 15, 13, 0.06);
-  --ng-highlight: rgba(255, 255, 255, 0.95);
-  --ng-text: #0b0f0d;
-  --ng-text-2: #4a524e;
-  --ng-icon: #4a524e;
-  --ng-accent: #15803d;
-  --ng-accent-2: #16a34a;
-  --ng-pill: rgba(22, 163, 74, 0.1);
-  --ng-pill-border: rgba(21, 128, 61, 0.28);
-  --ng-hover: rgba(11, 15, 13, 0.05);
-  --ng-elevated: #e9ecea;
-  --ng-focus: #15803d;
+  --ob-hover: rgba(11, 15, 13, 0.05);
+
+  --ob-nav-glass: rgba(255, 255, 255, 0.7);
+  --ob-nav-glass-strong: rgba(255, 255, 255, 0.9);
+  --ob-nav-line: rgba(11, 15, 13, 0.1);
+  --ob-nav-line-soft: rgba(11, 15, 13, 0.06);
+  --ob-nav-highlight: rgba(255, 255, 255, 0.95);
+  --ob-nav-icon: #4a524e;
+  --ob-nav-pill-line: rgba(21, 128, 61, 0.28);
+  --ob-nav-glow: 0 0 16px -6px rgba(14, 165, 233, 0.45); /* kept as-is from Night Glass (sky); owner decides whether to drop it like dark */
+  --ob-nav-shadow: 0 20px 40px -24px rgba(15, 23, 42, 0.35), 0 2px 6px -3px rgba(15, 23, 42, 0.18);
 }
 
 /* ── Dashboard surfaces ────────────────────────────────────────────────────────────────────────────

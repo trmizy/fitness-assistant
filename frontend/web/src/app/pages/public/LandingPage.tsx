@@ -85,12 +85,12 @@ function LandingNav({ reduced }: { reduced: boolean }) {
       {/* NIGHT GLASS: a floating pill. Over the hero it is a faint glass outline; past 24px it becomes frosted
           blue-black glass and settles 2% smaller. Height never changes (scale is a transform) = no layout shift. */}
       <motion.div
-        className={`pointer-events-auto mx-auto flex h-14 max-w-3xl items-center gap-2 rounded-full pl-2 pr-2 sm:pl-3 ${scrolled ? "ng-glass" : "border border-[var(--ng-border-soft)]"}`}
+        className={`pointer-events-auto mx-auto flex h-14 max-w-3xl items-center gap-2 rounded-full pl-2 pr-2 sm:pl-3 ${scrolled ? "ng-glass" : "border border-[var(--ob-nav-line-soft)]"}`}
         initial={false}
         animate={{ scale: scrolled ? 0.98 : 1, y: scrolled ? -2 : 0 }}
         transition={reduced ? { duration: 0 } : { duration: dur.fast, ease: ease.smoothOut }}
       >
-        <a href="#hero-h" className="flex min-h-11 items-center gap-2 rounded-full pl-1 pr-3 focus-visible:outline-2 focus-visible:outline-[var(--ng-focus)]" aria-label="Gymini, lên đầu trang">
+        <a href="#hero-h" className="flex min-h-11 items-center gap-2 rounded-full pl-1 pr-3 focus-visible:outline-2 focus-visible:outline-[var(--ob-accent-ink)]" aria-label="Gymini, lên đầu trang">
           <img src="/pwa-icon.svg" alt="" className="h-8 w-8" />
           <span className="font-['Barlow'] text-xl font-bold">Gymini</span>
         </a>
@@ -103,7 +103,7 @@ function LandingNav({ reduced }: { reduced: boolean }) {
               onMouseEnter={() => setHover(l.id)}
               onFocus={() => setHover(l.id)}
               onBlur={() => setHover(null)}
-              className={`relative isolate hidden min-h-11 items-center rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-[var(--ng-focus)] sm:inline-flex ${marked === l.id || inView === l.id ? "text-[var(--ng-text)]" : "text-[var(--ng-text-2)]"}`}
+              className={`relative isolate hidden min-h-11 items-center rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-[var(--ob-accent-ink)] sm:inline-flex ${marked === l.id || inView === l.id ? "text-[var(--ob-text)]" : "text-[var(--ob-text-2)]"}`}
             >
               {marked === l.id && (
                 <motion.span
@@ -116,7 +116,7 @@ function LandingNav({ reduced }: { reduced: boolean }) {
               {l.label}
             </a>
           ))}
-          <Link to="/login" className="ml-1 inline-flex min-h-11 items-center rounded-full border border-[var(--ng-pill-border)] bg-[var(--ng-pill)] px-5 text-sm font-semibold text-[var(--ng-text)] shadow-[inset_0_1px_0_0_var(--ng-highlight)] transition-colors hover:border-[var(--ng-accent)] focus-visible:outline-2 focus-visible:outline-[var(--ng-focus)]">Đăng nhập</Link>
+          <Link to="/login" className="ml-1 inline-flex min-h-11 items-center rounded-full border border-[var(--ob-nav-pill-line)] bg-[var(--ob-accent-soft)] px-5 text-sm font-semibold text-[var(--ob-text)] shadow-[inset_0_1px_0_0_var(--ob-nav-highlight)] transition-colors hover:border-[var(--ob-accent-ink)] focus-visible:outline-2 focus-visible:outline-[var(--ob-accent-ink)]">Đăng nhập</Link>
         </nav>
       </motion.div>
     </header>

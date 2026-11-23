@@ -148,7 +148,7 @@ export function NightGlassRail() {
 
       <span aria-hidden="true" className="ng-divider flex-shrink-0" />
       <span role="img" aria-label={`Đang đăng nhập: ${displayName}`} className="flex h-11 w-11 items-center justify-center">
-        <UserAvatar className="h-8 w-8 ring-1 ring-[var(--ng-border)]" fallbackClassName="bg-[var(--ng-elevated)] text-xs font-bold text-[var(--ng-text)]" />
+        <UserAvatar className="h-8 w-8 ring-1 ring-[var(--ob-nav-line)]" fallbackClassName="bg-[var(--ob-elevated)] text-xs font-bold text-[var(--ob-text)]" />
       </span>
       <RailButton label="Đăng xuất" onClick={handleLogout} show={show} hide={hide}>
         <SignOutIcon aria-hidden="true" />

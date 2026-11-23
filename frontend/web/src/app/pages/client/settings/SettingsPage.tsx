@@ -208,10 +208,10 @@ function SettingsWorkspace() {
       <style>{`[data-gw-settings-panel] > section${active ? `:not(#${active})` : ""} { display: none; }`}</style>
 
       <header className={showList || wide ? "mb-5" : "sr-only"}>
-        <h1 className="flex items-center gap-2 text-xl font-semibold text-[var(--gw-text)]">
-          <SettingsIcon className="h-5 w-5 text-[var(--gw-text-2)]" aria-hidden="true" /> Cài đặt
+        <h1 className="flex items-center gap-2 text-xl font-semibold text-[var(--ob-text)]">
+          <SettingsIcon className="h-5 w-5 text-[var(--ob-text-2)]" aria-hidden="true" /> Cài đặt
         </h1>
-        <p className="mt-0.5 text-sm text-[var(--gw-text-2)]">Tuỳ chọn ứng dụng, tài khoản và dữ liệu của bạn</p>
+        <p className="mt-0.5 text-sm text-[var(--ob-text-2)]">Tuỳ chọn ứng dụng, tài khoản và dữ liệu của bạn</p>
       </header>
 
       <div className="md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
@@ -225,7 +225,7 @@ function SettingsWorkspace() {
           <nav aria-label="Mục cài đặt" className="space-y-5" data-testid="settings-list">
             {GROUPS.map((g) => (
               <section key={g.label} aria-labelledby={`gw-sg-${g.ids[0]}`}>
-                <h2 id={`gw-sg-${g.ids[0]}`} className="mb-2 px-1 text-xs font-medium text-[var(--gw-text-3)]">{g.label}</h2>
+                <h2 id={`gw-sg-${g.ids[0]}`} className="mb-2 px-1 text-xs font-medium text-[var(--ob-text-3)]">{g.label}</h2>
                 <div className="gw-list-group">
                   {g.ids.map((id) => {
                     const Icon = META[id].icon;
@@ -233,10 +233,10 @@ function SettingsWorkspace() {
                       <a key={id} href={`?section=${id}`} onClick={(e) => open(id, e)} className="gw-list-row" data-settings-row={id}>
                         <span className="gw-list-icon" aria-hidden="true"><Icon className="h-[18px] w-[18px]" /></span>
                         <span className="min-w-0">
-                          <span className="block text-[15px] text-[var(--gw-text)]">{LABEL[id]}</span>
+                          <span className="block text-[15px] text-[var(--ob-text)]">{LABEL[id]}</span>
                           <span className="gw-list-desc block">{META[id].desc}</span>
                         </span>
-                        <CaretRightIcon className="h-4 w-4 text-[var(--gw-text-3)]" aria-hidden="true" />
+                        <CaretRightIcon className="h-4 w-4 text-[var(--ob-text-3)]" aria-hidden="true" />
                       </a>
                     );
                   })}
@@ -249,10 +249,10 @@ function SettingsWorkspace() {
         <div className={showList ? "hidden" : "min-w-0"}>
           {!wide && active && (
             <div className="mb-4 flex items-center gap-2">
-              <button type="button" onClick={back} className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-[var(--gw-r-md)] px-2 text-sm font-medium text-[var(--gw-accent-ink)] hover:bg-[var(--gw-hover)]" data-testid="settings-back">
+              <button type="button" onClick={back} className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-[var(--ob-r-md)] px-2 text-sm font-medium text-[var(--ob-accent-ink)] hover:bg-[var(--ob-hover)]" data-testid="settings-back">
                 <CaretLeftIcon className="h-4 w-4" aria-hidden="true" /> Cài đặt
               </button>
-              <h2 ref={detailHeadRef} tabIndex={-1} className="ml-auto truncate text-sm font-medium text-[var(--gw-text-2)] outline-none">{LABEL[active]}</h2>
+              <h2 ref={detailHeadRef} tabIndex={-1} className="ml-auto truncate text-sm font-medium text-[var(--ob-text-2)] outline-none">{LABEL[active]}</h2>
             </div>
           )}
           <div ref={panelRef} data-gw-settings-panel className="space-y-4" data-testid="settings-panel" data-active={active ?? ""}>

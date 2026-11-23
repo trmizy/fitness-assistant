@@ -321,7 +321,7 @@ export function TrainingLocationPresetRow({
         <div className="space-y-2">
           <RadioCards label="Bạn thường tập ở đâu?" columns="sm:grid-cols-2" value={applied} onChange={(key) => { const p = TRAINING_LOCATION_PRESETS.find((x) => x.key === key); if (!p) return; setApplied(p.key); onApply(p.slugs); }} options={TRAINING_LOCATION_PRESETS.map((p) => ({ value: p.key, label: p.label, description: p.description, testId: `training-location-preset-${p.key}` }))} testId="training-location-presets" />
           {applied && (
-            <button type="button" onClick={() => setApplied(null)} className="inline-flex min-h-11 items-center gap-1 rounded-[var(--gw-r-md)] px-2 text-xs text-[var(--gw-text-2)] hover:bg-[var(--gw-hover)]">
+            <button type="button" onClick={() => setApplied(null)} className="inline-flex min-h-11 items-center gap-1 rounded-[var(--ob-r-md)] px-2 text-xs text-[var(--ob-text-2)] hover:bg-[var(--ob-hover)]">
               <X className="h-3.5 w-3.5" aria-hidden="true" /> Bỏ gợi ý
             </button>
           )}

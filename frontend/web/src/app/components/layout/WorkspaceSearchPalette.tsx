@@ -107,8 +107,8 @@ export default function WorkspaceSearchPalette({ open, onOpenChange, returnFocus
       >
         <DialogTitle className="sr-only"><AutoText>Tìm kiếm</AutoText></DialogTitle>
         <DialogDescription className="sr-only"><AutoText>Gõ để tìm chức năng. Dùng mũi tên lên xuống để chọn, Enter để mở.</AutoText></DialogDescription>
-        <div className="ng-field flex items-center gap-3 border-b border-[var(--ng-border-soft)] px-4 pr-12">
-          <MagnifyingGlassIcon aria-hidden="true" className="h-5 w-5 flex-shrink-0 text-[var(--ng-icon)]" />
+        <div className="ng-field flex items-center gap-3 border-b border-[var(--ob-nav-line-soft)] px-4 pr-12">
+          <MagnifyingGlassIcon aria-hidden="true" className="h-5 w-5 flex-shrink-0 text-[var(--ob-nav-icon)]" />
           <input
             ref={inputRef}
             role="combobox"
@@ -121,7 +121,7 @@ export default function WorkspaceSearchPalette({ open, onOpenChange, returnFocus
             value={q}
             onChange={(e) => { setQ(e.target.value); setActive(0); }}
             onKeyDown={onKeyDown}
-            className="h-14 min-w-0 flex-1 bg-transparent text-base text-[var(--ng-text)] outline-none placeholder:text-[var(--ng-text-2)]"
+            className="h-14 min-w-0 flex-1 bg-transparent text-base text-[var(--ob-text)] outline-none placeholder:text-[var(--ob-text-2)]"
             data-testid="workspace-search-input"
             autoComplete="off"
             spellCheck={false}
@@ -135,8 +135,8 @@ export default function WorkspaceSearchPalette({ open, onOpenChange, returnFocus
             const Icon = o.kind === "library" ? BooksIcon : o.entry!.icon;
             return (
               <li key={o.key} role="presentation">
-                {showGroup && <div role="presentation" className="px-3 pb-1 pt-2 text-xs font-semibold text-[var(--ng-text-2)]"><AutoText>{o.entry!.group!}</AutoText></div>}
-                {o.kind === "library" && <div role="presentation" className="mx-3 my-1.5 h-px bg-[var(--ng-border-soft)]" />}
+                {showGroup && <div role="presentation" className="px-3 pb-1 pt-2 text-xs font-semibold text-[var(--ob-text-2)]"><AutoText>{o.entry!.group!}</AutoText></div>}
+                {o.kind === "library" && <div role="presentation" className="mx-3 my-1.5 h-px bg-[var(--ob-nav-line-soft)]" />}
                 <div
                   id={optId(i)}
                   role="option"
@@ -158,12 +158,12 @@ export default function WorkspaceSearchPalette({ open, onOpenChange, returnFocus
             );
           })}
           {!options.length && (
-            <li role="presentation" className="px-3 py-6 text-center text-sm text-[var(--ng-text-2)]">
+            <li role="presentation" className="px-3 py-6 text-center text-sm text-[var(--ob-text-2)]">
               <AutoText>Không có chức năng phù hợp. Gõ thêm để tìm trong thư viện.</AutoText>
             </li>
           )}
         </ul>
-        <div aria-hidden="true" className="hidden items-center gap-4 border-t border-[var(--ng-border-soft)] px-4 py-2.5 text-xs text-[var(--ng-text-2)] sm:flex">
+        <div aria-hidden="true" className="hidden items-center gap-4 border-t border-[var(--ob-nav-line-soft)] px-4 py-2.5 text-xs text-[var(--ob-text-2)] sm:flex">
           <span><kbd className="ng-kbd">↑</kbd> <kbd className="ng-kbd">↓</kbd> chọn</span>
           <span><kbd className="ng-kbd">Enter</kbd> mở</span>
           <span><kbd className="ng-kbd">Esc</kbd> đóng</span>
