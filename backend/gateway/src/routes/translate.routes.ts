@@ -86,13 +86,23 @@ function readProvider(): TranslationProvider {
   return "libretranslate";
 }
 
+// LibreTranslate has no built-in default endpoint: it is only called when the operator
+// configured TRANSLATE_API_URL. Without it the route never touches the network and returns
+// the source text (same shape as a provider failure: `{ translatedText, fallback: true }`).
+function libreTranslateUrl(): string | undefined {
+  const url = process.env.TRANSLATE_API_URL?.trim();
+  return url ? url : undefined;
+}
+
 async function translateWithLibreTranslate(
   text: string,
   sourceLang: SupportedLanguage,
   targetLang: SupportedLanguage,
 ): Promise<string> {
-  const url =
-    process.env.TRANSLATE_API_URL || "https://libretranslate.com/translate";
+  const url = libreTranslateUrl();
+  if (!url) {
+    throw new Error("TRANSLATE_API_URL is required for LibreTranslate.");
+  }
   const apiKey = process.env.TRANSLATE_API_KEY;
   const { data } = await axios.post(
     url,
@@ -161,17 +171,23 @@ async function translateWithDeepL(
   return String(data?.translations?.[0]?.text || text);
 }
 
+type TranslateOutcome = { translatedText: string; fallback?: true };
+
 async function translateText(
   text: string,
   sourceLang: SupportedLanguage,
   targetLang: SupportedLanguage,
-): Promise<string> {
-  if (sourceLang === targetLang) return text;
+): Promise<TranslateOutcome> {
+  if (sourceLang === targetLang) return { translatedText: text };
 
   const provider = readProvider();
+  if (provider === "libretranslate" && !libreTranslateUrl()) {
+    // Not configured: no outbound request, source text back (not cached).
+    return { translatedText: text, fallback: true };
+  }
   const cacheKey = `${provider}:${sourceLang}:${targetLang}:${text}`;
   const cached = cache.get(cacheKey);
-  if (cached) return cached;
+  if (cached) return { translatedText: cached };
 
   const translated = await withRetry(() =>
     provider === "google"
@@ -182,7 +198,7 @@ async function translateText(
   );
 
   cache.set(cacheKey, translated);
-  return translated;
+  return { translatedText: translated };
 }
 
 // "/translate" is the canonical path (every other gateway route has no "/api" prefix; the web
@@ -215,8 +231,7 @@ router.post(
   }
 
   try {
-    const translatedText = await translateText(text, sourceLang, targetLang);
-    return res.json({ translatedText });
+    return res.json(await translateText(text, sourceLang, targetLang));
   } catch (err) {
     logger.warn(
       {
