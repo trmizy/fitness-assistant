@@ -148,3 +148,21 @@ export function toContractGymInfo(raw: unknown): ContractGymInfo | null {
   if (!id || !name) return null;
   return { id, name, address: str(raw.address), city: str(raw.city) };
 }
+
+/**
+ * The client's profile as the PT of the contract sees it (`clientProfile` on `GET /contracts/pt`): the same row, WITHOUT the
+ * client's e-mail (privacy - a PT works with the client's name, avatar and goal, never their contact address). Never mutates.
+ */
+export function toPtVisibleClientProfile<T>(profile: T): T {
+  if (!isPlainObject(profile)) return profile;
+  const copy: Obj = { ...profile };
+  delete copy.email;
+  return copy as unknown as T;
+}
+
+/** The client's avatar for the PT's contract card (already a signed/absolute URL by the time it gets here), or null. */
+export function clientAvatarOf(profile: unknown): string | null {
+  if (!isPlainObject(profile)) return null;
+  const url = profile.photoUrl;
+  return typeof url === "string" && url.trim() !== "" ? url : null;
+}

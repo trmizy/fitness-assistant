@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router";
 import { MagnifyingGlassIcon as Search, MapPinIcon as MapPin, PhoneIcon as Phone, CircleNotchIcon as Loader2 } from "@phosphor-icons/react";
 import { gymService } from "../../services/api";
 import { useApp } from "../../context/AppContext";
@@ -33,14 +34,17 @@ export function FrontDeskPage() {
   const { user } = useApp();
   const { role } = useStaffRole();
   const uid = user?.id ?? "guest";
+  // Item 6: the bell notice for a new exception links to ?gymId=<branch> so an owner/manager with several branches lands on the right one.
+  const [searchParams] = useSearchParams();
+  const requestedGymId = searchParams.get("gymId") ?? "";
   const [gymId, setGymId] = useState<string>("");
   const [search, setSearch] = useState("");
 
   const gymsQuery = useQuery<Gym[]>({ queryKey: ["frontdesk-gyms", uid], queryFn: () => gymService.listOwnedGyms() });
   const gyms = useMemo(() => (gymsQuery.data ?? []).filter((g) => g.status !== "DRAFT"), [gymsQuery.data]);
   useEffect(() => {
-    if (!gymId && gyms.length > 0) setGymId(gyms[0].id);
-  }, [gyms, gymId]);
+    if (!gymId && gyms.length > 0) setGymId(gyms.find((g) => g.id === requestedGymId)?.id ?? gyms[0].id);
+  }, [gyms, gymId, requestedGymId]);
   const gym = gyms.find((g) => g.id === gymId);
 
   const todayQuery = useQuery<FrontDeskToday>({

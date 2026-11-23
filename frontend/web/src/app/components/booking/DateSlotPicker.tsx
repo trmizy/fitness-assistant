@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { availabilityService } from "../../services/api";
 import { latestEndByWeekday, isWorkingDay } from "../../utils/ptWeeklyHours";
 import { DAY_FULL_HINT } from "../../utils/batchBooking";
+import { DAY_WITHIN_LEAD_HINT, dayEndsWithinLead } from "../../utils/reschedule";
 
 /**
  * Month calendar + available-slot grid, shared by fresh booking (BookingPage.tsx) and
@@ -194,10 +195,19 @@ export function DateSlotPicker({
         ) : slots.length === 0 ? (
           <div className="text-center py-6">
             <Clock className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
-            <p className="text-sm text-zinc-500">PT chưa mở lịch rảnh ngày này</p>
-            <p className="text-xs text-zinc-600 mt-1">
-              hoặc đã kín lịch — hãy chọn ngày khác, hoặc mở thêm khung giờ rảnh trong Lịch dạy trước.
-            </p>
+            {dayEndsWithinLead(value.dateStr) ? (
+              <>
+                <p className="text-sm text-zinc-500">Ngày này quá gần</p>
+                <p className="text-xs text-zinc-600 mt-1" data-testid="day-within-lead-hint">{DAY_WITHIN_LEAD_HINT}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-zinc-500">PT chưa mở lịch rảnh ngày này</p>
+                <p className="text-xs text-zinc-600 mt-1">
+                  hoặc đã kín lịch — hãy chọn ngày khác, hoặc mở thêm khung giờ rảnh trong Lịch dạy trước.
+                </p>
+              </>
+            )}
           </div>
         ) : (
           <>

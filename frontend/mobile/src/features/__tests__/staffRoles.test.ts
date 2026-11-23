@@ -24,16 +24,19 @@ describe("staffRoles", () => {
     assert.equal(staffRoleLabel(s("MANAGER")), "Quản lý chi nhánh");
     assert.equal(staffRoleLabel(s("RECEPTIONIST")), "Lễ tân");
     assert.equal(staffRoleLabel(s("ACCOUNTANT")), "Kế toán");
-    assert.equal(staffRoleLabel({}), "Chủ phòng gym"); // legacy owner row: no role = owner (same rule as isBrandOwner)
+    assert.equal(staffRoleLabel({}), "Nhân sự phòng gym"); // no role = NOT the owner (fail-closed)
+    assert.equal(staffRoleLabel(undefined), "Nhân sự phòng gym");
     assert.equal(staffRoleLabel(s("SOMETHING_NEW")), "Nhân sự phòng gym");
   });
 
   it("tab bar per role", () => {
-    assert.deepEqual(staffTabsFor(s("OWNER")), ["dashboard", "gyms", "wallet", "profile"]);
-    assert.deepEqual(staffTabsFor(s("MANAGER")), ["dashboard", "gyms", "profile"]);
+    assert.deepEqual(staffTabsFor(s("OWNER")), ["dashboard", "gyms", "front-desk", "wallet", "finance", "profile"]);
+    assert.deepEqual(staffTabsFor(s("MANAGER")), ["dashboard", "gyms", "front-desk", "profile"]);
     assert.deepEqual(staffTabsFor(s("RECEPTIONIST")), ["front-desk", "profile"]);
     assert.deepEqual(staffTabsFor(s("ACCOUNTANT")), ["finance", "profile"]);
-    assert.deepEqual(staffTabsFor(undefined), ["dashboard", "gyms", "wallet", "profile"]); // role not known yet
+    // role not known yet (loading / error / unknown value): only Hồ sơ — never the owner bar (fail-closed)
+    assert.deepEqual(staffTabsFor(undefined), ["profile"]);
+    assert.deepEqual(staffTabsFor(s("SOMETHING_NEW")), ["profile"]);
   });
 
   it("N15M-07: receptionist and accountant never get the memberships dashboard", () => {
@@ -41,6 +44,7 @@ describe("staffRoles", () => {
     assert.equal(canUseOperationsDashboard(s("ACCOUNTANT")), false);
     assert.equal(canUseOperationsDashboard(s("MANAGER")), true);
     assert.equal(canUseOperationsDashboard(s("OWNER")), true);
+    assert.equal(canUseOperationsDashboard(undefined), false); // unreadable role is not the owner
     assert.equal(staffHomeRoute(s("RECEPTIONIST")), "/gym-owner/front-desk");
     assert.equal(staffHomeRoute(s("ACCOUNTANT")), "/gym-owner/finance");
     assert.equal(staffHomeRoute(s("MANAGER")), "/gym-owner/dashboard");
@@ -49,6 +53,7 @@ describe("staffRoles", () => {
   it("N15M-08: receptionist is not asked for brands, and uses the today list of trainers", () => {
     assert.equal(canReadBrands(s("RECEPTIONIST")), false);
     assert.equal(canReadBrands(s("ACCOUNTANT")), true);
+    assert.equal(canReadBrands(undefined), false);
     assert.equal(canUseFrontDesk(s("RECEPTIONIST")), true);
     assert.equal(canUseFrontDesk(s("ACCOUNTANT")), false);
     assert.equal(ptCheckinListMode(s("RECEPTIONIST")), "today");

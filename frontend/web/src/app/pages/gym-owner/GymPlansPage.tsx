@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import type { GymBrand, GymMembershipPlan } from "../../types";
 import { formatVND } from "../../utils/currency";
 import { Modal, ModalTitle, ModalClose } from "../../components/ui/Modal";
+import { useStaffRole } from "../../hooks/useStaffRole";
 
 /** Owner-facing label for a plan's marketing window — mirrors gym-service's isPlanOnSale
  * so the badge here always matches what the public listing would actually show. */
@@ -33,6 +34,10 @@ export function GymPlansPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showCreatePlan, setShowCreatePlan] = useState(false);
+  // Item 5 (Ngài chốt): a MANAGER may VIEW plans (to advise customers) but only the owner creates / stops them (POST/PATCH are requirePartnerOwner).
+  // Fail-closed: write controls show only when the server's permissions[] lists plan.write.
+  const { can } = useStaffRole();
+  const canWritePlans = can("plan.write");
   const [plan, setPlan] = useState({ name: "", price: "", durationDays: "30", visitLimit: "", saleStartAt: "", saleEndAt: "" });
 
   const { data: brands = [], isLoading: brandsLoading } = useQuery<GymBrand[]>({
@@ -117,13 +122,13 @@ export function GymPlansPage() {
             dụng cho mọi chi nhánh, khách check-in ở đâu cũng trừ chung một hạn mức.
           </p>
         </div>
-        <button
+        {canWritePlans && <button
           type="button"
           onClick={() => setShowCreatePlan(true)}
           className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-[transform,background-color] active:scale-[0.98] shadow-lg shadow-green-500/25 shrink-0"
         >
           <Plus className="w-4 h-4" /> Gói mới
-        </button>
+        </button>}
       </div>
 
       {plansLoading ? (
@@ -134,7 +139,7 @@ export function GymPlansPage() {
         <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-16 text-center">
           <ListChecks className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
           <h3 className="text-zinc-200 font-bold mb-1">Chưa có gói nào</h3>
-          <p className="text-sm text-zinc-500">Tạo gói đầu tiên để khách bắt đầu đăng ký hội viên.</p>
+          <p className="text-sm text-zinc-500">{canWritePlans ? "Tạo gói đầu tiên để khách bắt đầu đăng ký hội viên." : "Chủ sở hữu chưa tạo gói nào."}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -151,7 +156,7 @@ export function GymPlansPage() {
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="text-sm font-bold text-green-400">{formatVND(Number(p.price))}</span>
-                  <button
+                  {canWritePlans ? <button
                     type="button"
                     onClick={() =>
                       toggleStatusMutation.mutate({
@@ -169,7 +174,11 @@ export function GymPlansPage() {
                   >
                     {p.status === "ACTIVE" ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
                     {p.status === "ACTIVE" ? "Đang bán" : "Đã ngừng"}
-                  </button>
+                  </button> : (
+                    <span data-testid="plan-status-readonly" className={`text-xs px-2.5 py-1.5 rounded-full font-semibold border ${p.status === "ACTIVE" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-zinc-700/50 border-zinc-700 text-zinc-400"}`}>
+                      {p.status === "ACTIVE" ? "Đang bán" : "Đã ngừng"}
+                    </span>
+                  )}
                 </div>
               </div>
             );
@@ -178,7 +187,7 @@ export function GymPlansPage() {
       )}
 
       {/* Create plan dialog */}
-      <Modal open={showCreatePlan} onClose={() => setShowCreatePlan(false)} closeOnBackdrop={false} data-testid="gym-plan-modal">
+      <Modal open={showCreatePlan && canWritePlans} onClose={() => setShowCreatePlan(false)} closeOnBackdrop={false} data-testid="gym-plan-modal">
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl max-h-full overflow-y-auto">
             <div className="p-5 border-b border-zinc-800/60 flex items-center justify-between">
               <ModalTitle className="text-zinc-100 font-bold">Gói hội viên mới</ModalTitle>

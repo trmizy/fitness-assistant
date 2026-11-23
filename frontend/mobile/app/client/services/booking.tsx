@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -33,6 +33,7 @@ import { JoinSessionButton } from "../../../src/features/call/JoinSessionButton"
 import { normalizeContracts, sessionsLeft } from "../../../src/features/services/contracts";
 import { SlotCalendarPicker } from "../../../src/features/services/SlotCalendarPicker";
 import { BatchSlotList } from "../../../src/features/services/BatchSlotList";
+import { InlineRefusal } from "../../../src/features/services/InlineRefusal";
 import { MembershipNotCoveredNotice } from "../../../src/features/services/MembershipNotCoveredNotice";
 import { readMembershipNotCovered, type MembershipNotCovered } from "../../../src/features/services/membershipRenewal";
 import {
@@ -52,6 +53,7 @@ import {
   bookingBlockedReason,
   buildBookingPayload,
   buildReschedulePayload,
+  cancelSuccessText,
   cancelWarning,
   clientActions,
   confirmDeadlineText,
@@ -65,6 +67,8 @@ import {
   proposalOutcomeText,
   proposalSummary,
   rescheduleBlockedReason,
+  rescheduleErrorMessage,
+  rescheduleSubmitHint,
   reviewBlockedReason,
   withRescheduleHistory,
   sessionStatus,
@@ -110,6 +114,7 @@ export default function BookingScreen() {
   const [openSession, setOpenSession] = useState<SessionRow | null>(null);
   const [action, setAction] = useState<SessionAction | null>(null);
   const [reason, setReason] = useState("");
+  const [actionError, setActionError] = useState<string | null>(null);
   const [booking, setBooking] = useState(false);
   // N15M-11 — a session notification opens this screen with ?sessionId=<id>: that session's sheet opens once it is loaded.
   const { sessionId: sessionIdParam } = useLocalSearchParams<{ sessionId?: string }>();
@@ -191,20 +196,46 @@ export default function BookingScreen() {
           throw new Error("unsupported");
       }
     },
-    onSuccess: () => {
+    onMutate: () => setActionError(null),
+    onSuccess: (_data, input) => {
       setAction(null);
       setDetail(null);
       setReason("");
       refreshSessions();
-      toast.show("Đã cập nhật buổi tập.", "success");
+      toast.show(input.action === "cancel" ? cancelSuccessText(input.session.status) : "Đã cập nhật buổi tập.", "success");
     },
     onError: (error: any) => {
-      toast.show(
-        error?.response?.data?.error ?? error?.response?.data?.message ?? "Không thực hiện được",
-        "danger",
-      );
+      // The confirm step is a native Modal: a toast sits under it and is never seen, so the refusal is written inside the sheet too.
+      const message = rescheduleErrorMessage(error, "Không thực hiện được");
+      setActionError(message);
+      toast.show(message, "danger");
     },
   });
+
+  // Withdrawing the client's own open reschedule proposal (confirmed first; the server accepts only the proposer, only while PENDING).
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
+  const withdrawMutation = useMutation({
+    mutationFn: (requestId: string) => sessionService.cancelReschedule(requestId),
+    onMutate: () => setWithdrawError(null),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["session-reschedule-history"] });
+      setDetail(null);
+      refreshSessions();
+      toast.show("Đã rút lại đề nghị đổi lịch — buổi giữ nguyên giờ cũ", "success");
+    },
+    onError: (error: any) => {
+      const message = rescheduleErrorMessage(error, "Không rút lại được đề nghị");
+      setWithdrawError(message);
+      toast.show(message, "danger");
+      // Most often the PT answered in the meantime: reload so the card shows the real state.
+      refreshSessions();
+    },
+  });
+  const confirmWithdraw = (requestId: string) =>
+    Alert.alert("Rút lại đề nghị đổi lịch?", "Buổi tập giữ nguyên giờ cũ. Bạn có thể gửi một đề nghị mới sau.", [
+      { text: "Không", style: "cancel" },
+      { text: "Rút lại", style: "destructive", onPress: () => withdrawMutation.mutate(requestId) },
+    ]);
 
   // The list endpoints attach only the PENDING proposal, so how many times a session has already
   // been moved (max 2, server-enforced) is only knowable from its history — read when a session is
@@ -222,6 +253,12 @@ export default function BookingScreen() {
     [openSession, historyQuery.data],
   );
   const setDetail = setOpenSession;
+  useEffect(() => {
+    setActionError(null);
+  }, [action]);
+  useEffect(() => {
+    setWithdrawError(null);
+  }, [openSession?.id]);
 
   useEffect(() => {
     if (!sessionIdParam || openedParam.current === sessionIdParam) return;
@@ -333,10 +370,20 @@ export default function BookingScreen() {
                   </Text>
                 ) : null}
                 {outgoingReschedule(detail) ? (
-                  <Text className="font-body text-xs text-muted-foreground">
-                    Đang chờ huấn luyện viên trả lời đề nghị của bạn.
-                  </Text>
+                  <>
+                    <Text className="font-body text-xs text-muted-foreground">
+                      Đang chờ huấn luyện viên trả lời đề nghị của bạn.
+                    </Text>
+                    <Button
+                      variant="secondary"
+                      disabled={withdrawMutation.isPending}
+                      onPress={() => confirmWithdraw(outgoingReschedule(detail)!.id)}
+                    >
+                      {withdrawMutation.isPending ? "Đang rút lại..." : "Rút lại đề nghị"}
+                    </Button>
+                  </>
                 ) : null}
+                <InlineRefusal message={withdrawError} testID="withdraw-reschedule-error" />
               </View>
             ) : null}
             {detail.location ? (
@@ -495,6 +542,7 @@ export default function BookingScreen() {
               icon={MessageSquare}
             />
           ) : null}
+          <InlineRefusal message={actionError} testID="action-error" />
 
           <View className="flex-row gap-2">
             <Button variant="secondary" className="flex-1" onPress={() => setAction(null)}>
@@ -612,19 +660,25 @@ function AnswerRescheduleSheet({
   const [note, setNote] = useState("");
   // Accepting a PT's proposed move is re-checked against the client's gym membership on the new date.
   const [membershipRefusal, setMembershipRefusal] = useState<MembershipNotCovered | null>(null);
+  // The sheet is a native Modal window: a toast raised from here sits UNDER it and is never seen, so the refusal is also written inside the sheet.
+  const [refusalText, setRefusalText] = useState<string | null>(null);
   const request = session ? incomingReschedule(session) : null;
 
   const mutation = useMutation({
     mutationFn: (choice: "ACCEPT" | "REJECT") =>
       sessionService.respondToReschedule(request!.id, choice, note.trim() || undefined),
-    onMutate: () => setMembershipRefusal(null),
+    onMutate: () => {
+      setMembershipRefusal(null);
+      setRefusalText(null);
+    },
     onSuccess: (_data, choice) => onDone(choice === "ACCEPT"),
     onError: (error: any) => {
-      setMembershipRefusal(readMembershipNotCovered(error));
-      toast.show(
-        error?.response?.data?.error ?? error?.response?.data?.message ?? "Không gửi được trả lời",
-        "danger",
-      );
+      const refusal = readMembershipNotCovered(error);
+      setMembershipRefusal(refusal);
+      const message = rescheduleErrorMessage(error, "Không gửi được trả lời");
+      // The membership notice already explains its own refusal; any other reason is shown here.
+      if (!refusal) setRefusalText(message);
+      toast.show(message, "danger");
     },
   });
 
@@ -662,6 +716,7 @@ function AnswerRescheduleSheet({
             />
 
             {membershipRefusal ? <MembershipNotCoveredNotice refusal={membershipRefusal} onBeforeNavigate={onClose} /> : null}
+            <InlineRefusal message={refusalText} testID="answer-reschedule-error" />
 
             <View className="flex-row gap-2">
               <Button
@@ -721,8 +776,12 @@ function RescheduleSheet({
   const [reason, setReason] = useState("");
   // 422 SESSION_NOT_COVERED_BY_MEMBERSHIP: the new date is outside the client's gym membership -> offer "Gia hạn gói hội viên".
   const [membershipRefusal, setMembershipRefusal] = useState<MembershipNotCovered | null>(null);
+  // Why the server refused (12 h cut-off, 2 moves used, a proposal already open, PT hours...). Written inside the sheet because a
+  // toast sits under this native Modal window and is never seen - the button used to just look dead.
+  const [refusalText, setRefusalText] = useState<string | null>(null);
 
   const payload = session && date && time ? buildReschedulePayload(session, date, time) : null;
+  const submitHint = rescheduleSubmitHint({ date, time, reason });
   // Days with 2 live sessions (excluding the one being moved): a client-side hint only, the server re-checks.
   const fullDays = useMemo(() => fullSessionDays(sessions, session?.id), [sessions, session?.id]);
 
@@ -734,14 +793,17 @@ function RescheduleSheet({
         payload!.proposedEndAt,
         reason.trim(),
       ),
-    onMutate: () => setMembershipRefusal(null),
+    onMutate: () => {
+      setMembershipRefusal(null);
+      setRefusalText(null);
+    },
     onSuccess: onDone,
     onError: (error: any) => {
-      setMembershipRefusal(readMembershipNotCovered(error));
-      toast.show(
-        error?.response?.data?.error ?? error?.response?.data?.message ?? "Không gửi được đề nghị",
-        "danger",
-      );
+      const refusal = readMembershipNotCovered(error);
+      setMembershipRefusal(refusal);
+      const message = rescheduleErrorMessage(error, "Không gửi được đề nghị");
+      if (!refusal) setRefusalText(message);
+      toast.show(message, "danger");
     },
   });
 
@@ -766,8 +828,9 @@ function RescheduleSheet({
             onChange={(nextDate, nextTime) => {
               setDate(nextDate);
               setTime(nextTime);
+              setRefusalText(null);
             }}
-            emptyDayText="Huấn luyện viên không còn khung giờ trống trong ngày này."
+            emptyDayText="Huấn luyện viên không còn khung giờ trống trong ngày này (đổi lịch phải cách hiện tại ít nhất 24 giờ)."
           />
 
           <Input
@@ -780,6 +843,7 @@ function RescheduleSheet({
           />
 
           {membershipRefusal ? <MembershipNotCoveredNotice refusal={membershipRefusal} onBeforeNavigate={onClose} /> : null}
+          <InlineRefusal message={refusalText} testID="reschedule-error" />
 
           <View className="flex-row gap-2">
             <Button variant="secondary" className="flex-1" onPress={onClose}>
@@ -787,20 +851,14 @@ function RescheduleSheet({
             </Button>
             <Button
               className="flex-1"
-              disabled={!payload || reason.trim().length < 5 || mutation.isPending}
+              disabled={!payload || submitHint !== null || mutation.isPending}
               onPress={() => mutation.mutate()}
             >
               Gửi đề nghị
             </Button>
           </View>
-          {!payload ? (
-            <Text className="text-center font-body text-xs text-muted-foreground">
-              Chọn ngày và khung giờ mới.
-            </Text>
-          ) : reason.trim().length < 5 ? (
-            <Text className="text-center font-body text-xs text-muted-foreground">
-              Viết ngắn gọn lý do để huấn luyện viên dễ đồng ý.
-            </Text>
+          {submitHint ? (
+            <Text className="text-center font-body text-xs text-muted-foreground">{submitHint}</Text>
           ) : null}
         </View>
       </ScrollView>
@@ -825,16 +883,17 @@ function ReviewSheet({
 
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
+  const [refusalText, setRefusalText] = useState<string | null>(null);
   const blocked = reviewBlockedReason(rating);
 
   const mutation = useMutation({
     mutationFn: () => sessionService.reviewSession(session!.id, rating, comment.trim() || undefined),
+    onMutate: () => setRefusalText(null),
     onSuccess: onDone,
     onError: (error: any) => {
-      toast.show(
-        error?.response?.data?.error ?? error?.response?.data?.message ?? "Không gửi được đánh giá",
-        "danger",
-      );
+      const message = rescheduleErrorMessage(error, "Không gửi được đánh giá");
+      setRefusalText(message); // inside the sheet: a toast sits under its native Modal window
+      toast.show(message, "danger");
     },
   });
 
@@ -861,6 +920,7 @@ function ReviewSheet({
           numberOfLines={3}
           icon={MessageSquare}
         />
+        <InlineRefusal message={refusalText} testID="review-error" />
 
         <View className="flex-row gap-2">
           <Button variant="secondary" className="flex-1" onPress={onClose}>
@@ -920,6 +980,8 @@ function BookingSheet({
   const [pickError, setPickError] = useState<string | null>(null);
   // 422 SESSION_NOT_COVERED_BY_MEMBERSHIP (single or one batch slot): the reason + "Gia hạn gói hội viên" for that gym.
   const [membershipRefusal, setMembershipRefusal] = useState<MembershipNotCovered | null>(null);
+  // The server's own reason for refusing a booking (single or whole batch), written inside the sheet: a toast sits under its native Modal.
+  const [bookRefusal, setBookRefusal] = useState<string | null>(null);
 
   const contract = contracts.find((c) => c.id === contractId) ?? contracts[0] ?? null;
   const left = contract ? sessionsLeft(contract) : 0;
@@ -966,14 +1028,17 @@ function BookingSheet({
           notes,
         }),
       ),
-    onMutate: () => setMembershipRefusal(null),
+    onMutate: () => {
+      setMembershipRefusal(null);
+      setBookRefusal(null);
+    },
     onSuccess: () => onBooked(1),
     onError: (error: any) => {
-      setMembershipRefusal(readMembershipNotCovered(error, contract?.gymId));
-      toast.show(
-        error?.response?.data?.error ?? error?.response?.data?.message ?? "Không đặt được buổi",
-        "danger",
-      );
+      const refusal = readMembershipNotCovered(error, contract?.gymId);
+      setMembershipRefusal(refusal);
+      const message = rescheduleErrorMessage(error, "Không đặt được buổi");
+      if (!refusal) setBookRefusal(message);
+      toast.show(message, "danger");
     },
   });
 
@@ -983,18 +1048,25 @@ function BookingSheet({
         contract!.id,
         buildBatchPayload({ slots: picked, sessionMode: contract!.sessionMode, location, notes }),
       ),
-    onMutate: () => setMembershipRefusal(null),
+    onMutate: () => {
+      setMembershipRefusal(null);
+      setBookRefusal(null);
+    },
     onSuccess: () => onBooked(picked.length),
     onError: (error: any) => {
       const { bySlot, headline } = readBatchRejection(error);
       setSlotErrors(bySlot);
-      setMembershipRefusal(readMembershipNotCovered(error, contract?.gymId));
-      toast.show(headline ?? error?.response?.data?.message ?? "Không đặt được các buổi", "danger");
+      const refusal = readMembershipNotCovered(error, contract?.gymId);
+      setMembershipRefusal(refusal);
+      const message = headline ?? rescheduleErrorMessage(error, "Không đặt được các buổi");
+      if (!refusal) setBookRefusal(message);
+      toast.show(message, "danger");
     },
   });
 
   const resetPicks = () => {
     setMembershipRefusal(null);
+    setBookRefusal(null);
     setPicked([]);
     setSlotErrors({});
     setPickError(null);
@@ -1048,6 +1120,7 @@ function BookingSheet({
             {membershipRefusal ? (
               <MembershipNotCoveredNotice refusal={membershipRefusal} coverUntil={contract?.endDate} onBeforeNavigate={onClose} />
             ) : null}
+            <InlineRefusal message={bookRefusal} testID="batch-book-error" />
             {Object.keys(slotErrors).length > 0 ? (
               <Text className="font-body text-xs text-destructive">
                 Chưa có buổi nào được tạo. Bỏ các khung giờ báo lỗi (hoặc quay lại chọn giờ khác) rồi đặt lại.
@@ -1170,6 +1243,7 @@ function BookingSheet({
               icon={MessageSquare}
             />
 
+            <InlineRefusal message={bookRefusal} testID="book-error" />
             {picked.length === 0 ? (
               <>
                 <Button full disabled={!!blocked || bookMutation.isPending} onPress={() => bookMutation.mutate()}>

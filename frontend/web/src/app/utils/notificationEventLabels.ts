@@ -70,6 +70,9 @@ export const NOTIFICATION_EVENT_LABEL_VI: Record<string, string> = {
   GYM_BRANCH_SUSPENSION_LIFTED: "Chi nhánh được mở khoá",
   GYM_BRANCH_TEMPORARILY_CLOSED: "Chi nhánh tạm đóng cửa",
   GYM_BRANCH_REOPENED: "Chi nhánh mở cửa lại",
+  GYM_CHECKIN_EXCEPTION_REQUESTED: "Ngoại lệ check-in chờ duyệt",
+  // Merge note: PLAN_REVIEW_REQUESTED / _DECIDED were added on both branches with different wording; one definition is
+  // kept above (the one pinned by notificationEventLabels.test.ts). Wording to be confirmed by both sides.
 };
 
 export const NOTIFICATION_EVENT_FALLBACK_VI = "Thông báo";

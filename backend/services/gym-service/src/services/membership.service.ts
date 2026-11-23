@@ -21,6 +21,60 @@ function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
 }
 
+/** Owner membership list: rows per page when the caller does not say (old callers send no params) and the most it may ask for. */
+export const MEMBERSHIP_LIST_DEFAULT_LIMIT = 200;
+export const MEMBERSHIP_LIST_MAX_LIMIT = 500;
+
+const MEMBERSHIP_LIST_STATUSES = ['PENDING_PAYMENT', 'ACTIVE', 'EXPIRED', 'CANCELLED', 'PENDING_ISSUE'] as const;
+
+function invalidQuery(message: string) {
+  return Object.assign(new Error(message), { status: 400, code: 'INVALID_QUERY' });
+}
+
+export function encodeMembershipCursor(row: { createdAt: Date; id: string }): string {
+  return Buffer.from(`${row.createdAt.toISOString()}|${row.id}`, 'utf8').toString('base64url');
+}
+
+function decodeMembershipCursor(raw: string): { createdAt: Date; id: string } {
+  const [iso, id] = Buffer.from(raw, 'base64url').toString('utf8').split('|');
+  const createdAt = new Date(iso ?? '');
+  if (!id || Number.isNaN(createdAt.getTime())) throw invalidQuery('cursor không hợp lệ');
+  return { createdAt, id };
+}
+
+/** Validates ?limit&cursor&status&expiringBefore of GET /owner/gyms/:gymId/memberships. Anything malformed is a 400, never ignored. */
+export function parseMembershipListQuery(query: Record<string, unknown>) {
+  const one = (v: unknown, name: string): string | undefined => {
+    if (v === undefined || v === '') return undefined;
+    if (typeof v !== 'string') throw invalidQuery(`${name} không hợp lệ`);
+    return v;
+  };
+  const rawLimit = one(query.limit, 'limit');
+  const rawCursor = one(query.cursor, 'cursor');
+  // No limit AND no cursor = the old unpaged call (everything, e.g. the finance page totals); paging rules apply only once the caller opts in.
+  let limit: number | null = rawLimit === undefined && rawCursor === undefined ? null : MEMBERSHIP_LIST_DEFAULT_LIMIT;
+  if (rawLimit !== undefined) {
+    if (!/^\d+$/.test(rawLimit) || Number(rawLimit) < 1) throw invalidQuery('limit phải là số nguyên dương');
+    limit = Math.min(Number(rawLimit), MEMBERSHIP_LIST_MAX_LIMIT);
+  }
+  const rawStatus = one(query.status, 'status');
+  if (rawStatus !== undefined && !(MEMBERSHIP_LIST_STATUSES as readonly string[]).includes(rawStatus)) {
+    throw invalidQuery(`status phải là một trong ${MEMBERSHIP_LIST_STATUSES.join(', ')}`);
+  }
+  const rawExpiring = one(query.expiringBefore, 'expiringBefore');
+  let expiringBefore: Date | null = null;
+  if (rawExpiring !== undefined) {
+    expiringBefore = new Date(rawExpiring);
+    if (Number.isNaN(expiringBefore.getTime())) throw invalidQuery('expiringBefore phải là ngày/giờ ISO hợp lệ');
+  }
+  return {
+    limit,
+    cursor: rawCursor ? decodeMembershipCursor(rawCursor) : null,
+    status: rawStatus as (typeof MEMBERSHIP_LIST_STATUSES)[number] | undefined,
+    expiringBefore,
+  };
+}
+
 /**
  * N13E-02 (14/11/2026): the gateways a membership checkout can use - the two live ones (payment-service/payment.service.ts: VNPAY, ZALOPAY; MOCK/MOMO/PAYOS were
  * retired 2026-11-11). Checked BEFORE any membership row is created, so a refused provider can never leave a PENDING_PAYMENT membership behind. No provider = the
@@ -489,6 +543,21 @@ export const membershipService = {
   async listForOwner(gymId: string, ownerId: string) {
     await gymService.getOwnedGym(gymId, ownerId);
     return membershipRepository.findByGym(gymId);
+  },
+
+  /**
+   * One page of the owner's membership list (newest first). Additive over listForOwner: a caller that sends no query
+   * params (no limit, no cursor) still gets EVERYTHING as before; `limit`/`cursor` opt in to paging (default 200, max 500). `meta`
+   * says whether more exist and carries the cursor for the next page.
+   */
+  async listPageForOwner(gymId: string, ownerId: string, query: Record<string, unknown>, now: Date = new Date()) {
+    await gymService.getOwnedGym(gymId, ownerId);
+    const q = parseMembershipListQuery(query);
+    const rows = await membershipRepository.pageForGym(gymId, { limit: q.limit, cursor: q.cursor, status: q.status, expiringBefore: q.expiringBefore }, now);
+    const hasMore = q.limit !== null && rows.length > q.limit;
+    const items = hasMore ? rows.slice(0, q.limit!) : rows;
+    const last = items[items.length - 1];
+    return { items, meta: { limit: q.limit, hasMore, nextCursor: hasMore && last ? encodeMembershipCursor(last) : null } };
   },
 
   /** A4: gyms where this client already holds an active membership, for the "you already have

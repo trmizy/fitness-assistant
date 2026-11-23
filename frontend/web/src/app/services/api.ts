@@ -13,6 +13,7 @@ import { emitSessionExpired, SESSION_REPLACED_CODE, SESSION_REPLACED_NOTICE, set
 import { readRefreshToken, writeRefreshToken, clearRefreshToken } from "./secureStorage";
 import { tokenStore } from "./tokenStore";
 import { sessionGuard, SessionChangedError } from "./sessionGuard";
+import type { GymMembershipContract, GymStats } from "../types";
 
 // Defaults to a same-origin relative path, proxied by Vite's dev server to
 // the gateway (see vite.config.ts's "/api" proxy rule) — this is what makes
@@ -5524,6 +5525,16 @@ export const sessionService = {
     });
     return data;
   },
+  /** Every proposal made on a session (either party may read it): used to know how many moves were already accepted. */
+  getRescheduleHistory: async (sessionId: string) => {
+    const { data } = await api.get(`/sessions/${sessionId}/reschedule-history`);
+    return data as Array<{ id: string; status: string; requestedBy: string }>;
+  },
+  /** The proposer withdraws their own PENDING proposal (server: proposer only, 409 once it was answered). */
+  cancelReschedule: async (requestId: string) => {
+    const { data } = await api.delete(`/sessions/reschedules/${requestId}`);
+    return data;
+  },
   respondToReschedule: async (requestId: string, action: "ACCEPT" | "REJECT", responseNote?: string) => {
     const { data } = await api.post(`/sessions/reschedules/${requestId}/respond`, {
       action,
@@ -6146,8 +6157,9 @@ export const gymService = {
   },
   // Money-flow plan 5.3 — gym-service verifies gym ownership itself before proxying to
   // payment-service, same shape as getOwnedWallet above.
-  requestGymWithdrawal: async (gymId: string, amount: string, payoutInfo: string) => {
-    const { data } = await api.post(`/owner/gyms/${gymId}/withdrawals`, { amount, payoutInfo });
+  // Điểm đến luôn là tài khoản nhận tiền ĐÃ ĐĂNG KÝ của đối tác (máy chủ tự lấy; không còn gửi payoutInfo). Chưa có tài khoản → 409 PAYOUT_ACCOUNT_REQUIRED.
+  requestGymWithdrawal: async (gymId: string, amount: string) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/withdrawals`, { amount });
     return data?.data ?? data;
   },
   listGymWithdrawals: async (gymId: string) => {
@@ -6205,6 +6217,23 @@ export const gymService = {
   },
   listOwnedMemberships: async (gymId: string) => {
     const { data } = await api.get(`/owner/gyms/${gymId}/memberships`);
+    return data?.data ?? data;
+  },
+  // Item 4: một trang hội viên (cursor, mới → cũ). `items` là mảng như listOwnedMemberships; hasMore/nextCursor để "Xem thêm".
+  // Server mặc định 200 dòng/trang, tối đa 500; status / expiringBefore (ISO) lọc ở DB.
+  listOwnedMembershipsPage: async (
+    gymId: string,
+    params: { limit?: number; cursor?: string | null; status?: string; expiringBefore?: string } = {},
+  ): Promise<{ items: GymMembershipContract[]; hasMore: boolean; nextCursor: string | null }> => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/memberships`, {
+      params: { limit: params.limit, cursor: params.cursor || undefined, status: params.status, expiringBefore: params.expiringBefore },
+    });
+    const items = (data?.data ?? []) as GymMembershipContract[];
+    return { items, hasMore: !!data?.meta?.hasMore, nextCursor: data?.meta?.nextCursor ?? null };
+  },
+  // Item 4: KPI do DB đếm (ngày VN). Không truyền from/to = 7 ngày kết thúc hôm nay; tối đa 92 ngày. `checkins` / `memberships` là null nếu vai trò không được đọc.
+  getGymStats: async (gymId: string, params: { from?: string; to?: string } = {}): Promise<GymStats> => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/stats`, { params });
     return data?.data ?? data;
   },
 

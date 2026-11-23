@@ -10,6 +10,8 @@ import {
 import { useApp } from "../../src/context/AppContext";
 import { ALL_STAFF_TABS, staffTabsFor } from "../../src/features/gymOwner/staffRoles";
 import { gymService } from "../../src/services/api";
+import { hasPartnerPermission } from "../../src/features/gymOwner/permissions";
+import { usePendingCheckinExceptionCount } from "../../src/features/gymOwner/usePendingCheckinExceptionCount";
 
 /**
  * Gym owner workspace. Three tabs, from the design prototype's `gymTabs` — deliberately fewer than
@@ -52,9 +54,9 @@ const LISTING_HIDDEN_ROUTES = ["listing"];
 const hiddenRoutes = [...LISTING_HIDDEN_ROUTES, "plans", "collaborations", "managers", "checkin-qr", "branch"];
 
 /**
- * Tab bar per role (staffRoles.ts, mirrors gym-service default-deny permissions): owner = Tổng quan / Phòng gym / Ví / Hồ sơ;
- * manager drops Ví; receptionist = Quầy lễ tân + Hồ sơ; accountant = Tài chính + Hồ sơ. A tab a role cannot use is
- * hidden (href null) rather than shown and 403'd. Role not known yet → the owner bar, as before.
+ * Tab bar per role (staffRoles.ts, mirrors gym-service default-deny permissions): owner = Tổng quan / Phòng gym / Quầy lễ tân / Ví /
+ * Tài chính / Hồ sơ; manager = Tổng quan / Phòng gym / Quầy lễ tân / Hồ sơ; receptionist = Quầy lễ tân + Hồ sơ; accountant =
+ * Tài chính + Hồ sơ. A tab a role cannot use is hidden (href null) rather than shown and 403'd. Role not known yet → only Hồ sơ (fail-closed).
  */
 function GymTabs() {
   const { user } = useApp();
@@ -64,10 +66,15 @@ function GymTabs() {
   });
   const keep: string[] = staffTabsFor(status.data);
   const dropped = ALL_STAFF_TABS.filter((n) => !keep.includes(n));
+  // Item 6: badge on "Quầy lễ tân" = check-in exception requests waiting for this owner / manager to approve (polls every 30 s).
+  const canApproveExceptions = keep.includes("front-desk") && hasPartnerPermission(status.data, "checkin.exception.approve");
+  const pendingExceptions = usePendingCheckinExceptionCount(canApproveExceptions);
   return (
     <WorkspaceTabs
       workspace="gym"
-      tabs={gymTabs.filter((t) => keep.includes(t.name))}
+      tabs={gymTabs
+        .filter((t) => keep.includes(t.name))
+        .map((t) => (t.name === "front-desk" && pendingExceptions > 0 ? { ...t, badge: pendingExceptions } : t))}
       hiddenRoutes={[...hiddenRoutes, ...dropped]}
     />
   );

@@ -17,7 +17,7 @@ import { useAdminError } from "../shared/useAdminError";
 import { hasText, moneyText } from "../shared/moneyGuards";
 import { useApp } from "../../../context/AppContext";
 import { formatMoneyExact } from "../adminFinanceOverview.utils";
-import { canOfferMarkPaid, fourEyesGate, formatAge, shortId, type WithdrawalRequest } from "./withdrawalQueue";
+import { canOfferMarkPaid, fourEyesGate, formatAge, PAYOUT_ORIGIN_NOTE, payoutOrigin, shortId, type WithdrawalRequest } from "./withdrawalQueue";
 
 /**
  * B5 — one request of the withdrawal queue. It keeps every B1 money behaviour: approve and mark-paid go through
@@ -161,9 +161,26 @@ export function WithdrawalRow({ r, now, ownerName, onActionDone }: { r: Withdraw
 
   const anyPending = approveMutation.isPending || markPaidMutation.isPending || rejectMutation.isPending;
 
+  // GYM: ownerId is a BRANCH id; the person who asked is requestedByUserId (name looked up by the page, none for older rows).
+  const isGym = r.ownerType === "GYM";
+  const origin = payoutOrigin(r);
+  const originNote = origin ? PAYOUT_ORIGIN_NOTE[origin] : null;
   const parties = [
-    { label: "Người rút", value: ownerName ? `${ownerName} · ${ownerLabel} · mã ${shortId(r.ownerId)}…` : `${ownerLabel} · mã ${shortId(r.ownerId)}…` },
-    { label: "Nhận tiền vào", value: <span className="whitespace-pre-wrap font-normal">{r.payoutInfo || "—"}</span> },
+    {
+      label: isGym ? "Người gửi yêu cầu" : "Người rút",
+      value: isGym
+        ? `${ownerName ?? (r.requestedByUserId ? `mã ${shortId(r.requestedByUserId)}…` : "chưa ghi nhận")} · ${ownerLabel} (chi nhánh mã ${shortId(r.ownerId)}…)`
+        : ownerName ? `${ownerName} · ${ownerLabel} · mã ${shortId(r.ownerId)}…` : `${ownerLabel} · mã ${shortId(r.ownerId)}…`,
+    },
+    {
+      label: "Nhận tiền vào",
+      value: (
+        <span className="whitespace-pre-wrap font-normal">
+          {r.payoutInfo || "—"}
+          {originNote && <span className="mt-0.5 block text-xs text-adm-text-2">{originNote}</span>}
+        </span>
+      ),
+    },
   ];
 
   return (
@@ -179,13 +196,32 @@ export function WithdrawalRow({ r, now, ownerName, onActionDone }: { r: Withdraw
       {/* Người rút */}
       <div role="cell" className="min-w-0">
         <p data-testid="admin-withdrawal-owner" className="truncate text-sm font-semibold text-adm-text">{ownerName ?? ownerLabel}</p>
-        {ownerName && <p className="mt-0.5 text-xs text-adm-text-2">{ownerLabel}</p>}
-        <p className="mt-0.5 flex items-center gap-0.5 whitespace-nowrap text-xs text-adm-text-2">
-          <span>
-            Người dùng <span className="font-mono tabular-nums">{shortId(r.ownerId)}</span>
-          </span>
-          <CopyId id={r.ownerId} label="Sao chép mã đầy đủ của người rút" />
-        </p>
+        {ownerName && <p className="mt-0.5 text-xs text-adm-text-2">{isGym ? `${ownerLabel} · người gửi yêu cầu` : ownerLabel}</p>}
+        {isGym ? (
+          <>
+            <p className="mt-0.5 flex items-center gap-0.5 whitespace-nowrap text-xs text-adm-text-2">
+              <span>
+                Chi nhánh <span className="font-mono tabular-nums">{shortId(r.ownerId)}</span>
+              </span>
+              <CopyId id={r.ownerId} label="Sao chép mã đầy đủ của chi nhánh" />
+            </p>
+            {r.requestedByUserId && (
+              <p className="flex items-center gap-0.5 whitespace-nowrap text-xs text-adm-text-2">
+                <span>
+                  Người gửi <span className="font-mono tabular-nums">{shortId(r.requestedByUserId)}</span>
+                </span>
+                <CopyId id={r.requestedByUserId} label="Sao chép mã đầy đủ của người gửi yêu cầu" />
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="mt-0.5 flex items-center gap-0.5 whitespace-nowrap text-xs text-adm-text-2">
+            <span>
+              Người dùng <span className="font-mono tabular-nums">{shortId(r.ownerId)}</span>
+            </span>
+            <CopyId id={r.ownerId} label="Sao chép mã đầy đủ của người rút" />
+          </p>
+        )}
         <p className="flex items-center gap-0.5 whitespace-nowrap text-xs text-adm-text-2">
           <span>
             Yêu cầu <span className="font-mono tabular-nums">{shortId(r.id)}</span>
@@ -206,6 +242,11 @@ export function WithdrawalRow({ r, now, ownerName, onActionDone }: { r: Withdraw
       <div role="cell" className="col-span-2 min-w-0 xl:col-span-1">
         <p className={CELL_LABEL}>Thông tin nhận tiền</p>
         <p className="whitespace-pre-wrap break-words text-xs text-adm-text-2 xl:text-[13px]">{r.payoutInfo || "—"}</p>
+        {originNote && (
+          <p data-testid="admin-withdrawal-payout-origin" data-origin={origin} className={`mt-0.5 text-[11px] ${origin === "MANUAL_GYM" ? "text-amber-400" : "text-adm-text-2"}`}>
+            {originNote}
+          </p>
+        )}
       </div>
 
       {/* Tuổi yêu cầu */}

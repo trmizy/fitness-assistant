@@ -26,7 +26,27 @@ export interface WithdrawalRequest {
   approvedBy: string | null;
   /** BE-2: configured threshold as an exact decimal string ("5000000.00"); null when the server did not send it. */
   fourEyesMinAmount: string | null;
+  /** Gym Owner handoff item 1 (22/11/2026): WHO asked (a user id). Only set for rows created after the column existed; for a GYM wallet `ownerId` is a BRANCH id, so this is the only person. */
+  requestedByUserId?: string | null;
+  /** "REGISTERED_ACCOUNT" = payoutInfo was copied by the server from the partner's registered payout account; null/absent = typed by the requester (PT / CLIENT, old rows). */
+  payoutSource?: string | null;
 }
+
+/**
+ * Where a request's "Nhận tiền vào" text came from, for the admin reading it before a transfer (Gym Owner handoff item 1, 22/11/2026).
+ * REGISTERED = copied by the server from the partner's registered payout account (the requester cannot choose it).
+ * MANUAL_GYM = a GYM request typed by the owner before that rule (no payoutSource): not checked against the registered account.
+ * null = PT / CLIENT (the person typed their own account, unchanged).
+ */
+export function payoutOrigin(r: Pick<WithdrawalRequest, "ownerType" | "payoutSource">): "REGISTERED" | "MANUAL_GYM" | null {
+  if (r.payoutSource === "REGISTERED_ACCOUNT") return "REGISTERED";
+  return r.ownerType === "GYM" ? "MANUAL_GYM" : null;
+}
+
+export const PAYOUT_ORIGIN_NOTE: Record<"REGISTERED" | "MANUAL_GYM", string> = {
+  REGISTERED: "Tài khoản nhận tiền đã đăng ký của đối tác — hệ thống tự lấy, người gửi yêu cầu không nhập.",
+  MANUAL_GYM: "Tài khoản do chủ gym nhập tay khi gửi yêu cầu (trước khi áp dụng quy tắc tài khoản đã đăng ký) — chưa đối chiếu với tài khoản đã đăng ký.",
+};
 
 export const QUEUE_STATUSES: readonly QueueStatus[] = ["PENDING", "APPROVED"];
 export const DEFAULT_STATUS: QueueStatus = "PENDING";
@@ -65,6 +85,8 @@ export function normalizeQueue(data: unknown, limit: number = WITHDRAWAL_API_LIM
       fourEyesRequired: r.fourEyesRequired === true,
       approvedBy: typeof r.approvedBy === "string" && r.approvedBy ? r.approvedBy : null,
       fourEyesMinAmount: typeof r.fourEyesMinAmount === "string" && r.fourEyesMinAmount ? r.fourEyesMinAmount : null,
+      requestedByUserId: typeof r.requestedByUserId === "string" && r.requestedByUserId ? r.requestedByUserId : null,
+      payoutSource: typeof r.payoutSource === "string" && r.payoutSource ? r.payoutSource : null,
     });
   }
   return { rows, rawCount: list.length, ignored: list.length - rows.length, truncated: list.length >= limit };

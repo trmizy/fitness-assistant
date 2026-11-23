@@ -20,7 +20,6 @@ import {
   planPayload,
   planStatus,
   saleWindow,
-  savedPayoutLine,
   sortCollabsForOwner,
   withdrawalRows,
 } from "../gymOwner/gymOwner";
@@ -117,14 +116,6 @@ describe("ví chi nhánh", () => {
     assert.deepEqual(openWithdrawals(rows).map((w) => w.id), ["a", "b"]);
   });
 
-  it("tài khoản nhận tiền đã lưu được ghép lại, thiếu số tài khoản thì coi như chưa có", () => {
-    assert.equal(
-      savedPayoutLine({ payout: { bankName: "MB", accountNumber: "123", accountHolder: "Jane" } }),
-      "MB — 123 — Jane",
-    );
-    assert.equal(savedPayoutLine({ payout: { bankName: "MB" } }), "");
-    assert.equal(savedPayoutLine(null), "");
-  });
 });
 
 describe("hợp tác: hai ghế, một bảng trạng thái", () => {

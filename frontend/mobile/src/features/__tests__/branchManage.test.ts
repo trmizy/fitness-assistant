@@ -16,6 +16,7 @@ import {
   movedPhotoIds,
   nameAddressError,
   operationalActions,
+  permittedOperationalActions,
   reopenDateError,
   sameFacilities,
   setDayType,
@@ -128,6 +129,12 @@ describe("photos and documents", () => {
 
 describe("operational status (gym.service.setOperationalStatus)", () => {
   it("offers only what the server allows from each status", () => {
+    assert.deepEqual(permittedOperationalActions("OPEN", { temporary: true, permanent: true }), { reopen: false, closeTemporarily: true, closePermanently: true });
+    // MANAGER: temporary close / reopen only (branch.status.temporary, no branch.status.permanent)
+    assert.deepEqual(permittedOperationalActions("OPEN", { temporary: true, permanent: false }), { reopen: false, closeTemporarily: true, closePermanently: false });
+    assert.deepEqual(permittedOperationalActions("TEMPORARILY_CLOSED", { temporary: true, permanent: false }), { reopen: true, closeTemporarily: false, closePermanently: false });
+    // fail-closed: no permission at all => nothing
+    assert.deepEqual(permittedOperationalActions("OPEN", { temporary: false, permanent: false }), { reopen: false, closeTemporarily: false, closePermanently: false });
     assert.deepEqual(operationalActions("OPEN"), { reopen: false, closeTemporarily: true, closePermanently: true });
     assert.deepEqual(operationalActions("TEMPORARILY_CLOSED"), { reopen: true, closeTemporarily: false, closePermanently: true });
     assert.deepEqual(operationalActions("PERMANENTLY_CLOSED"), { reopen: false, closeTemporarily: false, closePermanently: false });

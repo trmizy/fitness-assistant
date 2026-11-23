@@ -52,7 +52,7 @@ export function TemplatesPage() {
     }));
     const fromPts = (clientContractsQuery.data ?? []).map((c: any) => ({
       userId: c.ptUserId,
-      name: `${c.ptProfile?.firstName ?? ""} ${c.ptProfile?.lastName ?? ""}`.trim() || c.ptUserId,
+      name: fullName(c.ptProfile) || c.ptUserId,
     }));
     const merged = [...fromClients, ...fromPts];
     return merged.filter((p, i) => merged.findIndex((q) => q.userId === p.userId) === i);

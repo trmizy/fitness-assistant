@@ -42,6 +42,7 @@ import { useBackDismissible } from "../../hooks/useBackDismissible";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { notificationEventLabel } from "../../utils/notificationEventLabels";
+import { fullName } from "../../utils/fullName";
 
 export function Topbar() {
   const {
@@ -419,7 +420,7 @@ export function Topbar() {
                 <div>
                   <p className="text-sm font-semibold text-zinc-100">
                     {user
-                      ? `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                      ? fullName(user) ||
                         user.email.split("@")[0]
                       : "Hồ sơ cá nhân"}
                   </p>

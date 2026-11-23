@@ -310,12 +310,25 @@ export const paymentClient = {
   // owner.routes.ts's /gyms/:gymId/withdrawals) before ever reaching here; payment-service
   // trusts the gymId because this call only comes over the service-secret-gated /internal
   // boundary, never from a browser.
-  async requestGymWithdrawal(gymId: string, amount: string, payoutInfo: string, entityOrigin?: EntityOrigin): Promise<any> {
+  // Owner decision 22/11/2026: `payout.payoutInfo` is the partner's REGISTERED payout account as read by gym-service (never the client's text) and
+  // `payout.requestedByUserId` is the authenticated user; payment-service's route refuses a call without `payoutSource: 'REGISTERED_ACCOUNT'`.
+  async requestGymWithdrawal(
+    gymId: string,
+    amount: string,
+    payout: { payoutInfo: string; requestedByUserId: string },
+    entityOrigin?: EntityOrigin,
+  ): Promise<any> {
     return paymentRequest<any>({
       method: 'POST',
       path: `/internal/withdrawals/gym/${gymId}`,
       timeout: 10_000,
-      body: { amount, payoutInfo, ...(entityOrigin ? { entityOrigin } : {}) },
+      body: {
+        amount,
+        payoutInfo: payout.payoutInfo,
+        payoutSource: 'REGISTERED_ACCOUNT',
+        requestedByUserId: payout.requestedByUserId,
+        ...(entityOrigin ? { entityOrigin } : {}),
+      },
     });
   },
 

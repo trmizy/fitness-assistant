@@ -207,7 +207,7 @@ function BranchPicker({ gyms, activeId, onSelect }: { gyms: Gym[]; activeId: str
   );
 }
 
-function GymListingEditor({ gymId, uid, onDirtyChange }: { gymId: string; uid: string; onDirtyChange: (dirty: boolean) => void }) {
+export function GymListingEditor({ gymId, uid, onDirtyChange }: { gymId: string; uid: string; onDirtyChange: (dirty: boolean) => void }) {
   const queryClient = useQueryClient();
 
   const listingQuery = useQuery<GymListingView>({

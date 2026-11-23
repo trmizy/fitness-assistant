@@ -38,6 +38,7 @@ import { paymentGateVerdict } from '../services/late-open-settlement-flag';
 import ledgerOperationRoutes from './ledger-operations.routes';
 import { AppealObligationError, createAppealAwardObligation, readAppealAwardObligation } from '../services/appeal-obligation.service';
 import { withdrawalService } from '../services/withdrawal.service';
+import { computeWithdrawable } from '../services/withdrawable-balance';
 import { entityOriginSchema, rejectIfSyntheticOrigin } from '../services/synthetic-guard';
 import { failureMessage, withdrawalErrorResponse, GENERIC_FAILURE_MESSAGE } from '../utils/safe-error';
 import { ADMIN_INSUFFICIENT_BALANCE_MESSAGE, ADMIN_WALLET_NOT_ACTIVE_MESSAGE } from '../utils/admin-error';
@@ -1161,16 +1162,33 @@ router.get('/wallets/:ownerType/:ownerId', async (req: Request, res: Response) =
   }
   const wallet = await walletService.getOrCreateWallet(ownerType, req.params.ownerId);
   // FIX3-PAY: a gym wallet also says what the platform has recovered from its income and what it still owes (additive field; other owner types unchanged).
-  if (ownerType === 'GYM') return res.json({ success: true, data: { ...wallet, gymDebt: await gymDebtSummary(prisma, req.params.ownerId) } });
+  // Gym Owner handoff item 7: the same withdrawable number requestWithdrawal checks against (withdrawable-balance.ts), so the "Có thể rút" label equals what can really be withdrawn.
+  if (ownerType === 'GYM') {
+    const w = await computeWithdrawable('GYM', req.params.ownerId, wallet);
+    return res.json({
+      success: true,
+      data: {
+        ...wallet,
+        gymDebt: await gymDebtSummary(prisma, req.params.ownerId),
+        withdrawable: w.withdrawable.toFixed(2),
+        reservedPending: w.reservedPending.toFixed(2),
+      },
+    });
+  }
   return res.json({ success: true, data: wallet });
 });
 
 // Money-flow plan 5.3 — gym-service has no ledger logic of its own; it verifies gym
 // ownership itself (see /owner/gyms/:gymId/withdrawals) and then calls straight through here,
 // mirroring the existing /internal/wallets/GYM/:ownerId pattern above.
+// Owner decision 22/11/2026 (Gym Owner handoff item 1): a GYM withdrawal always pays the partner's REGISTERED payout account. gym-service reads
+// GymPartner.payoutBank*, passes the text as payoutInfo with payoutSource REGISTERED_ACCOUNT, and passes the authenticated user as requestedByUserId.
+// A call without both is refused here too, so no caller can reintroduce a free-text destination by forgetting them.
 const internalWithdrawalRequestSchema = z.object({
   amount: z.string().min(1),
   payoutInfo: z.string().min(1),
+  payoutSource: z.literal('REGISTERED_ACCOUNT'),
+  requestedByUserId: z.string().min(1),
   entityOrigin: entityOriginSchema,
 });
 
@@ -1182,7 +1200,10 @@ router.post('/withdrawals/gym/:gymId', async (req: Request, res: Response) => {
   if (rejectIfSyntheticOrigin(parsed.data.entityOrigin, res)) return;
   if (!isValidWithdrawalAmount(parsed.data.amount)) return res.status(400).json(INVALID_AMOUNT_BODY);
   try {
-    const request = await withdrawalService.requestWithdrawal('GYM', req.params.gymId, parsed.data.amount, parsed.data.payoutInfo);
+    const request = await withdrawalService.requestWithdrawal('GYM', req.params.gymId, parsed.data.amount, parsed.data.payoutInfo, {
+      requestedByUserId: parsed.data.requestedByUserId,
+      payoutSource: parsed.data.payoutSource,
+    });
     return res.status(201).json({ success: true, data: request });
   } catch (e) {
     const out = withdrawalErrorResponse(e, 'internal gym withdrawal request');

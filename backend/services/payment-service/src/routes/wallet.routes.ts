@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { extractUser, requireAuth } from '../middleware/auth.middleware';
+import { requireWalletHolderRole } from '../middleware/wallet-holder.middleware';
 import { walletService } from '../services/wallet.service';
 import { walletRepository } from '../repositories/wallet.repository';
 import { withdrawalService } from '../services/withdrawal.service';
@@ -21,17 +22,18 @@ async function historyFor(walletId: string) {
 }
 
 // GET /me/wallet — always the CLIENT (buyer) wallet, regardless of the user's other roles.
+// Only CUSTOMER / PT may hold one: a GYM_OWNER (or any other role) is refused 403 and NO wallet is created (requireWalletHolderRole).
 //
 // A client wallet exists only to receive refunds and compensation now; purchases go straight
 // to a payment gateway. Both buckets are returned so the UI can say what is withdrawable and
 // what is still tied to a running contract.
-router.get('/wallet', async (req: Request, res: Response) => {
+router.get('/wallet', requireWalletHolderRole, async (req: Request, res: Response) => {
   const wallet = await walletService.getOrCreateWallet('CLIENT', req.user!.userId);
   res.json({ success: true, data: wallet });
 });
 
 // GET /me/wallet/transactions
-router.get('/wallet/transactions', async (req: Request, res: Response) => {
+router.get('/wallet/transactions', requireWalletHolderRole, async (req: Request, res: Response) => {
   const wallet = await walletRepository.findByOwner('CLIENT', req.user!.userId);
   if (!wallet) return res.json({ success: true, data: [] });
   return res.json({ success: true, data: await historyFor(wallet.id) });
@@ -101,7 +103,7 @@ const withdrawalRequestSchema = z.object({
   payoutInfo: z.string().min(1),
 });
 
-router.post('/withdrawals', async (req: Request, res: Response) => {
+router.post('/withdrawals', requireWalletHolderRole, async (req: Request, res: Response) => {
   const ownerType: WalletOwnerType = req.user!.role === 'PT' ? 'PT' : 'CLIENT';
   const parsed = withdrawalRequestSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -117,7 +119,7 @@ router.post('/withdrawals', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/withdrawals', async (req: Request, res: Response) => {
+router.get('/withdrawals', requireWalletHolderRole, async (req: Request, res: Response) => {
   const ownerType: WalletOwnerType = req.user!.role === 'PT' ? 'PT' : 'CLIENT';
   const list = await withdrawalService.listMine(ownerType, req.user!.userId);
   return res.json({ success: true, data: list });

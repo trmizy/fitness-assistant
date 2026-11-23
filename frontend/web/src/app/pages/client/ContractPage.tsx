@@ -16,6 +16,7 @@ import { Modal, ModalTitle } from "../../components/ui/Modal";
 import { normalizeCheckoutContext } from "../../utils/contractGymOptions";
 import { INDEPENDENT_VENUE_NOTE, isIndependentVenue } from "../../utils/independentVenue";
 import { ContractMembershipRenewal } from "../../components/gym/ContractMembershipRenewal";
+import { fullName } from "../../utils/fullName";
 
 const statusConfig: Record<
   ContractStatus,
@@ -143,7 +144,7 @@ function CheckoutSummary({ contractId }: { contractId: string }) {
 }
 
 function partyName(p?: ContractPartyProfile | null, fallback?: string) {
-  const name = `${p?.firstName ?? ""} ${p?.lastName ?? ""}`.trim();
+  const name = fullName(p);
   return name || p?.email || fallback || "—";
 }
 

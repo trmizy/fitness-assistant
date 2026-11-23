@@ -4,7 +4,7 @@ import { withdrawalRepository } from '../repositories/withdrawal.repository';
 import { walletRepository } from '../repositories/wallet.repository';
 import { prisma } from '../repositories/prisma';
 import { walletService } from './wallet.service';
-import { gymDebtUnpaid } from './gym-debt-recovery';
+import { computeWithdrawable } from './withdrawable-balance';
 import { withIdempotentLedgerOp } from './ledger-idempotency';
 import { notifyAdminsAwaitingSecondApproval, notifyWithdrawalOwner } from './withdrawal-notification.service';
 
@@ -155,12 +155,20 @@ async function getOrCreatePayoutTransaction(request: {
  */
 export const withdrawalService = {
   /**
-   * `amount` and `payoutInfo` come from the requester; ownerType/ownerId must come from the
+   * `amount` (and, for PT / CLIENT, `payoutInfo`) come from the requester. For a GYM wallet the caller (gym-service) passes the partner's
+   * REGISTERED payout account as `payoutInfo` with `payoutSource: 'REGISTERED_ACCOUNT'` and the authenticated `requestedByUserId`
+   * (owner decision 22/11/2026) — see the internal route. ownerType/ownerId must come from the
    * caller's own verified identity (or, for GYM, from a caller that has already verified gym
    * ownership — see gym-service's /owner/gyms/:gymId/withdrawals) — never from the request
    * body, for the same reason contract prices never do.
    */
-  async requestWithdrawal(ownerType: WalletOwnerType, ownerId: string, amount: string, payoutInfo: string) {
+  async requestWithdrawal(
+    ownerType: WalletOwnerType,
+    ownerId: string,
+    amount: string,
+    payoutInfo: string,
+    opts: { requestedByUserId?: string | null; payoutSource?: string | null } = {},
+  ) {
     const amountDecimal = new Prisma.Decimal(amount);
     if (!amountDecimal.isFinite() || amountDecimal.lessThanOrEqualTo(0)) {
       throw err('Số tiền rút phải lớn hơn 0', 400, 'INVALID_AMOUNT');
@@ -180,42 +188,9 @@ export const withdrawalService = {
     if (!wallet) throw err('Ví không tồn tại', 404, 'WALLET_NOT_FOUND');
     if (wallet.status !== 'ACTIVE') throw err('Ví hiện không hoạt động', 409, 'WALLET_NOT_ACTIVE');
 
-    // P0 cluster F: two different sums, on purpose. sumPendingAmount (PENDING only) is what
-    // is genuinely still sitting in availableBalance and not yet reserved anywhere — approve()
-    // now actually moves an APPROVED request's amount out to lockedBalance, so
-    // wallet.availableBalance already reflects that reduction on its own. sumOpenAmount
-    // (PENDING + APPROVED) stays reserved for the CLIENT branch below, whose formula is
-    // ledger-description-based rather than derived from availableBalance and so has no other
-    // way to know about an approved-but-unpaid request.
-    const pendingReserved = await withdrawalRepository.sumPendingAmount(wallet.id);
-
-    let withdrawable: Prisma.Decimal;
-    if (ownerType === 'CLIENT') {
-      // Money-flow plan 5.3: a client wallet may only withdraw refund/compensation-sourced
-      // money, never money from some other source (there is currently no other legitimate
-      // credit source to a client wallet, but this must not silently change if one is added
-      // later without this check being revisited).
-      const refundSourced = await withdrawalRepository.sumRefundSourcedCredits(wallet.id);
-      const alreadyPaidOut = await withdrawalRepository.sumPaidAmount(wallet.id);
-      const alreadyOpen = await withdrawalRepository.sumOpenAmount(wallet.id);
-      withdrawable = refundSourced.minus(alreadyPaidOut).minus(alreadyOpen);
-    } else {
-      withdrawable = wallet.availableBalance.minus(pendingReserved);
-    }
-    // Defensive floor regardless of branch — whatever is genuinely still sitting in
-    // availableBalance (net of still-PENDING requests) is the hard ceiling no wallet can ever
-    // exceed withdrawing past. An APPROVED request already left availableBalance for real
-    // (into lockedBalance), so it must not be subtracted here a second time.
-    withdrawable = Prisma.Decimal.min(withdrawable, wallet.availableBalance.minus(pendingReserved));
-
-    // FIX3-PAY: a gym cannot withdraw money that is needed to cover what it owes the platform (an open GYM_DEBT). New income repays the debt automatically
-    // (gym-debt-recovery.ts), so this only bites on money that reached the available bucket by a path that does not recover (a debt being collected by hand,
-    // or opened after the money arrived). NET rule - not a blanket block: the gym may still withdraw whatever exceeds its debt.
-    let gymDebt = new Prisma.Decimal(0);
-    if (ownerType === 'GYM') {
-      gymDebt = await gymDebtUnpaid(prisma, ownerId);
-      if (gymDebt.greaterThan(0)) withdrawable = Prisma.Decimal.min(withdrawable, wallet.availableBalance.minus(pendingReserved).minus(gymDebt));
-    }
+    // Gym Owner handoff item 7: the ONE withdrawable formula (withdrawable-balance.ts) — the GYM wallet DTO shows exactly this number.
+    // (P0 cluster F: PENDING requests are subtracted from availableBalance; APPROVED ones already moved to LOCKED. FIX3-PAY: a gym's open platform debt is held back.)
+    const { withdrawable, gymDebt } = await computeWithdrawable(ownerType, ownerId, wallet);
 
     if (amountDecimal.greaterThan(withdrawable)) {
       throw err(
@@ -235,6 +210,9 @@ export const withdrawalService = {
       ownerId,
       amount: amountDecimal,
       payoutInfo: payoutInfo.trim(),
+      // Only set when known, so a PT / CLIENT request writes exactly what it always wrote.
+      ...(opts.requestedByUserId ? { requestedByUserId: opts.requestedByUserId } : {}),
+      ...(opts.payoutSource ? { payoutSource: opts.payoutSource } : {}),
     });
   },
 

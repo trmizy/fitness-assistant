@@ -66,6 +66,8 @@ describe("chat", () => {
   it("names and roles in Vietnamese, never raw enums", () => {
     assert.equal(peerName(normalizeConversations([conv("a", null)])[0]), "Professional Trainer");
     assert.equal(peerName(normalizeConversations([conv("a", null, { otherUser: null })])[0]), "Người dùng");
+    // A one-word name is stored with "." as lastName: the dot is never shown.
+    assert.equal(peerName({ otherUser: { id: "u", firstName: "duy", lastName: "." } } as any), "duy");
     assert.equal(peerRoleLabel("PT"), "Huấn luyện viên");
     assert.equal(peerRoleLabel("CUSTOMER"), "Học viên");
   });

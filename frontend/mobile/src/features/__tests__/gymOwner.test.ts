@@ -108,14 +108,16 @@ describe("access state gate", () => {
     assert.match(accessStateText(null).title, /Chưa xác định/);
   });
 
-  it("only a MANAGER loses the brand controls — anything else is treated as the owner", () => {
+  it("only the OWNER has the brand controls — an unknown role is NOT the owner (fail-closed)", () => {
     assert.equal(isBrandOwner({ role: "OWNER" }), true);
     assert.equal(isBrandOwner({ role: "MANAGER" }), false);
     assert.equal(isBrandOwner({ role: "RECEPTIONIST" }), false);
     assert.equal(isBrandOwner({ role: "ACCOUNTANT" }), false);
-    // Status not loaded yet: web shows the owner controls, and the server refuses a manager
-    // anyway — so the default must match web rather than hiding a real owner's own buttons.
-    assert.equal(isBrandOwner(undefined), true);
+    // Status not loaded / unreadable / role missing: no owner controls (22/11/2026 — web dropped its `?? "OWNER"` default the same day).
+    // A legacy owner row still answers role OWNER from gym-service, so a real owner is not hidden.
+    assert.equal(isBrandOwner(undefined), false);
+    assert.equal(isBrandOwner({}), false);
+    assert.equal(isBrandOwner(null), false);
   });
 
   it("isManagerAccount is only true once the status says MANAGER (owner-only money/collab surfaces)", () => {

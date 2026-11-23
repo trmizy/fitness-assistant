@@ -14,13 +14,14 @@ import { formatVND } from "../../utils/currency";
 import { Stars } from "../../components/gym/Stars";
 import { Modal, ModalTitle } from "../../components/ui/Modal";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
-import { ptCancelNotice } from "./ptCancelNotice";
+import { ptCancelDoneMessage, ptCancelNotice } from "./ptCancelNotice";
 import { PtTermsBanner } from "../../components/pt-terms/PtTerms";
 import { isPtTermsRefusal, PT_TERMS_REFUSAL_MESSAGE } from "../../utils/ptTerms";
 import { ptContractShare } from "../../utils/ptContractShare";
 import { withRefundLabel } from "../../utils/sessionRefund";
 import { INDEPENDENT_VENUE_NOTE, isIndependentVenue } from "../../utils/independentVenue";
 import { fullName } from "../../utils/fullName";
+import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar";
 import { contractPlaceLabel } from "../../utils/contractPlace";
 import { FilterChips } from "../../components/ui/nav/FilterChips";
 import { isWebPresentation } from "../../utils/webPresentation";
@@ -80,6 +81,25 @@ const SESSION_STATUS: Record<
 function partyName(c: Contract) {
   // Profile display name only — never the e-mail or an id.
   return fullName(c.clientProfile, "Học viên");
+}
+
+/** The client's photo for the PT's contract card: the contract-level `clientAvatarUrl` when the API sends it, else the profile's signed `photoUrl`. */
+function partyPhoto(c: Contract): string | null {
+  const url = c.clientAvatarUrl ?? c.clientProfile?.photoUrl;
+  return typeof url === "string" && url.trim() !== "" ? url : null;
+}
+
+function PartyAvatar({ c, className = "size-6" }: { c: Contract; className?: string }) {
+  const name = partyName(c);
+  const photo = partyPhoto(c);
+  return (
+    <Avatar className={className}>
+      {photo ? <AvatarImage src={photo} alt={name} /> : null}
+      <AvatarFallback className="bg-zinc-800 text-[10px] font-semibold text-zinc-300">
+        {fullName(c.clientProfile) ? name.charAt(0).toLocaleUpperCase("vi-VN") : <User className="w-3 h-3" />}
+      </AvatarFallback>
+    </Avatar>
+  );
 }
 
 function formatSessionTime(iso: string) {
@@ -296,10 +316,10 @@ export function PTContractsPage() {
   });
 
   const cancelSessionMut = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+    mutationFn: ({ id, reason }: { id: string; reason: string; status: string }) =>
       sessionService.cancelSession(id, reason),
-    onSuccess: () => {
-      toast.success("Đã hủy buổi tập");
+    onSuccess: (_data, vars) => {
+      toast.success(ptCancelDoneMessage(vars.status));
       queryClient.invalidateQueries({ queryKey: ["contract-sessions"] });
       queryClient.invalidateQueries({ queryKey: ["pt-contracts"] });
     },
@@ -530,8 +550,8 @@ export function PTContractsPage() {
                         </span>
                       </div>
                       <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-zinc-500">
-                        <span className="flex items-center gap-1">
-                          <User className="w-3 h-3" /> {partyName(c)}
+                        <span className="flex items-center gap-1.5">
+                          <PartyAvatar c={c} /> {partyName(c)}
                         </span>
                         {/* Client's rating from OTHER PTs' past sessions with them — the
                             counterpart to a client already seeing a PT's rating up front.
@@ -642,8 +662,9 @@ export function PTContractsPage() {
                         <div className="text-xs text-zinc-600 mb-0.5">
                           Khách hàng
                         </div>
-                        <div className="text-xs text-zinc-300 truncate">
-                          {partyName(c)}
+                        <div className="flex items-center gap-1.5 text-xs text-zinc-300 min-w-0">
+                          <PartyAvatar c={c} className="size-5 shrink-0" />
+                          <span className="truncate">{partyName(c)}</span>
                         </div>
                       </div>
                       <div>
@@ -1152,7 +1173,7 @@ export function PTContractsPage() {
         confirmLabel="Huỷ buổi"
         cancelLabel="Không"
         onConfirm={() => {
-          if (sessionCancel) cancelSessionMut.mutate({ id: sessionCancel.id, reason: sessionCancel.reason });
+          if (sessionCancel) cancelSessionMut.mutate({ id: sessionCancel.id, reason: sessionCancel.reason, status: sessionCancel.status });
           setSessionCancel(null);
         }}
       />

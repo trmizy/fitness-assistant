@@ -10,6 +10,8 @@ export const withdrawalRepository = {
     ownerId: string;
     amount: Prisma.Decimal;
     payoutInfo: string;
+    requestedByUserId?: string;
+    payoutSource?: string;
   }) => prisma.withdrawalRequest.create({ data: { ...data, status: 'PENDING' } }),
 
   findById: (id: string) => prisma.withdrawalRequest.findUnique({ where: { id } }),

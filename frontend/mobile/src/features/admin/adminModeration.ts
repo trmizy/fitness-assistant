@@ -1,5 +1,6 @@
 import { GOAL_OPTIONS, TARGET_OPTIONS } from "../ptApplication/ptApplication";
 import { displaySpecialty } from "../../constants/specialties";
+import { fullName } from "../../lib/personName";
 
 /**
  * AD-02 — hai hàng duyệt còn lại của hub "Duyệt": đơn ứng tuyển huấn luyện viên và kế hoạch tập
@@ -111,8 +112,7 @@ export function ptAwaitingCount(rows: PtApplication[]): number {
 
 export function applicantName(a: PtApplication): string {
   const u = a.user ?? a.userProfile ?? {};
-  const name = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
-  return name || u.email || "Người nộp";
+  return fullName(u) || u.email || "Người nộp";
 }
 
 export function applicantEmail(a: PtApplication): string {

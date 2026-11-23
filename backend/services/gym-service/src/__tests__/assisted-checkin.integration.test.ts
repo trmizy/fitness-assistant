@@ -43,6 +43,8 @@ const partnerIds: string[] = [];
 // Hồ sơ giả của "người ngoài" (hội viên): tên, e-mail, SĐT, ảnh. Điền động trong từng test.
 const people = new Map<string, { name: string; email: string; phone: string; photo: string | null }>();
 const sentMails: Array<{ to: string; subject: string; text: string }> = [];
+/** Thông báo chuông gym-service gửi sang user-service (POST /internal/notifications) — giả lập user-service ghi lại. */
+const sentNotices: Array<{ userId: string; text: string; eventType: string; entityType: string; entityId: string; link?: string }> = [];
 let mailDown = false;
 const SECRET_PHONE = '0988777666';
 const SECRET_HEALTH = 'secret-health-note';
@@ -94,6 +96,16 @@ test.before(async () => {
   process.env.AUTH_SERVICE_URL = `http://127.0.0.1:${(authServer.address() as { port: number }).port}`;
 
   userServer = http.createServer((req, res) => {
+    if (req.method === 'POST' && req.url === '/internal/notifications') {
+      const chunks: Buffer[] = [];
+      req.on('data', (c) => chunks.push(c));
+      req.on('end', () => {
+        sentNotices.push(JSON.parse(Buffer.concat(chunks).toString() || '{}'));
+        res.writeHead(201, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+      });
+      return;
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     const m = /^\/internal\/profile\/([^/]+)$/.exec(req.url || '');
     if (m) {
@@ -803,6 +815,31 @@ async function reqException(tok: string, g: string, mm: Awaited<ReturnType<typeo
   return call(tok, 'POST', `${FD(g)}/exceptions`, { membershipId: mm.m.id, reason });
 }
 const exBody = (mm: Awaited<ReturnType<typeof mkMember>>, exceptionId: string) => ({ requestId: rid(), membershipId: mm.m.id, method: 'MANAGER_EXCEPTION', reason: 'Quản lý đã duyệt', exceptionId });
+
+integrationTest('item 6 · xin ngoại lệ → chuông cho CHỦ và QUẢN LÝ đúng chi nhánh, KHÔNG cho người xin, yêu cầu bị từ chối thì không báo ai', async () => {
+  // Dùng hội viên riêng để không đụng ngoại lệ đang mở của test khác.
+  const mm = await mkMember({ photo: null, email: '' });
+  sentNotices.length = 0;
+  const rq = await reqException(R1, gym.a1, mm, 'Hội viên không có ảnh và không nhận được e-mail');
+  assert.equal(rq.status, 201, JSON.stringify(rq.body));
+  const mine = sentNotices.filter((n) => n.eventType === 'GYM_CHECKIN_EXCEPTION_REQUESTED');
+  assert.deepEqual(mine.map((n) => n.userId).sort(), [id.ownerA, id.managerA].sort(), 'chỉ chủ + quản lý đúng chi nhánh');
+  for (const n of mine) {
+    assert.equal(n.entityType, 'GYM_BRANCH');
+    assert.equal(n.entityId, gym.a1);
+    assert.equal(n.link, `/gym-owner/front-desk?gymId=${gym.a1}`);
+    assert.ok(!n.text.includes(mm.m.id) && !/không có ảnh/.test(n.text), 'chuông không chứa lý do / định danh hội viên');
+  }
+  // Quản lý tự xin (người xin = người có quyền duyệt): chủ vẫn được báo, chính quản lý thì không.
+  const mm2 = await mkMember({ photo: null, email: '' });
+  sentNotices.length = 0;
+  assert.equal((await reqException(M, gym.a1, mm2)).status, 201);
+  assert.deepEqual(sentNotices.filter((n) => n.eventType === 'GYM_CHECKIN_EXCEPTION_REQUESTED').map((n) => n.userId), [id.ownerA]);
+  // Xin bị từ chối (409) → không có chuông.
+  sentNotices.length = 0;
+  assert.equal((await reqException(R1, gym.a1, mm)).status, 409);
+  assert.equal(sentNotices.length, 0, 'yêu cầu bị từ chối không báo ai');
+});
 
 integrationTest('ngoại lệ: lễ tân xin → CHƯA check-in; chưa duyệt / bị từ chối thì không dùng được; quản lý duyệt (ghi lý do riêng) → lễ tân check-in một lần', async () => {
   const mm = await mkMember({ photo: null, email: '' });

@@ -34,6 +34,7 @@ import {
   EmptyState,
   ErrorState,
 } from "../../components/dashboard/DashboardStates";
+import { fullName } from "../../utils/fullName";
 
 // clientProfile (from testai-v4 service) or clientName string (legacy compat)
 type ClientRef = {
@@ -60,9 +61,7 @@ type Contract = ClientRef & {
 
 function resolveClientName(ref: ClientRef, fallback = "Học viên"): string {
   if (ref.clientProfile) {
-    const name =
-      `${ref.clientProfile.firstName ?? ""} ${ref.clientProfile.lastName ?? ""}`.trim();
-    return name || fallback;
+    return fullName(ref.clientProfile, fallback);
   }
   return ref.clientName || fallback;
 }

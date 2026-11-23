@@ -30,8 +30,11 @@ export type StaffFeature =
   | "gymWizard"
   | "listings"
   | "plans"
+  | "members"
   | "collaborations"
+  | "partners"
   | "staff"
+  | "brand"
   | "frontDesk"
   | "finance"
   | "complaintCases"
@@ -45,8 +48,15 @@ const ALLOWED: Record<StaffFeature, readonly PartnerRole[]> = {
   // Listing Management D2 — gym-service owner-listing routes are requirePartnerOwner (a MANAGER gets 403).
   listings: ["OWNER"],
   plans: ["OWNER", "MANAGER"],
+  // G3 (Hội viên & gói, behind VITE_GYM_OWNER_V2): membership.full O,M / membership.sales O,A and plan.view O,M,A (audit/02). Plan writes stay owner-only.
+  members: ["OWNER", "MANAGER", "ACCOUNTANT"],
   collaborations: ["OWNER"],
+  // G4 (Đối tác PT, behind VITE_GYM_OWNER_V2 ONLY: routes.tsx and the new nav use it, the legacy page keeps "collaborations").
+  // OWNER agreements; MANAGER "PT check-in tại chi nhánh" (ptCheckin.list O,M); ACCOUNTANT "Hoa hồng PT" (finance.ptCommission.view O,A).
+  partners: ["OWNER", "MANAGER", "ACCOUNTANT"],
   staff: ["OWNER"],
+  // G6 (Thương hiệu, behind VITE_GYM_OWNER_V2 ONLY: routes.tsx `/gym-owner/brand`): brand.view is held by OWNER, MANAGER, ACCOUNTANT (audit/02); only the owner edits (brand.write) and manages staff (staff.manage).
+  brand: ["OWNER", "MANAGER", "ACCOUNTANT"],
   frontDesk: ["OWNER", "MANAGER", "RECEPTIONIST"],
   finance: ["OWNER", "ACCOUNTANT"],
   // gym-service explainer.service.ts (EXPLAINER_ROLES): chủ và quản lý (đúng chi nhánh được giao); lễ tân/kế toán không thấy gì.
@@ -90,4 +100,34 @@ export function canViewCollaborations(role: PartnerRole | undefined): boolean {
 }
 export function canViewBrands(role: PartnerRole | undefined): boolean {
   return role === "OWNER" || role === "MANAGER" || role === "ACCOUNTANT";
+}
+
+/**
+ * Item 5 (Ngài chốt): MỘT nguồn sự thật cho nút GHI. Backend trả `permissions[]` của vai trò trong GET /owner/onboarding/status
+ * (gym-service partner-permissions.ts `permissionsOf`) và FE chỉ HỎI danh sách đó — không tự giữ bảng quyền thứ hai cho các nút ghi.
+ * Chưa biết vai trò, danh sách thiếu / sai kiểu / backend cũ chưa trả `permissions` → KHÔNG có quyền nào (fail-closed): chỉ làm nút ghi
+ * biến mất, trang vẫn xem được ở chế độ chỉ-đọc, và server vẫn là cổng thật.
+ */
+export type PartnerPermission =
+  | "staff.manage" | "brand.write" | "branch.write" | "branch.status.permanent" | "plan.write" | "collaboration.manage" | "finance.withdraw" | "listing.manage"
+  | "branch.view" | "brand.view" | "plan.view" | "membership.full" | "membership.sales" | "checkin.qr" | "checkin.list" | "ptCheckin.list" | "ptCheckin.today"
+  | "frontDesk.clients" | "member.search" | "checkin.assisted" | "checkin.exception.request" | "checkin.exception.approve" | "branch.status.temporary"
+  | "finance.wallet.view" | "finance.withdrawals.view" | "finance.export" | "finance.ptCommission.view";
+
+/** Danh sách quyền hợp lệ từ phản hồi server: không phải mảng → rỗng; phần tử không phải chuỗi bị bỏ. */
+export function normalizePermissions(value: unknown): readonly string[] {
+  return Array.isArray(value) ? value.filter((p): p is string => typeof p === "string") : [];
+}
+
+/** `role` phải là một vai trò đã biết VÀ `permissions` phải liệt kê đúng quyền đó. Mọi trường hợp khác → false. */
+export function hasPartnerPermission(role: unknown, permissions: unknown, permission: PartnerPermission): boolean {
+  return normalizePartnerRole(role) !== undefined && normalizePermissions(permissions).includes(permission);
+}
+
+/** A permission predicate bound to one role + the server's permissions[] (what the Gym Owner screens pass around instead of a role name). */
+export type CanFn = (permission: PartnerPermission) => boolean;
+
+/** `can(p)` is true only when the role is known AND the server listed `p` (same rule as hasPartnerPermission, fail-closed). */
+export function makeCan(role: unknown, permissions: unknown): CanFn {
+  return (permission) => hasPartnerPermission(role, permissions, permission);
 }
