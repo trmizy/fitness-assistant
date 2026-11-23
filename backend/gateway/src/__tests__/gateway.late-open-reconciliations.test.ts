@@ -11,8 +11,8 @@ import assert from "node:assert/strict";
 import http from "node:http";
 
 process.env.NODE_ENV = "test";
-process.env.AUTH_SERVICE_URL = "http://127.0.0.1:4041";
-process.env.USER_SERVICE_URL = "http://127.0.0.1:4042";
+process.env.AUTH_SERVICE_URL = "http://127.0.0.1:4141";
+process.env.USER_SERVICE_URL = "http://127.0.0.1:4142";
 process.env.INTERNAL_SERVICE_SECRET = "gateway-secret-late-open-test";
 
 let app: any;
@@ -44,8 +44,8 @@ test.before(async () => {
       res.end(JSON.stringify({ ok: true }));
     });
   });
-  await new Promise<void>((r) => authServer.listen(4041, "127.0.0.1", r));
-  await new Promise<void>((r) => userServer.listen(4042, "127.0.0.1", r));
+  await new Promise<void>((r) => authServer.listen(4141, "127.0.0.1", r));
+  await new Promise<void>((r) => userServer.listen(4142, "127.0.0.1", r));
   gatewayServer = http.createServer(app);
   await new Promise<void>((r) => gatewayServer.listen(0, "127.0.0.1", r));
   base = `http://127.0.0.1:${(gatewayServer.address() as any).port}`;
