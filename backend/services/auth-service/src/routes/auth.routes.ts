@@ -1,4 +1,5 @@
 import { internalEmailStatusController } from "../controllers/internal-email-status.controller";
+import { internalUserSearchController } from "../controllers/internal-user-search.controller";
 import { Router } from "express";
 import { authController } from "../controllers/auth.controller";
 import { loginRateLimit } from "../middleware/loginRateLimit.middleware";
@@ -48,6 +49,8 @@ router.post("/internal/partner-auth/email-status", internalEmailStatusController
 // Kênh nội bộ cho gym-service: password-reset | revoke-sessions | create-invited-account.
 router.post("/internal/partner-auth/:op", authController.partnerAuthInternal);
 router.post("/internal/users/batch", authController.batchGetUsersInternal);
+// gym-service owner member search: lọc một danh sách id đã có theo tên hiển thị (chỉ trả id trùng khớp).
+router.post("/internal/users/search-by-name", internalUserSearchController.searchByName);
 router.get("/internal/admins", authController.listActiveAdminsInternal);
 // Ids of test/seed/eval accounts (reserved test email domains) — other services leave them out of admin statistics.
 router.get("/internal/test-account-ids", authController.testAccountIdsInternal);

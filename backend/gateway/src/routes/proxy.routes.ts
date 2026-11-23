@@ -2006,13 +2006,15 @@ router.get(
 
 // Quản lý đối tác phòng tập (Phase 3) — người nhận thư mời chưa có tài khoản, nên không
 // thể gắn authMiddleware. Cùng shape với /gyms public phía trên.
+// logLevel 'silent': the proxy library's own error line prints the raw URL, which holds the
+// invitation token. serviceUnavailable still logs the failure, without the path.
 router.get(
   '/partner-invitations/:token',
-  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, logLevel: 'silent', onError: serviceUnavailable('Gym service') }),
 );
 router.post(
   '/partner-invitations/:token/accept',
-  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, logLevel: 'silent', onError: serviceUnavailable('Gym service') }),
 );
 
 // C10 - the Gym's evidence / explanation surface of a gym complaint case (gym-service re-checks the branch scope; there is no deciding route behind it).

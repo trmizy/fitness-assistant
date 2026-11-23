@@ -16,6 +16,7 @@ import { partnerGuard } from './partner-guard.service';
 import { commissionRateService } from './commission-rate.service';
 import { assertNotSynthetic, isSynthetic, originOf } from './synthetic-guard';
 import { stackedPeriod } from './membership-stacking';
+import { authClient } from '../clients/auth.client';
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -29,6 +30,40 @@ const MEMBERSHIP_LIST_STATUSES = ['PENDING_PAYMENT', 'ACTIVE', 'EXPIRED', 'CANCE
 
 function invalidQuery(message: string) {
   return Object.assign(new Error(message), { status: 400, code: 'INVALID_QUERY' });
+}
+
+/** Member search (?q=): query length, ids per auth-service call, most distinct clients one branch may search, and calls per user per minute. */
+export const MEMBER_SEARCH_MIN_LENGTH = 2;
+export const MEMBER_SEARCH_MAX_LENGTH = 64;
+const MEMBER_SEARCH_CHUNK = 500;
+export const MEMBER_SEARCH_MAX_CANDIDATES = 5000;
+export const MEMBER_SEARCH_PER_MINUTE = 30;
+
+const memberSearchHits = new Map<string, number[]>();
+export function __resetMemberSearchLimiter() {
+  memberSearchHits.clear();
+}
+/** Per-process window (same approach as the front-desk search limiter): it slows name enumeration, it is not a global quota. */
+export function consumeMemberSearchQuota(userId: string, now = Date.now()) {
+  const recent = (memberSearchHits.get(userId) ?? []).filter((t) => now - t < 60_000);
+  if (recent.length >= MEMBER_SEARCH_PER_MINUTE) {
+    memberSearchHits.set(userId, recent);
+    throw Object.assign(new Error('SEARCH_RATE_LIMITED'), { status: 429, code: 'SEARCH_RATE_LIMITED' });
+  }
+  recent.push(now);
+  memberSearchHits.set(userId, recent);
+}
+
+function parseMemberSearchQuery(raw: unknown): string | undefined {
+  if (raw === undefined) return undefined;
+  // An empty or blank ?q= is a 400: it must never fall through to the unfiltered list.
+  if (typeof raw !== 'string') throw invalidQuery('q không hợp lệ');
+  const q = raw.trim();
+  const visible = q.normalize('NFD').replace(/\p{M}+/gu, '').replace(/\s+/g, ' ').trim();
+  if (visible.length < MEMBER_SEARCH_MIN_LENGTH || q.length > MEMBER_SEARCH_MAX_LENGTH) {
+    throw invalidQuery(`q phải có từ ${MEMBER_SEARCH_MIN_LENGTH} đến ${MEMBER_SEARCH_MAX_LENGTH} ký tự`);
+  }
+  return q;
 }
 
 export function encodeMembershipCursor(row: { createdAt: Date; id: string }): string {
@@ -72,6 +107,7 @@ export function parseMembershipListQuery(query: Record<string, unknown>) {
     cursor: rawCursor ? decodeMembershipCursor(rawCursor) : null,
     status: rawStatus as (typeof MEMBERSHIP_LIST_STATUSES)[number] | undefined,
     expiringBefore,
+    q: parseMemberSearchQuery(query.q),
   };
 }
 
@@ -553,7 +589,24 @@ export const membershipService = {
   async listPageForOwner(gymId: string, ownerId: string, query: Record<string, unknown>, now: Date = new Date()) {
     await gymService.getOwnedGym(gymId, ownerId);
     const q = parseMembershipListQuery(query);
-    const rows = await membershipRepository.pageForGym(gymId, { limit: q.limit, cursor: q.cursor, status: q.status, expiringBefore: q.expiringBefore }, now);
+    let clientIds: string[] | undefined;
+    if (q.q !== undefined) {
+      const candidates = await membershipRepository.distinctClientIdsForGym(gymId, { status: q.status, expiringBefore: q.expiringBefore, max: MEMBER_SEARCH_MAX_CANDIDATES }, now);
+      if (candidates.length > MEMBER_SEARCH_MAX_CANDIDATES) {
+        throw Object.assign(new Error('MEMBER_SEARCH_TOO_BROAD'), { status: 422, code: 'MEMBER_SEARCH_TOO_BROAD' });
+      }
+      clientIds = [];
+      try {
+        for (let i = 0; i < candidates.length; i += MEMBER_SEARCH_CHUNK) {
+          clientIds.push(...(await authClient.searchUserIdsByName(candidates.slice(i, i + MEMBER_SEARCH_CHUNK), q.q)));
+        }
+      } catch (e) {
+        // "Could not ask" is neither "no match" nor "everyone".
+        logger.error({ err: (e as Error).message, gymId }, 'member search: name lookup failed');
+        throw Object.assign(new Error('MEMBER_SEARCH_UNAVAILABLE'), { status: 503, code: 'MEMBER_SEARCH_UNAVAILABLE' });
+      }
+    }
+    const rows = await membershipRepository.pageForGym(gymId, { limit: q.limit, cursor: q.cursor, status: q.status, expiringBefore: q.expiringBefore, clientIds }, now);
     const hasMore = q.limit !== null && rows.length > q.limit;
     const items = hasMore ? rows.slice(0, q.limit!) : rows;
     const last = items[items.length - 1];

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { logger } from '@gym-coach/shared';
-import { membershipService, ADMIN_REFUND_REASONS } from '../services/membership.service';
+import { membershipService, ADMIN_REFUND_REASONS, consumeMemberSearchQuota } from '../services/membership.service';
+import { hasPermission } from '../services/partner-permissions';
 import { principalId } from '../middleware/partner-context.middleware';
 import { membershipsFor } from '../services/staff-views';
 import { resolveDisplayNamesBatch } from '../services/display-name.service';
@@ -189,6 +190,14 @@ export const membershipController = {
   async listForOwner(req: Request, res: Response) {
     try {
       const ownerId = principalId(req);
+      if (req.query.q !== undefined) {
+        // Searching by name reveals identity, so it needs membership.full: an accountant (membership.sales) keeps the list but cannot search it.
+        if (req.partner && !hasPermission(req.partner.role, 'membership.full')) {
+          res.status(403).json({ success: false, error: { code: 'MEMBER_SEARCH_FORBIDDEN', message: 'MEMBER_SEARCH_FORBIDDEN' } });
+          return;
+        }
+        consumeMemberSearchQuota(req.user!.userId);
+      }
       // Additive pagination: `data` stays a plain array (old callers keep working); `meta` carries hasMore / nextCursor.
       const { items: list, meta } = await membershipService.listPageForOwner(req.params.gymId, ownerId, req.query as Record<string, unknown>);
       // D15: lễ tân thấy hạn/lượt, kế toán thấy doanh số (không có danh tính hội viên), chủ/quản lý thấy đủ.
