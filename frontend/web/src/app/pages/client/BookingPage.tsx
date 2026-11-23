@@ -31,6 +31,11 @@ import { readMembershipNotCovered, type MembershipNotCovered } from "../../utils
 import { MembershipNotCoveredNotice } from "../../components/gym/MembershipNotCoveredNotice";
 import { bookedDayKeys, localDayKey, sessionTabFor, sessionTimeRange, sessionsOnDay } from "../../utils/daySessions";
 import { fullName } from "../../utils/fullName";
+import { ContentTabs, TabPanel } from "../../components/ui/nav/ContentTabs";
+import { isWebPresentation } from "../../utils/webPresentation";
+
+// WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
+const WEB_UI = isWebPresentation();
 
 const DAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const MONTHS = [
@@ -564,109 +569,9 @@ export function BookingPage() {
     past: "Đã qua",
   };
 
-  return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
-            <Calendar className="w-5 h-5 text-green-400" /> Lịch tập luyện
-          </h1>
-          <p className="text-zinc-500 text-sm mt-0.5">
-            Đặt và quản lý các buổi tập của bạn
-          </p>
-        </div>
-        {selectedContract && (
-          <span className="px-3 py-1 bg-zinc-800 text-zinc-400 text-xs font-bold rounded-full flex items-center gap-1.5 border border-zinc-700/50">
-            <Clock className="w-3 h-3" />
-            còn {remainingSessions} buổi
-          </span>
-        )}
-      </div>
-
-      {/* ─── E-SIGN SECTION ─── */}
-      {(pendingSigContracts as any[]).map((contract) => (
-        <div
-          key={contract.id}
-          className="bg-zinc-900 rounded-2xl border border-amber-500/20 p-4 space-y-3"
-        >
-          {contract.eSignTestMode && (
-            <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 px-3 py-2 rounded-lg text-xs font-medium">
-              ⚠ Chữ ký điện tử đang ở chế độ thử nghiệm (test mode) — không có
-              giá trị pháp lý production
-            </div>
-          )}
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-zinc-100 font-bold text-sm">
-                Chờ ký hợp đồng
-              </h3>
-              <p className="text-zinc-500 text-xs mt-0.5">
-                {contract.packageName}
-              </p>
-            </div>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 font-semibold">
-              Chờ ký
-            </span>
-          </div>
-          <p className="text-sm text-zinc-400">
-            {contract.eSignStatus === "SENT" &&
-              "Đang chờ cả hai bên ký. Kiểm tra email của bạn."}
-            {contract.eSignStatus === "PARTIALLY_SIGNED" &&
-              (contract.clientSignedAt && !contract.ptSignedAt
-                ? "Bạn đã ký. Đang chờ huấn luyện viên ký."
-                : !contract.clientSignedAt && contract.ptSignedAt
-                  ? "Huấn luyện viên đã ký. Đang chờ bạn ký."
-                  : "Đang xử lý...")}
-            {contract.eSignStatus === "DECLINED" && (
-              <span className="text-red-400">Một bên đã từ chối ký.</span>
-            )}
-            {contract.eSignStatus === "EXPIRED" && (
-              <span className="text-zinc-400">Yêu cầu ký đã hết hạn.</span>
-            )}
-            {contract.eSignStatus === "ERROR" && (
-              <span className="text-red-400">
-                Có lỗi xảy ra khi gửi yêu cầu ký. Vui lòng thử lại.
-              </span>
-            )}
-            {!contract.eSignStatus && "Đang chuẩn bị yêu cầu ký..."}
-          </p>
-          <div className="flex items-center gap-2 flex-wrap">
-            {["ERROR", "EXPIRED"].includes(contract.eSignStatus || "") && (
-              <button
-                onClick={() => handleResendESign(contract.id)}
-                disabled={resendingId === contract.id}
-                className="flex items-center gap-1.5 text-xs font-semibold text-green-400 hover:text-green-300 border border-green-500/20 bg-green-500/10 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
-              >
-                {resendingId === contract.id ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-3.5 h-3.5" />
-                )}
-                Gửi lại email ký
-              </button>
-            )}
-          </div>
-        </div>
-      ))}
-
-      {/* Tabs */}
-      <div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl w-full sm:w-auto sm:inline-flex overflow-x-auto g-scroll-x">
-        {(["book", "upcoming", "confirm", "past"] as Tab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`relative flex-auto sm:flex-none whitespace-nowrap px-2 sm:px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${tab === t ? "text-black" : "text-zinc-500 hover:text-zinc-300"}`}
-          >
-            {tab === t && <ActivePill group="booking-tab" className="rounded-lg bg-green-500 shadow-sm" />}
-            <span className="relative">{tabLabels[t]}</span>
-            {t === "confirm" && (pendingConfirmSessions as Session[]).length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                {(pendingConfirmSessions as Session[]).length}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+  // Tab panels shared by both presentations (only the active one renders; per-tab loading unchanged).
+  const bookingPanels = (
+    <>
 
       {/* ─── BOOK TAB ─── */}
       {tab === "book" && (
@@ -1533,6 +1438,121 @@ export function BookingPage() {
             </div>
           )}
         </div>
+      )}
+    </>
+  );
+
+  return (
+    <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
+            <Calendar className="w-5 h-5 text-green-400" /> Lịch tập luyện
+          </h1>
+          <p className="text-zinc-500 text-sm mt-0.5">
+            Đặt và quản lý các buổi tập của bạn
+          </p>
+        </div>
+        {selectedContract && (
+          <span className="px-3 py-1 bg-zinc-800 text-zinc-400 text-xs font-bold rounded-full flex items-center gap-1.5 border border-zinc-700/50">
+            <Clock className="w-3 h-3" />
+            còn {remainingSessions} buổi
+          </span>
+        )}
+      </div>
+
+      {/* ─── E-SIGN SECTION ─── */}
+      {(pendingSigContracts as any[]).map((contract) => (
+        <div
+          key={contract.id}
+          className="bg-zinc-900 rounded-2xl border border-amber-500/20 p-4 space-y-3"
+        >
+          {contract.eSignTestMode && (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 px-3 py-2 rounded-lg text-xs font-medium">
+              ⚠ Chữ ký điện tử đang ở chế độ thử nghiệm (test mode) — không có
+              giá trị pháp lý production
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-zinc-100 font-bold text-sm">
+                Chờ ký hợp đồng
+              </h3>
+              <p className="text-zinc-500 text-xs mt-0.5">
+                {contract.packageName}
+              </p>
+            </div>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 font-semibold">
+              Chờ ký
+            </span>
+          </div>
+          <p className="text-sm text-zinc-400">
+            {contract.eSignStatus === "SENT" &&
+              "Đang chờ cả hai bên ký. Kiểm tra email của bạn."}
+            {contract.eSignStatus === "PARTIALLY_SIGNED" &&
+              (contract.clientSignedAt && !contract.ptSignedAt
+                ? "Bạn đã ký. Đang chờ huấn luyện viên ký."
+                : !contract.clientSignedAt && contract.ptSignedAt
+                  ? "Huấn luyện viên đã ký. Đang chờ bạn ký."
+                  : "Đang xử lý...")}
+            {contract.eSignStatus === "DECLINED" && (
+              <span className="text-red-400">Một bên đã từ chối ký.</span>
+            )}
+            {contract.eSignStatus === "EXPIRED" && (
+              <span className="text-zinc-400">Yêu cầu ký đã hết hạn.</span>
+            )}
+            {contract.eSignStatus === "ERROR" && (
+              <span className="text-red-400">
+                Có lỗi xảy ra khi gửi yêu cầu ký. Vui lòng thử lại.
+              </span>
+            )}
+            {!contract.eSignStatus && "Đang chuẩn bị yêu cầu ký..."}
+          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            {["ERROR", "EXPIRED"].includes(contract.eSignStatus || "") && (
+              <button
+                onClick={() => handleResendESign(contract.id)}
+                disabled={resendingId === contract.id}
+                className="flex items-center gap-1.5 text-xs font-semibold text-green-400 hover:text-green-300 border border-green-500/20 bg-green-500/10 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {resendingId === contract.id ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                )}
+                Gửi lại email ký
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {/* Tabs */}
+      {WEB_UI ? (
+        <ContentTabs label="Đặt lịch" value={tab} tabs={(["book", "upcoming", "confirm", "past"] as Tab[]).map((t) => ({ key: t, label: tabLabels[t], badge: t === "confirm" ? (pendingConfirmSessions as Session[]).length : undefined }))} onChange={setTab} testId="booking-tabs">
+          <TabPanel tabKey={tab} className="space-y-4">{bookingPanels}</TabPanel>
+        </ContentTabs>
+      ) : (
+        <>
+<div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl w-full sm:w-auto sm:inline-flex overflow-x-auto g-scroll-x">
+        {(["book", "upcoming", "confirm", "past"] as Tab[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`relative flex-auto sm:flex-none whitespace-nowrap px-2 sm:px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${tab === t ? "text-black" : "text-zinc-500 hover:text-zinc-300"}`}
+          >
+            {tab === t && <ActivePill group="booking-tab" className="rounded-lg bg-green-500 shadow-sm" />}
+            <span className="relative">{tabLabels[t]}</span>
+            {t === "confirm" && (pendingConfirmSessions as Session[]).length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                {(pendingConfirmSessions as Session[]).length}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+          {bookingPanels}
+        </>
       )}
 
       {/* ─── HỦY LỊCH ─── */}

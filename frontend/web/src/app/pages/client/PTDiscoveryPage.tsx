@@ -71,6 +71,12 @@ import {
 import { PtBookableSchedule } from "../../components/booking/PtBookableSchedule";
 import { PtWeeklySchedule } from "../../components/booking/PtWeeklySchedule";
 import { ActivePill } from "../../components/ui/ActivePill";
+import { ContentTabs, PanelIf } from "../../components/ui/nav/ContentTabs";
+import { isWebPresentation } from "../../utils/webPresentation";
+import { FilterChips } from "../../components/ui/nav/FilterChips";
+
+// WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
+const WEB_UI = isWebPresentation();
 
 const isValidPrice = (p: unknown): p is number =>
   typeof p === "number" && p > 0;
@@ -831,6 +837,9 @@ export function PTDiscoveryPage() {
       )}
 
       {/* Server-side specialty chips */}
+      {WEB_UI ? (
+        <FilterChips label="Lọc theo chuyên môn" value={activeFilter} onChange={setActiveFilter} options={filters.map((f, i) => ({ value: filterValues[i], label: f }))} testId="pt-discovery-specialty" />
+      ) : (
       <div className="flex gap-2 overflow-x-auto g-scroll-x pb-1">
         {filters.map((f, i) => (
           <button
@@ -847,6 +856,7 @@ export function PTDiscoveryPage() {
           </button>
         ))}
       </div>
+      )}
 
       {listUpdatedNotice && (
         <div
@@ -1197,6 +1207,11 @@ export function PTDiscoveryPage() {
                 </div>
 
                 {/* Tabs */}
+                {WEB_UI ? (
+                <ContentTabs idBase="pt-discovery-detail" label="Thông tin huấn luyện viên" value={detailTab} tabs={[{ key: "detail", label: "Chi tiết" },
+                      { key: "pricing", label: "Giá gói" },
+                      { key: "reviews", label: "Đánh giá" },]} onChange={(k) => setDetailTab(k as typeof detailTab)} testId="pt-discovery-tabs">{null}</ContentTabs>
+                ) : (
                 <div role="tablist" aria-label="Thông tin huấn luyện viên" className="flex gap-1 bg-zinc-800/60 border-b border-zinc-700/40 p-1">
                   {(
                     [
@@ -1222,8 +1237,10 @@ export function PTDiscoveryPage() {
                     </button>
                   ))}
                 </div>
+                )}
 
                 <div className="p-5 space-y-5">
+                  <PanelIf web={WEB_UI} idBase="pt-discovery-detail" tabKey={detailTab} className="space-y-5">
                   {detailTab === "detail" && (
                     <>
                   <div>
@@ -1612,6 +1629,7 @@ export function PTDiscoveryPage() {
                     </div>
                   </div>
                   )}
+                  </PanelIf>
 
                   {/* Message button — persistent across all 3 tabs, not tied to any one
                       of them, since messaging the PT is a fine follow-up whichever tab

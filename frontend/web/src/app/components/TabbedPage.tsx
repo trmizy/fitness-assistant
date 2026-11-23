@@ -1,6 +1,11 @@
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { onTablistKeyDown, tabProps } from "../pages/admin/shared/tablistKeys";
+import { isWebPresentation } from "../utils/webPresentation";
+
+// WEB UI prototype: on the web the bar takes the shared content-tab look (underline indicator, gw tokens) so every
+// Level-3 tab bar in the app reads the same; semantics/ids/test ids unchanged. The packaged app keeps the green pills.
+const WEB_UI = isWebPresentation();
 
 export interface TabbedPageTab {
   value: string;
@@ -35,7 +40,7 @@ export function TabbedPage({
 
   return (
     <div className="flex flex-col h-full">
-      <div role="tablist" aria-label="Chuyển mục" onKeyDown={onTablistKeyDown} className="flex-none flex gap-2 overflow-x-auto g-scroll-x px-4 md:px-6 pt-4 pb-2">
+      <div role="tablist" aria-label="Chuyển mục" onKeyDown={onTablistKeyDown} className={WEB_UI ? "gw-tabs flex-none mx-4 md:mx-6 mt-4" : "flex-none flex gap-2 overflow-x-auto g-scroll-x px-4 md:px-6 pt-4 pb-2"}>
         {tabs.map((t) => (
           <button
             key={t.value}
@@ -45,7 +50,7 @@ export function TabbedPage({
             {...tabProps(activeTab?.value === t.value)}
             data-testid={`page-tab-${t.value}`}
             onClick={() => setActive(t.value)}
-            className={`relative inline-flex min-h-10 items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors duration-150 border ${
+            className={WEB_UI ? "gw-tab inline-flex items-center gap-1.5" : `relative inline-flex min-h-10 items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors duration-150 border ${
               active === t.value
                 ? "text-black border-transparent"
                 : "bg-zinc-900 border-zinc-700/60 text-zinc-400 hover:border-green-500/40"
@@ -56,7 +61,7 @@ export function TabbedPage({
               <motion.span
                 layoutId={`tab-pill-${baseId}`}
                 aria-hidden
-                className="absolute inset-0 rounded-full bg-green-500"
+                className={WEB_UI ? "gw-tab-bar" : "absolute inset-0 rounded-full bg-green-500"}
                 transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 520, damping: 44, mass: 0.9 }}
               />
             )}

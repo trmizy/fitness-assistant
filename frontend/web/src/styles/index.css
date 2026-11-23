@@ -3,3 +3,5 @@
 @import './theme.css';
 /* Batch 2: additive motion tokens (--g-*). Nothing reads them yet; batches 4-8 adopt them. */
 @import './gymini-motion.css';
+/* WEB UI prototype: namespaced navigation design-system tokens (--gw-*). */
+@import './gymini-web-ui.css';

@@ -19,6 +19,10 @@ import { useNavigate } from "react-router";
 import { sessionsToClose, sessionWhenLabel } from "./sessionsToClose";
 import { formatDateTimeVi } from "../../utils/contractGymOptions"; // "19:00 25/11/2026" - the PT-11 fix: date shown, no seconds
 import { fullName } from "../../utils/fullName";
+import { isWebPresentation } from "../../utils/webPresentation";
+
+// WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
+const WEB_UI = isWebPresentation();
 
 // Mirrors booking.service.ts's own NO_SHOW_GRACE_MINUTES default (env-overridable server-side,
 // so this can drift by a few minutes from whatever the server actually enforces — harmless:
@@ -535,6 +539,14 @@ export function PTSchedulePage() {
       )}
 
       {/* Tabs */}
+      {WEB_UI ? (
+        // Not a tab bar: this page has one view, and "Lịch làm việc" goes to another page — so it is a link.
+        <div className="flex justify-end">
+          <a href="/pt/listing" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); navigate("/pt/listing"); }} className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--gw-r-md)] border border-[var(--gw-line-strong)] px-3 text-sm font-medium text-[var(--gw-text)] hover:bg-[var(--gw-hover)]" data-testid="pt-schedule-availability-link">
+            <Settings className="h-4 w-4" aria-hidden="true" /> Lịch làm việc
+          </a>
+        </div>
+      ) : (
       <div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl w-full sm:w-auto sm:inline-flex">
         <button
           onClick={() => setTab("schedule")}
@@ -550,6 +562,7 @@ export function PTSchedulePage() {
           <Settings className="w-3.5 h-3.5" /> Lịch làm việc
         </button>
       </div>
+      )}
 
       {/* ─── SCHEDULE TAB ─── */}
       {tab === "schedule" && (
