@@ -607,6 +607,8 @@ html[data-workspace="gym-owner"] body {
 .go-rowmenu { width: 220px; }
 /* Row menus open over the panel's own edge: the clip that rounds the corners would cut the last row's menu. */
 .go-panel.go-panel-menus { overflow: visible; }
+/* An open row menu hangs over the next row, whose actions cell has its own z-index: lift the cell that owns the open menu, or the next row eats the clicks. */
+.go-dt-actions:has(.go-rowmenu.is-open), .go-dt-actions:has(.go-rowmenu.is-closing) { z-index: 30; }
 .go-usermenu-head { padding: var(--go-s2) var(--go-s3); border-bottom: 1px solid var(--go-line); margin-bottom: var(--go-s1); }
 .go-usermenu-item {
   display: flex;

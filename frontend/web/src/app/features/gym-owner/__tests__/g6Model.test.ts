@@ -385,6 +385,9 @@ describe("G6 Thương hiệu: source audit (CODE AUDIT)", () => {
     assert.match(menu, /role="menu"/);
     assert.match(menu, /role="menuitem"/);
     assert.match(menu, /aria-haspopup="menu"/);
+    // REAL BROWSER found it: the open menu hung over the next row, whose actions cell (z-index 1) took the clicks
+    const css = readFileSync(resolve(here, "..", "..", "..", "..", "styles", "gym-owner.css"), "utf8");
+    assert.match(css, /\.go-dt-actions:has\(\.go-rowmenu\.is-open\)[^{]*\{ z-index: 30; \}/);
   });
   it("Chi nhánh keeps a link, not the brand editor: no rename form left on the branch page", () => {
     const branches = src(feat("branches", "BranchesPage.tsx"));
