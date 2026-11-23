@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router, useFocusEffect } from "expo-router";
+import { Redirect, router, useFocusEffect } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Banknote, Building2, Clock, Wallet as WalletIcon } from "lucide-react-native";
 
@@ -13,6 +13,7 @@ import {
   CountUp,
   EmptyState,
   Input,
+  ScreenHeader,
   Stagger,
   StaggerItem,
   Tappable,
@@ -29,6 +30,7 @@ import { BranchSwitcher } from "../../src/features/gymOwner/BranchSwitcher";
 import { WalletLoadError } from "../../src/features/gymOwner/WalletLoadError";
 import { InlineRefusal } from "../../src/features/services/InlineRefusal";
 import { useStaffPermissions } from "../../src/features/gymOwner/useStaffPermissions";
+import { walletRouteRedirect } from "../../src/features/gymOwner/staffRoles";
 import {
   gymWithdrawFormError,
   gymWithdrawalErrorMessage,
@@ -42,7 +44,9 @@ import {
 import { branchName, openWithdrawals, ownedGyms, withdrawalRows } from "../../src/features/gymOwner/gymOwner";
 
 /**
- * GY-04 — "Ví". Ví thuộc về từng CHI NHÁNH (`/owner/gyms/:gymId/wallet`), không phải thương hiệu,
+ * GY-04 — "Ví". 23/11/2026: không còn là tab; là màn con của "Tài chính" (mục "Ví & rút tiền", chỉ chủ sở hữu), route ẩn nên liên kết
+ * cũ vẫn mở được. Vai trò không có `finance.wallet.view` bị chuyển về trang chủ của vai trò đó.
+ * Ví thuộc về từng CHI NHÁNH (`/owner/gyms/:gymId/wallet`), không phải thương hiệu,
  * nên màn này có bộ chuyển chi nhánh giống Tổng quan. Trên web nó là một khối nằm trong trang quản
  * lý từng phòng gym; ở đây tách thành tab riêng vì tiền là việc chủ gym mở ra xem thường xuyên nhất,
  * không nên chôn sau hai lần bấm.
@@ -133,10 +137,15 @@ export default function GymOwnerWalletScreen() {
 
   const refreshing = walletQuery.isRefetching || withdrawalsQuery.isRefetching;
 
+  // A role that is known but may not read the wallet (manager, receptionist) is sent home, not left on a dead end.
+  const redirectTo = statusLoading ? null : walletRouteRedirect(status);
+  if (redirectTo) return <Redirect href={redirectTo as never} />;
+
   return (
     <View className="flex-1 bg-background">
+      <ScreenHeader title="Ví" onBack={() => (router.canGoBack() ? router.back() : router.replace("/gym-owner/finance" as never))} />
       <ScrollView
-        contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32 }}
+        contentContainerStyle={{ paddingTop: 16, paddingBottom: insets.bottom + 32 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -150,8 +159,7 @@ export default function GymOwnerWalletScreen() {
         }
       >
         <View className="px-5">
-          <Text className="font-display text-xl text-foreground">Ví</Text>
-          <Text className="mt-0.5 font-body text-xs text-muted-foreground">Số dư và yêu cầu rút tiền theo chi nhánh</Text>
+          <Text className="font-body text-xs text-muted-foreground">Số dư và yêu cầu rút tiền theo chi nhánh</Text>
         </View>
 
         {gymsQuery.isLoading || statusLoading ? (

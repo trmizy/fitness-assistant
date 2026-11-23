@@ -24,6 +24,7 @@ import { gymService } from "../../src/services/api";
 import { useApp } from "../../src/context/AppContext";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { useStaffPermissions } from "../../src/features/gymOwner/useStaffPermissions";
+import { InlineRefusal } from "../../src/features/services/InlineRefusal";
 import { designTokens } from "../../src/theme/colors";
 import { formatVND } from "../../src/utils/currency";
 import {
@@ -57,6 +58,8 @@ export default function GymOwnerPlansScreen() {
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<PlanForm>(EMPTY_PLAN_FORM);
+  // A server refusal is written INSIDE the sheet: it is a native Modal, so the app's root toast is drawn underneath it and never seen.
+  const [refusal, setRefusal] = useState<string | null>(null);
 
   const brandsQuery = useQuery({ queryKey: ["owned-brands", uid], queryFn: () => gymService.listOwnedBrands() });
   // Item 5 (Ngài chốt): a MANAGER may VIEW plans but only the owner creates / stops them (POST/PATCH are requirePartnerOwner).
@@ -79,10 +82,11 @@ export default function GymOwnerPlansScreen() {
     onSuccess: () => {
       toast.show("Đã tạo gói hội viên", "success");
       setForm(EMPTY_PLAN_FORM);
+      setRefusal(null);
       setOpen(false);
       void qc.invalidateQueries({ queryKey: ["owned-brand-plans", brand?.id] });
     },
-    onError: (e: any) => toast.show(e?.response?.data?.error?.message || "Không tạo được gói", "danger"),
+    onError: (e: any) => setRefusal(e?.response?.data?.error?.message || e?.response?.data?.message || "Không tạo được gói. Vui lòng thử lại."),
   });
 
   const toggle = useMutation({
@@ -132,6 +136,7 @@ export default function GymOwnerPlansScreen() {
                     icon={Plus}
                     onPress={() => {
                       setForm(EMPTY_PLAN_FORM);
+                      setRefusal(null);
                       setOpen(true);
                     }}
                   >
@@ -277,7 +282,14 @@ export default function GymOwnerPlansScreen() {
             <Text className="font-body text-[11px] text-muted-foreground">Để trống cả hai = luôn mở bán.</Text>
           </View>
 
-          <Button disabled={!!error || createPlan.isPending} onPress={() => createPlan.mutate()}>
+          <InlineRefusal message={refusal} testID="plan-create-refusal" />
+          <Button
+            disabled={!!error || createPlan.isPending}
+            onPress={() => {
+              setRefusal(null);
+              createPlan.mutate();
+            }}
+          >
             {createPlan.isPending ? "Đang tạo…" : "Tạo gói"}
           </Button>
           {error ? <Text className="text-center font-body text-xs text-muted-foreground">{error}</Text> : null}

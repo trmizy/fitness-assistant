@@ -6,6 +6,10 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  ALL_STAFF_TABS,
+  WALLET_ROUTE,
+  canOpenWalletDrilldown,
+  walletRouteRedirect,
   ptCheckinListMode,
   canReadBrands,
   canUseFrontDesk,
@@ -30,7 +34,8 @@ describe("staffRoles", () => {
   });
 
   it("tab bar per role", () => {
-    assert.deepEqual(staffTabsFor(s("OWNER")), ["dashboard", "gyms", "front-desk", "wallet", "finance", "profile"]);
+    // 23/11/2026: "Ví" merged into "Tài chính" -> five tabs for the owner, no "wallet" tab for anyone.
+    assert.deepEqual(staffTabsFor(s("OWNER")), ["dashboard", "gyms", "front-desk", "finance", "profile"]);
     assert.deepEqual(staffTabsFor(s("MANAGER")), ["dashboard", "gyms", "front-desk", "profile"]);
     assert.deepEqual(staffTabsFor(s("RECEPTIONIST")), ["front-desk", "profile"]);
     assert.deepEqual(staffTabsFor(s("ACCOUNTANT")), ["finance", "profile"]);
@@ -66,5 +71,45 @@ describe("staffRoles", () => {
       const e = mk(code)!;
       assert.equal(/liên hệ chủ phòng gym/i.test(e.body), false, code);
     }
+  });
+});
+
+describe("Ví gộp vào Tài chính (5 tab)", () => {
+  const withPerms = (role: string, permissions: unknown) => ({ role, permissions });
+  const OWNER_PERMS = ["finance.wallet.view", "finance.withdrawals.view", "finance.withdraw", "finance.export"];
+  const ACCOUNTANT_PERMS = ["finance.wallet.view", "finance.withdrawals.view", "finance.export"];
+
+  it("no role has a wallet tab any more, and the owner bar has exactly five tabs", () => {
+    assert.equal((ALL_STAFF_TABS as string[]).includes("wallet"), false);
+    for (const role of ["OWNER", "MANAGER", "RECEPTIONIST", "ACCOUNTANT", undefined, "SOMETHING_NEW"]) {
+      assert.equal((staffTabsFor(s(role)) as string[]).includes("wallet"), false, String(role));
+    }
+    assert.equal(staffTabsFor(s("OWNER")).length, 5);
+  });
+
+  it("the old route is kept as a drill-down target", () => {
+    assert.equal(WALLET_ROUTE, "/gym-owner/wallet");
+  });
+
+  it("the Tài chính -> Ví entry needs finance.wallet.view AND finance.withdraw (owner only), fail-closed", () => {
+    assert.equal(canOpenWalletDrilldown(withPerms("OWNER", OWNER_PERMS)), true);
+    assert.equal(canOpenWalletDrilldown(withPerms("ACCOUNTANT", ACCOUNTANT_PERMS)), false);
+    assert.equal(canOpenWalletDrilldown(withPerms("MANAGER", ["checkin.exception.approve"])), false);
+    assert.equal(canOpenWalletDrilldown(withPerms("RECEPTIONIST", [])), false);
+    // old server without permissions[] / role unknown / still loading -> no entry, even for an owner
+    assert.equal(canOpenWalletDrilldown(s("OWNER")), false);
+    assert.equal(canOpenWalletDrilldown(withPerms("OWNER", "finance.withdraw")), false);
+    assert.equal(canOpenWalletDrilldown(withPerms("SOMETHING_NEW", OWNER_PERMS)), false);
+    assert.equal(canOpenWalletDrilldown(undefined), false);
+    assert.equal(canOpenWalletDrilldown(null), false);
+  });
+
+  it("the old /gym-owner/wallet route: the owner stays, a role that may not read the wallet goes home, no answer yet stays closed", () => {
+    assert.equal(walletRouteRedirect(withPerms("OWNER", OWNER_PERMS)), null);
+    assert.equal(walletRouteRedirect(withPerms("ACCOUNTANT", ACCOUNTANT_PERMS)), null); // unchanged: the accountant already read wallet numbers
+    assert.equal(walletRouteRedirect(withPerms("MANAGER", ["checkin.exception.approve"])), "/gym-owner/dashboard");
+    assert.equal(walletRouteRedirect(withPerms("RECEPTIONIST", ["checkin.qr"])), "/gym-owner/front-desk");
+    assert.equal(walletRouteRedirect(s("OWNER")), "/gym-owner/dashboard"); // permissions[] missing -> fail-closed, not "owner by default"
+    assert.equal(walletRouteRedirect(undefined), null); // status not loaded: the screen shows its own loading / closed state
   });
 });

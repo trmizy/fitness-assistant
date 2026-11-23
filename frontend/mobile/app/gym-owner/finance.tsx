@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Redirect } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { Building2, Download, Handshake, Lock, Receipt, Wallet as WalletIcon } from "lucide-react-native";
+import { Building2, ChevronRight, Download, Handshake, Lock, Receipt, Wallet as WalletIcon } from "lucide-react-native";
 
 import { Badge, Card, EmptyState, Stagger, StaggerItem, Tappable, useToast } from "../../src/components/ui";
 import { shareLocalFile, writeLocalFile } from "../../src/services/files";
@@ -35,7 +35,8 @@ import {
   type SalesRow,
   type WalletLike,
 } from "../../src/features/gymOwner/finance";
-import { STAFF_ROLE_LABEL, staffHomeRoute } from "../../src/features/gymOwner/staffRoles";
+import { STAFF_ROLE_LABEL, WALLET_ROUTE, canOpenWalletDrilldown, staffHomeRoute } from "../../src/features/gymOwner/staffRoles";
+import { anchorOptionsFor } from "../../src/config/returnPath";
 
 /**
  * N15M-10 — "Tài chính": the accountant's home (web: `GymFinancePage`, D15 / D15b). READ-ONLY by design: sales of
@@ -243,6 +244,26 @@ export default function FinanceScreen() {
                 <Kpi label="Lượt rút tiền" value={loading ? "…" : String(withdrawals.length)} hint="Tất cả trạng thái" />
               </View>
             </StaggerItem>
+
+            {/* 23/11/2026: "Ví" is no longer a tab. The owner (finance.wallet.view + finance.withdraw) opens the wallet and the withdrawal request from here; the accountant keeps the read-only numbers on this screen and gets no entry. */}
+            {canOpenWalletDrilldown(statusQuery.data) ? (
+              <StaggerItem>
+                <Card className="overflow-hidden">
+                  <Tappable
+                    accessibilityLabel="Mở Ví và yêu cầu rút tiền"
+                    onPress={() => router.push(WALLET_ROUTE as never, anchorOptionsFor(WALLET_ROUTE))}
+                    className="min-h-14 flex-row items-center gap-3 px-4 py-3"
+                  >
+                    <WalletIcon size={18} color={accent.primary} />
+                    <View className="min-w-0 flex-1">
+                      <Text className="font-body-semibold text-sm text-foreground">Ví & rút tiền</Text>
+                      <Text className="font-body text-xs text-muted-foreground">Số dư theo chi nhánh, gửi yêu cầu rút, lý do bị từ chối</Text>
+                    </View>
+                    <ChevronRight size={16} color={designTokens.mutedForeground} />
+                  </Tappable>
+                </Card>
+              </StaggerItem>
+            ) : null}
 
             {hasDebt ? (
               <StaggerItem>

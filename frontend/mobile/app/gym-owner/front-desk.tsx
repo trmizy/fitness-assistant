@@ -183,7 +183,7 @@ export default function FrontDeskScreen() {
               </StaggerItem>
 
               <StaggerItem>
-                <CheckinExceptionsPanel gymId={gymId} />
+                <CheckinExceptionsPanel gymId={gymId} gymName={active ? branchName(active) : undefined} />
               </StaggerItem>
 
               <StaggerItem>

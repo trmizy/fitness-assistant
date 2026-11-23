@@ -6658,6 +6658,11 @@ export const gymService = {
     const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/exceptions`);
     return data?.data ?? data;
   },
+  // Owner / manager only (`checkin.exception.approve`); the server re-verifies role, branch scope and four-eyes. Reason 5-300 chars.
+  decideCheckinException: async (gymId: string, exceptionId: string, decision: "approve" | "reject", reason: string) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/front-desk/exceptions/${exceptionId}/${decision}`, { reason });
+    return data?.data ?? data;
+  },
   // N15M-10 — accountant/owner: TOTAL PT commission per period (never per PT, never rates).
   getPtCommissionSummary: async (brandId: string, params: { from?: string; to?: string; gymId?: string } = {}) => {
     const { data } = await api.get(`/owner/brands/${brandId}/pt-commission`, { params });

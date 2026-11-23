@@ -5,12 +5,14 @@
  * default-deny). It only decides what to SHOW: a mistake here can at worst surface a 403, it never
  * grants anything. The matrix, for the parts this app cares about:
  *
- *   OWNER         Tổng quan · Phòng gym · Quầy lễ tân · Ví · Tài chính · Hồ sơ
+ *   OWNER         Tổng quan · Phòng gym · Quầy lễ tân · Tài chính (có lối vào Ví và rút tiền) · Hồ sơ
  *   MANAGER       Tổng quan · Phòng gym · Quầy lễ tân · Hồ sơ
  *   RECEPTIONIST  Quầy lễ tân (branch, QR, check-in hộ, khách hôm nay) · Hồ sơ
  *                 — 403 on /owner/brands, memberships, plans, wallet: those blocks are never drawn
  *   ACCOUNTANT    Tài chính (read-only: sales, wallet, withdrawals, PT commission totals) · Hồ sơ
  */
+import { hasPartnerPermission } from "./permissions";
+
 export type StaffRole = "OWNER" | "MANAGER" | "RECEPTIONIST" | "ACCOUNTANT";
 
 /** Short label under the user's name — the REAL role, never "Quản lý chi nhánh" for everyone. */
@@ -21,9 +23,15 @@ export const STAFF_ROLE_LABEL: Record<StaffRole, string> = {
   ACCOUNTANT: "Kế toán",
 };
 
-export type StaffTabName = "dashboard" | "gyms" | "wallet" | "front-desk" | "finance" | "profile";
+export type StaffTabName = "dashboard" | "gyms" | "front-desk" | "finance" | "profile";
 
-export const ALL_STAFF_TABS: StaffTabName[] = ["dashboard", "gyms", "wallet", "front-desk", "finance", "profile"];
+export const ALL_STAFF_TABS: StaffTabName[] = ["dashboard", "gyms", "front-desk", "finance", "profile"];
+
+/**
+ * "Ví" không còn là một tab (đã gộp vào "Tài chính", còn 5 tab): `/gym-owner/wallet` vẫn là một route ẨN trong cùng nhóm tab,
+ * nên liên kết cũ / thông báo cũ vẫn mở đúng màn. Lối vào duy nhất từ giao diện là mục "Ví & rút tiền" trong Tài chính.
+ */
+export const WALLET_ROUTE = "/gym-owner/wallet";
 
 function roleOf(onboardingStatus: unknown): StaffRole | null {
   const role = (onboardingStatus as { role?: unknown } | null | undefined)?.role;
@@ -45,11 +53,11 @@ export function staffRoleLabel(onboardingStatus: unknown): string {
  * menu until the role is known); the tab bar fills in as soon as the status arrives.
  *
  * Item 6: "Quầy lễ tân" is for owner AND manager (it carries the pending check-in exception badge), "Tài chính" for the owner
- * (in this group; the accountant has it as its home). "Ví" stays the owner's withdrawal screen.
+ * (in this group; the accountant has it as its home). "Ví" is no longer a tab: it is a drill-down of "Tài chính" (WALLET_ROUTE).
  */
 export function staffTabsFor(onboardingStatus: unknown): StaffTabName[] {
   const role = roleOf(onboardingStatus);
-  if (role === "OWNER") return ["dashboard", "gyms", "front-desk", "wallet", "finance", "profile"];
+  if (role === "OWNER") return ["dashboard", "gyms", "front-desk", "finance", "profile"];
   if (role === "MANAGER") return ["dashboard", "gyms", "front-desk", "profile"];
   if (role === "RECEPTIONIST") return ["front-desk", "profile"];
   if (role === "ACCOUNTANT") return ["finance", "profile"];
@@ -88,4 +96,22 @@ export function canUseFrontDesk(onboardingStatus: unknown): boolean {
  */
 export function ptCheckinListMode(onboardingStatus: unknown): "all" | "today" {
   return roleOf(onboardingStatus) === "RECEPTIONIST" ? "today" : "all";
+}
+
+/**
+ * Lối vào "Ví & rút tiền" trong Tài chính. Cần CẢ `finance.wallet.view` và `finance.withdraw` trong `permissions[]` của server
+ * (hiện chỉ chủ sở hữu) - đúng tập vai trò từng có tab "Ví". Kế toán vẫn đọc số dư/lịch sử ngay trong Tài chính nhưng không có lối
+ * vào màn rút tiền. Vai trò chưa biết / backend cũ chưa trả `permissions` → false (fail-closed).
+ */
+export function canOpenWalletDrilldown(onboardingStatus: unknown): boolean {
+  return hasPartnerPermission(onboardingStatus, "finance.wallet.view") && hasPartnerPermission(onboardingStatus, "finance.withdraw");
+}
+
+/**
+ * Route `/gym-owner/wallet` (nay là route ẩn): vai trò đã biết nhưng không được xem ví → đường dẫn về trang chủ của vai trò đó,
+ * thay vì một ngõ cụt. `null` = ở lại (được xem, hoặc chưa có phản hồi trạng thái: màn tự hiện trạng thái chờ / đóng).
+ */
+export function walletRouteRedirect(onboardingStatus: unknown): string | null {
+  if (onboardingStatus == null) return null;
+  return hasPartnerPermission(onboardingStatus, "finance.wallet.view") ? null : staffHomeRoute(onboardingStatus);
 }

@@ -1,22 +1,31 @@
-import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, CircleCheck, Mail, Search, ShieldCheck, Square, SquareCheck, UserCheck, X } from "lucide-react-native";
 
-import { Avatar, Badge, Button, Card, Input, Segmented, Tappable, inputPlaceholderColor } from "../../components/ui";
+import { Avatar, Badge, BottomSheet, Button, Card, Input, Segmented, Tappable, inputPlaceholderColor, useToast } from "../../components/ui";
+import { InlineRefusal } from "../services/InlineRefusal";
+import { useStaffPermissions } from "./useStaffPermissions";
+import { PENDING_EXCEPTION_COUNT_KEY } from "./usePendingCheckinExceptionCount";
 import { gymService } from "../../services/api";
 import { useApp } from "../../context/AppContext";
 import { useWorkspaceAccent } from "../../theme/workspace";
 import { designTokens } from "../../theme/colors";
 import {
+  DECISION_TEXT,
   EXCEPTION_STATUS_LABEL,
   MEMBER_STATUS_LABEL,
+  REASON_MAX,
+  REASON_MIN,
   REASON_PRESETS,
   assistedErrorCode,
   assistedErrorText,
   blockedText,
   canConfirm,
+  canDecideRow,
   clockLabel,
+  decisionRefusal,
+  decisionTitle,
   formatCodeInput,
   formatExpiry,
   formatLast4,
@@ -26,7 +35,11 @@ import {
   normalizeExceptions,
   normalizeMembers,
   planTypeLabel,
+  reasonCounter,
+  reasonProblem,
   type AssistedMethod,
+  type DecisionRefusal,
+  type DecisionVerb,
   type ExceptionRow,
   type MemberResult,
 } from "./frontDesk";
@@ -525,13 +538,20 @@ function MemberCard({ m, onPick, large }: { m: MemberResult; onPick?: () => void
 }
 
 /**
- * Today's exception requests at this branch. A receptionist sees (and cannot approve) only her own; approving is a
- * manager/owner action done from the web desk, so this list is read-only here.
+ * Today's exception requests at this branch. A receptionist sees (and cannot decide) only her own. The owner and the manager
+ * (`checkin.exception.approve`) can approve / reject a request made by someone else: tap Duyệt / Từ chối → a sheet that names the
+ * member and the branch and asks for a reason (5-300, same as web) → the confirm button. The server stays the authority (role,
+ * branch scope, four-eyes, end-of-day expiry, one decision per request); this only decides what to offer and says the refusals in
+ * plain Vietnamese. The sheet is a native Modal, so a refusal is written INSIDE it (InlineRefusal), never as a root toast.
  */
-export function CheckinExceptionsPanel({ gymId }: { gymId: string }) {
+export function CheckinExceptionsPanel({ gymId, gymName }: { gymId: string; gymName?: string }) {
   const { user } = useApp();
   const accent = useWorkspaceAccent();
+  const toast = useToast();
+  const qc = useQueryClient();
   const uid = user?.id ?? "guest";
+  const { can } = useStaffPermissions();
+  const canApprovePermission = can("checkin.exception.approve");
   const q = useQuery({
     queryKey: ["frontdesk-exceptions", uid, gymId],
     queryFn: async () => normalizeExceptions(await gymService.listCheckinExceptions(gymId)),
@@ -539,7 +559,60 @@ export function CheckinExceptionsPanel({ gymId }: { gymId: string }) {
     refetchInterval: 8000,
   });
   const [showDone, setShowDone] = useState(false);
-  useEffect(() => setShowDone(false), [gymId, uid]);
+  const [target, setTarget] = useState<{ row: ExceptionRow; verb: DecisionVerb } | null>(null);
+  const [reason, setReason] = useState("");
+  const [refusal, setRefusal] = useState<DecisionRefusal | null>(null);
+  // Set synchronously on the first press: a second tap in the same frame cannot start a second request (isPending lags a render).
+  const sending = useRef(false);
+  // Another branch or another account → nothing typed or opened for the previous one survives.
+  useEffect(() => {
+    setShowDone(false);
+    setTarget(null);
+    setReason("");
+    setRefusal(null);
+    sending.current = false;
+  }, [gymId, uid]);
+
+  const refreshAfterDecision = () => {
+    void qc.invalidateQueries({ queryKey: ["frontdesk-exceptions", uid, gymId] });
+    void qc.invalidateQueries({ queryKey: [PENDING_EXCEPTION_COUNT_KEY, uid] });
+  };
+
+  const decide = useMutation({
+    mutationFn: (v: { id: string; verb: DecisionVerb; reason: string }) => gymService.decideCheckinException(gymId, v.id, v.verb, v.reason),
+    onSuccess: (_d, v) => {
+      sending.current = false;
+      toast.show(DECISION_TEXT[v.verb].success, "success");
+      setTarget(null);
+      setReason("");
+      setRefusal(null);
+      refreshAfterDecision();
+    },
+    onError: (e) => {
+      sending.current = false;
+      const r = decisionRefusal(e);
+      setRefusal(r);
+      if (r.reload) refreshAfterDecision();
+    },
+  });
+
+  const openSheet = (row: ExceptionRow, verb: DecisionVerb) => {
+    if (decide.isPending) return;
+    setReason("");
+    setRefusal(null);
+    setTarget({ row, verb });
+  };
+  const closeSheet = () => {
+    if (decide.isPending) return;
+    setTarget(null);
+    setRefusal(null);
+  };
+  const send = () => {
+    if (!target || sending.current || decide.isPending || reasonProblem(reason)) return;
+    sending.current = true;
+    setRefusal(null);
+    decide.mutate({ id: target.row.id, verb: target.verb, reason: reason.trim() });
+  };
 
   if (q.isLoading) return <ActivityIndicator color={accent.primary} />;
   const data = q.data;
@@ -547,6 +620,11 @@ export function CheckinExceptionsPanel({ gymId }: { gymId: string }) {
   const open = data.exceptions.filter((r) => r.status === "PENDING" || r.status === "APPROVED");
   const closed = data.exceptions.filter((r) => r.status !== "PENDING" && r.status !== "APPROVED");
   const rows: ExceptionRow[] = [...open, ...(showDone ? closed : [])];
+  const nowMs = Date.now();
+  const problem = reasonProblem(reason);
+  const verbText = target ? DECISION_TEXT[target.verb] : null;
+  // After a refusal that will not change (self-approval, already decided, no permission) the only sensible action is to close.
+  const closeOnly = refusal !== null && !refusal.retry;
 
   return (
     <Card className="gap-3 p-4">
@@ -555,6 +633,8 @@ export function CheckinExceptionsPanel({ gymId }: { gymId: string }) {
       </Text>
       {rows.map((r) => {
         const st = EXCEPTION_STATUS_LABEL[r.status];
+        const decidable = canDecideRow({ canApprovePermission, listCanApprove: data.canApprove, row: r, nowMs });
+        const waitingForOther = r.status === "PENDING" && canApprovePermission && data.canApprove && r.mine;
         return (
           <View key={r.id} className="gap-1 rounded-xl bg-panel p-3">
             <View className="flex-row items-start justify-between gap-2">
@@ -573,6 +653,23 @@ export function CheckinExceptionsPanel({ gymId }: { gymId: string }) {
                 {r.decidedByName ?? "Quản lý"}: {r.decisionReason}
               </Text>
             ) : null}
+            {decidable ? (
+              <View className="mt-2 flex-row gap-2">
+                <View className="min-w-0 flex-1">
+                  <Button full variant="secondary" disabled={decide.isPending} onPress={() => openSheet(r, "reject")}>
+                    Từ chối
+                  </Button>
+                </View>
+                <View className="min-w-0 flex-1">
+                  <Button full disabled={decide.isPending} onPress={() => openSheet(r, "approve")}>
+                    Duyệt
+                  </Button>
+                </View>
+              </View>
+            ) : null}
+            {waitingForOther ? (
+              <Text className="mt-1 font-body text-[11px] text-muted-foreground">Yêu cầu do bạn tạo, cần người khác duyệt.</Text>
+            ) : null}
           </View>
         );
       })}
@@ -583,6 +680,60 @@ export function CheckinExceptionsPanel({ gymId }: { gymId: string }) {
           </Text>
         </Tappable>
       ) : null}
+
+      <BottomSheet
+        open={!!target && canApprovePermission && data.canApprove}
+        onClose={closeSheet}
+        title={target && verbText ? `${verbText.action} ngoại lệ check-in` : undefined}
+      >
+        {target && verbText ? (
+          // Scrollable: with the keyboard open on a 360 x 640 phone the reason field + the confirm button must stay reachable.
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 12, paddingBottom: 8 }}>
+            <Text className="font-body-semibold text-sm text-foreground">
+              {decisionTitle(target.verb, target.row.displayName, gymName || "chi nhánh này")}
+            </Text>
+            <View className="gap-0.5 rounded-xl bg-panel p-3">
+              <Text className="font-body text-xs text-muted-foreground">
+                {target.row.displayName}
+                {target.row.memberCode ? ` · ${target.row.memberCode}` : ""} · xin bởi {target.row.requestedByName}
+              </Text>
+              <Text className="font-body text-xs text-foreground">Lý do xin: {target.row.requestReason}</Text>
+            </View>
+            <Text className="font-body text-xs leading-4 text-muted-foreground">{verbText.body}</Text>
+            <Input
+              label={`Lý do của bạn (${REASON_MIN} đến ${REASON_MAX} ký tự)`}
+              value={reason}
+              onChangeText={(v) => {
+                setReason(v);
+                if (refusal?.retry) setRefusal(null);
+              }}
+              placeholder={verbText.placeholder}
+              placeholderTextColor={inputPlaceholderColor}
+              accessibilityLabel="Lý do duyệt hoặc từ chối"
+              multiline
+              numberOfLines={3}
+              editable={!decide.isPending}
+            />
+            <Text className="text-right font-body text-[11px] text-muted-foreground">{reasonCounter(reason)}</Text>
+            {reason.trim().length > 0 && problem ? <Text className="font-body text-xs text-muted-foreground">{problem}</Text> : null}
+            <InlineRefusal message={refusal?.text} testID="exception-decision-refusal" />
+            {closeOnly ? (
+              <Button variant="secondary" full onPress={closeSheet}>
+                Đóng
+              </Button>
+            ) : (
+              <Button
+                full
+                variant={target.verb === "reject" ? "destructive" : "primary"}
+                disabled={!!problem || decide.isPending}
+                onPress={send}
+              >
+                {decide.isPending ? verbText.doing : verbText.confirm}
+              </Button>
+            )}
+          </ScrollView>
+        ) : null}
+      </BottomSheet>
     </Card>
   );
 }
