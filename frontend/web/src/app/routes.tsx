@@ -109,7 +109,11 @@ const BranchesPage = lazy(() => import("./features/gym-owner/branches/BranchesPa
 const BranchDetailPage = lazy(() => import("./features/gym-owner/branches/BranchDetailPage").then((m) => ({ default: m.BranchDetailPage })));
 const MembersPage = lazy(() => import("./features/gym-owner/members/MembersPage").then((m) => ({ default: m.MembersPage })));
 const PartnersPage = lazy(() => import("./features/gym-owner/partners/PartnersPage").then((m) => ({ default: m.PartnersPage })));
+const FinancePage = lazy(() => import("./features/gym-owner/finance/FinancePage").then((m) => ({ default: m.FinancePage })));
 const V2FrontDeskPage = lazy(() => import("./features/gym-owner/front-desk/FrontDeskPage").then((m) => ({ default: m.FrontDeskPage })));
+const CasesPage = lazy(() => import("./features/gym-owner/cases/CasesPage").then((m) => ({ default: m.CasesPage })));
+const BrandPage = lazy(() => import("./features/gym-owner/brand/BrandPage").then((m) => ({ default: m.BrandPage })));
+const GymOwnerProfileV2Page = lazy(() => import("./features/gym-owner/profile/ProfilePage").then((m) => ({ default: m.ProfilePage })));
 const ListingsEntryPage = lazy(() => import("./features/gym-owner/branches/ListingsEntryPage").then((m) => ({ default: m.ListingsEntryPage })));
 const MyGymsPage = lazy(() => import("./pages/gym-owner/MyGymsPage").then((m) => ({ default: m.MyGymsPage })));
 const GymOwnerProfilePage = lazy(() => import("./pages/gym-owner/GymOwnerProfilePage").then((m) => ({ default: m.GymOwnerProfilePage })));
@@ -394,13 +398,22 @@ export const router = createBrowserRouter([
           isGymOwnerV2Enabled()
             ? { path: "collaborations", element: <RequireStaffFeature feature="partners"><PartnersPage /></RequireStaffFeature> }
             : { path: "collaborations", element: <RequireStaffFeature feature="collaborations"><GymCollaborationsPage /></RequireStaffFeature> },
-          { path: "managers", element: <RequireStaffFeature feature="staff"><ManageManagersPage /></RequireStaffFeature> },
+          // G6: flag on = Thương hiệu & nhân sự (`/brand`, tabs Thông tin thương hiệu | Nhân sự). `/managers` keeps working: same owner-only guard, then
+          // a redirect to `/brand?tab=staff`. `/brand` itself is V2-only (flag off: the URL does not exist) and is open to brand.view holders (O, M, A).
+          ...(isGymOwnerV2Enabled() ? [{ path: "brand", element: <RequireStaffFeature feature="brand"><BrandPage /></RequireStaffFeature> }] : []),
+          isGymOwnerV2Enabled()
+            ? { path: "managers", element: <RequireStaffFeature feature="staff"><Navigate to="/gym-owner/brand?tab=staff" replace /></RequireStaffFeature> }
+            : { path: "managers", element: <RequireStaffFeature feature="staff"><ManageManagersPage /></RequireStaffFeature> },
           { path: "front-desk", element: <RequireStaffFeature feature="frontDesk">{isGymOwnerV2Enabled() ? <V2FrontDeskPage /> : <FrontDeskPage />}</RequireStaffFeature> },
-          { path: "finance", element: <RequireStaffFeature feature="finance"><GymFinancePage /></RequireStaffFeature> },
+          { path: "finance", element: <RequireStaffFeature feature="finance">{isGymOwnerV2Enabled() ? <FinancePage /> : <GymFinancePage />}</RequireStaffFeature> },
           // ND-07: hồ sơ khiếu nại về chi nhánh — chủ và quản lý (đúng chi nhánh được giao) giải trình + gửi bằng chứng.
-          { path: "complaint-cases", element: <RequireStaffFeature feature="complaintCases"><GymComplaintCasesPage /></RequireStaffFeature> },
-          { path: "complaint-cases/:caseId", element: <RequireStaffFeature feature="complaintCases"><GymComplaintCasePage /></RequireStaffFeature> },
-          { path: "profile", element: <RequireStaffFeature feature="profile"><GymOwnerProfilePage /></RequireStaffFeature> },
+          // G6: flag on = ONE route object for the list and `:caseId` (the case opens in a drawer over the list, so opening / closing it does not remount
+          // the page or read the list again). Flag off = the two legacy pages, unchanged.
+          ...(isGymOwnerV2Enabled()
+            ? [{ path: "complaint-cases/:caseId?", element: <RequireStaffFeature feature="complaintCases"><CasesPage /></RequireStaffFeature> }]
+            : [{ path: "complaint-cases", element: <RequireStaffFeature feature="complaintCases"><GymComplaintCasesPage /></RequireStaffFeature> }]),
+          ...(isGymOwnerV2Enabled() ? [] : [{ path: "complaint-cases/:caseId", element: <RequireStaffFeature feature="complaintCases"><GymComplaintCasePage /></RequireStaffFeature> }]),
+          { path: "profile", element: <RequireStaffFeature feature="profile">{isGymOwnerV2Enabled() ? <GymOwnerProfileV2Page /> : <GymOwnerProfilePage />}</RequireStaffFeature> },
         ],
       },
 

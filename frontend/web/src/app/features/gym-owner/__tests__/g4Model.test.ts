@@ -29,6 +29,7 @@ import {
 } from "../partners/partnersModel";
 import { canUseFeature } from "../../../utils/gymStaffRole";
 import { flatNavFor, scopeKindForLocation } from "../../../components/layout/gym-owner/gymOwnerNav";
+import { canOf } from "./permFixture";
 
 const BRANCHES = [{ id: "g1", name: "Gymini Quận 1", city: "TP.HCM", operationalStatus: "OPEN" }, { id: "g2", name: "Gymini Quận 7", city: "TP.HCM", operationalStatus: "TEMPORARILY_CLOSED" }];
 const brandRow = (id: string, o: Record<string, unknown> = {}) => ({
@@ -42,20 +43,20 @@ const legacyRow = (id: string, gymId: string, o: Record<string, unknown> = {}) =
 
 describe("roles and scope", () => {
   it("owner agreements, manager PT check-ins, accountant commission, receptionist and unknown nothing", () => {
-    assert.equal(partnersViewFor("OWNER"), "agreements");
-    assert.equal(partnersViewFor("MANAGER"), "checkins");
-    assert.equal(partnersViewFor("ACCOUNTANT"), "commission");
-    assert.equal(partnersViewFor("RECEPTIONIST"), "none");
-    assert.equal(partnersViewFor(undefined), "none");
+    assert.equal(partnersViewFor(canOf("OWNER")), "agreements");
+    assert.equal(partnersViewFor(canOf("MANAGER")), "checkins");
+    assert.equal(partnersViewFor(canOf("ACCOUNTANT")), "commission");
+    assert.equal(partnersViewFor(canOf("RECEPTIONIST")), "none");
+    assert.equal(partnersViewFor(canOf(undefined)), "none");
   });
   it("scope kind: owner brand, manager branch, accountant brand-or-branch", () => {
-    assert.equal(partnersScopeKind("OWNER"), "brand");
-    assert.equal(partnersScopeKind("MANAGER"), "branch");
-    assert.equal(partnersScopeKind("ACCOUNTANT"), "brand-or-branch");
-    assert.equal(partnersScopeKind("RECEPTIONIST"), "none");
-    assert.equal(scopeKindForLocation("/gym-owner/collaborations", null, "OWNER"), "brand");
-    assert.equal(scopeKindForLocation("/gym-owner/collaborations", null, "MANAGER"), "branch");
-    assert.equal(scopeKindForLocation("/gym-owner/collaborations", "x", "ACCOUNTANT"), "brand-or-branch");
+    assert.equal(partnersScopeKind(canOf("OWNER")), "brand");
+    assert.equal(partnersScopeKind(canOf("MANAGER")), "branch");
+    assert.equal(partnersScopeKind(canOf("ACCOUNTANT")), "brand-or-branch");
+    assert.equal(partnersScopeKind(canOf("RECEPTIONIST")), "none");
+    assert.equal(scopeKindForLocation("/gym-owner/collaborations", null, canOf("OWNER")), "brand");
+    assert.equal(scopeKindForLocation("/gym-owner/collaborations", null, canOf("MANAGER")), "branch");
+    assert.equal(scopeKindForLocation("/gym-owner/collaborations", "x", canOf("ACCOUNTANT")), "brand-or-branch");
     assert.equal(scopeKindForLocation("/gym-owner/collaborations", null, undefined), "brand");
   });
   it("the sidebar entry exists for O, M, A and not for the receptionist; every one of them may use the V2 guard", () => {

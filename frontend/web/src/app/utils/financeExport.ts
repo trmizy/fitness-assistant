@@ -46,9 +46,14 @@ export function salesCsv(rows: SalesRow[], names: { gym: (id: string) => string;
   );
 }
 
-export function withdrawalsCsv(rows: (WithdrawalRow & { gymName?: string })[]): string {
+/**
+ * `opts.masked` (default true, the accountant's copy): the header says whether the account column is masked. The OWNER receives the
+ * account unmasked from the server, so G5 passes `{ masked: false }` for them and the header no longer claims "đã che".
+ */
+export function withdrawalsCsv(rows: (WithdrawalRow & { gymName?: string })[], opts: { masked?: boolean } = {}): string {
+  const masked = opts.masked !== false;
   return toCsv(
-    ["Mã yêu cầu", "Chi nhánh", "Số tiền (VND)", "Trạng thái", "Mã tham chiếu", "Thông tin nhận tiền (đã che)", "Ngày tạo", "Ngày chi"],
+    ["Mã yêu cầu", "Chi nhánh", "Số tiền (VND)", "Trạng thái", "Mã tham chiếu", masked ? "Thông tin nhận tiền (đã che)" : "Thông tin nhận tiền", "Ngày tạo", "Ngày chi"],
     rows.map((r) => [r.id, r.gymName ?? "", Number(r.amount), r.status, r.bankReference ?? "", r.payoutInfo ?? "", r.createdAt ?? "", r.paidAt ?? ""]),
   );
 }

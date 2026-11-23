@@ -32,7 +32,6 @@ export function FrontDeskPage() {
   const { user } = useApp();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const role = scope.role;
   // The same keys as the legacy panels, so a check-in or an exception request made in a panel refreshes this page too.
   const uid = user?.id ?? "guest";
   const gymId = scope.gymId;
@@ -96,7 +95,7 @@ export function FrontDeskPage() {
     return () => window.removeEventListener("beforeunload", h);
   }, [dirty]);
 
-  if (!canUseDesk(role)) return <ScopeStateFrame kind="forbidden" />;
+  if (!canUseDesk(scope.can)) return <ScopeStateFrame kind="forbidden" />;
 
   const exData = exceptionsQ.data;
   const rows = exData?.exceptions ?? [];
@@ -116,7 +115,7 @@ export function FrontDeskPage() {
   };
 
   const sub =
-    role === "RECEPTIONIST"
+    !scope.can("checkin.exception.approve")
       ? "Tìm hội viên, check-in hộ khi họ không quét được mã QR, xin ngoại lệ."
       : "Tìm hội viên, check-in hộ, duyệt ngoại lệ và xem ai đang ở quầy.";
 

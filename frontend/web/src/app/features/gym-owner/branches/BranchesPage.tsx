@@ -1,7 +1,8 @@
 /**
  * "Chi nhánh" list (batch G2), behind VITE_GYM_OWNER_V2 (routes.tsx). Wraps the functions of the legacy MyGymsPage:
- * list of branches, resumable drafts, "Thêm chi nhánh" (wizard), first-run brand naming and brand rename (kept here in a compact
- * bar until the Thương hiệu page of G6), open a branch. Same services, same query keys, same mutations; only layout changed.
+ * list of branches, resumable drafts, "Thêm chi nhánh" (wizard), first-run brand naming, open a branch. Same services, same query keys,
+ * same mutations; only layout changed. G6: the brand block (name, rename, logo, links) moved to the Thương hiệu page; a one-line link
+ * to it stays here. The first-run naming dialog stays: it is the gate of "Thêm chi nhánh", not part of the brand block.
  *
  * Roles: OWNER everything; MANAGER reads the list (no add, no brand controls). RECEPTIONIST / ACCOUNTANT never reach it
  * (RequireStaffFeature `gyms`).
@@ -10,7 +11,7 @@ import { useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { BuildingsIcon, CaretRightIcon, CheckIcon, PencilSimpleIcon, PlusIcon, XIcon } from "@phosphor-icons/react";
+import { BuildingsIcon, CaretRightIcon, PlusIcon } from "@phosphor-icons/react";
 import { gymService } from "../../../services/api";
 import type { Gym, GymBrand } from "../../../types";
 import { ABOUT_MAX, AboutCounter } from "../../../components/gym/AboutCounter";
@@ -30,8 +31,9 @@ export function BranchesPage() {
   const [params] = useSearchParams();
   const focusId = params.get("gymId");
   const role = scope.role;
-  // Finding B (audit/02 section 5): only an explicit OWNER is an owner; a role that is still loading unlocks nothing.
-  const isOwner = role === "OWNER";
+  // G5: write controls follow the server's permissions[] (fail-closed: loading / unknown role / old backend unlocks nothing; no role-name test).
+  const canWriteBranch = scope.can("branch.write");
+  const canWriteBrand = scope.can("brand.write");
 
   // Same keys as the legacy page and the scope provider: one cache entry per resource.
   const gymsQuery = useQuery<Gym[]>({ queryKey: ["owned-gyms"], queryFn: () => gymService.listOwnedGyms() });
@@ -45,7 +47,7 @@ export function BranchesPage() {
   const [brandPromptDismissed, setBrandPromptDismissed] = useState(false);
   const brandNameRef = useRef<HTMLInputElement>(null);
   const [brandForm, setBrandForm] = useState({ name: "", description: "" });
-  const needsBrandSetup = isOwner && !isLoading && !loadFailed && brands.length === 0;
+  const needsBrandSetup = canWriteBrand && !isLoading && !loadFailed && brands.length === 0;
 
   const createBrandMutation = useMutation({
     mutationFn: () => gymService.createBrand(brandForm),
@@ -56,22 +58,13 @@ export function BranchesPage() {
     },
     onError: (err) => toast.error(apiMessage(err, "Không thể tạo thương hiệu")),
   });
-  // A rename only ever moves pendingName; approvedName (what is shown publicly) stays until Gymini approves it.
-  const renameBrandMutation = useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) => gymService.updateBrand(id, { name }),
-    onSuccess: () => {
-      toast.success("Đã lưu — tên mới sẽ hiển thị công khai sau khi Gymini duyệt");
-      queryClient.invalidateQueries({ queryKey: ["owned-brands"] });
-    },
-    onError: (err) => toast.error(apiMessage(err, "Không thể đổi tên")),
-  });
 
   // N14G-05: "Thêm chi nhánh" opens the 7-step wizard directly (the draft saves itself, submit is the last step).
   const openAddBranch = () => (needsBrandSetup ? setBrandPromptDismissed(false) : navigate(wizardHref()));
 
   const rows = useMemo(() => tableBranches(gyms), [gyms]);
   const codes = useMemo(() => branchCodes(rows), [rows]);
-  const attention = useMemo(() => attentionItems(gyms, role), [gyms, role]);
+  const attention = useMemo(() => attentionItems(gyms, canWriteBranch), [gyms, canWriteBranch]);
 
   return (
     <div className="go-wrap" data-testid="go-branches">
@@ -79,10 +72,10 @@ export function BranchesPage() {
         <div>
           <h1 data-testid="go-branches-title">Chi nhánh</h1>
           <p className="go-page-sub" data-testid="go-branches-sub">
-            {isLoading ? "Đang tải danh sách chi nhánh" : loadFailed ? "Chưa tải được danh sách" : `${rows.length} chi nhánh${isOwner ? "" : " trong phạm vi của bạn"}`}
+            {isLoading ? "Đang tải danh sách chi nhánh" : loadFailed ? "Chưa tải được danh sách" : `${rows.length} chi nhánh${canWriteBranch ? "" : " trong phạm vi của bạn"}`}
           </p>
         </div>
-        {isOwner && (
+        {canWriteBranch && (
           <button type="button" className="go-btn" data-variant="primary" onClick={openAddBranch} data-testid="go-branches-add">
             <PlusIcon aria-hidden="true" width={16} height={16} />
             Thêm chi nhánh
@@ -106,17 +99,26 @@ export function BranchesPage() {
         </div>
       )}
 
-      {brands.length > 0 && (
+      {brands.length > 0 && scope.can("brand.view") && (
         <section className="go-brandbar" aria-label="Thương hiệu" data-testid="go-brandbar">
           {brands.map((b) => (
-            <BrandRow
-              key={b.id}
-              brand={b}
-              branchCount={gyms.filter((g) => g.brandId === b.id && g.status !== "DRAFT").length}
-              isOwner={isOwner}
-              pending={renameBrandMutation.isPending}
-              onRename={(name) => renameBrandMutation.mutate({ id: b.id, name })}
-            />
+            <div key={b.id} className="go-brand-row" data-testid="go-brand-link-row">
+              <BuildingsIcon aria-hidden="true" className="go-brand-ico" />
+              <div className="go-brand-main">
+                <div className="go-brand-line">
+                  <strong className="go-brand-name">{b.approvedName ?? b.name}</strong>
+                  <span className="go-brand-count">{gyms.filter((g) => g.brandId === b.id && g.status !== "DRAFT").length} chi nhánh</span>
+                </div>
+                {b.pendingName && (
+                  <p data-testid="brand-pending-approval-hint" className="go-brand-hint">
+                    Tên mới đang chờ Gymini duyệt: <strong>{b.pendingName}</strong>
+                  </p>
+                )}
+              </div>
+              <GoLink to="/gym-owner/brand" className="go-btn go-btn-sm" data-testid="go-brand-open">
+                {canWriteBrand ? "Sửa thương hiệu" : "Xem thương hiệu"}
+              </GoLink>
+            </div>
           ))}
         </section>
       )}
@@ -140,7 +142,7 @@ export function BranchesPage() {
         {!isLoading && !loadFailed && rows.length === 0 && (
           <div className="go-task-empty" data-testid="go-branches-empty">
             <strong>Chưa có chi nhánh nào</strong>
-            <span>{isOwner ? "Hãy tạo chi nhánh đầu tiên để bắt đầu bán gói hội viên." : "Bạn chưa được giao chi nhánh nào."}</span>
+            <span>{canWriteBranch ? "Hãy tạo chi nhánh đầu tiên để bắt đầu bán gói hội viên." : "Bạn chưa được giao chi nhánh nào."}</span>
           </div>
         )}
         {!isLoading && rows.length > 0 && (
@@ -231,72 +233,6 @@ export function BranchesPage() {
           </label>
         </div>
       </GoModal>
-    </div>
-  );
-}
-
-function BrandRow({ brand, branchCount, isOwner, pending, onRename }: { brand: GymBrand; branchCount: number; isOwner: boolean; pending: boolean; onRename: (name: string) => void }) {
-  const displayName = brand.approvedName ?? brand.name;
-  const [editing, setEditing] = useState(false);
-  const [nameInput, setNameInput] = useState(displayName);
-  return (
-    <div className="go-brand-row">
-      <BuildingsIcon aria-hidden="true" className="go-brand-ico" />
-      <div className="go-brand-main">
-        <div className="go-brand-line">
-          {editing ? (
-            <input
-              data-testid="brand-rename-input"
-              autoFocus
-              aria-label="Tên thương hiệu mới"
-              className="go-input go-input-sm"
-              value={nameInput}
-              onChange={(e) => setNameInput(e.target.value)}
-            />
-          ) : (
-            <strong className="go-brand-name">{displayName}</strong>
-          )}
-          <span className="go-brand-count">{branchCount} chi nhánh</span>
-        </div>
-        {brand.pendingName && (
-          <p data-testid="brand-pending-approval-hint" className="go-brand-hint">
-            Tên mới đang chờ Gymini duyệt: <strong>{brand.pendingName}</strong>
-          </p>
-        )}
-      </div>
-      {isOwner &&
-        (editing ? (
-          <div className="go-brand-actions">
-            <button
-              type="button"
-              className="go-btn go-btn-sm"
-              data-variant="primary"
-              data-testid="brand-rename-save-button"
-              onClick={() => {
-                onRename(nameInput);
-                setEditing(false);
-              }}
-              disabled={!nameInput.trim() || pending}
-            >
-              <CheckIcon aria-hidden="true" width={14} height={14} /> Lưu
-            </button>
-            <button type="button" className="go-btn go-btn-sm" onClick={() => setEditing(false)} aria-label="Huỷ đổi tên">
-              <XIcon aria-hidden="true" width={14} height={14} />
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            className="go-btn go-btn-sm"
-            data-testid="brand-rename-toggle"
-            onClick={() => {
-              setNameInput(displayName);
-              setEditing(true);
-            }}
-          >
-            <PencilSimpleIcon aria-hidden="true" width={14} height={14} /> Đổi tên
-          </button>
-        ))}
     </div>
   );
 }

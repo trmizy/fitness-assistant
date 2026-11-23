@@ -16,7 +16,7 @@ import { GymCheckinPanel } from "../../../components/gym/GymCheckinPanel";
 import { GymLocationFields, type GymLocationValue } from "../../../components/gym/GymLocationFields";
 import { GoLink } from "../../../components/layout/gym-owner/GoLink";
 import { TextStates } from "../../../components/layout/gym-owner/motion";
-import { canUseFeature, type PartnerRole } from "../../../utils/gymStaffRole";
+import { useGymOwnerScope } from "../scope/GymOwnerScopeProvider";
 import { addressLine, walletAccessFor, type TabAccess } from "./branchesModel";
 import { useUpdateGym } from "./useBranchMutations";
 import { WalletBlock } from "./WalletBlock";
@@ -25,7 +25,8 @@ function Approval({ children }: { children: React.ReactNode }) {
   return <span className="go-badge" data-tone="info">{children}</span>;
 }
 
-export function OverviewTab({ gym, role, access, startEditing }: { gym: Gym; role: PartnerRole | undefined; access: TabAccess; startEditing: boolean }) {
+export function OverviewTab({ gym, access, startEditing }: { gym: Gym; access: TabAccess; startEditing: boolean }) {
+  const { can } = useGymOwnerScope();
   const id = gym.id;
   const canEdit = access === "edit";
   const [editing, setEditing] = useState(startEditing && canEdit);
@@ -51,7 +52,7 @@ export function OverviewTab({ gym, role, access, startEditing }: { gym: Gym; rol
   }, [gym.description, gym.phone, gym.email, gym.id, gym.name, gym.address, gym.provinceCode, gym.wardCode, gym.latitude, gym.longitude, gym.locationNote]);
 
   const { data: ownedBrands = [] } = useQuery<GymBrand[]>({ queryKey: ["owned-brands"], queryFn: () => gymService.listOwnedBrands() });
-  const wallet = walletAccessFor(role);
+  const wallet = walletAccessFor(can);
   const brandName = ownedBrands[0] ? (ownedBrands[0].approvedName ?? ownedBrands[0].name) : "Chưa thiết lập thương hiệu";
   const isDraft = gym.status === "DRAFT";
 
@@ -189,7 +190,7 @@ export function OverviewTab({ gym, role, access, startEditing }: { gym: Gym; rol
         )}
       </section>
 
-      {wallet.canSee && <WalletBlock gymId={id} role={role} canWithdraw={wallet.canWithdraw} />}
+      {wallet.canSee && <WalletBlock gymId={id} canViewFinance={can("finance.wallet.view")} />}
 
       <section className="go-card" aria-labelledby="go-h-checkin">
         <div className="go-card-head">
@@ -220,7 +221,7 @@ export function OverviewTab({ gym, role, access, startEditing }: { gym: Gym; rol
             </div>
             <GoLink to={`/gym-owner/members?gymId=${encodeURIComponent(id)}&tab=members`} className="go-btn go-btn-sm">Hội viên của chi nhánh</GoLink>
           </li>
-          {canUseFeature(role, "collaborations") && (
+          {can("collaboration.manage") && (
             <li data-testid="gym-collab-brand-note">
               <div>
                 <strong>Hợp tác huấn luyện viên</strong>

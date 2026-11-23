@@ -56,7 +56,7 @@ export function AgreementsView() {
   const query = useQuery<{ scopeKey: string; raw: unknown }>({
     queryKey: listKey,
     queryFn: async () => ({ scopeKey, raw: await collaborationService.listForOwner() }),
-    enabled: scope.status === "ready" && scope.role === "OWNER",
+    enabled: scope.status === "ready" && scope.can("collaboration.manage"),
   });
   const current = !!query.data && isCurrentScopeData(query.data.scopeKey, scopeKey);
   const rows = useMemo<PartnerRow[]>(() => (current ? buildPartnerRows(query.data?.raw) : []), [current, query.data]);

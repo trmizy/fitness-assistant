@@ -12,6 +12,7 @@ import {
   type AssistedMethod, type ExceptionRow, type MemberResult,
 } from "../../utils/assistedCheckin";
 import { clockLabel } from "../../utils/frontDeskToday";
+import { invalidateGymStats } from "../../features/gym-owner/stats/gymStats";
 
 /**
  * D15c — Check-in HỘ hội viên không dùng được QR (quên điện thoại, hết pin). Lễ tân / quản lý / chủ.
@@ -198,6 +199,8 @@ export function AssistedCheckinPanel({ gymId, onDirtyChange, prefillCode }: {
       qc.invalidateQueries({ queryKey: ["gym-checkins", gymId] });
       qc.invalidateQueries({ queryKey: ["frontdesk-today", uid, gymId] });
       qc.invalidateQueries({ queryKey: ["frontdesk-exceptions", uid, gymId] });
+      // G5: the KPI counts (check-ins today) of this branch, shown on Hôm nay and in the Hội viên filter.
+      void invalidateGymStats(qc, uid, gymId);
     },
     onError: (e) => { setNotice(""); setActionError(assistedErrorText(e)); if (assistedErrorCode(e) === "OTP_ATTEMPTS_EXCEEDED" || assistedErrorCode(e) === "OTP_EXPIRED") setChallengeId(null); },
   });

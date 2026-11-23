@@ -19,7 +19,7 @@
  *  - The API sends NO proposal history and NO maximum number of rounds, so the drawer draws neither (no invented rows, no "n/5").
  *  - The money-flow of a PT contract (client <-> PT) is not shown here, and a PT is an independent practitioner (said on the page).
  */
-import type { PartnerRole } from "../../../utils/gymStaffRole";
+import type { CanFn } from "../../../utils/gymStaffRole";
 import {
   buildPartnershipSections,
   type BrandAgreementView,
@@ -38,17 +38,16 @@ import { formatDay } from "../members/membersModel";
 
 export type PartnersView = "agreements" | "checkins" | "commission" | "none";
 
-export function partnersViewFor(role: PartnerRole | undefined): PartnersView {
-  switch (role) {
-    case "OWNER":
-      return "agreements";
-    case "MANAGER":
-      return "checkins";
-    case "ACCOUNTANT":
-      return "commission";
-    default:
-      return "none"; // receptionist and an unknown role (fail closed)
-  }
+/**
+ * G5: the screen follows the server's permissions[] (fail-closed): `collaboration.manage` = the agreements, else `ptCheckin.list` = the
+ * branch PT check-ins, else `finance.ptCommission.view` = the commission totals; nothing granted (receptionist, loading, unknown, an old
+ * backend without permissions[]) = none.
+ */
+export function partnersViewFor(can: CanFn): PartnersView {
+  if (can("collaboration.manage")) return "agreements";
+  if (can("ptCheckin.list")) return "checkins";
+  if (can("finance.ptCommission.view")) return "commission";
+  return "none";
 }
 
 export const PARTNERS_TITLE: Record<Exclude<PartnersView, "none">, string> = {
@@ -66,8 +65,8 @@ export const PARTNERS_SUB: Record<Exclude<PartnersView, "none">, string> = {
 export const PT_INDEPENDENT_NOTE = "PT là người hành nghề độc lập; hợp đồng giữa khách và PT, và ví của PT, không hiển thị ở đây.";
 
 /** What the scope strip must offer: the owner works on the brand, the manager on one branch, the accountant on brand or one branch. */
-export function partnersScopeKind(role: PartnerRole | undefined): "brand" | "branch" | "brand-or-branch" | "none" {
-  switch (partnersViewFor(role)) {
+export function partnersScopeKind(can: CanFn): "brand" | "branch" | "brand-or-branch" | "none" {
+  switch (partnersViewFor(can)) {
     case "agreements":
       return "brand";
     case "checkins":

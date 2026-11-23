@@ -18,7 +18,10 @@ import {
   fold,
   formatStamp,
   isCurrentScopeData,
-  listSummary,
+  MEMBERS_PAGE_SIZE,
+  pageSummary,
+  serverSegments,
+  statusParamOf,
   memberDisplayName,
   membersHref,
   membersModeFor,
@@ -55,35 +58,36 @@ import {
 import { assistedInputDirty, type ExceptionRow } from "../../../utils/assistedCheckin";
 import { canUseFeature } from "../../../utils/gymStaffRole";
 import { flatNavFor, navFor, scopeKindForLocation, scopeKindForPath, activeNavIdForPath } from "../../../components/layout/gym-owner/gymOwnerNav";
+import { canOf } from "./permFixture";
 
 const NOW = Date.parse("2026-11-22T05:00:00Z");
 const full = (id: string, o: Record<string, unknown> = {}) => ({ id, planId: "p1", status: "ACTIVE", clientId: `c-${id}`, clientName: `Hội viên ${id}`, memberCode: "AB12CD34", priceAtPurchase: "500000", durationDaysSnapshot: 30, totalVisits: 12, usedVisits: 3, startDate: "2026-11-01T00:00:00Z", endDate: "2026-12-01T00:00:00Z", createdAt: "2026-11-01T00:00:00Z", ...o });
 
 describe("roles", () => {
   it("members mode: O,M full; A sales; R none", () => {
-    assert.equal(membersModeFor("OWNER"), "full");
-    assert.equal(membersModeFor("MANAGER"), "full");
-    assert.equal(membersModeFor("ACCOUNTANT"), "sales");
-    assert.equal(membersModeFor("RECEPTIONIST"), "none");
-    assert.equal(membersModeFor(undefined), "none");
+    assert.equal(membersModeFor(canOf("OWNER")), "full");
+    assert.equal(membersModeFor(canOf("MANAGER")), "full");
+    assert.equal(membersModeFor(canOf("ACCOUNTANT")), "sales");
+    assert.equal(membersModeFor(canOf("RECEPTIONIST")), "none");
+    assert.equal(membersModeFor(canOf(undefined)), "none");
   });
   it("plans access: only the owner edits; M, A read; R none; unknown none (fail closed)", () => {
-    assert.equal(plansAccessFor("OWNER"), "edit");
-    assert.equal(plansAccessFor("MANAGER"), "read");
-    assert.equal(plansAccessFor("ACCOUNTANT"), "read");
-    assert.equal(plansAccessFor("RECEPTIONIST"), "none");
-    assert.equal(plansAccessFor(undefined), "none");
+    assert.equal(plansAccessFor(canOf("OWNER")), "edit");
+    assert.equal(plansAccessFor(canOf("MANAGER")), "read");
+    assert.equal(plansAccessFor(canOf("ACCOUNTANT")), "read");
+    assert.equal(plansAccessFor(canOf("RECEPTIONIST")), "none");
+    assert.equal(plansAccessFor(canOf(undefined)), "none");
   });
   it("desk link only for owner and manager, never the accountant", () => {
-    assert.equal(canOpenFrontDesk("OWNER"), true);
-    assert.equal(canOpenFrontDesk("MANAGER"), true);
-    assert.equal(canOpenFrontDesk("ACCOUNTANT"), false);
-    assert.equal(canOpenFrontDesk(undefined), false);
+    assert.equal(canOpenFrontDesk(canOf("OWNER")), true);
+    assert.equal(canOpenFrontDesk(canOf("MANAGER")), true);
+    assert.equal(canOpenFrontDesk(canOf("ACCOUNTANT")), false);
+    assert.equal(canOpenFrontDesk(canOf(undefined)), false);
   });
   it("tabs per role; the accountant's first tab is called Giao dịch", () => {
-    assert.deepEqual(membersTabsFor("OWNER").map((t) => [t.id, t.access]), [["members", "read"], ["plans", "edit"]]);
-    assert.deepEqual(membersTabsFor("ACCOUNTANT").map((t) => t.label), ["Giao dịch", "Gói"]);
-    assert.deepEqual(membersTabsFor("RECEPTIONIST"), []);
+    assert.deepEqual(membersTabsFor(canOf("OWNER")).map((t) => [t.id, t.access]), [["members", "read"], ["plans", "edit"]]);
+    assert.deepEqual(membersTabsFor(canOf("ACCOUNTANT")).map((t) => t.label), ["Giao dịch", "Gói"]);
+    assert.deepEqual(membersTabsFor(canOf("RECEPTIONIST")), []);
   });
   it("route guard: members O,M,A (plan.view O,M,A); not R", () => {
     for (const r of ["OWNER", "MANAGER", "ACCOUNTANT"] as const) assert.equal(canUseFeature(r, "members"), true, r);
@@ -91,9 +95,9 @@ describe("roles", () => {
     assert.equal(canUseFeature(undefined, "members"), false);
   });
   it("resolveMembersTab never returns a tab the role lacks", () => {
-    assert.equal(resolveMembersTab("plans", "OWNER"), "plans");
-    assert.equal(resolveMembersTab("nonsense", "OWNER"), "members");
-    assert.equal(resolveMembersTab("plans", "RECEPTIONIST"), null);
+    assert.equal(resolveMembersTab("plans", canOf("OWNER")), "plans");
+    assert.equal(resolveMembersTab("nonsense", canOf("OWNER")), "members");
+    assert.equal(resolveMembersTab("plans", canOf("RECEPTIONIST")), null);
   });
   it("URL helpers", () => {
     assert.equal(membersHref("plans", "g1"), "/gym-owner/members?gymId=g1&tab=plans");
@@ -167,13 +171,30 @@ describe("filter, sort, count", () => {
     assert.deepEqual(sortMembers(rows, "newest").map((r) => r.id), ["4", "3", "1", "2"]);
     assert.deepEqual(rows.map((r) => r.id), before, "input untouched");
   });
-  it("applyMemberView = filter then sort; summary says the list is whole and unpaged", () => {
+  it("applyMemberView = filter then sort (kept for the pure model; the G5 screen no longer runs it: the server pages and filters by status)", () => {
     const v = applyMemberView(rows, { ...DEFAULT_MEMBER_FILTERS, status: "ACTIVE", sort: "price-asc" }, "full");
     assert.deepEqual(v.map((r) => r.id), ["3", "1"]);
-    const s = listSummary(2, 4, "full");
-    assert.match(s, /Hiển thị 2 trên 4 hội viên/);
-    assert.match(s, /chưa phân trang/);
-    assert.match(listSummary(1, 1, "sales"), /giao dịch/);
+  });
+  it("G5 paging: the note says how many are loaded and whether the server has more, never 'chưa phân trang'", () => {
+    assert.match(pageSummary(100, true, "full", "all"), /Đã tải 100 hội viên, mới nhất trước\. Bấm "Xem thêm"/);
+    assert.match(pageSummary(37, false, "full", "all"), /Đã tải hết 37 hội viên/);
+    assert.match(pageSummary(5, false, "sales", "EXPIRED"), /giao dịch thuộc nhóm "Đã hết hạn"/);
+    for (const t of [pageSummary(1, true, "full", "all"), pageSummary(1, false, "sales", "all")]) assert.doesNotMatch(t, /chưa phân trang|toàn bộ/);
+    assert.equal(MEMBERS_PAGE_SIZE <= 500, true, "the server caps one page at 500");
+  });
+  it("G5 status segments: counts only from the server's byStatus, never from a page; no byStatus = no numbers", () => {
+    const withCounts = serverSegments({ ACTIVE: 12, PENDING_PAYMENT: 0, PENDING_ISSUE: 1, EXPIRED: 30, CANCELLED: 2 });
+    assert.deepEqual(withCounts.map((s) => [s.id, s.count]), [["all", 45], ["ACTIVE", 12], ["PENDING_ISSUE", 1], ["EXPIRED", 30], ["CANCELLED", 2]]);
+    const none = serverSegments(null);
+    assert.deepEqual(none.map((s) => s.id), ["all", "ACTIVE", "PENDING_PAYMENT", "PENDING_ISSUE", "EXPIRED", "CANCELLED"]);
+    assert.ok(none.every((s) => s.count === null), "unknown counts are null, not 0");
+    assert.equal(serverSegments(undefined)[0].count, null);
+  });
+  it("G5 status filter goes to the server as a value it accepts; Tất cả sends nothing", () => {
+    assert.equal(statusParamOf("all"), undefined);
+    assert.equal(statusParamOf("other"), undefined);
+    assert.equal(statusParamOf("ACTIVE"), "ACTIVE");
+    assert.equal(statusParamOf("PENDING_ISSUE"), "PENDING_ISSUE");
   });
   it("validity sentence is a state, not a bare date", () => {
     assert.deepEqual(validityText({ status: "ACTIVE", startDate: "2026-11-01T00:00:00Z", endDate: "2026-11-30T00:00:00Z" }, NOW), { main: "Đến 30/11/2026", sub: "còn 8 ngày" });
@@ -283,12 +304,12 @@ describe("exceptions list and decision rules", () => {
     assert.equal(expiryText(ex("a", { status: "USED" }), NOW), "Đã dùng, hết hiệu lực");
   });
   it("only owner / manager with the server's canApprove may decide; a receptionist never", () => {
-    assert.equal(canDecide("OWNER", true), true);
-    assert.equal(canDecide("MANAGER", true), true);
-    assert.equal(canDecide("MANAGER", false), false);
-    assert.equal(canDecide("RECEPTIONIST", true), false);
-    assert.equal(canDecide("ACCOUNTANT", true), false);
-    assert.equal(canDecide(undefined, true), false);
+    assert.equal(canDecide(canOf("OWNER"), true), true);
+    assert.equal(canDecide(canOf("MANAGER"), true), true);
+    assert.equal(canDecide(canOf("MANAGER"), false), false);
+    assert.equal(canDecide(canOf("RECEPTIONIST"), true), false);
+    assert.equal(canDecide(canOf("ACCOUNTANT"), true), false);
+    assert.equal(canDecide(canOf(undefined), true), false);
   });
   it("reason 5-300, counted raw, trimmed for the minimum", () => {
     assert.ok(reasonProblem(""));

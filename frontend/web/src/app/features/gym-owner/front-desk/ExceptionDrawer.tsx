@@ -62,7 +62,6 @@ export function ExceptionDrawer({
 }) {
   const scope = useGymOwnerScope();
   const queryClient = useQueryClient();
-  const role = scope.role;
   const last = useRef<ExceptionRow | null>(null);
   useEffect(() => {
     if (row) last.current = row;
@@ -96,7 +95,7 @@ export function ExceptionDrawer({
   useEffect(() => () => onDirtyChange(false), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Check-ins of the member: only owner / manager rows carry a membership id (the receptionist's list has names and times only).
-  const identifiable = role === "OWNER" || role === "MANAGER";
+  const identifiable = scope.can("membership.full");
   const checkinsQ = useQuery<{ scopeKey: string; raw: unknown }>({
     queryKey: goKey(scope, "checkins"),
     queryFn: async () => ({ scopeKey: scope.scopeKey, raw: await gymService.listCheckins(gymId) }),
@@ -148,7 +147,7 @@ export function ExceptionDrawer({
   const tag = shown ? exceptionTag(shown.status) : null;
   const items = shown && checkinsQ.data && checkinsQ.data.scopeKey === scope.scopeKey ? checkinsOfMembership(checkinsQ.data.raw, shown.membershipId || null) : [];
   const pending = shown ? isOpenPending(shown, nowMs) : false;
-  const mayDecide = !!shown && canDecide(role, canApprove);
+  const mayDecide = !!shown && canDecide(scope.can, canApprove);
   const problem = reasonProblem(reason);
   const L = verb ? verbLabel(verb) : null;
 
@@ -218,7 +217,7 @@ export function ExceptionDrawer({
               )}
               {shown.status === "PENDING" && !mayDecide && (
                 <p className="go-muted" data-testid="go-exception-nodecide">
-                  {role === "RECEPTIONIST" ? "Chỉ quản lý hoặc chủ phòng tập duyệt được ngoại lệ. Bạn xem để theo dõi yêu cầu của mình." : "Bạn không có quyền duyệt ngoại lệ ở chi nhánh này."}
+                  {scope.can("checkin.exception.request") && !scope.can("checkin.exception.approve") ? "Chỉ quản lý hoặc chủ phòng tập duyệt được ngoại lệ. Bạn xem để theo dõi yêu cầu của mình." : "Bạn không có quyền duyệt ngoại lệ ở chi nhánh này."}
                 </p>
               )}
               {shown.status === "PENDING" && mayDecide && shown.mine && (

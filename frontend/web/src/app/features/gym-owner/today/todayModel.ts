@@ -13,8 +13,9 @@ import { normalizeExceptions } from "../../../utils/assistedCheckin";
 import { formatVND } from "../../../utils/currency";
 import { issueLabel } from "../../../pages/admin/complaints/gymCaseLabels";
 import type { OwnerCaseListItem } from "../../../pages/admin/complaints/gymCaseTypes";
-import type { PartnerRole } from "../../../utils/gymStaffRole";
+import type { CanFn, PartnerRole } from "../../../utils/gymStaffRole";
 import { ALL_BRANCHES } from "../scope/scopeModel";
+import { statsLineOf, statsLineText, type StatsState } from "../stats/gymStats";
 import { exceptionDeepLink } from "../front-desk/frontDeskModel";
 
 export const HCM_TZ = "Asia/Ho_Chi_Minh";
@@ -127,6 +128,8 @@ export interface TodayTask {
 
 export interface TodayInput {
   role: PartnerRole | undefined;
+  /** The server-permission predicate (scope.can); which sources are read follows it (sourcesForRole). */
+  can: CanFn;
   nowMs: number;
   /** Branches in the caller's scope (DRAFT rows already removed by the scope provider). */
   gyms: readonly TodayGym[];
@@ -154,11 +157,20 @@ export interface RoleSources {
   complaints: boolean;
   collaborations: boolean;
 }
-export function sourcesForRole(role: PartnerRole | undefined): RoleSources {
-  const none = { exceptions: false, withdrawals: false, reviewIssues: false, complaints: false, collaborations: false };
-  if (role === "OWNER") return { exceptions: true, withdrawals: true, reviewIssues: true, complaints: true, collaborations: true };
-  if (role === "MANAGER") return { ...none, exceptions: true, complaints: true };
-  return none; // RECEPTIONIST / ACCOUNTANT have their own home; unknown role reads nothing (fail-closed)
+/**
+ * G5: which sources the account may read, from the server's permissions[] (fail-closed: loading / unknown / an old backend reads nothing).
+ * exceptions = `checkin.exception.approve`; withdrawals = `finance.withdrawals.view`; branch paperwork = `branch.write`; PT agreements =
+ * `collaboration.manage`. Complaint cases have no permission of their own (the case service itself checks "owner or a manager of the case's
+ * branch"), so that one source also needs a known owner / manager role next to `branch.view`.
+ */
+export function sourcesForRole(can: CanFn, role: PartnerRole | undefined): RoleSources {
+  return {
+    exceptions: can("checkin.exception.approve"),
+    withdrawals: can("finance.withdrawals.view"),
+    reviewIssues: can("branch.write"),
+    complaints: can("branch.view") && (role === "OWNER" || role === "MANAGER"),
+    collaborations: can("collaboration.manage"),
+  };
 }
 
 /** Per-branch requests are only made for branches that can have front-desk / wallet data. */
@@ -368,8 +380,8 @@ export interface TodayModel {
 const byNewest = (a: TodayTask, b: TodayTask) => (b.at ?? -Infinity) - (a.at ?? -Infinity) || a.id.localeCompare(b.id);
 
 export function buildToday(input: TodayInput): TodayModel {
-  const { role, nowMs, gyms, drafts, scopeGymId, exceptions, withdrawals, reviewIssues, complaints, collaborations, ptNames } = input;
-  const read = sourcesForRole(role);
+  const { role, can, nowMs, gyms, drafts, scopeGymId, exceptions, withdrawals, reviewIssues, complaints, collaborations, ptNames } = input;
+  const read = sourcesForRole(can, role);
   const view = targetGyms(gyms, scopeGymId);
   const brandVisible = brandLevelVisible(scopeGymId, gyms.length);
   const nameOf = (id: string) => gyms.find((g) => g.id === id)?.name ?? drafts.find((g) => g.id === id)?.name ?? null;
@@ -543,6 +555,10 @@ export interface BranchRow {
   /** null = not known / not loadable for this branch. */
   openTasks: number | null;
   members: number | null;
+  /** G5: memberships running right now, from `GET /owner/gyms/:id/stats`; null = not known (loading, failed, role has no such block). */
+  running: number | null;
+  /** G5: the stats words of this branch ("12 lượt check-in hôm nay", "3 thẻ sắp hết hạn trong 7 ngày", or the honest "chưa tải được"). */
+  statsLines: string[];
   rating: string;
   href: string;
 }
@@ -559,10 +575,14 @@ export function branchRows(
   model: TodayModel,
   codes: Readonly<Record<string, string>>,
   statusTextOf: (g: TodayGym) => string,
+  /** Per-branch stats answers; a branch missing from the map shows no stats line (the role does not read them / not asked). */
+  statsById: Readonly<Record<string, StatsState>> = {},
 ): BranchRow[] {
   const brandFailed = model.failedBrandSources.includes("complaints");
   return view.map((g) => {
     const failed = model.failedGymIds.includes(g.id) || brandFailed;
+    const st = statsById[g.id];
+    const line = st ? statsLineOf(st) : null;
     return {
       id: g.id,
       name: g.name,
@@ -570,6 +590,8 @@ export function branchRows(
       statusText: statusTextOf(g),
       openTasks: failed || model.loading ? null : model.tasks.filter((t) => t.gymId === g.id).length,
       members: typeof g.activeMemberCount === "number" ? g.activeMemberCount : null,
+      running: line ? line.runningMemberships : null,
+      statsLines: line ? statsLineText(line) : [],
       rating: ratingLabel(g.averageRating, g.reviewCount),
       href: `/gym-owner/gyms/${encodeURIComponent(g.id)}`,
     };

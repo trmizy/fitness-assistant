@@ -14,6 +14,7 @@ import { notificationEventLabel } from "../../../utils/notificationEventLabels";
 import { useRealtimeNotifications } from "../../../hooks/useRealtimeNotifications";
 import type { AppNotification } from "../../../types";
 import { CountBadge, useDismissable, useDropdownPhase } from "./motion";
+import { bellTarget } from "./bellModel";
 
 export function GymOwnerBell() {
   const navigate = useNavigate();
@@ -40,8 +41,8 @@ export function GymOwnerBell() {
 
   const openItem = (n: AppNotification) => {
     if (n.unread) markRead.mutate(n.id);
-    const link =
-      n.entityType === "GYM_COMPLAINT_CASE" && n.entityId ? `/gym-owner/complaint-cases/${encodeURIComponent(n.entityId)}` : n.link;
+    // G5: withdrawal decisions and check-in exception requests open Tài chính / the Ngoại lệ tab of the right branch (bellModel.ts).
+    const link = bellTarget(n);
     if (link) {
       navigate(link);
       setOpen(false);

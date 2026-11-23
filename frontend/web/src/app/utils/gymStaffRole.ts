@@ -34,6 +34,7 @@ export type StaffFeature =
   | "collaborations"
   | "partners"
   | "staff"
+  | "brand"
   | "frontDesk"
   | "finance"
   | "complaintCases"
@@ -54,6 +55,8 @@ const ALLOWED: Record<StaffFeature, readonly PartnerRole[]> = {
   // OWNER agreements; MANAGER "PT check-in tại chi nhánh" (ptCheckin.list O,M); ACCOUNTANT "Hoa hồng PT" (finance.ptCommission.view O,A).
   partners: ["OWNER", "MANAGER", "ACCOUNTANT"],
   staff: ["OWNER"],
+  // G6 (Thương hiệu, behind VITE_GYM_OWNER_V2 ONLY: routes.tsx `/gym-owner/brand`): brand.view is held by OWNER, MANAGER, ACCOUNTANT (audit/02); only the owner edits (brand.write) and manages staff (staff.manage).
+  brand: ["OWNER", "MANAGER", "ACCOUNTANT"],
   frontDesk: ["OWNER", "MANAGER", "RECEPTIONIST"],
   finance: ["OWNER", "ACCOUNTANT"],
   // gym-service explainer.service.ts (EXPLAINER_ROLES): chủ và quản lý (đúng chi nhánh được giao); lễ tân/kế toán không thấy gì.
@@ -119,4 +122,12 @@ export function normalizePermissions(value: unknown): readonly string[] {
 /** `role` phải là một vai trò đã biết VÀ `permissions` phải liệt kê đúng quyền đó. Mọi trường hợp khác → false. */
 export function hasPartnerPermission(role: unknown, permissions: unknown, permission: PartnerPermission): boolean {
   return normalizePartnerRole(role) !== undefined && normalizePermissions(permissions).includes(permission);
+}
+
+/** A permission predicate bound to one role + the server's permissions[] (what the Gym Owner screens pass around instead of a role name). */
+export type CanFn = (permission: PartnerPermission) => boolean;
+
+/** `can(p)` is true only when the role is known AND the server listed `p` (same rule as hasPartnerPermission, fail-closed). */
+export function makeCan(role: unknown, permissions: unknown): CanFn {
+  return (permission) => hasPartnerPermission(role, permissions, permission);
 }

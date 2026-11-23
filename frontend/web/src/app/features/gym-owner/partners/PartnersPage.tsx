@@ -15,7 +15,7 @@ import { partnersViewFor } from "./partnersModel";
 
 export function PartnersPage() {
   const scope = useGymOwnerScope();
-  const view = partnersViewFor(scope.role);
+  const view = partnersViewFor(scope.can);
   if (view === "agreements") return <AgreementsView />;
   if (view === "checkins") return <CheckinsView />;
   if (view === "commission") return <CommissionView />;

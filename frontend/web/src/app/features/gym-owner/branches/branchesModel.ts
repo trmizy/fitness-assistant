@@ -1,10 +1,11 @@
 /**
  * "Chi nhánh" model (batch G2) - pure functions, no React, no network.
- * Branch list grouping, status tags, the tab <-> URL map of the branch detail page, which tabs a role may use, and the
- * redirect of the legacy `/gym-owner/listings` screen. Nothing here decides business rules: every permission mirrors the
- * existing guards (`canUseFeature`, gym-service `owner.routes.ts`) and the server stays the real gate.
+ * Branch list grouping, status tags, the tab <-> URL map of the branch detail page, which tabs the account may use, and the
+ * redirect of the legacy `/gym-owner/listings` screen. Nothing here decides business rules. G5: every permission question is asked
+ * of the SERVER's permissions[] through a `can` predicate (fail-closed, no role-name fallback); the route guard and gym-service
+ * `owner.routes.ts` stay the real gates.
  */
-import { canViewWallet, type PartnerRole } from "../../../utils/gymStaffRole";
+import type { CanFn } from "../../../utils/gymStaffRole";
 import { ratingLabel } from "../today/todayModel";
 import type { TagTone } from "../scope/scopeModel";
 
@@ -140,15 +141,15 @@ function hasChangeRequest(g: BranchLike): boolean {
 }
 
 /**
- * The "Bản nháp / cần bổ sung / chờ duyệt" group. Drafts are only offered to the OWNER (the wizard is owner-only);
+ * The "Bản nháp / cần bổ sung / chờ duyệt" group. Drafts are only offered to who may write branches (`branch.write`, the wizard is owner-only);
  * the other items are visible to anyone who can read the list. Order: things the owner must act on first.
  */
-export function attentionItems(gyms: readonly BranchLike[], role: PartnerRole | undefined): AttentionItem[] {
+export function attentionItems(gyms: readonly BranchLike[], canWriteBranch: boolean): AttentionItem[] {
   const out: AttentionItem[] = [];
   for (const g of gyms) {
     const name = g.name?.trim() || "Chi nhánh mới";
     if (g.status === "DRAFT") {
-      if (role !== "OWNER") continue;
+      if (!canWriteBranch) continue;
       out.push({ id: g.id, kind: "draft", name, text: "Chưa gửi duyệt, bạn có thể tiếp tục thiết lập", progress: draftProgress(g), href: wizardHref(g.id), actionLabel: "Tiếp tục thiết lập" });
     } else if (g.status === "REJECTED") {
       out.push({ id: g.id, kind: "rejected", name, text: "Hồ sơ bị từ chối, mở chi nhánh để xem lý do", progress: null, href: branchHref(g.id, "verification"), actionLabel: "Xem lý do" });
@@ -199,32 +200,31 @@ export interface TabSpec {
 const OWNER_ONLY_WRITE = "Chỉ chủ phòng tập sửa được mục này. Quản lý chỉ xem.";
 
 /**
- * Which tabs a role gets (05 section 3-4, audit/02 section 1). Unknown role (still loading / failed) gets none: never an
- * owner fallback. MANAGER: Tổng quan + Giờ read-only, Tin đăng hidden (the listing API is owner-only), Xác minh locked
- * (the documents API is owner-only, so there is nothing to read), Trạng thái available (temporary close/reopen).
+ * Which tabs the account gets (05 section 3-4, audit/02 section 1), from the server's permissions[] (G5). No `branch.view` (still
+ * loading / unknown role / old backend) = no tab: never an owner fallback. `branch.write` = Tổng quan, Giờ và Xác minh editable
+ * (owner-only on the server); without it Tổng quan + Giờ are read-only and Xác minh is locked (the documents API is owner-only, so
+ * there is nothing to read). `listing.manage` = Tin đăng (owner-only API; hidden otherwise). Trạng thái needs a status permission.
  */
-export function branchTabsFor(role: PartnerRole | undefined): TabSpec[] {
+export function branchTabsFor(can: CanFn): TabSpec[] {
   const spec = (id: BranchTabId, access: TabAccess, reason: string | null = null): TabSpec => ({ id, label: BRANCH_TAB_LABEL[id], access, reason });
-  if (role === "OWNER") return BRANCH_TAB_IDS.map((id) => spec(id, "edit"));
-  if (role === "MANAGER") {
-    return [
-      spec("overview", "read", OWNER_ONLY_WRITE),
-      spec("hours", "read", OWNER_ONLY_WRITE),
-      spec("listing", "hidden"),
-      spec("verification", "locked", "Giấy tờ xác minh chi nhánh chỉ chủ phòng tập xem và nộp được."),
-      spec("status", "edit"),
-    ];
-  }
-  return BRANCH_TAB_IDS.map((id) => spec(id, "hidden"));
+  if (!can("branch.view")) return BRANCH_TAB_IDS.map((id) => spec(id, "hidden"));
+  const write = can("branch.write");
+  return [
+    spec("overview", write ? "edit" : "read", write ? null : OWNER_ONLY_WRITE),
+    spec("hours", write ? "edit" : "read", write ? null : OWNER_ONLY_WRITE),
+    spec("listing", can("listing.manage") ? "edit" : "hidden"),
+    write ? spec("verification", "edit") : spec("verification", "locked", "Giấy tờ xác minh chi nhánh chỉ chủ phòng tập xem và nộp được."),
+    can("branch.status.temporary") || can("branch.status.permanent") ? spec("status", "edit") : spec("status", "hidden"),
+  ];
 }
 
-export function visibleTabs(role: PartnerRole | undefined): TabSpec[] {
-  return branchTabsFor(role).filter((t) => t.access !== "hidden");
+export function visibleTabs(can: CanFn): TabSpec[] {
+  return branchTabsFor(can).filter((t) => t.access !== "hidden");
 }
 
 /** The tab to show: the requested one when the role may see it, otherwise the first visible one (null while no role). */
-export function resolveBranchTab(raw: string | null | undefined, role: PartnerRole | undefined): BranchTabId | null {
-  const tabs = visibleTabs(role);
+export function resolveBranchTab(raw: string | null | undefined, can: CanFn): BranchTabId | null {
+  const tabs = visibleTabs(can);
   if (tabs.length === 0) return null;
   const want = parseBranchTab(raw);
   if (want && tabs.some((t) => t.id === want)) return want;
@@ -246,27 +246,27 @@ export function settingsRequested(search: string): boolean {
 // ---------------------------------------------------------------------------------------------------------------------
 
 export interface StatusActions {
-  /** Tạm đóng / mở lại: branch.status.temporary (OWNER + MANAGER). */
+  /** Tạm đóng / mở lại: `branch.status.temporary`. */
   canTemporary: boolean;
-  /** Đóng cửa vĩnh viễn: OWNER only (service throws 403 OWNER_ROLE_REQUIRED otherwise). */
+  /** Đóng cửa vĩnh viễn: `branch.status.permanent` (owner-only; the service throws 403 OWNER_ROLE_REQUIRED otherwise). */
   canPermanent: boolean;
   permanentReason: string | null;
 }
 
-export function statusActionsFor(role: PartnerRole | undefined): StatusActions {
-  const canTemporary = role === "OWNER" || role === "MANAGER";
-  const canPermanent = role === "OWNER";
-  return { canTemporary, canPermanent, permanentReason: role === "MANAGER" ? "Chỉ chủ phòng tập đóng cửa vĩnh viễn được." : null };
+export function statusActionsFor(can: CanFn): StatusActions {
+  const canTemporary = can("branch.status.temporary");
+  const canPermanent = can("branch.status.permanent");
+  return { canTemporary, canPermanent, permanentReason: canTemporary && !canPermanent ? "Chỉ chủ phòng tập đóng cửa vĩnh viễn được." : null };
 }
 
 export interface WalletAccess {
   canSee: boolean;
-  /** Withdrawal requests are owner-only on the server. */
+  /** Withdrawal requests: `finance.withdraw` (owner-only on the server). From G5 the form lives in Tài chính; the branch only links there. */
   canWithdraw: boolean;
 }
 
-export function walletAccessFor(role: PartnerRole | undefined): WalletAccess {
-  return { canSee: canViewWallet(role), canWithdraw: role === "OWNER" };
+export function walletAccessFor(can: CanFn): WalletAccess {
+  return { canSee: can("finance.wallet.view"), canWithdraw: can("finance.withdraw") };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

@@ -3,12 +3,15 @@
  * Brand-or-branch: "all branches in scope" sends no `gymId`, one branch narrows it (the server also filters to the accountant's scope).
  * The API returns TOTALS only: expected / recorded / paid (released to the PT's available balance, NOT a bank transfer, audit/03 row 13) /
  * clawed back / referral count, in total and by month. No PT name, no rate: none is drawn. Money digits are never animated.
+ * G5: `embedded` = the "Hoa hồng PT" tab of Tài chính (OWNER and ACCOUNTANT): no page header of its own, and the CSV of the old Finance page
+ * (`finance.export`). The data, the period selector and every sentence are the same.
  */
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { gymService } from "../../../services/api";
 import { formatVND } from "../../../utils/currency";
-import { COMMISSION_PRESET_LABEL, commissionRangeFor, monthLabel, normalizePtCommission, type CommissionPreset, type PtCommissionSummary } from "../../../utils/ptCommission";
+import { COMMISSION_PRESET_LABEL, commissionCsv, commissionRangeFor, monthLabel, normalizePtCommission, type CommissionPreset, type PtCommissionSummary } from "../../../utils/ptCommission";
+import { downloadCsv } from "../finance/downloadCsv";
 import { ScopeStateFrame } from "../scope/PermissionGate";
 import { useGymOwnerScope } from "../scope/GymOwnerScopeProvider";
 import { ALL_BRANCHES, classifyApiError, goKey } from "../scope/scopeModel";
@@ -18,7 +21,7 @@ import { COMMISSION_FIELDS, COMMISSION_NOTE, PARTNERS_SUB, PARTNERS_TITLE, isEmp
 const COLS = "minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr) 110px";
 const PRESETS = Object.keys(COMMISSION_PRESET_LABEL) as CommissionPreset[];
 
-export function CommissionView() {
+export function CommissionView({ embedded = false }: { embedded?: boolean }) {
   const scope = useGymOwnerScope();
   const scopeKey = scope.scopeKey;
   const gymId = scope.gymId;
@@ -32,7 +35,7 @@ export function CommissionView() {
       scopeKey,
       data: normalizePtCommission(await gymService.getPtCommissionSummary(brandId!, { ...commissionRangeFor(preset), ...(gymId === ALL_BRANCHES ? {} : { gymId }) })),
     }),
-    enabled: scope.status === "ready" && scope.role === "ACCOUNTANT" && !!brandId,
+    enabled: scope.status === "ready" && scope.can("finance.ptCommission.view") && !!brandId,
   });
   const current = !!query.data && isCurrentScopeData(query.data.scopeKey, scopeKey);
   const data = useMemo(() => (current ? query.data!.data : null), [current, query.data]);
@@ -52,13 +55,15 @@ export function CommissionView() {
   const loading = !noBrand && (query.isLoading || scope.status !== "ready" || (!!query.data && !current));
 
   return (
-    <div className="go-wrap go-wrap-wide" data-testid="go-pt-page" data-view="commission">
-      <header className="go-page-head">
-        <div>
-          <h1 data-testid="go-pt-title">{PARTNERS_TITLE.commission}</h1>
-          <p className="go-page-sub">{PARTNERS_SUB.commission}</p>
-        </div>
-      </header>
+    <div className={embedded ? "go-stack" : "go-wrap go-wrap-wide"} data-testid={embedded ? "go-fin-commission" : "go-pt-page"} data-view="commission">
+      {!embedded && (
+        <header className="go-page-head">
+          <div>
+            <h1 data-testid="go-pt-title">{PARTNERS_TITLE.commission}</h1>
+            <p className="go-page-sub">{PARTNERS_SUB.commission}</p>
+          </div>
+        </header>
+      )}
 
       <section className="go-panel" aria-label="Hoa hồng giới thiệu PT">
         <div className="go-toolbar">
@@ -68,6 +73,9 @@ export function CommissionView() {
               {PRESETS.map((k) => <option key={k} value={k}>{COMMISSION_PRESET_LABEL[k]}</option>)}
             </select>
           </label>
+          {embedded && scope.can("finance.export") && (
+            <button type="button" className="go-btn go-btn-sm" disabled={!data || data.byMonth.length === 0} onClick={() => data && downloadCsv(`gymini-hoa-hong-pt-${new Date().toISOString().slice(0, 10)}.csv`, commissionCsv(data))} data-testid="go-cm-csv">Xuất CSV</button>
+          )}
           <span className="go-muted-text" data-testid="go-cm-scope">
             {gymId === ALL_BRANCHES ? (scope.gyms.length > 1 ? "Tất cả chi nhánh trong phạm vi của bạn" : "Chi nhánh trong phạm vi của bạn") : `Chi nhánh ${gym?.name ?? ""}`}
           </span>

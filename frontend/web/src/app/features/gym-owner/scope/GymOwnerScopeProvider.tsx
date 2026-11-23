@@ -10,7 +10,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { gymService } from "../../../services/api";
 import { useApp } from "../../../context/AppContext";
 import { useStaffRole } from "../../../hooks/useStaffRole";
-import { canViewBrands, type PartnerRole } from "../../../utils/gymStaffRole";
+import { canViewBrands, makeCan, type CanFn, type PartnerRole } from "../../../utils/gymStaffRole";
 import { scopeKindForLocation } from "../../../components/layout/gym-owner/gymOwnerNav";
 import { readCssMs } from "../../../components/layout/gym-owner/motion";
 import {
@@ -31,6 +31,10 @@ export interface GymOwnerScopeValue {
   status: "loading" | "ready" | "error";
   userId: string;
   role: PartnerRole | undefined;
+  /** The permissions[] the server sent for this account (strings only). Empty while loading / unknown / an old backend. */
+  permissions: readonly string[];
+  /** Fail-closed permission check on that list: false while loading, for an unknown role or a missing list. Never a role-name fallback. */
+  can: CanFn;
   brandId: string | null;
   brandName: string | null;
   /** Branches in scope (DRAFT rows removed). */
@@ -86,6 +90,9 @@ export function GymOwnerScopeProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const staff = useStaffRole();
   const role = staff.role;
+  const permissionsKey = staff.permissions.join("|");
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by the joined list so a new array with the same content keeps the same function
+  const can = useMemo(() => makeCan(role, staff.permissions), [role, permissionsKey]);
 
   const gymsQuery = useQuery<ScopeGym[]>({
     queryKey: ["owned-gyms"],
@@ -114,7 +121,7 @@ export function GymOwnerScopeProvider({ children }: { children: ReactNode }) {
   const detailGym = detailId ? allGyms.find((g) => g.id === detailId) : undefined;
   const detailKind: ScopeKind | null = detailId && detailGym?.status !== "DRAFT" ? "branch" : null;
   // G3: Hội viên & gói is branch-wide on the Hội viên tab and brand-wide on the Gói tab, so the kind also reads `?tab=`.
-  const scopeKind: ScopeKind = detailKind ?? scopeKindForLocation(pathname, params.get("tab"), role);
+  const scopeKind: ScopeKind = detailKind ?? scopeKindForLocation(pathname, params.get("tab"), can);
   const requestedGymId = detailKind ? detailId : params.get("gymId");
 
   const status: GymOwnerScopeValue["status"] =
@@ -220,6 +227,8 @@ export function GymOwnerScopeProvider({ children }: { children: ReactNode }) {
     status,
     userId,
     role,
+    permissions: staff.permissions,
+    can,
     brandId,
     brandName,
     gyms,

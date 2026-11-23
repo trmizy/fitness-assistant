@@ -1,7 +1,7 @@
 /**
  * GymOwnerSidebar - role-aware navigation (gymOwnerNav.ts). Three presentations share this one component:
  *  - full (232px, >= 1280 unless collapsed), rail (64px, 1024-1279 or collapsed; tooltips on hover/focus), sheet (< 1024).
- * No count badges: no navigation entry has a real count source in G0 (06 section 3 forbids made-up badges).
+ * Count badge: only "Quầy lễ tân", and only a REAL count (the pending check-in exceptions of the branches in scope, G5); it is 0 / hidden otherwise (06 section 3 forbids made-up badges).
  */
 import { useLocation, useNavigate } from "react-router";
 import {
@@ -24,7 +24,8 @@ import { useApp } from "../../../context/AppContext";
 import { useGymOwnerScope } from "../../../features/gym-owner/scope/GymOwnerScopeProvider";
 import { ROLE_LABEL } from "../../../features/gym-owner/scope/scopeModel";
 import { activeNavIdForPath, navFor, type GoIconKey } from "./gymOwnerNav";
-import { IconSwap, useRailTooltip } from "./motion";
+import { usePendingCheckinExceptionCount } from "../../../hooks/usePendingCheckinExceptionCount";
+import { CountBadge, IconSwap, useRailTooltip } from "./motion";
 
 const ICONS: Record<GoIconKey, Icon> = {
   today: HouseIcon,
@@ -77,8 +78,10 @@ export function GymOwnerSidebar({
 }) {
   const { pathname } = useLocation();
   const { user } = useApp();
-  const { role, status } = useGymOwnerScope();
-  const groups = navFor(role);
+  const { role, status, permissions, can } = useGymOwnerScope();
+  const groups = navFor(role, permissions);
+  // Item 6: pending check-in exceptions, only for the people who may decide them (checkin.exception.approve, server permissions[]).
+  const pendingExceptions = usePendingCheckinExceptionCount(can("checkin.exception.approve"));
   const activeId = activeNavIdForPath(pathname);
   const tip = useRailTooltip(rail && !inDrawer);
   const name = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email.split("@")[0] : "";
@@ -132,6 +135,11 @@ export function GymOwnerSidebar({
                     >
                       <NavIcon className="go-nav-icon" aria-hidden="true" />
                       <span className="go-nav-label">{item.label}</span>
+                      {item.id === "front-desk" && pendingExceptions > 0 && (
+                        <span className="go-nav-count" data-testid="go-nav-badge" role="img" aria-label={`${pendingExceptions} yêu cầu ngoại lệ đang chờ duyệt`}>
+                          <CountBadge count={pendingExceptions} />
+                        </span>
+                      )}
                     </GoLink>
                   </li>
                 );

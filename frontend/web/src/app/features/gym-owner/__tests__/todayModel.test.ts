@@ -21,6 +21,8 @@ import {
   type TodayGym,
   type TodayInput,
 } from "../today/todayModel";
+import { canOf } from "./permFixture";
+import { makeCan } from "../../../utils/gymStaffRole";
 
 // 2026-11-22 09:41 in Ho Chi Minh time (UTC+7) = 02:41Z, a Sunday.
 const NOW = Date.UTC(2026, 10, 22, 2, 41, 0);
@@ -51,6 +53,7 @@ const exc = (id: string, over: Record<string, unknown> = {}) => ({
 function input(over: Partial<TodayInput> = {}): TodayInput {
   return {
     role: "OWNER",
+    can: canOf("OWNER"),
     nowMs: NOW,
     gyms: [q1, q7],
     drafts: [],
@@ -84,11 +87,13 @@ describe("dates and ages (Asia/Ho_Chi_Minh)", () => {
 
 describe("which sources a role reads", () => {
   it("OWNER reads everything; MANAGER only exceptions + complaints; others nothing; unknown fails closed", () => {
-    assert.deepEqual(Object.values(sourcesForRole("OWNER")), [true, true, true, true, true]);
-    assert.deepEqual(sourcesForRole("MANAGER"), { exceptions: true, withdrawals: false, reviewIssues: false, complaints: true, collaborations: false });
-    assert.ok(Object.values(sourcesForRole("RECEPTIONIST")).every((v) => !v));
-    assert.ok(Object.values(sourcesForRole("ACCOUNTANT")).every((v) => !v));
-    assert.ok(Object.values(sourcesForRole(undefined)).every((v) => !v));
+    assert.deepEqual(Object.values(sourcesForRole(canOf("OWNER"), "OWNER")), [true, true, true, true, true]);
+    assert.deepEqual(sourcesForRole(canOf("MANAGER"), "MANAGER"), { exceptions: true, withdrawals: false, reviewIssues: false, complaints: true, collaborations: false });
+    assert.ok(Object.values(sourcesForRole(canOf("RECEPTIONIST"), "RECEPTIONIST")).every((v) => !v));
+    // The accountant holds finance.withdrawals.view (so the permission table says yes), but no route sends an accountant to Hôm nay.
+    assert.deepEqual(sourcesForRole(canOf("ACCOUNTANT"), "ACCOUNTANT"), { exceptions: false, withdrawals: true, reviewIssues: false, complaints: false, collaborations: false });
+    assert.ok(Object.values(sourcesForRole(makeCan("OWNER", undefined), "OWNER")).every((v) => !v), "a known role without permissions[] reads nothing");
+    assert.ok(Object.values(sourcesForRole(canOf(undefined), undefined)).every((v) => !v));
   });
   it("brand-level rows show on ALL or a one-branch brand only", () => {
     assert.equal(brandLevelVisible("ALL", 3), true);
@@ -239,6 +244,7 @@ describe("buildToday", () => {
     const m = buildToday(
       input({
         role: "MANAGER",
+        can: canOf("MANAGER"),
         gyms: [q1, bt],
         withdrawals: { g1: ok([{ id: "w", status: "PENDING", amount: "5" }]) },
         collaborations: ok([{ id: "a1", scope: "BRAND", brandId: "b", ptUserId: "p", status: "PENDING", proposedBy: "PT" }]),
@@ -250,10 +256,13 @@ describe("buildToday", () => {
   });
 
   it("RECEPTIONIST / ACCOUNTANT / unknown role build nothing (fail-closed)", () => {
-    for (const role of ["RECEPTIONIST", "ACCOUNTANT", undefined] as const) {
-      const m = buildToday(input({ role }));
+    for (const role of ["RECEPTIONIST", undefined] as const) {
+      const m = buildToday(input({ role, can: canOf(role) }));
       assert.equal(m.tasks.length, 0);
     }
+    // The accountant holds finance.withdrawals.view only (no route reaches Hôm nay for them): no exception, complaint or PT task.
+    const a = buildToday(input({ role: "ACCOUNTANT", can: canOf("ACCOUNTANT") }));
+    assert.deepEqual([...new Set(a.tasks.map((t) => t.kind))].filter((k) => k !== "withdrawal"), []);
   });
 
   it("sorted newest first inside each group; ties are stable by id", () => {

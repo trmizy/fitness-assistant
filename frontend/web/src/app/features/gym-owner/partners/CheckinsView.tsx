@@ -23,7 +23,7 @@ export function CheckinsView() {
   const query = useQuery<{ scopeKey: string; raw: unknown }>({
     queryKey: goKey(scope, "pt-checkins"),
     queryFn: async () => ({ scopeKey, raw: await gymService.listPtCheckins(gymId) }),
-    enabled: scope.status === "ready" && scope.role === "MANAGER" && gymId !== ALL_BRANCHES,
+    enabled: scope.status === "ready" && scope.can("ptCheckin.list") && gymId !== ALL_BRANCHES,
   });
   const current = !!query.data && isCurrentScopeData(query.data.scopeKey, scopeKey);
   const rows = useMemo(() => (current ? ptCheckinRows(query.data?.raw) : []), [current, query.data]);

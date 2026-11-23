@@ -33,6 +33,8 @@ import {
 import { detailGymIdFromPath, resolveScope, ALL_BRANCHES } from "../scope/scopeModel";
 import { scopeKindForPath, flatNavFor } from "../../../components/layout/gym-owner/gymOwnerNav";
 import type { PartnerRole } from "../../../utils/gymStaffRole";
+import { canOf } from "./permFixture";
+import { makeCan } from "../../../utils/gymStaffRole";
 
 const B = (id: string, name: string, extra: Partial<BranchLike> = {}): BranchLike => ({ id, name, status: "APPROVED", operationalStatus: "OPEN", address: "1 Lê Lợi", city: "TP.HCM", ...extra });
 
@@ -98,16 +100,16 @@ describe("list grouping", () => {
     assert.deepEqual(tableBranches(gyms).map((g) => g.id), ["ok1", "p1", "r1", "c1", "ok2"]);
   });
   it("attention group: change request, rejected, draft, pending, in that order", () => {
-    assert.deepEqual(attentionItems(gyms, "OWNER").map((a) => a.kind), ["changes", "rejected", "draft", "pending"]);
+    assert.deepEqual(attentionItems(gyms, canOf("OWNER")("branch.write")).map((a) => a.kind), ["changes", "rejected", "draft", "pending"]);
   });
   it("drafts are owner-only (the wizard is owner-only); a manager still sees the other items", () => {
-    const kinds = attentionItems(gyms, "MANAGER").map((a) => a.kind);
+    const kinds = attentionItems(gyms, canOf("MANAGER")("branch.write")).map((a) => a.kind);
     assert.ok(!kinds.includes("draft"));
     assert.deepEqual(kinds, ["changes", "rejected", "pending"]);
-    assert.deepEqual(attentionItems(gyms, undefined).map((a) => a.kind).includes("draft"), false);
+    assert.deepEqual(attentionItems(gyms, canOf(undefined)("branch.write")).map((a) => a.kind).includes("draft"), false);
   });
   it("a draft continues in the wizard with its own progress; an unnamed draft is 'Chi nhánh mới'", () => {
-    const d = attentionItems(gyms, "OWNER").find((a) => a.kind === "draft")!;
+    const d = attentionItems(gyms, canOf("OWNER")("branch.write")).find((a) => a.kind === "draft")!;
     assert.equal(d.href, "/gym-owner/gyms/wizard/d1");
     assert.equal(d.name, "Chi nhánh mới");
     assert.equal(d.progress, draftProgress({ wizardStep: 4 }));
@@ -116,7 +118,7 @@ describe("list grouping", () => {
     assert.equal(draftProgress({ wizardStep: 99 }), 100);
   });
   it("healthy branches produce no attention rows", () => {
-    assert.equal(attentionItems([B("a", "A"), B("b", "B")], "OWNER").length, 0);
+    assert.equal(attentionItems([B("a", "A"), B("b", "B")], true).length, 0);
   });
   it("hrefs", () => {
     assert.equal(branchHref("x"), "/gym-owner/gyms/x");
@@ -142,7 +144,7 @@ describe("tab <-> URL map", () => {
   it("round trip", () => {
     for (const id of BRANCH_TAB_IDS) {
       const q = new URLSearchParams(tabSearch(id)).get("tab");
-      assert.equal(resolveBranchTab(q, "OWNER"), id);
+      assert.equal(resolveBranchTab(q, canOf("OWNER")), id);
     }
   });
   it("?settings=1 is detected, other values are not", () => {
@@ -154,14 +156,14 @@ describe("tab <-> URL map", () => {
 });
 
 describe("tabs by role (never an owner fallback)", () => {
-  const ids = (r: PartnerRole | undefined) => visibleTabs(r).map((t) => t.id);
+  const ids = (r: PartnerRole | undefined) => visibleTabs(canOf(r)).map((t) => t.id);
   it("OWNER: five tabs, all editable", () => {
     assert.deepEqual(ids("OWNER"), ["overview", "hours", "listing", "verification", "status"]);
-    assert.ok(branchTabsFor("OWNER").every((t) => t.access === "edit"));
+    assert.ok(branchTabsFor(canOf("OWNER")).every((t) => t.access === "edit"));
   });
   it("MANAGER: Tin đăng hidden, Tổng quan + Giờ read-only with a reason, Xác minh locked, Trạng thái usable", () => {
     assert.deepEqual(ids("MANAGER"), ["overview", "hours", "verification", "status"]);
-    const m = Object.fromEntries(branchTabsFor("MANAGER").map((t) => [t.id, t]));
+    const m = Object.fromEntries(branchTabsFor(canOf("MANAGER")).map((t) => [t.id, t]));
     assert.equal(m.overview.access, "read");
     assert.ok(m.overview.reason && m.overview.reason.length > 10);
     assert.equal(m.hours.access, "read");
@@ -170,35 +172,39 @@ describe("tabs by role (never an owner fallback)", () => {
     assert.ok(m.verification.reason);
     assert.equal(m.status.access, "edit");
   });
-  it("unknown role / receptionist / accountant get no tab at all", () => {
+  it("no permissions (loading / unknown role / old backend) = no tab at all; R and A only hold branch.view, so they get read-only tabs and no status tab (the route guard keeps them off this page)", () => {
     assert.deepEqual(ids(undefined), []);
-    assert.deepEqual(ids("RECEPTIONIST"), []);
-    assert.deepEqual(ids("ACCOUNTANT"), []);
-    assert.equal(resolveBranchTab("overview", undefined), null);
+    assert.equal(resolveBranchTab("overview", canOf(undefined)), null);
+    assert.equal(resolveBranchTab("overview", makeCan("OWNER", undefined)), null, "a known role with NO permissions[] is still nothing: no role-name fallback");
+    assert.equal(resolveBranchTab("overview", makeCan("OWNER", [])), null);
+    for (const r of ["RECEPTIONIST", "ACCOUNTANT"] as const) {
+      assert.deepEqual(ids(r), ["overview", "hours", "verification"], r);
+      assert.ok(branchTabsFor(canOf(r)).every((t) => t.access !== "edit"), r);
+    }
   });
   it("a requested tab the role may not see falls back to the first visible one", () => {
-    assert.equal(resolveBranchTab("listing", "MANAGER"), "overview");
-    assert.equal(resolveBranchTab("bogus", "MANAGER"), "overview");
-    assert.equal(resolveBranchTab(null, "OWNER"), "overview");
-    assert.equal(resolveBranchTab("status", "MANAGER"), "status");
+    assert.equal(resolveBranchTab("listing", canOf("MANAGER")), "overview");
+    assert.equal(resolveBranchTab("bogus", canOf("MANAGER")), "overview");
+    assert.equal(resolveBranchTab(null, canOf("OWNER")), "overview");
+    assert.equal(resolveBranchTab("status", canOf("MANAGER")), "status");
   });
 });
 
 describe("actions by role", () => {
   it("temporary close/reopen: OWNER + MANAGER; permanent close: OWNER only with a reason for the manager", () => {
-    assert.deepEqual(statusActionsFor("OWNER"), { canTemporary: true, canPermanent: true, permanentReason: null });
-    const m = statusActionsFor("MANAGER");
+    assert.deepEqual(statusActionsFor(canOf("OWNER")), { canTemporary: true, canPermanent: true, permanentReason: null });
+    const m = statusActionsFor(canOf("MANAGER"));
     assert.equal(m.canTemporary, true);
     assert.equal(m.canPermanent, false);
     assert.ok(m.permanentReason);
-    assert.equal(statusActionsFor(undefined).canTemporary, false);
-    assert.equal(statusActionsFor("RECEPTIONIST").canTemporary, false);
+    assert.equal(statusActionsFor(canOf(undefined)).canTemporary, false);
+    assert.equal(statusActionsFor(canOf("RECEPTIONIST")).canTemporary, false);
   });
   it("wallet: owner sees and withdraws; manager sees nothing; unknown role nothing", () => {
-    assert.deepEqual(walletAccessFor("OWNER"), { canSee: true, canWithdraw: true });
-    assert.deepEqual(walletAccessFor("MANAGER"), { canSee: false, canWithdraw: false });
-    assert.deepEqual(walletAccessFor("ACCOUNTANT"), { canSee: true, canWithdraw: false });
-    assert.deepEqual(walletAccessFor(undefined), { canSee: false, canWithdraw: false });
+    assert.deepEqual(walletAccessFor(canOf("OWNER")), { canSee: true, canWithdraw: true });
+    assert.deepEqual(walletAccessFor(canOf("MANAGER")), { canSee: false, canWithdraw: false });
+    assert.deepEqual(walletAccessFor(canOf("ACCOUNTANT")), { canSee: true, canWithdraw: false });
+    assert.deepEqual(walletAccessFor(canOf(undefined)), { canSee: false, canWithdraw: false });
   });
 });
 

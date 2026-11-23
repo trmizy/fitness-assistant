@@ -24,7 +24,7 @@ const COLS = "minmax(0, 1.6fr) 110px minmax(0, 1.4fr) 130px 120px minmax(0, 1.3f
 export function PlansTab() {
   const scope = useGymOwnerScope();
   const queryClient = useQueryClient();
-  const access = plansAccessFor(scope.role);
+  const access = plansAccessFor(scope.can);
   const canEdit = access === "edit";
   const { query, key } = useBrandPlans(true);
   const plans = query.data ?? [];

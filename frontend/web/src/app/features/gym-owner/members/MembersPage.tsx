@@ -11,7 +11,7 @@ import { GoTabs } from "../../../components/layout/gym-owner/GoTabs";
 import { ScopeStateFrame } from "../scope/PermissionGate";
 import { useGymOwnerScope } from "../scope/GymOwnerScopeProvider";
 import { ALL_BRANCHES } from "../scope/scopeModel";
-import { membersSearch, membersTabsFor, resolveMembersTab, type MembersTabId } from "./membersModel";
+import { membersModeFor, membersSearch, membersTabsFor, resolveMembersTab, type MembersTabId } from "./membersModel";
 import { MembersTab } from "./MembersTab";
 import { PlansTab } from "./PlansTab";
 
@@ -19,9 +19,8 @@ export function MembersPage() {
   const scope = useGymOwnerScope();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const role = scope.role;
-  const tabs = membersTabsFor(role);
-  const tab = resolveMembersTab(params.get("tab"), role);
+  const tabs = membersTabsFor(scope.can);
+  const tab = resolveMembersTab(params.get("tab"), scope.can);
 
   if (!tab) return <ScopeStateFrame kind="forbidden" />;
 
@@ -36,7 +35,7 @@ export function MembersPage() {
           <p className="go-page-sub">
             {tab === "plans"
               ? "Gói hội viên của thương hiệu, bán và dùng được ở mọi chi nhánh."
-              : role === "ACCOUNTANT"
+              : membersModeFor(scope.can) === "sales"
                 ? "Giao dịch gói của từng chi nhánh, dạng bán hàng."
                 : "Hội viên của chi nhánh đang chọn ở thanh phạm vi."}
           </p>

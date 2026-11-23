@@ -17,14 +17,15 @@ import { formatViDate } from "../../../utils/branchCheckinState";
 import { GoTag } from "../../../components/layout/gym-owner/GoTag";
 import { GoModal } from "../../../components/layout/gym-owner/GoModal";
 import { SuccessCheck, TextStates, useShake } from "../../../components/layout/gym-owner/motion";
-import type { PartnerRole } from "../../../utils/gymStaffRole";
+import { useGymOwnerScope } from "../scope/GymOwnerScopeProvider";
 import { apiMessage, approvalTag, closeDialogProblem, operationalTag, statusActionsFor, type ClosureMode } from "./branchesModel";
 import { useSetOperationalStatus } from "./useBranchMutations";
 
 type Phase = "idle" | "pending" | "success" | "error";
 
-export function StatusTab({ gym, role }: { gym: Gym; role: PartnerRole | undefined }) {
-  const actions = statusActionsFor(role);
+export function StatusTab({ gym }: { gym: Gym }) {
+  const { can } = useGymOwnerScope();
+  const actions = statusActionsFor(can);
   // `mode` null = dialog closed; `shown` keeps the last mode so the dialog keeps its content while it animates out, and
   // `openCount` remounts the dialog on every open so a new dialog never inherits the previous reason / error.
   const [mode, setModeRaw] = useState<ClosureMode | null>(null);

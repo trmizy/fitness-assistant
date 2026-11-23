@@ -4,12 +4,15 @@
  * the accountant), search / status / plan filter, sort, counts, the member drawer's check-in slice, the plan form rules.
  *
  * Honesty rules the page keeps (docs/gym-owner-redesign/audit/02, 05 section 4, 06 section 3):
- *  - `GET /owner/gyms/:gymId/memberships` has NO pagination: counts, filters and sorts run on the loaded list and say so.
+ *  - G5: `GET /owner/gyms/:gymId/memberships` is paged by the SERVER (cursor, newest first) and filters by `status` only. The page
+ *    offers exactly that: a status filter that goes to the server, "Xem thêm" for the next page. No name search, plan filter or
+ *    sort is offered, because the API cannot do them (running them on one page would read as an answer about the whole branch).
+ *    Status counts are drawn only when `GET /owner/gyms/:id/stats` returns them (`byStatus`); they are never derived from a page.
  *  - SALES view (accountant) never carries a client id or name; this module drops them even if a server ever sent them.
  *  - A client's internal id is never shown (a row without a name reads "Hội viên chưa có tên").
  *  - The member's check-ins come from the branch's latest 50 check-ins (`GET .../checkins`), filtered here; that limit is stated.
  */
-import type { PartnerRole } from "../../../utils/gymStaffRole";
+import type { CanFn } from "../../../utils/gymStaffRole";
 import type { TagTone } from "../scope/scopeModel";
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -44,23 +47,24 @@ export const PLANS_REDIRECT = "/gym-owner/members?tab=plans";
 
 export type MembersMode = "full" | "sales" | "none";
 
-/** Owner and manager read the FULL list; the accountant reads the SALES view (no identity); a receptionist reads neither. */
-export function membersModeFor(role: PartnerRole | undefined): MembersMode {
-  if (role === "OWNER" || role === "MANAGER") return "full";
-  if (role === "ACCOUNTANT") return "sales";
+/** `membership.full` reads the FULL list; `membership.sales` the SALES view (no identity); neither (or no permissions yet) reads nothing. */
+export function membersModeFor(can: CanFn): MembersMode {
+  if (can("membership.full")) return "full";
+  if (can("membership.sales")) return "sales";
   return "none";
 }
 
 export type PlansAccess = "edit" | "read" | "none";
-export function plansAccessFor(role: PartnerRole | undefined): PlansAccess {
-  if (role === "OWNER") return "edit";
-  if (role === "MANAGER" || role === "ACCOUNTANT") return "read";
+/** `plan.write` creates / switches plans (owner-only on the server); `plan.view` reads them. */
+export function plansAccessFor(can: CanFn): PlansAccess {
+  if (can("plan.write")) return "edit";
+  if (can("plan.view")) return "read";
   return "none";
 }
 
-/** "Xem tại quầy" is a front-desk link: only for roles that may open the desk (owner, manager). Never for the accountant. */
-export function canOpenFrontDesk(role: PartnerRole | undefined): boolean {
-  return role === "OWNER" || role === "MANAGER";
+/** "Xem tại quầy" is a front-desk link: only for accounts that may open the desk (`frontDesk.clients`) AND read full member rows. Never for the sales view. */
+export function canOpenFrontDesk(can: CanFn): boolean {
+  return can("frontDesk.clients") && can("membership.full");
 }
 
 export interface MembersTabSpec {
@@ -69,17 +73,18 @@ export interface MembersTabSpec {
   access: "edit" | "read";
 }
 
-export function membersTabsFor(role: PartnerRole | undefined): MembersTabSpec[] {
+export function membersTabsFor(can: CanFn): MembersTabSpec[] {
   const out: MembersTabSpec[] = [];
-  if (membersModeFor(role) !== "none") out.push({ id: "members", label: membersModeFor(role) === "sales" ? "Giao dịch" : "Hội viên", access: "read" });
-  const plans = plansAccessFor(role);
+  const mode = membersModeFor(can);
+  if (mode !== "none") out.push({ id: "members", label: mode === "sales" ? "Giao dịch" : "Hội viên", access: "read" });
+  const plans = plansAccessFor(can);
   if (plans !== "none") out.push({ id: "plans", label: "Gói", access: plans === "edit" ? "edit" : "read" });
   return out;
 }
 
 /** The tab to show: the requested one if the role has it, else the first it has (never a tab the role cannot read). */
-export function resolveMembersTab(raw: string | null | undefined, role: PartnerRole | undefined): MembersTabId | null {
-  const tabs = membersTabsFor(role);
+export function resolveMembersTab(raw: string | null | undefined, can: CanFn): MembersTabId | null {
+  const tabs = membersTabsFor(can);
   if (tabs.length === 0) return null;
   const want = parseMembersTab(raw);
   return tabs.some((t) => t.id === want) ? want : tabs[0].id;
@@ -312,10 +317,43 @@ export function hasActiveFilters(f: MemberFilters): boolean {
   return f.q.trim() !== "" || f.status !== "all" || f.planId !== "all";
 }
 
-/** The note under the table: how many are shown of how many the server returned, and that nothing is paged. */
-export function listSummary(shown: number, total: number, mode: MembersMode): string {
+/** Rows per request of the paged list (the server allows up to 500; 100 keeps the first paint light). */
+export const MEMBERS_PAGE_SIZE = 100;
+
+/** The note under the table (G5, server paging): how many rows are loaded and whether the server has more; the sort is the server's. */
+export function pageSummary(loaded: number, hasMore: boolean, mode: MembersMode, statusId: string): string {
   const noun = mode === "sales" ? "giao dịch" : "hội viên";
-  return `Hiển thị ${shown} trên ${total} ${noun}. Đây là toàn bộ ${total} ${noun} máy chủ trả về cho chi nhánh (chưa phân trang). Tìm, lọc và sắp xếp chạy trên danh sách đã tải.`;
+  const scope = statusId === "all" ? "" : ` thuộc nhóm "${statusLabel(statusId)}"`;
+  return hasMore
+    ? `Đã tải ${loaded} ${noun}${scope}, mới nhất trước. Bấm "Xem thêm" để tải tiếp.`
+    : `Đã tải hết ${loaded} ${noun}${scope}, mới nhất trước.`;
+}
+
+/** Status segments of the server-side filter. `counts` = `stats.memberships.byStatus` when the server returned it, else null (no number is drawn). */
+export interface ServerSegment {
+  id: string;
+  label: string;
+  /** From the server only; null = unknown (stats not loaded, failed, or this role has no such block). */
+  count: number | null;
+}
+export const statusLabel = (status: string): string => STATUS_TEXT[status]?.text ?? status;
+
+export function serverSegments(byStatus: Readonly<Record<string, number>> | null | undefined): ServerSegment[] {
+  const out: ServerSegment[] = [];
+  const total = byStatus ? Object.values(byStatus).reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0) : null;
+  out.push({ id: "all", label: "Tất cả", count: total });
+  for (const st of MEMBER_STATUS_ORDER) {
+    const c = byStatus ? byStatus[st] : undefined;
+    // With counts: a status the server counted 0 for is left out (noise). Without counts: every filterable status is offered, unnumbered.
+    if (byStatus && !(typeof c === "number" && c > 0)) continue;
+    out.push({ id: st, label: statusLabel(st), count: byStatus ? (c as number) : null });
+  }
+  return out;
+}
+
+/** What the filter sends: nothing for "Tất cả", else the status (a value the server accepts, MEMBER_STATUS_ORDER). */
+export function statusParamOf(segmentId: string): string | undefined {
+  return (MEMBER_STATUS_ORDER as readonly string[]).includes(segmentId) ? segmentId : undefined;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

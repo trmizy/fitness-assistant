@@ -6,7 +6,7 @@
  * The server stays the authority for every rule here (four eyes `decided_by <> requested_by`, end-of-day expiry, one decision per
  * request, single use). This module only decides what the screen says and offers BEFORE and AFTER the request.
  */
-import type { PartnerRole } from "../../../utils/gymStaffRole";
+import type { CanFn } from "../../../utils/gymStaffRole";
 import type { ExceptionRow } from "../../../utils/assistedCheckin";
 import type { TagTone } from "../scope/scopeModel";
 
@@ -59,16 +59,17 @@ export function frontDeskHref(gymId: string, tab: FdTabId = "checkin", code?: st
 // Roles (audit/02: front desk O,M,R; exception approve O,M; request O,M,R; a receptionist sees only their own)
 // ---------------------------------------------------------------------------------------------------------------------
 
-export function canUseDesk(role: PartnerRole | undefined): boolean {
-  return role === "OWNER" || role === "MANAGER" || role === "RECEPTIONIST";
+/** G5: the desk is for whoever the server lets search / check in members (`frontDesk.clients`). Loading or unknown = no. */
+export function canUseDesk(can: CanFn): boolean {
+  return can("frontDesk.clients");
 }
 
 /**
- * Who is offered Duyệt / Từ chối. Needs the ROLE (owner, manager) AND the server's own `canApprove` answer; a receptionist never
- * is, whatever the list says. Hiding is a courtesy: the server refuses everyone else with 403 PERMISSION_DENIED.
+ * Who is offered Duyệt / Từ chối. Needs the permission `checkin.exception.approve` AND the server's own `canApprove` answer on the list;
+ * a receptionist never is, whatever the list says. Hiding is a courtesy: the server refuses everyone else with 403 PERMISSION_DENIED.
  */
-export function canDecide(role: PartnerRole | undefined, canApprove: boolean): boolean {
-  return canApprove && (role === "OWNER" || role === "MANAGER");
+export function canDecide(can: CanFn, canApprove: boolean): boolean {
+  return canApprove && can("checkin.exception.approve");
 }
 
 /** Receptionist: the exception tab is "Ngoại lệ của bạn" and only lists their own requests. */

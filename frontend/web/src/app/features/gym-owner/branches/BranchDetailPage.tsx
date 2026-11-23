@@ -32,7 +32,6 @@ export function BranchDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const scope = useGymOwnerScope();
-  const role = scope.role;
   const [params] = useSearchParams();
   const [listingDirty, setListingDirty] = useState(false);
 
@@ -73,8 +72,8 @@ export function BranchDetailPage() {
     );
   }
 
-  const tabs = branchTabsFor(role).filter((t) => t.access !== "hidden");
-  const tab: BranchTabId | null = resolveBranchTab(params.get("tab"), role);
+  const tabs = branchTabsFor(scope.can).filter((t) => t.access !== "hidden");
+  const tab: BranchTabId | null = resolveBranchTab(params.get("tab"), scope.can);
   const spec = tabs.find((t) => t.id === tab);
   const codes = branchCodes(scope.gyms.some((g) => g.id === gym.id) ? scope.gyms : [...scope.gyms, gym]);
   const ap = approvalTag(gym.status);
@@ -143,11 +142,11 @@ export function BranchDetailPage() {
             ariaLabel="Mục của chi nhánh"
           />
           <div role="tabpanel" id={`go-branch-panel-${tab}`} aria-labelledby={`go-branch-tab-${tab}`} tabIndex={-1} className="go-tabpanel" data-tab={tab} key={tab}>
-            {tab === "overview" && <OverviewTab gym={gym} role={role} access={spec.access} startEditing={settingsRequested(`?${params.toString()}`)} />}
+            {tab === "overview" && <OverviewTab gym={gym} access={spec.access} startEditing={settingsRequested(`?${params.toString()}`)} />}
             {tab === "hours" && <HoursAmenitiesTab gym={gym} access={spec.access} />}
             {tab === "listing" && <ListingTab gym={gym} onDirtyChange={setListingDirty} />}
             {tab === "verification" && <VerificationTab gym={gym} access={spec.access} reason={spec.reason} />}
-            {tab === "status" && <StatusTab gym={gym} role={role} />}
+            {tab === "status" && <StatusTab gym={gym} />}
           </div>
         </>
       ) : (

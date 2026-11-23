@@ -14,10 +14,12 @@ import { collaborationService, gymService, profileService } from "../../../servi
 import { gymCaseApi } from "../../../pages/admin/complaints/gymCaseApi";
 import { GYM_QUERY_OPTIONS } from "../../../pages/admin/complaints/gymCaseQueryKeys";
 import { buildPartnershipSections, ptDisplayName } from "../../../utils/brandPartnership";
+import type { GymStats } from "../../../types";
 import { GoTag } from "../../../components/layout/gym-owner/GoTag";
 import { SubtleNumber, TextStates } from "../../../components/layout/gym-owner/motion";
 import { useGymOwnerScope } from "../scope/GymOwnerScopeProvider";
 import { branchCodes, branchStatusText, goKey, pickableGyms } from "../scope/scopeModel";
+import { GYM_STATS_KEY, gymStatsKey, invalidateGymStats, type StatsState } from "../stats/gymStats";
 import {
   LOADING,
   MAX_ROWS,
@@ -77,13 +79,13 @@ export function TodayPage() {
   const scope = useGymOwnerScope();
   const { role, gymId, scopeKey } = scope;
   const queryClient = useQueryClient();
-  const read = sourcesForRole(role);
+  const read = sourcesForRole(scope.can, role);
 
   // The branch list answer of the scope provider (same key): it carries activeMemberCount / rating that ScopeGym drops.
   const ownedQuery = useQuery<TodayGym[]>({ queryKey: ["owned-gyms"], queryFn: () => gymService.listOwnedGyms(), enabled: !!role });
   const all = (ownedQuery.data ?? []) as (TodayGym & { address?: string | null })[];
   const gyms = useMemo(() => pickableGyms(all), [all]);
-  const drafts = useMemo(() => (role === "OWNER" ? all.filter((g) => g.status === "DRAFT") : []), [all, role]);
+  const drafts = useMemo(() => (scope.can("branch.write") ? all.filter((g) => g.status === "DRAFT") : []), [all, scope.can]);
   const view = useMemo(() => targetGyms(gyms, gymId), [gyms, gymId]);
   const live = useMemo(() => view.filter(fansOutTo), [view]);
   const brandVisible = brandLevelVisible(gymId, gyms.length);
@@ -111,6 +113,24 @@ export function TodayPage() {
       queryFn: () => gymService.listOpenReviewIssues(g.id),
       ...QUERY_OPTS,
     })),
+  });
+  // G5: KPI counts per branch (check-ins by Vietnam day, running / expiring memberships). One request per approved branch in view; a branch
+  // whose request fails says so on its own row (never a 0), and no branch total is added up.
+  const readsStats = scope.can("checkin.list") || scope.can("membership.full") || scope.can("membership.sales");
+  const statsQs = useQueries({
+    queries: (readsStats ? live : []).map((g) => ({
+      queryKey: gymStatsKey(scope.userId, g.id),
+      queryFn: () => gymService.getGymStats(g.id) as Promise<GymStats>,
+      retry: false,
+      staleTime: 15_000,
+      refetchOnWindowFocus: false,
+    })),
+  });
+  const statsById: Record<string, StatsState> = {};
+  (readsStats ? live : []).forEach((g, i) => {
+    const q = statsQs[i];
+    if (!q) return;
+    statsById[g.id] = q.data && q.data.gymId === g.id ? { state: "ok", stats: q.data } : q.isError ? { state: "error" } : { state: "loading" };
   });
   const complaintsQ = useQuery({
     queryKey: key("complaints"),
@@ -153,6 +173,7 @@ export function TodayPage() {
 
   const model = buildToday({
     role,
+    can: scope.can,
     nowMs,
     gyms,
     drafts,
@@ -167,14 +188,18 @@ export function TodayPage() {
   });
 
   const fetching = useIsFetching({
-    predicate: (q) => q.queryKey[0] === "gym-owner" && q.queryKey[1] === scope.userId && typeof q.queryKey[5] === "string" && (q.queryKey[5] as string).startsWith("today:"),
+    predicate: (q) =>
+      (q.queryKey[0] === "gym-owner" && q.queryKey[1] === scope.userId && typeof q.queryKey[5] === "string" && (q.queryKey[5] as string).startsWith("today:")) ||
+      (q.queryKey[0] === GYM_STATS_KEY && q.queryKey[1] === scope.userId),
   });
-  const reloadAll = () =>
-    queryClient.invalidateQueries({
+  const reloadAll = () => {
+    void invalidateGymStats(queryClient, scope.userId);
+    return queryClient.invalidateQueries({
       predicate: (q) => q.queryKey[0] === "gym-owner" && q.queryKey[1] === scope.userId && typeof q.queryKey[5] === "string" && (q.queryKey[5] as string).startsWith("today:"),
     });
+  };
   const retryFailed = () => {
-    const all = [...exceptionQs, ...withdrawalQs, ...draftQs, complaintsQ, collabQ];
+    const all = [...exceptionQs, ...withdrawalQs, ...draftQs, ...statsQs, complaintsQ, collabQ];
     for (const q of all) if (q.isError) void q.refetch();
   };
 
@@ -183,7 +208,7 @@ export function TodayPage() {
 
   const single = gyms.length === 1 || gymId !== "ALL";
   const notice = coverageNotice(model, codes);
-  const rows = branchRows(view, model, codes, (g) => branchStatusText(g).text);
+  const rows = branchRows(view, model, codes, (g) => branchStatusText(g).text, statsById);
   const empty = model.complete && model.tasks.length === 0;
   const waitingFirstData = model.loading && model.tasks.length === 0 && !notice;
   const now = Date.now();
@@ -238,7 +263,7 @@ export function TodayPage() {
           <TaskGroup id="decide" title="Cần bạn quyết định" tasks={model.decide} codes={codes} now={now} expanded={!!expanded.decide} onExpand={() => setExpanded((e) => ({ ...e, decide: true }))} />
           <TaskGroup id="wait" title="Đang chờ bên khác" tasks={model.wait} codes={codes} now={now} expanded={!!expanded.wait} onExpand={() => setExpanded((e) => ({ ...e, wait: true }))} />
 
-          {role === "OWNER" && !brandVisible && <p className="go-panel-foot">Việc cấp thương hiệu, như thỏa thuận PT, chỉ hiện khi xem tất cả chi nhánh.</p>}
+          {read.collaborations && !brandVisible && <p className="go-panel-foot">Việc cấp thương hiệu, như thỏa thuận PT, chỉ hiện khi xem tất cả chi nhánh.</p>}
         </section>
 
         <section className="go-panel go-today-branches" aria-labelledby="go-h-branches">
@@ -262,7 +287,8 @@ export function TodayPage() {
                       <GoTag tone={st.tone} text={st.text} />
                     </span>
                     <span className="go-br-line">
-                      <span>{r.members === null ? "Chưa có số hội viên" : `${r.members} hội viên đang hoạt động`}</span>
+                      <span>{r.running !== null ? `${r.running} thẻ đang chạy` : r.members === null ? "Chưa có số hội viên" : `${r.members} hội viên đang hoạt động`}</span>
+                      {r.statsLines.map((t) => <span key={t} data-testid="go-today-stat">{t}</span>)}
                       <span>{r.rating}</span>
                       <span>{r.openTasks === null ? (model.loading ? "Đang tải việc" : "Việc mở: không tải được") : `${r.openTasks} việc mở`}</span>
                     </span>

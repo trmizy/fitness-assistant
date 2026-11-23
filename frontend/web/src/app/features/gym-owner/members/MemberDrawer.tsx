@@ -70,7 +70,7 @@ export function MemberDrawer({ row, mode, gymId, gymName, plans, onClose }: { ro
       }
       footer={
         <>
-          {!sales && canOpenFrontDesk(scope.role) && (
+          {!sales && canOpenFrontDesk(scope.can) && (
             <GoLink to={frontDeskHref(gymId, "checkin", shown.memberCode)} className="go-btn" data-variant="primary" data-testid="go-member-desk">Xem tại quầy</GoLink>
           )}
           <p data-testid="go-member-refund-note">Hoàn tiền hội viên do Gymini xử lý.</p>
