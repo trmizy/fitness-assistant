@@ -3139,10 +3139,12 @@ export function NutritionPage() {
                 dưỡng
               </h3>
               <button
+                type="button"
+                aria-label="Đóng"
                 onClick={() => setShowGoalModal(false)}
                 className="text-zinc-500 hover:text-zinc-300 transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
 

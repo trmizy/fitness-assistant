@@ -30,6 +30,10 @@ describe("Nutrition goal form", () => {
     assert.match(t, /htmlFor=\{`nutrition-goal-\$\{key\}`\}/);
     assert.match(t, /id=\{`nutrition-goal-\$\{key\}`\}/);
   });
+  it("the icon-only close button of the goal form has a name (axe button-name, found in the browser)", () => {
+    assert.ok(t.includes('aria-label="Đóng"
+                onClick={() => setShowGoalModal(false)}'));
+  });
 });
 
 describe("PT contracts row", () => {
