@@ -22,7 +22,7 @@ import { fullName } from "../../utils/fullName";
 const inp =
   "w-full px-3 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 placeholder-zinc-600 transition-all";
 const lbl =
-  "text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block font-semibold";
+  "text-xs text-zinc-500 mb-1.5 block font-semibold";
 
 // ── Weekly availability editor ──────────────────────────────────────────
 // Grouped by day (rather than a flat list of {day, start, end} rows) so that adding a
@@ -272,7 +272,7 @@ function UploadBox({
                   }}
                 />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                  <p className="text-[10px] text-white font-bold uppercase tracking-wider">
+                  <p className="text-[10px] text-white font-bold">
                     Đổi ảnh
                   </p>
                 </div>
@@ -936,10 +936,12 @@ export function PTApplicationPage() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
+          type="button"
           onClick={() => navigate("/client/profile")}
+          aria-label="Quay lại hồ sơ"
           className="p-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-all"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4" aria-hidden="true" />
         </button>
         <div>
           <h1 className="text-zinc-100 font-bold text-xl">
@@ -1079,14 +1081,14 @@ export function PTApplicationPage() {
               </div>
 
               <div className="border-t border-zinc-800/60 pt-4">
-                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-3 font-semibold flex items-center gap-2">
+                <p className="text-xs text-zinc-500 mb-3 font-semibold flex items-center gap-2">
                   <MapPin className="w-3.5 h-3.5" /> Địa chỉ nơi cư trú (chỉ
                   admin thấy)
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className={lbl}>Tỉnh/Thành phố</label>
-                    <select
+                    <label htmlFor="pt-app-residence-province" className={lbl}>Tỉnh/Thành phố</label>
+                    <select id="pt-app-residence-province"
                       className={inp}
                       value={formData.residenceProvinceCode ?? ""}
                       onChange={(e) =>
@@ -1102,8 +1104,8 @@ export function PTApplicationPage() {
                     </select>
                   </div>
                   <div>
-                    <label className={lbl}>Phường/Xã</label>
-                    <select
+                    <label htmlFor="pt-app-residence-ward" className={lbl}>Phường/Xã</label>
+                    <select id="pt-app-residence-ward"
                       className={inp}
                       value={formData.residenceWardCode ?? ""}
                       onChange={(e) =>
@@ -1199,8 +1201,8 @@ export function PTApplicationPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={lbl}>Số năm kinh nghiệm PT *</label>
-                  <select
+                  <label htmlFor="pt-app-years-experience" className={lbl}>Số năm kinh nghiệm PT *</label>
+                  <select id="pt-app-years-experience"
                     className={inp}
                     value={formData.yearsOfExperience || ""}
                     onChange={(e) =>
@@ -1299,7 +1301,7 @@ export function PTApplicationPage() {
                   className="border border-zinc-700/50 rounded-xl p-5 space-y-4"
                 >
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-bold text-zinc-300 uppercase tracking-wide">
+                    <h4 className="text-sm font-bold text-zinc-300">
                       Chứng chỉ {index + 1}
                     </h4>
                     <div className="flex items-center gap-2">
@@ -1796,7 +1798,7 @@ export function PTApplicationPage() {
                     {(formData.serviceMode === "ONLINE" ||
                       formData.serviceMode === "HYBRID") && (
                       <div>
-                        <p className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider mb-2">
+                        <p className="text-[11px] text-zinc-400 font-semibold mb-2">
                           Giá Online qua video call
                         </p>
                         <div className="grid grid-cols-2 gap-3">
@@ -1844,7 +1846,7 @@ export function PTApplicationPage() {
                     {(formData.serviceMode === "OFFLINE" ||
                       formData.serviceMode === "HYBRID") && (
                       <div>
-                        <p className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider mb-2">
+                        <p className="text-[11px] text-zinc-400 font-semibold mb-2">
                           Giá Offline tại phòng gym
                         </p>
                         <div className="grid grid-cols-2 gap-3">
@@ -1948,7 +1950,7 @@ export function PTApplicationPage() {
                 formData.serviceMode === "HYBRID") && (
                 <div className="border-t border-zinc-800/60 pt-4">
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs text-zinc-500 uppercase tracking-wider font-semibold flex items-center gap-2">
+                    <p className="text-xs text-zinc-500 font-semibold flex items-center gap-2">
                       <MapPin className="w-3.5 h-3.5" /> Nơi luyện tập *
                     </p>
                     <button
@@ -2000,8 +2002,8 @@ export function PTApplicationPage() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div>
-                            <label className={lbl}>Tỉnh/Thành phố *</label>
-                            <select
+                            <label htmlFor={`pt-app-loc-${idx}-province`} className={lbl}>Tỉnh/Thành phố *</label>
+                            <select id={`pt-app-loc-${idx}-province`}
                               className={inp}
                               value={loc.provinceCode}
                               onChange={(e) =>
@@ -2021,8 +2023,8 @@ export function PTApplicationPage() {
                           </div>
                           {loc.wards.length > 0 && (
                             <div>
-                              <label className={lbl}>Phường/Xã</label>
-                              <select
+                              <label htmlFor={`pt-app-loc-${idx}-ward`} className={lbl}>Phường/Xã</label>
+                              <select id={`pt-app-loc-${idx}-ward`}
                                 className={inp}
                                 value={loc.wardCode}
                                 onChange={(e) =>
@@ -2444,7 +2446,7 @@ export function PTApplicationPage() {
                   }
                 />
                 <div className="mt-1 space-y-1 pl-4 border-l border-zinc-700/50">
-                  <p className="text-[10px] text-zinc-600 uppercase font-bold">
+                  <p className="text-[10px] text-zinc-600 font-bold">
                     Khung giờ tuần
                   </p>
                   {(formData.availabilityBlocks || []).map(
@@ -2616,14 +2618,14 @@ export function PTApplicationPage() {
             <button
               onClick={goPrev}
               disabled={currentStep === 0}
-              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-bold transition-all ${currentStep === 0 ? "text-zinc-700" : "text-zinc-400 hover:text-white"}`}
+              className={`flex items-center gap-1.5 whitespace-nowrap px-2 sm:px-4 py-2 text-sm font-bold transition-all ${currentStep === 0 ? "text-zinc-700" : "text-zinc-400 hover:text-white"}`}
             >
               <ChevronLeft className="w-4 h-4" /> Quay lại
             </button>
             <button
               onClick={handleSaveDraft}
               disabled={saveMutation.isPending}
-              className="px-4 py-2 text-sm font-semibold text-zinc-500 hover:text-zinc-300 border border-zinc-700/50 rounded-lg transition-all flex items-center gap-2"
+              className="whitespace-nowrap px-3 sm:px-4 py-2 text-sm font-semibold text-zinc-500 hover:text-zinc-300 border border-zinc-700/50 rounded-lg transition-all flex items-center gap-2"
             >
               {saveMutation.isPending ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -2654,7 +2656,7 @@ export function PTApplicationPage() {
           ) : (
             <button
               onClick={goNext}
-              className="flex items-center gap-2 px-6 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20"
+              className="flex items-center gap-2 whitespace-nowrap px-4 sm:px-6 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20"
             >
               Tiếp theo <ChevronRight className="w-4 h-4" />
             </button>

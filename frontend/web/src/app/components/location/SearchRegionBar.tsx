@@ -75,7 +75,7 @@ export function SearchRegionBar({
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2 min-w-0">
           <MapPin className="w-4 h-4 text-green-400 shrink-0" />
-          <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+          <span className="text-xs font-bold text-zinc-300">
             Khu vực tìm kiếm
           </span>
           <span

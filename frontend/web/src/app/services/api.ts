@@ -1284,6 +1284,8 @@ export interface CycleProgressSignals {
   adherencePct: number | null;
   rpeTrend: "stable" | "increasing" | "decreasing";
   laggingMuscleGroups: string[];
+  /** Already returned by fitness-service (training-cycle-classification.service.ts ProgressSignals); typed here for D4. */
+  signalBreakdown?: Partial<Record<"bodyComposition" | "volume" | "adherence" | "prs", "up" | "flat" | "down">>;
 }
 
 export interface CycleSummary {

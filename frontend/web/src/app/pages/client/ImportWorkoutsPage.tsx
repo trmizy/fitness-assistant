@@ -220,6 +220,7 @@ export function ImportWorkoutsPage() {
             type="file"
             accept=".csv,text/csv"
             data-testid="import-file-input"
+            aria-label="Chọn tệp CSV để nhập lịch sử tập"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             className="block w-full text-xs text-zinc-400 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-sky-500/15 file:text-sky-300 file:text-xs hover:file:bg-sky-500/25"
           />
@@ -271,7 +272,7 @@ export function ImportWorkoutsPage() {
           )}
 
           <div className="space-y-3">
-            <p className="text-xs uppercase tracking-wide text-zinc-500 font-semibold">Xác nhận từng bài tập</p>
+            <p className="text-xs text-zinc-500 font-semibold">Xác nhận từng bài tập</p>
             {(preview.exerciseMatchSummary ?? []).map((entry, index) => (
               <div key={entry.exerciseTitle} className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-3 space-y-2" data-testid={`import-resolve-row-${index}`}>
                 <p className="text-sm text-zinc-200">{entry.exerciseTitle}</p>

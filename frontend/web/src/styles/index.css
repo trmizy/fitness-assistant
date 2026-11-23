@@ -1,3 +1,5 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+/* Batch 2: additive motion tokens (--g-*). Nothing reads them yet; batches 4-8 adopt them. */
+@import './gymini-motion.css';

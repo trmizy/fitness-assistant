@@ -73,11 +73,11 @@
   --border-color: #d1d5db;
   --primary-color: #059669;
   --primary-text: #ffffff;
-  --button-bg: #059669;
+  --button-bg: #047857; /* Frontend 2.0: #059669 + white text = 3.76:1 (fails WCAG AA); #047857 = --st-success light, ~5.5:1 */
   --button-text: #ffffff;
   --tab-bg: #e2e8f0;
   --tab-text: #334155;
-  --tab-active-bg: #059669;
+  --tab-active-bg: #047857; /* same contrast fix as --button-bg */
   --tab-active-text: #ffffff;
   --background: #f8fafc;
   --foreground: #111827;
@@ -651,7 +651,14 @@
   :root[data-theme="light"] .text-green-300,
   :root[data-theme="light"] .text-green-400,
   :root[data-theme="light"] .text-emerald-300,
-  :root[data-theme="light"] .text-emerald-400 {
+  :root[data-theme="light"] .text-emerald-400,
+  /* P0 contrast (Gate B prep): the -500 shades were never remapped. Measured on light grounds:
+     text-green-500 links 2.02:1, text-emerald-500 icons 2.28:1, text-emerald-500/60 icons 1.70:1.
+     Same ink the -300/-400 already use. --primary is deliberately NOT changed: no rendered
+     bg-primary/text-primary element was found on the audited screens. */
+  :root[data-theme="light"] .text-green-500,
+  :root[data-theme="light"] .text-emerald-500,
+  :root[data-theme="light"] .text-emerald-500\/60 {
     color: #047857;
   }
 
@@ -674,6 +681,45 @@
   :root[data-theme="light"] .text-violet-300,
   :root[data-theme="light"] .text-violet-400 {
     color: #6d28d9;
+  }
+
+  /* D-U1: once the photo + scrim are gone axe can measure these; the dark-theme orange / sky / cyan accents
+     were ~2:1 on light cards (InBody "12.5 kg", the "Thấp" badge). Same remap rule as N14T-11. */
+  :root[data-theme="light"] .text-orange-300,
+  :root[data-theme="light"] .text-orange-400 {
+    color: #9a3412; /* #c2410c was only 4.21:1 on orange-tinted chips (muscle-heatmap range); this is 5.95:1 */
+  }
+
+  /* D-U1 follow-up: more dark-theme shades that only became measurable without the photo (light, 390px):
+     red-300/rose-300 error text + sort chip (1.5-1.8:1), amber-100/200 warning text (1.0-1.1:1). */
+  :root[data-theme="light"] .text-red-300,
+  :root[data-theme="light"] .text-rose-300 {
+    color: #be123c; /* 5.2-6.0:1 on the tinted and plain light surfaces */
+  }
+
+  :root[data-theme="light"] .text-amber-100,
+  :root[data-theme="light"] .text-amber-200 {
+    color: #92400e; /* 6.28:1 on the amber-tinted banner (#b45309 would be 4.45:1) */
+  }
+
+  :root[data-theme="light"] .text-sky-300,
+  :root[data-theme="light"] .text-sky-400,
+  :root[data-theme="light"] .text-cyan-300,
+  :root[data-theme="light"] .text-cyan-400 {
+    color: #0369a1;
+  }
+
+  /* D-U1 dark surface hierarchy. The translucent surfaces below were designed to sit on the gym photo; on the
+     flat Client/PT workspace (data-surface="neutral", AppShell) they collapse into the #0a0a0a page. Give them
+     the existing token steps instead: page --bg-color < card --card-bg < inset --panel-bg. Dark only (light already
+     has its own remaps); Gym Owner/Admin keep the photo and are not matched. */
+  :root:not([data-theme="light"]) [data-surface="neutral"] main :is(.glass-panel, .bg-zinc-950\/40, .bg-zinc-950\/50, .bg-zinc-950\/60, .bg-zinc-950\/70, .bg-zinc-950\/85) {
+    background-color: var(--card-bg);
+    backdrop-filter: none;
+  }
+
+  :root:not([data-theme="light"]) [data-surface="neutral"] main :is(.glass-panel, .bg-zinc-950\/40, .bg-zinc-950\/50, .bg-zinc-950\/60, .bg-zinc-950\/70, .bg-zinc-950\/85) :is(.glass-panel, .bg-zinc-950\/40, .bg-zinc-950\/50, .bg-zinc-950\/60, .bg-zinc-900\/30, .bg-zinc-900\/40, .bg-zinc-900\/50, .bg-zinc-900\/60) {
+    background-color: var(--panel-bg);
   }
 
   :root[data-theme="light"] .hover\:text-zinc-300:hover,

@@ -88,7 +88,7 @@ export function PlanReviewPage() {
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Plan list */}
           <div className="lg:w-64 space-y-2 flex-shrink-0">
-            <h4 className="text-xs text-zinc-600 uppercase tracking-wider px-1 font-bold">
+            <h4 className="text-xs text-zinc-600 px-1 font-bold">
               Chờ duyệt ({plans.length})
             </h4>
             {plans.map((p: any) => (
@@ -161,7 +161,7 @@ export function PlanReviewPage() {
 
                 {/* PT Note */}
                 <div className="mt-3">
-                  <label className="text-xs text-zinc-500 mb-1.5 flex items-center gap-1.5 uppercase tracking-wider font-semibold">
+                  <label className="text-xs text-zinc-500 mb-1.5 flex items-center gap-1.5 font-semibold">
                     <MessageSquare className="w-3.5 h-3.5" /> Ghi chú cho client
                     (tùy chọn)
                   </label>

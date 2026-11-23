@@ -12,6 +12,7 @@ import { ClientFitnessSummaryCard } from "./ClientFitnessSummaryCard";
 import { ClientRoadmapCard } from "./ClientRoadmapCard";
 import { ClientProgressCard } from "./ClientProgressCard";
 import { AssignPlanModal } from "./AssignPlanModal";
+import { ActivePill } from "../../components/ui/ActivePill";
 
 function getInitials(name: string | null | undefined) {
   if (!name) return "?";
@@ -374,18 +375,21 @@ export function PTClientDetail() {
 
       {/* One coaching workspace, tab-navigated (§7/§29) — not a page per
           entity. Detailed sections load on tab activation (§32). */}
-      <div className="flex gap-1.5 overflow-x-auto border-b border-zinc-800/60 pb-px">
+      <div role="tablist" aria-label="Hồ sơ học viên" className="flex gap-1.5 overflow-x-auto g-scroll-x border-b border-zinc-800/60 pb-px">
         {TABS.map((tab) => (
           <button
             key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-3.5 py-2 text-sm font-semibold whitespace-nowrap rounded-t-lg transition-colors ${
-              activeTab === tab.key
-                ? "text-green-400 border-b-2 border-green-500"
-                : "text-zinc-500 hover:text-zinc-300 border-b-2 border-transparent"
+            className={`relative px-3.5 py-2 text-sm font-semibold whitespace-nowrap rounded-t-lg transition-colors border-b-2 border-transparent ${
+              activeTab === tab.key ? "text-green-400" : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
-            {tab.label}
+            {/* Frontend 2.0: the underline slides between tabs. */}
+            {activeTab === tab.key && <ActivePill group="pt-client-detail" className="top-auto -bottom-0.5 h-0.5 rounded-full bg-green-500" />}
+            <span className="relative">{tab.label}</span>
           </button>
         ))}
       </div>

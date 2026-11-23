@@ -34,6 +34,10 @@ export const NOTIFICATION_EVENT_LABEL_VI: Record<string, string> = {
   CYCLE_REASSESSMENT_READY: "Có đề xuất điều chỉnh chu kỳ",
   CYCLE_ASSESSMENT_READY: "Có đánh giá chu kỳ mới",
   PT_FEEDBACK_RECEIVED: "Phản hồi từ PT",
+  // Plan Review (fitness-service plan-review → user-service, 5a1d7b68). REQUESTED is delivered to the PT (a client asked for a
+  // review); DECIDED to the client and covers APPROVED / CHANGES_REQUESTED / REJECTED, so its label must stay neutral.
+  PLAN_REVIEW_REQUESTED: "Yêu cầu duyệt kế hoạch tập",
+  PLAN_REVIEW_DECIDED: "PT đã phản hồi kế hoạch tập",
   REFUND_NEEDS_MANUAL_SETTLEMENT: "Hoàn tiền cần xử lý",
   PAYMENT_AUTO_REFUNDED: "Đã hoàn tiền tự động",
   PT_APPLICATION_REVIEWED: "Kết quả duyệt hồ sơ PT",

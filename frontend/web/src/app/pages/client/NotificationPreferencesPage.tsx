@@ -103,13 +103,17 @@ export function NotificationPreferencesPage() {
               className="flex items-center justify-between gap-4 rounded-xl border border-zinc-700/40 bg-zinc-900/50 p-4"
             >
               <div>
-                <p className="text-sm text-zinc-200 font-semibold">{t.label}</p>
-                <p className="text-xs text-zinc-500 mt-0.5">{t.description}</p>
+                <p id={`notif-pref-${t.key}-label`} className="text-sm text-zinc-200 font-semibold">{t.label}</p>
+                <p id={`notif-pref-${t.key}-desc`} className="text-xs text-zinc-500 mt-0.5">{t.description}</p>
               </div>
+              {/* A11Y-1: the switch is named by its visible label and described by its description (screen readers
+                  announced only "switch, on" before). Role + aria-checked were already correct; Space/Enter work natively. */}
               <button
                 type="button"
                 role="switch"
                 aria-checked={local[t.key]}
+                aria-labelledby={`notif-pref-${t.key}-label`}
+                aria-describedby={`notif-pref-${t.key}-desc`}
                 data-testid={`notification-preference-toggle-${t.key}`}
                 onClick={() => toggle(t.key)}
                 className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
@@ -118,6 +122,7 @@ export function NotificationPreferencesPage() {
               >
                 {/* same fix as settings ToggleRow: left-0 keeps the thumb inside the track, bg-switch-thumb stays white in both themes */}
                 <span
+                  aria-hidden="true"
                   className={`absolute left-0 top-0.5 w-5 h-5 rounded-full bg-switch-thumb shadow transition-transform ${
                     local[t.key] ? "translate-x-5" : "translate-x-0.5"
                   }`}

@@ -5,6 +5,7 @@ import { MagnifyingGlassIcon as Search, TrendDownIcon as TrendingDown, TrendUpIc
 import { contractService } from "../../services/api";
 import { GOAL_VI } from "../../utils/labels.vi";
 import { fullName } from "../../utils/fullName";
+import { ActivePill } from "../../components/ui/ActivePill";
 
 type Contract = {
   id: string;
@@ -110,14 +111,16 @@ export function PTClientList() {
             className="flex-1 text-sm outline-none bg-transparent text-zinc-300 placeholder-zinc-600"
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto">
+        <div className="flex gap-2 overflow-x-auto g-scroll-x">
           {FILTER_OPTIONS.map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${filter === f ? "bg-green-500 text-black shadow-lg shadow-green-500/20" : "bg-zinc-900 border border-zinc-700/60 text-zinc-400 hover:text-zinc-200"}`}
+              aria-pressed={filter === f}
+              className={`relative px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${filter === f ? "text-black border border-transparent" : "bg-zinc-900 border border-zinc-700/60 text-zinc-400 hover:text-zinc-200"}`}
             >
-              {f}
+              {filter === f && <ActivePill group="pt-client-filter" className="rounded-xl bg-green-500 shadow-lg shadow-green-500/20" />}
+              <span className="relative">{f}</span>
             </button>
           ))}
         </div>
@@ -146,7 +149,7 @@ export function PTClientList() {
         <div className="hidden md:block bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="text-left text-xs text-zinc-600 bg-zinc-800/30 border-b border-zinc-800/60 uppercase tracking-wider">
+              <tr className="text-left text-xs text-zinc-600 bg-zinc-800/30 border-b border-zinc-800/60">
                 <th className="px-4 py-3">Học viên</th>
                 <th className="px-4 py-3">Mục tiêu</th>
                 <th className="px-4 py-3">Trạng thái</th>

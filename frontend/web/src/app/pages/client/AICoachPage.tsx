@@ -492,7 +492,7 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
 
     return (
       <div className="mt-3 border-t border-zinc-800/80 pt-2 space-y-1.5">
-        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-300">
+        <div className="flex items-center gap-1.5 text-[10px] font-semibold text-cyan-300">
           <BookOpen className="w-3 h-3" />
           Sources
         </div>
@@ -834,7 +834,7 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
         {/* Suggestions */}
         {messages.length <= 1 && (
           <div className="px-4 pt-2 flex-shrink-0">
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className="flex gap-2 overflow-x-auto g-scroll-x pb-1">
               {suggestions.map((s) => (
                 <button
                   key={s}
@@ -926,8 +926,10 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
               disabled={aiLoading}
             />
             <button
+              type="button"
               onClick={() => (stagedImageFile ? void sendImageChat() : send(input))}
               disabled={(!input.trim() && !stagedImageFile) || aiLoading || imageChatBusy}
+              aria-label={aiLoading || imageChatBusy ? "Đang gửi" : "Gửi tin nhắn"}
               className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full transition-all disabled:opacity-40"
               style={{
                 backgroundColor: "var(--button-bg)",
