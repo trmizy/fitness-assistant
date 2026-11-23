@@ -179,7 +179,13 @@
 .ob-cta svg { transition: translate 180ms cubic-bezier(0.22, 1, 0.36, 1); }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) { .ob-cta:hover svg { translate: 3px 0; } }
 
-/* No photo backdrop. Measured (perf-dash-ab, slow-4G + 4x CPU): /bg-gym.webp under .ob-stage became the LCP element
-   (LCP +2-3 s) and competed with the API calls. Depth comes from the neutral vignette above + surface steps instead,
-   which also matches the owner's D-U1 decision (neutral surface for Client/PT). */
+/* Dark theme only: the existing gym photo, very dark, fading into the backdrop by the second screen.
+   Re-added on the owner's request (2026-11-23) after being removed for performance: measured on builds it becomes the
+   LCP element (+2-3 s on slow-4G + 4x CPU) and competes with the API calls. Owner decides whether to keep it. */
 .ob-stage { position: relative; isolation: isolate; }
+:root:not([data-theme="light"]) .ob-stage::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: min(1100px, 140vh); z-index: -1; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(8, 9, 9, 0.88) 0%, rgba(8, 9, 9, 0.93) 55%, var(--ob-bg) 100%),
+    url(/bg-gym.webp) center 30% / cover no-repeat;
+}
