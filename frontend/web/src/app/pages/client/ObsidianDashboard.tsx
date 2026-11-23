@@ -8,10 +8,8 @@
  *   1) header  2) overview KPIs  3) body analysis hero | composition + trend  4) next session | plan | recent
  *   5) shortcuts  6) food | tips   (visual direction: the owner's Obsidian Glass reference image)
  * Per-section states come from listDataState (R1): an API error is never shown as "no data" or a fake 0.
- *
- * DEV ONLY: `?classic=1` renders the previous dashboard for side-by-side review. Remove before any integration.
  */
-import { Suspense, lazy, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { motion, useReducedMotion } from "motion/react";
@@ -30,8 +28,6 @@ import { BodyAnalysis } from "../../components/dashboard/BodyAnalysis";
 import { PageSkeleton } from "../../components/layout/PageSkeleton";
 // Same date/goal helpers as the current dashboard (shared module, not re-implemented).
 import { toDateInputValue, parseApiDateOnly, formatScheduleDate, inBodyDateKey, parseInBodyMeasurementDate, goalLabels } from "../../utils/dashboardHelpers";
-// DEV-only comparison: the previous dashboard loads lazily, so it is not in this page's chunk.
-const ClassicDashboard = lazy(() => import("./ClientDashboard").then((m) => ({ default: m.ClientDashboard })));
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 const fmt = (v: unknown, d = 1) => (typeof v === "number" && Number.isFinite(v) ? v.toLocaleString("vi-VN", { maximumFractionDigits: d }) : null);
@@ -64,7 +60,6 @@ type TrendKey = "weight" | "muscleMass" | "bodyFatPct";
 const TREND: Record<TrendKey, { label: string; unit: string }> = { weight: { label: "Cân nặng", unit: "kg" }, muscleMass: { label: "Cơ bắp", unit: "kg" }, bodyFatPct: { label: "Mỡ cơ thể", unit: "%" } };
 
 export function ObsidianDashboard() {
-  if (import.meta.env.DEV && typeof window !== "undefined" && new URLSearchParams(window.location.search).has("classic")) return <Suspense fallback={<PageSkeleton />}><ClassicDashboard /></Suspense>;
   return <ObsidianDashboardInner />;
 }
 

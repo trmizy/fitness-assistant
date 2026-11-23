@@ -57,7 +57,7 @@ const PartnerPasswordResetPage = lazy(() => import("./pages/auth/PartnerPassword
 const ForgotPasswordPage = lazy(() => import("./pages/auth/ForgotPasswordPage").then((m) => ({ default: m.ForgotPasswordPage })));
 
 // Client pages
-// OBSIDIAN prototype: the dashboard route renders the Obsidian dashboard (DEV: ?classic=1 shows the previous one).
+// The dashboard route renders the Obsidian dashboard (the `?classic` dev switch is gone).
 const ClientDashboard = lazy(() => import("./pages/client/ObsidianDashboard").then((m) => ({ default: m.ObsidianDashboard })));
 const InBodyModule = lazy(() => import("./pages/client/InBodyModule").then((m) => ({ default: m.InBodyModule })));
 const NutritionPage = lazy(() => import("./pages/client/NutritionPage").then((m) => ({ default: m.NutritionPage })));

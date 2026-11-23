@@ -12,10 +12,9 @@
  *   select the same thing; hovering a row lights the figure, hovering the figure lights the row.
  * - Segmented control (radiogroup) switches Khối nạc / Khối mỡ / Nhóm cơ; tabs exist only for data that exists.
  */
-import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { FRONT_MUSCLES, BACK_MUSCLES } from "body-muscles";
 import { ArrowRightIcon, UploadSimpleIcon, ArrowClockwiseIcon, InfoIcon } from "@phosphor-icons/react";
 import { useSettings } from "../../context/SettingsContext";
 import SpotlightCard from "../reactbits/SpotlightCard/SpotlightCard";
@@ -23,85 +22,19 @@ import { muscleCodeLabel } from "../../utils/labels.vi";
 import { isBackViewMuscle } from "../../constants/muscleRegionMap";
 import { DASHBOARD_ERROR_TEXT } from "../../utils/dashboardDataState";
 import {
-  SEGMENTS, ANATOMY_CODES, availableMetrics, fmtKg, limbBalance, regionAnatomyCode, regionSegment, segmentValues,
-  type SegmentKey, type SegmentMetric,
+  SEGMENTS, ANATOMY_CODES, availableMetrics, fmtKg, limbBalance, segmentValues,
+  type SegmentKey,
 } from "../../utils/bodySegments";
+import type { Mode, Sel } from "./BodyFigure";
+// OB-2: the figure's path data (body-muscles) loads after first paint; the box below is reserved meanwhile.
+const Figure = lazy(() => import("./BodyFigure"));
 
-type Mode = SegmentMetric | "anatomy";
-type Sel = { kind: "segment"; key: SegmentKey } | { kind: "muscle"; code: string };
+/** Same box the figure occupies (viewBox 55x95, full height of its slot): no layout shift when it arrives. */
+function BodyFigureFallback() {
+  return <div aria-hidden="true" data-testid="ob-figure-placeholder" className="h-full" style={{ aspectRatio: "55 / 95", maxWidth: "100%" }} />;
+}
 const MODE_LABEL: Record<Mode, string> = { lean: "Khối nạc", fat: "Khối mỡ", anatomy: "Nhóm cơ" };
 const EASE = [0.22, 1, 0.36, 1] as const;
-
-// Padded viewBoxes leave room for the printout callout beside the figure.
-const VIEW = { FRONT: { box: "-10 -1 55 95", muscles: FRONT_MUSCLES }, BACK: { box: "27 -1 55 95", muscles: BACK_MUSCLES } } as const;
-
-function Figure({
-  side, mode, selected, hover, onPick, onHover, callout,
-}: {
-  side: "FRONT" | "BACK";
-  mode: Mode;
-  selected: Sel | null;
-  hover: Sel | null;
-  onPick: (s: Sel) => void;
-  onHover: (s: Sel | null) => void;
-  callout: { key: SegmentKey; text: string } | null;
-}) {
-  const v = VIEW[side];
-  const gRef = useRef<SVGGElement>(null);
-  const [anchor, setAnchor] = useState<{ x: number; y: number; toRight: boolean } | null>(null);
-  const unitOf = (id: string): Sel | null => {
-    if (mode === "anatomy") { const c = regionAnatomyCode(id); return c ? { kind: "muscle", code: c } : null; }
-    const s = regionSegment(id); return s ? { kind: "segment", key: s } : null;
-  };
-  const same = (a: Sel | null, b: Sel | null) => !!a && !!b && (a.kind === "segment" && b.kind === "segment" ? a.key === b.key : a.kind === "muscle" && b.kind === "muscle" && a.code === b.code);
-
-  // Callout anchor = centre of the selected segment's paths on THIS view (measured, not hard-coded).
-  useLayoutEffect(() => {
-    if (!callout || !gRef.current) { setAnchor(null); return; }
-    const els = gRef.current.querySelectorAll<SVGPathElement>(`[data-seg="${callout.key}"]`);
-    if (!els.length) { setAnchor(null); return; }
-    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-    els.forEach((el) => { const b = el.getBBox(); x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x + b.width); y1 = Math.max(y1, b.y + b.height); });
-    const mid = side === "FRONT" ? 17.5 : 54.5;
-    const cx = (x0 + x1) / 2;
-    setAnchor({ x: cx, y: (y0 + y1) / 2, toRight: cx >= mid });
-  }, [callout, side]);
-
-  const edgeX = anchor ? (anchor.toRight ? (side === "FRONT" ? 44 : 81) : (side === "FRONT" ? -9 : 28)) : 0;
-  return (
-    <svg viewBox={v.box} className="block h-full w-auto max-w-full" aria-hidden="true" focusable="false">
-      <g ref={gRef}>
-        {v.muscles.map((m) => {
-          const unit = unitOf(m.id);
-          const on = same(unit, selected);
-          const hov = !on && same(unit, hover);
-          const seg = regionSegment(m.id);
-          return (
-            <path
-              key={m.id}
-              d={m.path}
-              data-seg={seg ?? undefined}
-              className={`ob-body-part${unit ? " ob-body-hit" : ""}`}
-              data-on={on || undefined}
-              data-hover={hov || undefined}
-              data-quiet={!unit || undefined}
-              onPointerEnter={unit ? () => onHover(unit) : undefined}
-              onPointerLeave={unit ? () => onHover(null) : undefined}
-              onClick={unit ? () => onPick(unit) : undefined}
-            />
-          );
-        })}
-      </g>
-      {anchor && callout && (
-        <g className="pointer-events-none">
-          <line x1={anchor.x} y1={anchor.y} x2={edgeX + (anchor.toRight ? -0.6 : 0.6)} y2={anchor.y} stroke="var(--ob-text-3)" strokeWidth="0.18" strokeDasharray="0.6 0.5" />
-          <circle cx={anchor.x} cy={anchor.y} r="0.7" fill="var(--ob-text)" />
-          <text x={edgeX} y={anchor.y - 1.4} textAnchor={anchor.toRight ? "end" : "start"} fontSize="3.4" fontWeight="600" fill="var(--ob-text)" className="ob-num">{callout.text}</text>
-        </g>
-      )}
-    </svg>
-  );
-}
 
 function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: Array<{ value: T; label: string }>; onChange: (v: T) => void; label: string }) {
   const reduce = useReducedMotion();
@@ -183,7 +116,7 @@ export function BodyAnalysis({ state, latest, prev, measuredLabel, onRetry, retr
       {(["FRONT", "BACK"] as const).map((side) => (
         <figure key={side} className="flex min-h-0 flex-col items-center">
           <div className="min-h-0 w-full flex-1 flex justify-center">
-            <Figure side={side} mode={state === "ready" ? mode : "anatomy"} selected={state === "ready" ? selected : null} hover={state === "ready" ? hover : null} onPick={state === "ready" ? pick : () => {}} onHover={state === "ready" ? setHover : () => {}} callout={side === "FRONT" ? callout : null} />
+            <Suspense fallback={<BodyFigureFallback />}><Figure side={side} mode={state === "ready" ? mode : "anatomy"} selected={state === "ready" ? selected : null} hover={state === "ready" ? hover : null} onPick={state === "ready" ? pick : () => {}} onHover={state === "ready" ? setHover : () => {}} callout={side === "FRONT" ? callout : null} /></Suspense>
           </div>
           <figcaption className="mt-1 text-xs text-[var(--ob-text-3)]">{side === "FRONT" ? "Mặt trước" : "Mặt sau"}</figcaption>
         </figure>

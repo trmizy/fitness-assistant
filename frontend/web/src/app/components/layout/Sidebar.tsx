@@ -16,6 +16,7 @@ import {
   GyminiCatalogIcon,
   GyminiChatIcon,
   GyminiCompareIcon,
+  GyminiComplaintIcon,
   GyminiContractIcon,
   GyminiDashboardIcon,
   GyminiDiscoverIcon,
@@ -69,7 +70,7 @@ export const clientNavFull = [
   { label: "Trò chuyện", icon: GyminiChatIcon, to: "/client/chat" },
   { label: "Ví", icon: GyminiWalletIcon, to: "/client/wallet" },
   { label: "Khiếu nại của tôi", icon: GyminiDisputeIcon, to: "/disputes" },
-  { label: "Khiếu nại phòng gym", icon: GyminiDisputeIcon, to: "/complaint-cases" },
+  { label: "Khiếu nại phòng gym", icon: GyminiComplaintIcon, to: "/complaint-cases" },
   { label: "Hồ sơ", icon: GyminiProfileIcon, to: "/client/profile" },
   { label: "Cài đặt", icon: GyminiSettingsIcon, to: "/client/settings" },
 ];
@@ -204,6 +205,11 @@ function NavGroup({
   // (desktop aside + mobile drawer can both be mounted). Critically damped: no overshoot.
   const indicatorId = useId();
   const reduceMotion = useReducedMotion();
+  // NG-3: Sidebar is shared with Gym Owner / Admin (green labels, unchanged). Only Client/PT, whose drawer is the
+  // Obsidian glass panel, get the Obsidian selection language (same as the desktop rail: soft accent pill, accent icon,
+  // plain label colour) instead of the old green label.
+  const { role } = useApp();
+  const obsidian = role === "client" || role === "pt";
   return (
     <>
       {items.map((item) => (
@@ -213,9 +219,13 @@ function NavGroup({
           onClick={onClose}
           className={({ isActive }) =>
             `relative flex items-center gap-3 px-3 py-2.5 rounded-lg mb-0.5 text-sm border border-transparent transition-colors duration-150 ${
-              isActive
-                ? "text-green-400"
-                : "text-zinc-500 hover:bg-zinc-800/80 hover:text-zinc-200"
+              obsidian
+                ? isActive
+                  ? "text-[var(--ob-text)] font-medium"
+                  : "text-[var(--ob-text-2)] hover:bg-[var(--ob-hover)] hover:text-[var(--ob-text)]"
+                : isActive
+                  ? "text-green-400"
+                  : "text-zinc-500 hover:bg-zinc-800/80 hover:text-zinc-200"
             }`
           }
         >
@@ -225,13 +235,13 @@ function NavGroup({
                 <motion.span
                   layoutId={`nav-active-${indicatorId}`}
                   aria-hidden
-                  className="absolute inset-0 rounded-lg bg-green-500/15 border border-green-500/20"
+                  className={obsidian ? "absolute inset-0 rounded-lg border border-[var(--ob-nav-pill-line)] bg-[var(--ob-accent-soft)]" : "absolute inset-0 rounded-lg bg-green-500/15 border border-green-500/20"}
                   transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 520, damping: 44, mass: 0.9 }}
                 />
               )}
               <item.icon
                 weight={isActive ? "bold" : "regular"}
-                className={`relative w-4 h-4 flex-shrink-0 ${isActive ? "text-green-400" : ""}`}
+                className={`relative w-4 h-4 flex-shrink-0 ${isActive ? (obsidian ? "text-[var(--ob-accent-ink)]" : "text-green-400") : ""}`}
               />
               <AutoText
                 className="relative flex-1"
@@ -249,7 +259,7 @@ function NavGroup({
                 </span>
               )}
               {isActive && (
-                <div className="relative w-1.5 h-1.5 bg-green-400 rounded-full" />
+                <div className={`relative w-1.5 h-1.5 rounded-full ${obsidian ? "bg-[var(--ob-accent-ink)]" : "bg-green-400"}`} />
               )}
             </>
           )}

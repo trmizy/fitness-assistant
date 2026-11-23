@@ -103,6 +103,14 @@
 .gw-radio-card[aria-checked="true"] .gw-radio-icon { color: var(--ob-accent-ink); }
 .gw-radio-dot { width: 18px; height: 18px; border-radius: 999px; border: 1.5px solid var(--ob-hair-strong); }
 .gw-radio-card[aria-checked="true"] .gw-radio-dot { border: 5px solid var(--ob-accent); }
+/* Page-level bar above a page that has its own inner tab bar (Dịch vụ): smaller, fainter, thinner indicator. Text stays
+   >= 4.5:1 (--ob-text-3 / --ob-text-2); the 44px target is kept. */
+.gw-tabs--quiet { border-bottom-color: var(--ob-hair); }
+.gw-tab--quiet { font-size: 13px; font-weight: 400; color: var(--ob-text-3); }
+.gw-tab--quiet:hover { color: var(--ob-text-2); }
+.gw-tab--quiet[aria-selected="true"] { color: var(--ob-text-2); font-weight: 500; }
+.gw-tab--quiet > svg { width: 14px; height: 14px; opacity: 0.85; }
+.gw-tab--quiet .gw-tab-bar { height: 1px; left: 12px; right: 12px; background: var(--ob-text-2); }
 .gw-tab > svg { display: inline-block; margin-right: 6px; vertical-align: -3px; }
 .gw-tab .gw-count { margin-left: 6px; }
 

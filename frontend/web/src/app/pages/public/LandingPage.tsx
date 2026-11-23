@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import type { ReactNode } from "react";
 import { TempoField } from "../../components/landing/TempoField";
+import { AppLogo } from "../../components/brand/AppLogo";
 // Motion tokens (mirror of styles/gymini-motion.css, seconds for Motion).
 const dur = { quick: 0.15, fast: 0.25, slow: 0.4, emphasis: 0.5 } as const;
 const ease = { smoothOut: [0.22, 1, 0.36, 1] as const };
@@ -91,7 +92,8 @@ function LandingNav({ reduced }: { reduced: boolean }) {
         transition={reduced ? { duration: 0 } : { duration: dur.fast, ease: ease.smoothOut }}
       >
         <a href="#hero-h" className="flex min-h-11 items-center gap-2 rounded-full pl-1 pr-3 focus-visible:outline-2 focus-visible:outline-[var(--ob-accent-ink)]" aria-label="Gymini, lên đầu trang">
-          <img src="/pwa-icon.svg" alt="" className="h-8 w-8" />
+          {/* Official logo (theme-aware /brand/gymini-logo-*), whole asset at its own aspect ratio. */}
+          <AppLogo className="h-10 w-10 flex-shrink-0 justify-center" imgClassName="gymini-brand-logo h-10 w-10" />
           <span className="font-['Barlow'] text-xl font-bold">Gymini</span>
         </a>
         <nav aria-label="Trang" className="ml-auto flex items-center gap-1" onMouseLeave={() => setHover(null)}>

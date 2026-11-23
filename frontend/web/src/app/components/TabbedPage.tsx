@@ -22,9 +22,13 @@ export interface TabbedPageTab {
 export function TabbedPage({
   tabs,
   defaultTab,
+  quiet = false,
 }: {
   tabs: TabbedPageTab[];
   defaultTab?: string;
+  /** Page-level bar of a page that has its own tab bar inside (Dịch vụ / Đặt lịch): smaller and fainter so the inner
+   *  bar reads as the primary one. Web presentation only; the packaged app keeps the pills. Same roles/ids/keys. */
+  quiet?: boolean;
 }) {
   const [active, setActive] = useState(defaultTab ?? tabs[0]?.value);
   const activeTab = tabs.find((t) => t.value === active) ?? tabs[0];
@@ -40,7 +44,7 @@ export function TabbedPage({
 
   return (
     <div className="flex flex-col h-full">
-      <div role="tablist" aria-label="Chuyển mục" onKeyDown={onTablistKeyDown} className={WEB_UI ? "gw-tabs flex-none mx-4 md:mx-6 mt-4" : "flex-none flex gap-2 overflow-x-auto g-scroll-x px-4 md:px-6 pt-4 pb-2"}>
+      <div role="tablist" aria-label="Chuyển mục" onKeyDown={onTablistKeyDown} className={WEB_UI ? `gw-tabs flex-none mx-4 md:mx-6 mt-4${quiet ? " gw-tabs--quiet" : ""}` : "flex-none flex gap-2 overflow-x-auto g-scroll-x px-4 md:px-6 pt-4 pb-2"}>
         {tabs.map((t) => (
           <button
             key={t.value}
@@ -50,7 +54,7 @@ export function TabbedPage({
             {...tabProps(activeTab?.value === t.value)}
             data-testid={`page-tab-${t.value}`}
             onClick={() => setActive(t.value)}
-            className={WEB_UI ? "gw-tab inline-flex items-center gap-1.5" : `relative inline-flex min-h-10 items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors duration-150 border ${
+            className={WEB_UI ? `gw-tab inline-flex items-center gap-1.5${quiet ? " gw-tab--quiet" : ""}` : `relative inline-flex min-h-10 items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors duration-150 border ${
               active === t.value
                 ? "text-black border-transparent"
                 : "bg-zinc-900 border-zinc-700/60 text-zinc-400 hover:border-green-500/40"
