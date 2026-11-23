@@ -926,8 +926,10 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
               disabled={aiLoading}
             />
             <button
+              type="button"
               onClick={() => (stagedImageFile ? void sendImageChat() : send(input))}
               disabled={(!input.trim() && !stagedImageFile) || aiLoading || imageChatBusy}
+              aria-label={aiLoading || imageChatBusy ? "Đang gửi" : "Gửi tin nhắn"}
               className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full transition-all disabled:opacity-40"
               style={{
                 backgroundColor: "var(--button-bg)",

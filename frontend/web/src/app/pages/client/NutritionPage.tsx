@@ -1089,10 +1089,12 @@ export function NutritionPage() {
       {/* ── Date navigation (mini) ── */}
       <div className="flex items-center gap-3">
         <button
+          type="button"
           onClick={prevDay}
+          aria-label="Ngày trước"
           className="p-1.5 rounded-lg border border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4" aria-hidden="true" />
         </button>
         <span className="text-sm font-semibold text-zinc-200 min-w-[130px] text-center">
           {formatDisplayDate(selectedDate)}
@@ -1108,11 +1110,13 @@ export function NutritionPage() {
           )}
         </span>
         <button
+          type="button"
           onClick={nextDay}
           disabled={isToday}
+          aria-label="Ngày sau"
           className="p-1.5 rounded-lg border border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-4 h-4" aria-hidden="true" />
         </button>
         {!isToday && (
           <button
@@ -2217,7 +2221,10 @@ export function NutritionPage() {
                       </button>
                     )}
                     <button
+                      type="button"
                       onClick={() => toggleMeal(meal)}
+                      aria-expanded={expanded}
+                      aria-label={`Món ăn ${MEAL_VI[meal]?.toLowerCase() ?? "bữa này"}`}
                       className="text-zinc-600 hover:text-zinc-400 transition-colors"
                     >
                       {expanded ? (
@@ -3427,7 +3434,9 @@ function NutritionCalendarGrid({
       {/* Month navigation */}
       <div className="flex items-center justify-center gap-5 mb-4">
         <button
+          type="button"
           onClick={onPrevMonth}
+          aria-label="Tháng trước"
           className="w-8 h-8 rounded-lg bg-zinc-800/50 border border-zinc-700/40 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -3436,7 +3445,9 @@ function NutritionCalendarGrid({
           {monthLabel}
         </span>
         <button
+          type="button"
           onClick={onNextMonth}
+          aria-label="Tháng sau"
           className="w-8 h-8 rounded-lg bg-zinc-800/50 border border-zinc-700/40 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors"
         >
           <ChevronRight className="w-4 h-4" />

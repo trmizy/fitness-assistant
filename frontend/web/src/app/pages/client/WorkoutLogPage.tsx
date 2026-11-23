@@ -4604,9 +4604,11 @@ export function WorkoutLogPage() {
             <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-black/15" />
             <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/15 via-transparent to-transparent" />
 
-            <button className="absolute top-4 left-4 w-10 h-10 rounded-xl bg-black/25 backdrop-blur-md border border-white/[0.06] flex items-center justify-center hover:bg-black/40 transition-all">
+            {/* A11Y-2: this "share" control had no action (no onClick), so it was a dead button for keyboard and
+                screen-reader users. It stays as a decorative icon until a real share feature exists. */}
+            <span aria-hidden="true" className="absolute top-4 left-4 w-10 h-10 rounded-xl bg-black/25 backdrop-blur-md border border-white/[0.06] flex items-center justify-center">
               <Share2 className="w-4 h-4 text-white/50" />
-            </button>
+            </span>
 
             <div className="absolute top-4 right-4 flex gap-2">
               <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/15 text-[11px] text-amber-300 backdrop-blur-md">

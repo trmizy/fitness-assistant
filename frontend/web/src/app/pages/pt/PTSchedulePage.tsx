@@ -558,7 +558,9 @@ export function PTSchedulePage() {
           <div className="lg:col-span-2 bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
             <div className="flex items-center justify-between mb-4">
               <button
+                type="button"
                 onClick={prevMonth}
+                aria-label="Tháng trước"
                 className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -567,7 +569,9 @@ export function PTSchedulePage() {
                 {MONTHS[month]} {year}
               </h3>
               <button
+                type="button"
                 onClick={nextMonth}
+                aria-label="Tháng sau"
                 className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors"
               >
                 <ChevronRight className="w-4 h-4" />

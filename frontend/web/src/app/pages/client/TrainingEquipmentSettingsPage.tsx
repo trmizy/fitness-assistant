@@ -85,9 +85,10 @@ export function TrainingEquipmentSettingsPage() {
         <button
           type="button"
           onClick={() => navigate("/client/profile")}
+          aria-label="Quay lại hồ sơ"
           className="p-2 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/60"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4" aria-hidden="true" />
         </button>
         <div>
           <h1 className="text-zinc-100 flex items-center gap-2">
