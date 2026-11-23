@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { logger } from '@gym-coach/shared';
+import { logger, sanitizeUrlForLog } from '@gym-coach/shared';
 import { localizeErrorBody } from '../utils/error-messages.vi';
 
 /**
@@ -12,7 +12,7 @@ export function localizeErrors(req: Request, res: Response, next: NextFunction):
   res.json = ((body?: unknown) => {
     let out = body;
     try {
-      out = localizeErrorBody(res.statusCode, body, (original) => logger.error({ path: req.path, original }, 'gym-service: 5xx message withheld from the client'));
+      out = localizeErrorBody(res.statusCode, body, (original) => logger.error({ path: sanitizeUrlForLog(req.path), original }, 'gym-service: 5xx message withheld from the client'));
     } catch {
       out = body;
     }

@@ -1,7 +1,7 @@
 import express, { Express, Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import cors from "cors";
-import { logger, register, metricsMiddleware } from "@gym-coach/shared";
+import { logger, register, metricsMiddleware, sanitizeUrlForLog } from "@gym-coach/shared";
 import chatRoutes from "./routes/chat.routes";
 import callRoutes from "./routes/call.routes";
 import { getIo, disconnectUserSockets } from "./socket/index";
@@ -62,7 +62,7 @@ app.use(metricsMiddleware());
 
 // Request logging
 app.use((req: Request, _res: Response, next: NextFunction) => {
-  logger.info({ method: req.method, path: req.path, ip: req.ip });
+  logger.info({ method: req.method, path: sanitizeUrlForLog(req.path), ip: req.ip });
   next();
 });
 

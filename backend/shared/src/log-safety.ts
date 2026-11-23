@@ -29,19 +29,30 @@ const SENSITIVE_HEADER_SET = new Set(SENSITIVE_HEADERS);
 /** Headers whose VALUE is a URL that may carry a signed query (capability URLs). */
 const URL_HEADERS = new Set(["location", "content-location", "referer", "referrer"]);
 
-/** Strip the query values (and fragment) of a relative or absolute URL; keep path + param names. */
+/**
+ * Path segments that are themselves a credential: the gym partner invitation token, on the API
+ * route (/partner-invitations/:token) and on the web page that reaches logs through Referer
+ * (/partner/invite/:token). Express routes case-insensitively, so this matches the same way.
+ */
+const CAPABILITY_PATH_SEGMENT = /(\/(?:partner-invitations|partner\/invite)\/)[^/?#]+/gi;
+
+/**
+ * Strip the query values (and fragment) of a relative or absolute URL and mask capability path
+ * segments; keep the rest of the path + param names.
+ */
 export function sanitizeUrlForLog<T>(value: T): T | string {
   if (typeof value !== "string") return value;
-  const q = value.indexOf("?");
-  const h = value.indexOf("#");
-  if (q < 0) return h < 0 ? value : value.slice(0, h);
-  const end = h >= 0 && h > q ? h : value.length;
-  const names = value
+  const masked = value.replace(CAPABILITY_PATH_SEGMENT, `$1${REDACTED}`);
+  const q = masked.indexOf("?");
+  const h = masked.indexOf("#");
+  if (q < 0) return h < 0 ? masked : masked.slice(0, h);
+  const end = h >= 0 && h > q ? h : masked.length;
+  const names = masked
     .slice(q + 1, end)
     .split("&")
     .filter(Boolean)
     .map((pair) => `${pair.split("=")[0]}=${REDACTED}`);
-  return `${value.slice(0, q)}?${names.join("&")}`;
+  return `${masked.slice(0, q)}?${names.join("&")}`;
 }
 
 function entriesOf(headers: unknown): Array<[string, unknown]> {
@@ -79,7 +90,7 @@ export const reqLogSerializer = (req: any) => {
     method: s.method,
     url: sanitizeUrlForLog(s.url),
     query: redactQueryObject(s.query),
-    params: s.params,
+    params: s.params && typeof s.params === "object" && "token" in s.params ? { ...s.params, token: REDACTED } : s.params,
     headers: sanitizeHeaders(s.headers),
     remoteAddress: s.remoteAddress,
     remotePort: s.remotePort,

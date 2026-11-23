@@ -2,7 +2,7 @@ import { requestContextMiddleware } from './middleware/request-context.middlewar
 import path from 'path';
 import fs from 'fs';
 import express, { NextFunction, Request, Response } from 'express';
-import { logger, metricsMiddleware, register } from '@gym-coach/shared';
+import { logger, metricsMiddleware, register, sanitizeUrlForLog } from '@gym-coach/shared';
 import { isLambdaRuntime } from './utils/runtime.util';
 import publicRoutes from './routes/public.routes';
 import ownerRoutes from './routes/owner.routes';
@@ -98,7 +98,7 @@ app.use('/internal', internalRoutes);
 // an internal stack trace/error message to the client.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-  logger.error({ err: err?.message, path: req.path }, 'Unhandled error in gym-service');
+  logger.error({ err: err?.message, path: sanitizeUrlForLog(req.path) }, 'Unhandled error in gym-service');
   if (res.headersSent) return;
   const status = Number.isInteger(err?.status) && err.status >= 400 && err.status <= 599 ? err.status : 500;
   res.status(status).json({ success: false, error: { code: status === 500 ? 'INTERNAL_ERROR' : 'REQUEST_ERROR', message: status === 500 ? 'Hệ thống đang gặp lỗi. Vui lòng thử lại sau.' : 'Yêu cầu không hợp lệ.' } });
