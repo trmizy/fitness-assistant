@@ -31,8 +31,7 @@ describe("Nutrition goal form", () => {
     assert.match(t, /id=\{`nutrition-goal-\$\{key\}`\}/);
   });
   it("the icon-only close button of the goal form has a name (axe button-name, found in the browser)", () => {
-    assert.ok(t.includes('aria-label="Đóng"
-                onClick={() => setShowGoalModal(false)}'));
+    assert.match(t, /aria-label="Đóng"\s+onClick=\{\(\) => setShowGoalModal\(false\)\}/);
   });
 });
 
