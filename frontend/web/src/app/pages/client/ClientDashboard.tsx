@@ -544,7 +544,7 @@ export function ClientDashboard() {
               key={s.label}
               type="button"
               onClick={() => navigate(s.to)}
-              className={`${card} flex min-h-12 items-center gap-3 px-3 text-left text-sm font-semibold text-zinc-100 transition-colors hover:border-zinc-600 hover:bg-zinc-900/90`}
+              className={`${card} g-lift flex min-h-12 items-center gap-3 px-3 text-left text-sm font-semibold text-zinc-100 transition-colors hover:border-zinc-600 hover:bg-zinc-900/90`}
             >
               <s.icon className="h-5 w-5 shrink-0 text-green-400" aria-hidden />
               <span className="truncate">{s.label}</span>

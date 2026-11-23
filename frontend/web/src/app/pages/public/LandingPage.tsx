@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from "motion/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import type { ReactNode } from "react";
 import { TempoField } from "../../components/landing/TempoField";
@@ -43,6 +43,90 @@ const chapters = [
   { id: "coach", step: "03", title: "Huấn luyện viên đi cùng bạn", body: "Đặt lịch với PT, nhắn tin và để PT điều chỉnh kế hoạch theo tiến độ thật." },
 ] as const;
 
+/*
+ * ANIMATION PILOT (owner TASK 4, prototype branch only). Gymini's own take on a floating navbar:
+ * transparent over the hero, then — past 24px of scroll — a compact floating bar on the card token
+ * (no brand photo, no copied layout). One indicator slides between the link under the pointer/focus
+ * and the section in view (aria-current="location"). Fixed + out of flow and only transform / opacity /
+ * colour animate, so it cannot cause layout shift. Reduced motion: same states, no movement.
+ */
+const navLinks = [
+  { href: "#how", id: "how", label: "Cách hoạt động" },
+  { href: "#roles", id: "roles", label: "Vai trò" },
+] as const;
+
+function LandingNav({ reduced }: { reduced: boolean }) {
+  const [scrolled, setScrolled] = useState(false);
+  const [inView, setInView] = useState<string | null>(null);
+  const [hover, setHover] = useState<string | null>(null);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  useEffect(() => {
+    const els = navLinks.map((l) => document.getElementById(l.id)).filter(Boolean) as HTMLElement[];
+    if (!els.length || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible) setInView(visible.target.id);
+        else if (window.scrollY < 200) setInView(null);
+      },
+      { rootMargin: "-40% 0px -50% 0px", threshold: [0, 0.25, 0.5] },
+    );
+    els.forEach((e) => io.observe(e));
+    return () => io.disconnect();
+  }, []);
+  const marked = hover ?? inView;
+  return (
+    <header className="fixed inset-x-0 top-0 z-30 px-3 pt-3 sm:px-4" data-scrolled={scrolled || undefined}>
+      <motion.div
+        className="mx-auto flex h-14 max-w-6xl items-center gap-3 rounded-2xl border px-3 sm:px-4"
+        initial={false}
+        animate={{
+          // height is fixed on purpose: animating it would move the bar's children = a layout shift.
+          backgroundColor: scrolled ? "color-mix(in srgb, var(--card-bg) 82%, transparent)" : "color-mix(in srgb, var(--card-bg) 0%, transparent)",
+          borderColor: scrolled ? "var(--border-color)" : "rgba(0,0,0,0)",
+          boxShadow: scrolled ? "0 10px 30px -12px rgba(0,0,0,0.45)" : "0 0 0 0 rgba(0,0,0,0)",
+        }}
+        transition={reduced ? { duration: 0 } : { duration: dur.fast, ease: ease.smoothOut }}
+        style={{ backdropFilter: scrolled ? "blur(12px) saturate(140%)" : "none", WebkitBackdropFilter: scrolled ? "blur(12px) saturate(140%)" : "none" }}
+      >
+        <a href="#hero-h" className="flex items-center gap-2 rounded-lg" aria-label="Gymini, lên đầu trang">
+          <img src="/pwa-icon.svg" alt="" className="h-8 w-8" />
+          <span className="font-['Barlow'] text-xl font-bold">Gymini</span>
+        </a>
+        <nav aria-label="Trang" className="ml-auto flex items-center gap-1" onMouseLeave={() => setHover(null)}>
+          {navLinks.map((l) => (
+            <a
+              key={l.id}
+              href={l.href}
+              aria-current={inView === l.id ? "location" : undefined}
+              onMouseEnter={() => setHover(l.id)}
+              onFocus={() => setHover(l.id)}
+              onBlur={() => setHover(null)}
+              className={`relative hidden rounded-lg px-3 py-2 text-sm transition-colors sm:block ${marked === l.id || inView === l.id ? "text-[var(--text-color)]" : "text-[var(--muted-text-color)]"}`}
+            >
+              {marked === l.id && (
+                <motion.span
+                  layoutId="landing-nav-indicator"
+                  aria-hidden="true"
+                  className="absolute inset-0 -z-10 rounded-lg bg-[color-mix(in_srgb,var(--primary-color)_14%,transparent)]"
+                  transition={reduced ? { duration: 0 } : { type: "spring", stiffness: 520, damping: 42 }}
+                />
+              )}
+              {l.label}
+            </a>
+          ))}
+          <Link to="/login" className="inline-flex h-10 items-center rounded-xl border border-[var(--border-color)] px-4 text-sm font-semibold transition-colors hover:border-[var(--primary-color)]">Đăng nhập</Link>
+        </nav>
+      </motion.div>
+    </header>
+  );
+}
+
 export function LandingPage() {
   const reduced = !!useReducedMotion();
   const hero = useRef<HTMLElement>(null);
@@ -53,17 +137,7 @@ export function LandingPage() {
 
   return (
     <div className="bg-[var(--bg-color)] text-[var(--text-color)]">
-      <header className="absolute inset-x-0 top-0 z-20">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 md:px-6">
-          <img src="/pwa-icon.svg" alt="" className="h-8 w-8" />
-          <span className="font-['Barlow'] text-xl font-bold">Gymini</span>
-          <nav aria-label="Trang" className="ml-auto flex items-center gap-1">
-            <a href="#how" className="hidden rounded-lg px-3 py-2 text-sm text-[var(--muted-text-color)] hover:text-[var(--text-color)] sm:block">Cách hoạt động</a>
-            <a href="#roles" className="hidden rounded-lg px-3 py-2 text-sm text-[var(--muted-text-color)] hover:text-[var(--text-color)] sm:block">Vai trò</a>
-            <Link to="/login" className="inline-flex h-10 items-center rounded-xl border border-[var(--border-color)] px-4 text-sm font-semibold">Đăng nhập</Link>
-          </nav>
-        </div>
-      </header>
+      <LandingNav reduced={reduced} />
 
       {/* ── Hero ── */}
       <section ref={hero} className="relative isolate flex min-h-[100svh] items-center overflow-hidden" aria-labelledby="hero-h">

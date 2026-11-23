@@ -143,3 +143,18 @@ html [data-slot="skeleton"]::after {
 }
 /* Labels inside tabs/segments/chips stay on one line (V3); the bar scrolls instead. */
 .g-scroll-x > :where(button, a, [role="tab"]) { white-space: nowrap; flex-shrink: 0; }
+
+/* ── Card hover lift (ANIMATION PILOT, owner TASK 4) ─────────────────────────────────────────────
+   For cards that ARE controls (button / link). Real pointers only (no sticky hover on touch), never
+   under reduced motion. Uses the `translate` property so it composes with the press `scale` above;
+   transform-only, so no layout shift. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .g-lift {
+    transition: translate 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1), border-color 150ms ease-out, background-color 150ms ease-out;
+  }
+  .g-lift:hover, .g-lift:focus-visible {
+    translate: 0 -2px;
+    box-shadow: 0 10px 24px -14px rgb(0 0 0 / 0.55), 0 0 0 1px color-mix(in srgb, var(--primary-color) 22%, transparent);
+  }
+  .g-lift:active { translate: 0 0; }
+}
