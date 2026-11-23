@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BodyChart, ViewSide, type BodyState } from "body-muscles";
 import { MUSCLE_CODE_TO_BODY_MUSCLES_REGIONS, isBackViewMuscle } from "../constants/muscleRegionMap";
+import { makeBodyChartStatic } from "../utils/bodyChartA11y";
 
 /**
  * Product Completeness pass — Muscle Detail page's "Body location
@@ -10,7 +11,7 @@ import { MUSCLE_CODE_TO_BODY_MUSCLES_REGIONS, isBackViewMuscle } from "../consta
  * an exercise's muscle-map — no new data source, no second body-region
  * mapping invented.
  */
-export default function SingleMuscleMap({ muscleCode }: { muscleCode: string }) {
+export default function SingleMuscleMap({ muscleCode, muscleName }: { muscleCode: string; muscleName?: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<BodyChart | null>(null);
   const [view, setView] = useState<ViewSide>(
@@ -38,6 +39,8 @@ export default function SingleMuscleMap({ muscleCode }: { muscleCode: string }) 
     } else {
       chartRef.current.update({ view, bodyState });
     }
+    // A11Y-4: display-only chart -> one named image, no focusable "buttons" inside aria-hidden SVG.
+    makeBodyChartStatic(containerRef.current, `Sơ đồ vị trí nhóm cơ${muscleName ? " " + muscleName : ""}, ${view === ViewSide.FRONT ? "mặt trước" : "mặt sau"}`);
   }, [regions, view]);
 
   useEffect(() => {
