@@ -29,6 +29,8 @@ import {
   normalizeMemberships,
   pageSummary,
   planNameOf,
+  txnLabel,
+  txnRef,
   serverSegments,
   statusLabel,
   statusParamOf,
@@ -170,13 +172,13 @@ export function MembersTab() {
               const st = memberStatusTag(r.status);
               const v = validityText(r, nowMs);
               const selected = openId === r.id;
-              const label = sales ? (r.paymentTxnId ? `Giao dịch ${r.paymentTxnId}` : "Giao dịch chưa có mã") : memberDisplayName(r);
+              const label = sales ? txnLabel(r.paymentTxnId) : memberDisplayName(r);
               return (
                 <div key={r.id} role="row" className="go-dt-row" data-selected={selected ? "true" : undefined} aria-current={selected ? "true" : undefined} data-testid="go-member-row" data-row-id={r.id}>
                   <div role="cell" className="go-dt-cell go-dt-first">
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <button type="button" className="go-rowlink" onClick={() => setOpenId(r.id)} aria-label={`Mở chi tiết: ${label}`} data-testid="go-member-open">
-                        {sales ? (r.paymentTxnId ?? "Chưa có mã") : memberDisplayName(r)}
+                        {sales ? (txnRef(r.paymentTxnId) ?? "Chưa có mã") : memberDisplayName(r)}
                       </button>
                       {!sales && r.memberCode && <span className="go-dt-sub">{r.memberCode}</span>}
                     </div>

@@ -241,6 +241,17 @@ export interface MemberFilters {
 }
 export const DEFAULT_MEMBER_FILTERS: MemberFilters = { q: "", status: "all", planId: "all", sort: "newest" };
 
+/**
+ * Sales view (accountant): a payment-transaction id is an internal UUID and is never shown as text. People read a short reference,
+ * "GD-" + the first 8 letters / digits, upper case ("GD-3F9A12BC"). The full id stays available only through a copy action (drawer).
+ */
+export function txnRef(id: string | null | undefined): string | null {
+  const core = String(id ?? "").replace(/[^0-9a-z]/gi, "").slice(0, 8).toUpperCase();
+  return core ? `GD-${core}` : null;
+}
+/** Row label / accessible name of a sales row, short form only. */
+export const txnLabel = (id: string | null | undefined): string => (txnRef(id) ? `Giao dịch ${txnRef(id)}` : "Giao dịch chưa có mã");
+
 /** Lower-case, diacritics and đ folded, so "nguyen" finds "Nguyễn". */
 export function fold(s: string): string {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase().trim();
@@ -273,7 +284,7 @@ export function filterMembers(rows: readonly MemberRow[], f: MemberFilters, mode
     if (f.planId !== "all" && r.planId !== f.planId) return false;
     if (!q) return true;
     // Full view searches by name (never by id: the id is not shown); sales view by the reconciliation reference.
-    return mode === "sales" ? fold(r.paymentTxnId ?? "").includes(q) : fold(r.clientName ?? "").includes(q);
+    return mode === "sales" ? (fold(txnRef(r.paymentTxnId) ?? "").includes(q) || fold(r.paymentTxnId ?? "").includes(q)) : fold(r.clientName ?? "").includes(q);
   });
 }
 

@@ -480,3 +480,31 @@ describe("G6 routes (CODE AUDIT)", () => {
     assert.match(routes, /feature="profile">\{isGymOwnerV2Enabled\(\) \? <GymOwnerProfileV2Page \/> : <GymOwnerProfilePage \/>\}/);
   });
 });
+
+// --------------------------------------------------------------------------------------------------------------------------------- Hội viên: sales reference
+import { txnLabel, txnRef } from "../members/membersModel";
+describe("sales view never shows a raw payment-transaction id", () => {
+  const uuid = "3f9a12bc-77d0-4a1e-9c2b-0123456789ab";
+  it("short human reference: GD- + first 8 hex, upper case; empty -> none", () => {
+    assert.equal(txnRef(uuid), "GD-3F9A12BC");
+    assert.equal(txnRef("tx-77ab"), "GD-TX77AB");
+    assert.equal(txnRef(null), null);
+    assert.equal(txnRef("  "), null);
+    assert.equal(txnLabel(uuid), "Giao dịch GD-3F9A12BC");
+    assert.equal(txnLabel(undefined), "Giao dịch chưa có mã");
+    assert.equal(txnLabel(uuid).includes(uuid), false);
+    assert.equal(/[0-9a-f]{8}-[0-9a-f]{4}-/i.test(txnRef(uuid) ?? ""), false);
+  });
+  it("CODE AUDIT: rows, accessible names and the drawer use the short form; the full id is only copied, never rendered; clientId never shown", () => {
+    const tab = src(feat("members", "MembersTab.tsx"));
+    const drawer = src(feat("members", "MemberDrawer.tsx"));
+    assert.equal(/\{r\.paymentTxnId|\$\{r\.paymentTxnId\}/.test(tab), false);
+    assert.equal(/\$\{shown\.paymentTxnId\}/.test(drawer), false);
+    assert.match(tab, /txnRef\(r\.paymentTxnId\)/);
+    assert.match(tab, /txnLabel\(r\.paymentTxnId\)/);
+    assert.match(drawer, /txnLabel\(shown\.paymentTxnId\)/);
+    assert.match(drawer, /Sao chép mã giao dịch/);
+    assert.match(drawer, /writeText\(shown\.paymentTxnId/);
+    assert.equal(/clientId/.test(tab + drawer.replace(/checkinsOfMember/g, "")), false);
+  });
+});

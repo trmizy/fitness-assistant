@@ -5,6 +5,7 @@
  */
 import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { gymService } from "../../../services/api";
 import { formatVND } from "../../../utils/currency";
 import { GoTag } from "../../../components/layout/gym-owner/GoTag";
@@ -23,6 +24,7 @@ import {
   memberDisplayName,
   memberStatusTag,
   planNameOf,
+  txnLabel,
   validityText,
   visitsText,
   type MemberRow,
@@ -51,7 +53,7 @@ export function MemberDrawer({ row, mode, gymId, gymName, plans, onClose }: { ro
   const v = validityText(shown, Date.now());
   const code = branchCodes(scope.gyms)[gymId];
   const items = checkinsQ.data && checkinsQ.data.scopeKey === scope.scopeKey ? checkinsOfMember(checkinsQ.data.raw, shown) : [];
-  const title = sales ? (shown.paymentTxnId ? `Giao dịch ${shown.paymentTxnId}` : "Giao dịch chưa có mã") : memberDisplayName(shown);
+  const title = sales ? txnLabel(shown.paymentTxnId) : memberDisplayName(shown);
 
   return (
     <GoDrawer
@@ -72,6 +74,18 @@ export function MemberDrawer({ row, mode, gymId, gymName, plans, onClose }: { ro
         <>
           {!sales && canOpenFrontDesk(scope.can) && (
             <GoLink to={frontDeskHref(gymId, "checkin", shown.memberCode)} className="go-btn" data-variant="primary" data-testid="go-member-desk">Xem tại quầy</GoLink>
+          )}
+          {sales && shown.paymentTxnId && (
+            <button
+              type="button"
+              className="go-btn"
+              data-testid="go-member-copy-txn"
+              onClick={() => {
+                navigator.clipboard?.writeText(shown.paymentTxnId ?? "").then(() => toast.success("Đã sao chép mã giao dịch"), () => toast.error("Không sao chép được mã giao dịch"));
+              }}
+            >
+              Sao chép mã giao dịch
+            </button>
           )}
           <p data-testid="go-member-refund-note">Hoàn tiền hội viên do Gymini xử lý.</p>
         </>
