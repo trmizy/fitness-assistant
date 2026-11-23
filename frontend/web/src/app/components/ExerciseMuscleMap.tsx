@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { BodyChart, ViewSide, type BodyState } from "body-muscles";
 import { MUSCLE_CODE_TO_BODY_MUSCLES_REGIONS, isBackViewMuscle } from "../constants/muscleRegionMap";
 import { workoutService } from "../services/api";
+import { makeBodyChartStatic, listVi } from "../utils/bodyChartA11y";
 
 /**
  * Gate 6 (exercise/anatomy data-expansion roadmap) — real muscle-map SVG
@@ -104,6 +105,11 @@ export default function ExerciseMuscleMap({ exerciseId }: { exerciseId: string }
     } else {
       chartRef.current.update({ view, bodyState });
     }
+    // A11Y-4: display-only chart -> one named image, no focusable "buttons" inside aria-hidden SVG.
+    const side = view === ViewSide.FRONT ? "mặt trước" : "mặt sau";
+    const main = listVi(primary.map((m) => m.nameVi));
+    const support = listVi(secondary.map((m) => m.nameVi));
+    makeBodyChartStatic(containerRef.current, ["Sơ đồ nhóm cơ của bài tập, " + side, main && "cơ chính: " + main, support && "cơ phụ: " + support].filter(Boolean).join(". "));
 
     return () => {
       // Only tear down when the component itself unmounts (handled by the
