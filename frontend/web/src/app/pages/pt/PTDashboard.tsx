@@ -35,6 +35,8 @@ import {
   ErrorState,
 } from "../../components/dashboard/DashboardStates";
 import { fullName } from "../../utils/fullName";
+import { QueryErrorNotice } from "../../components/ui/QueryErrorNotice";
+import { listFailed, QUERY_ERROR_TEXT } from "../../utils/queryErrorState";
 
 // clientProfile (from testai-v4 service) or clientName string (legacy compat)
 type ClientRef = {
@@ -140,10 +142,11 @@ export function PTDashboard() {
     queryFn: () => contractService.getEarnings(),
   });
 
-  const { data: contracts = [], isLoading: contractsLoading } = useQuery({
+  const contractsQuery = useQuery({
     queryKey: ["pt-contracts"],
     queryFn: () => contractService.getByPT(),
   });
+  const { data: contracts = [], isLoading: contractsLoading } = contractsQuery;
 
   const {
     data: upcomingSessions = [],
@@ -154,10 +157,17 @@ export function PTDashboard() {
     queryFn: () => sessionService.getMyUpcoming(),
   });
 
-  const { data: pendingPlans = [] } = useQuery({
+  const pendingPlansQuery = useQuery({
     queryKey: ["pt-pending-plans-count"],
     queryFn: () => ptPlanReviewService.getPendingReviews(),
   });
+  const { data: pendingPlans = [] } = pendingPlansQuery;
+  // A failed contracts / pending-review request must not read as "Không có cảnh báo" (FE2-FIX group B).
+  const alertsFailed = listFailed(contractsQuery) || listFailed(pendingPlansQuery);
+  const retryAlerts = () => {
+    if (listFailed(contractsQuery)) void contractsQuery.refetch();
+    if (listFailed(pendingPlansQuery)) void pendingPlansQuery.refetch();
+  };
 
   const { startSessionPreview } = useCall();
   const [joiningSessionId, setJoiningSessionId] = useState<string | null>(null);
@@ -489,7 +499,7 @@ export function PTDashboard() {
               <SkeletonRow />
               <SkeletonRow />
             </div>
-          ) : (pendingPlans as any[]).length === 0 && alerts.length === 0 ? (
+          ) : (pendingPlans as any[]).length === 0 && alerts.length === 0 && !alertsFailed ? (
             <EmptyState
               icon={CalendarCheck2}
               title="Không có cảnh báo"
@@ -497,6 +507,11 @@ export function PTDashboard() {
             />
           ) : (
             <div className="divide-y divide-zinc-800/40">
+              {alertsFailed && (
+                <div className="p-4">
+                  <QueryErrorNotice testId="pt-alerts-error" text={QUERY_ERROR_TEXT.ptAlerts} onRetry={retryAlerts} busy={contractsQuery.isFetching || pendingPlansQuery.isFetching} />
+                </div>
+              )}
               {(pendingPlans as any[]).length > 0 && (
                 <div className="bg-violet-500/5 px-4 py-3">
                   <div className="flex items-center gap-2">

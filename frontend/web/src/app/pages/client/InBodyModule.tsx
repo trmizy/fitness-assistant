@@ -23,6 +23,8 @@ import { InBodySegmentalDiagram } from "../../components/InBodySegmentalDiagram"
 import { InBodyExplanationCard } from "../../components/InBodyExplanationCard";
 import { ContentTabs, TabPanel } from "../../components/ui/nav/ContentTabs";
 import { isWebPresentation } from "../../utils/webPresentation";
+import { QueryErrorNotice } from "../../components/ui/QueryErrorNotice";
+import { activeCycleFailed, QUERY_ERROR_TEXT } from "../../utils/queryErrorState";
 
 // WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
 const WEB_UI = isWebPresentation();
@@ -36,7 +38,12 @@ function CurrentCycleWidget() {
     retry: false,
   });
 
-  if (activeQuery.isLoading || !activeQuery.data?.cycle) return null;
+  if (activeQuery.isLoading) return null;
+  // 404 = "no active cycle" (normal, nothing to show); any other failure is an error, not "no cycle".
+  if (activeCycleFailed(activeQuery)) {
+    return <QueryErrorNotice testId="inbody-cycle-error" text={QUERY_ERROR_TEXT.inbodyCycle} onRetry={() => activeQuery.refetch()} busy={activeQuery.isFetching} />;
+  }
+  if (!activeQuery.data?.cycle) return null;
 
   const { cycle, summary } = activeQuery.data;
   const daysElapsed = Math.floor((Date.now() - new Date(cycle.startDate).getTime()) / 86_400_000);

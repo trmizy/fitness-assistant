@@ -25,6 +25,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar"
 import { contractPlaceLabel } from "../../utils/contractPlace";
 import { FilterChips } from "../../components/ui/nav/FilterChips";
 import { isWebPresentation } from "../../utils/webPresentation";
+import { QueryErrorNotice } from "../../components/ui/QueryErrorNotice";
+import { listFailed, QUERY_ERROR_TEXT } from "../../utils/queryErrorState";
 
 // WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
 const WEB_UI = isWebPresentation();
@@ -216,10 +218,13 @@ export function PTContractsPage() {
   const [feedbackId, setFeedbackId] = useState<string | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
 
-  const { data: contracts = [], isLoading } = useQuery({
+  const contractsQuery = useQuery({
     queryKey: ["pt-contracts", tab],
     queryFn: () => contractService.getByPT(tab || undefined),
   });
+  const { data: contracts = [], isLoading } = contractsQuery;
+  // A failed list must not read as "Tổng 0 / Chưa có hợp đồng" (FE2-FIX group B).
+  const contractsFailed = listFailed(contractsQuery);
 
   // D25: a PT who has not confirmed the current PT terms is refused on accept - say so in plain words and open the terms.
   const [termsOpen, setTermsOpen] = useState(false);
@@ -401,6 +406,7 @@ export function PTContractsPage() {
       <PtTermsBanner open={termsOpen} onOpenChange={setTermsOpen} />
 
       {/* KPI cards */}
+      {!contractsFailed && (
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           {
@@ -442,6 +448,7 @@ export function PTContractsPage() {
           </div>
         ))}
       </div>
+      )}
 
       {/* Search + Tabs */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -489,8 +496,12 @@ export function PTContractsPage() {
         </div>
       )}
 
+      {contractsFailed && (
+        <QueryErrorNotice testId="pt-contracts-error" text={QUERY_ERROR_TEXT.ptContracts} onRetry={() => contractsQuery.refetch()} busy={contractsQuery.isFetching} />
+      )}
+
       {/* Empty state */}
-      {!isLoading && filtered.length === 0 && (
+      {!isLoading && !contractsFailed && filtered.length === 0 && (
         <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-20 text-center">
           <FileText className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
           <h3 className="text-zinc-200 font-bold mb-1">Chưa có hợp đồng</h3>

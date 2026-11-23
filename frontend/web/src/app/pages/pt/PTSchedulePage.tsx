@@ -22,6 +22,8 @@ import { fullName } from "../../utils/fullName";
 import { rescheduleBlockedReason, rescheduleErrorMessage, rescheduleSubmitHint } from "../../utils/reschedule";
 import { useAcceptedMoves } from "../../hooks/useAcceptedMoves";
 import { isWebPresentation } from "../../utils/webPresentation";
+import { QueryErrorNotice } from "../../components/ui/QueryErrorNotice";
+import { listFailed, QUERY_ERROR_TEXT } from "../../utils/queryErrorState";
 
 // WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
 const WEB_UI = isWebPresentation();
@@ -201,10 +203,13 @@ export function PTSchedulePage() {
 
   // N15B-06: an in-person session that is over but still CONFIRMED is no longer in "upcoming" - without this list the PT could
   // only close it from the contract page.
-  const { data: awaitingRaw = [] } = useQuery({
+  const awaitingQuery = useQuery({
     queryKey: ["sessions-awaiting-completion"],
     queryFn: () => sessionService.listAwaitingCompletion(),
   });
+  const awaitingRaw = awaitingQuery.data ?? [];
+  // A failed list must not read as "nothing to close" (FE2-FIX group B).
+  const awaitingFailed = listFailed(awaitingQuery);
   const awaitingCompletion = sessionsToClose(awaitingRaw as Session[]);
 
   const { data: availability = [], isLoading: loadingAvail } = useQuery({
@@ -472,6 +477,9 @@ export function PTSchedulePage() {
       </div>
 
       {/* N15B-06: finished in-person sessions nobody closed yet */}
+      {awaitingFailed && (
+        <QueryErrorNotice testId="pt-sessions-to-close-error" text={QUERY_ERROR_TEXT.ptSessionsToClose} onRetry={() => awaitingQuery.refetch()} busy={awaitingQuery.isFetching} />
+      )}
       {awaitingCompletion.length > 0 && (
         <section data-testid="pt-sessions-to-close" aria-label="Cần chốt buổi" className="bg-blue-500/5 border border-blue-500/30 rounded-xl p-4 space-y-3">
           <div>

@@ -26,6 +26,8 @@ import { GoalCoherenceBanner } from "../../components/GoalCoherenceBanner";
 import { ActivePill } from "../../components/ui/ActivePill";
 import { SegmentedControl } from "../../components/ui/nav/SegmentedControl";
 import { isWebPresentation } from "../../utils/webPresentation";
+import { QueryErrorNotice } from "../../components/ui/QueryErrorNotice";
+import { hasBlockingError, QUERY_ERROR_TEXT } from "../../utils/queryErrorState";
 
 // WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
 const WEB_UI = isWebPresentation();
@@ -287,6 +289,9 @@ export function NutritionPage() {
   const {
     data: dailyTask,
     isLoading: loadingTask,
+    isError: taskError,
+    isFetching: fetchingTask,
+    error: taskErrorValue,
     refetch: refetchDailyTask,
   } = useQuery({
     queryKey: ["nutrition-daily-task", dateStr],
@@ -1176,6 +1181,11 @@ export function NutritionPage() {
           Tạo kế hoạch mới
         </button>
       </div>
+
+      {/* The day's plan failed to load: say so (with a retry) instead of looking like "no plan for today". */}
+      {hasBlockingError({ isError: taskError, data: dailyTask, error: taskErrorValue }) && (
+        <QueryErrorNotice testId="nutrition-daily-task-error" text={QUERY_ERROR_TEXT.nutritionDay} onRetry={() => refetchDailyTask()} busy={fetchingTask} />
+      )}
 
       {/* ── Out-of-range banner: date is outside the 7-day plan ── */}
       {!loadingTask &&
