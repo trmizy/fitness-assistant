@@ -498,7 +498,7 @@ export function PTSchedulePage() {
                   data-testid="pt-session-complete"
                   onClick={() => completeMut.mutate(s.id)}
                   disabled={completeMut.isPending}
-                  className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-blue-500 px-4 text-xs font-bold text-white transition-all hover:bg-blue-400 disabled:opacity-50"
+                  className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white transition-all hover:bg-blue-700 disabled:opacity-50"
                 >
                   <CheckCircle className="w-4 h-4" /> Hoàn thành
                 </button>
@@ -762,7 +762,7 @@ export function PTSchedulePage() {
                                 <button
                                   onClick={() => completeMut.mutate(s.id)}
                                   disabled={completeMut.isPending}
-                                  className="flex items-center gap-1 bg-blue-500 hover:bg-blue-400 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all"
+                                  className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all"
                                 >
                                   <CheckCircle className="w-3 h-3" /> Hoàn thành
                                 </button>

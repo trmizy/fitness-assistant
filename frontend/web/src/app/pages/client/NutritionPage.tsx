@@ -3270,12 +3270,15 @@ export function NutritionPage() {
               ].map(({ key, label, unit, color }) => (
                 <div key={key} className="flex items-center gap-3">
                   <label
+                    htmlFor={`nutrition-goal-${key}`}
                     className={`text-sm font-semibold ${color} w-32 flex-shrink-0`}
                   >
                     {label}
+                    <span className="sr-only"> ({unit})</span>
                   </label>
                   <div className="flex-1 relative">
                     <input
+                      id={`nutrition-goal-${key}`}
                       type="number"
                       min={1}
                       disabled={goalMode === "RECOMMENDED"}

@@ -527,22 +527,10 @@ export function PTContractsPage() {
                 key={c.id}
                 className={`bg-zinc-900 rounded-xl border overflow-hidden ${c.status === "PENDING_REVIEW" ? "border-amber-500/30" : "border-zinc-800/60"}`}
               >
-                {/* div[role=button] (not <button>): the row holds the quick Accept/Reject buttons, and a
-                    button nested in a button is invalid DOM (React validateDOMNesting). */}
-                <div
-                  role="button"
-                  tabIndex={0}
-                  aria-expanded={isExpanded}
-                  onClick={() => setExpanded(isExpanded ? null : c.id)}
-                  onKeyDown={(e) => {
-                    if (e.target !== e.currentTarget) return;
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setExpanded(isExpanded ? null : c.id);
-                    }
-                  }}
-                  className="w-full text-left p-4 hover:bg-zinc-800/30 transition-colors cursor-pointer"
-                >
+                {/* A11Y (nested-interactive): the row is NOT a button, because it holds the quick Accept/Reject buttons.
+                    The one real <button aria-expanded> is the package name; its ::after stretches over the whole row
+                    so the row is still one big click target, and the quick actions sit above it (z-10). */}
+                <div className="relative w-full text-left p-4 hover:bg-zinc-800/30 transition-colors">
                   <div className="flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-3 sm:gap-4">
                     <div
                       className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center border ${cfg.bg}`}
@@ -551,9 +539,15 @@ export function PTContractsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-bold text-zinc-200 break-words min-w-0 max-w-full">
+                        <button
+                          type="button"
+                          aria-expanded={isExpanded}
+                          onClick={() => setExpanded(isExpanded ? null : c.id)}
+                          className="text-sm font-bold text-zinc-200 break-words min-w-0 max-w-full text-left cursor-pointer outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-green-500/70"
+                          data-testid="pt-contract-toggle"
+                        >
                           {c.packageName}
-                        </span>
+                        </button>
                         <span
                           className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${cfg.bg} ${cfg.color}`}
                         >
@@ -605,10 +599,7 @@ export function PTContractsPage() {
                     {/* Quick accept/reject for pending. Under sm it drops to its own full-width line (after the
                         chevron) so it can never overlap the package / client name. */}
                     {c.status === "PENDING_REVIEW" && (
-                      <div
-                        className="flex gap-2 order-last w-full sm:order-none sm:w-auto"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <div className="relative z-10 flex gap-2 order-last w-full sm:order-none sm:w-auto">
                         <button
                           onClick={() => acceptMutation.mutate(c.id)}
                           disabled={acceptMutation.isPending}
