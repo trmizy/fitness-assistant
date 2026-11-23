@@ -28,6 +28,14 @@ async function authCall<T = any>(method: 'GET' | 'POST', path: string, body: unk
   return data as T;
 }
 
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  let timer: NodeJS.Timeout;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(Object.assign(new Error('auth-service timeout'), { code: 'ETIMEDOUT' })), ms);
+  });
+  return Promise.race([p, timeout]).finally(() => clearTimeout(timer));
+}
+
 /**
  * Phase 2 — những việc auth-service phải làm hộ luồng quản trị đối tác. gym-service không
  * bao giờ chạm tới mật khẩu hay phiên đăng nhập; nó chỉ nhờ dịch vụ sở hữu credential làm
@@ -81,6 +89,18 @@ export const authClient = {
     if (userIds.length === 0) return [] as Array<{ id: string; email: string; firstName: string | null; lastName: string | null }>;
     const data = await authCall('POST', '/auth/internal/users/batch', { userIds }, 5000);
     return (data?.users ?? []) as Array<{ id: string; email: string; firstName: string | null; lastName: string | null }>;
+  },
+
+  /**
+   * Owner member search: which of THESE user ids have a display name matching `q` (auth-service owns the names; matching is
+   * accent-insensitive, see auth-service utils/vi-search.ts). The route only filters the supplied ids (max 500) and returns a
+   * subset of them. Network / 4xx / 5xx errors THROW - the caller must never read "could not ask" as "no match" or as "everyone".
+   */
+  async searchUserIdsByName(userIds: string[], q: string): Promise<string[]> {
+    if (userIds.length === 0) return [];
+    const data = await withTimeout(authCall('POST', '/auth/internal/users/search-by-name', { userIds, q }, 5000), 6000);
+    if (!Array.isArray(data?.matchedIds)) throw new Error('auth-service search-by-name: unexpected response');
+    return (data.matchedIds as unknown[]).filter((x): x is string => typeof x === 'string');
   },
 
   async getUser(userId: string) {

@@ -106,6 +106,9 @@ export const CODE_MESSAGES_VI: Record<string, string> = {
   // front desk / assisted check-in
   SEARCH_RATE_LIMITED: 'Tra cứu quá nhiều lần. Vui lòng thử lại sau ít phút.',
   MEMBER_NOT_FOUND: 'Không tìm thấy hội viên.',
+  MEMBER_SEARCH_FORBIDDEN: 'Vai trò của bạn không được tìm hội viên theo tên.',
+  MEMBER_SEARCH_UNAVAILABLE: 'Chưa tìm được theo tên lúc này. Vui lòng thử lại sau.',
+  MEMBER_SEARCH_TOO_BROAD: 'Chi nhánh có quá nhiều hội viên để tìm theo tên. Hãy lọc theo trạng thái trước.',
   SEARCH_QUERY_INVALID: 'Nội dung tra cứu không hợp lệ.',
   METHOD_DISABLED: 'Cách xác minh này hiện chưa được bật.',
   IDEMPOTENCY_KEY_REUSED: 'Yêu cầu này đã được gửi với nội dung khác. Vui lòng tải lại rồi thử lại.',

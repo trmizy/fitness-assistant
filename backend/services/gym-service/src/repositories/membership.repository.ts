@@ -83,6 +83,8 @@ export const membershipRepository = {
       cursor?: { createdAt: Date; id: string } | null;
       status?: Prisma.GymMembershipContractWhereInput['status'];
       expiringBefore?: Date | null;
+      /** Member search: keep only these clients (already matched by name). Undefined = no restriction (the normal list). */
+      clientIds?: readonly string[];
     },
     now: Date = new Date(),
   ) {
@@ -92,10 +94,38 @@ export const membershipRepository = {
     }
     if (opts.expiringBefore) and.push({ endDate: { gt: now, lte: opts.expiringBefore } });
     return prisma.gymMembershipContract.findMany({
-      where: { gymId, ...(opts.status ? { status: opts.status } : {}), ...(and.length ? { AND: and } : {}) },
+      where: {
+        gymId,
+        ...(opts.status ? { status: opts.status } : {}),
+        ...(opts.clientIds ? { clientId: { in: [...opts.clientIds] } } : {}),
+        ...(and.length ? { AND: and } : {}),
+      },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       ...(opts.limit !== null ? { take: opts.limit + 1 } : {}),
     });
+  },
+
+  /**
+   * Member search step 1: the DISTINCT client ids of one branch's memberships (ids only - no row is loaded), honouring the same status /
+   * expiringBefore filters as pageForGym. Not cursor-bound: the candidate set is the same on every page of a walk. `take: max + 1` (GROUP BY in the
+   * DB) lets the caller see that the branch has more distinct clients than it is willing to send for name matching.
+   */
+  async distinctClientIdsForGym(
+    gymId: string,
+    opts: { status?: Prisma.GymMembershipContractWhereInput['status']; expiringBefore?: Date | null; max: number },
+    now: Date = new Date(),
+  ): Promise<string[]> {
+    const rows = await prisma.gymMembershipContract.groupBy({
+      by: ['clientId'],
+      where: {
+        gymId,
+        ...(opts.status ? { status: opts.status } : {}),
+        ...(opts.expiringBefore ? { endDate: { gt: now, lte: opts.expiringBefore } } : {}),
+      },
+      orderBy: { clientId: 'asc' },
+      take: opts.max + 1,
+    });
+    return rows.map((r) => r.clientId);
   },
 
   /**
