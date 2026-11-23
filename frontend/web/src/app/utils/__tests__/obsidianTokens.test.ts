@@ -65,4 +65,12 @@ describe("token consolidation", () => {
     assert.match(ob, /--ob-nav-pill-line: rgba\(34, 197, 94, 0\.3\);/);
     assert.doesNotMatch(css("gym-owner.css"), /--ob-/);
   });
+
+  it("no theme draws a halo around the active rail item (the sky-blue one was a Night Glass leftover)", () => {
+    const ob = css("obsidian.css");
+    const glows = ob.match(/--ob-nav-glow:[^;]*;/g) ?? [];
+    assert.equal(glows.length, 2); // dark + light
+    for (const g of glows) assert.match(g, /--ob-nav-glow: 0 0 0 0 transparent;/);
+    assert.doesNotMatch(ob, /14, 165, 233/);
+  });
 });

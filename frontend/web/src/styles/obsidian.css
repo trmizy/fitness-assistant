@@ -92,7 +92,7 @@
   --ob-nav-highlight: rgba(255, 255, 255, 0.95);
   --ob-nav-icon: #4a524e;
   --ob-nav-pill-line: rgba(21, 128, 61, 0.28);
-  --ob-nav-glow: 0 0 16px -6px rgba(14, 165, 233, 0.45); /* kept as-is from Night Glass (sky); owner decides whether to drop it like dark */
+  --ob-nav-glow: 0 0 0 0 transparent; /* same as dark: the sky-blue halo around the active rail item was a Night Glass leftover (owner approved dropping it, 23/11) */
   --ob-nav-shadow: 0 20px 40px -24px rgba(15, 23, 42, 0.35), 0 2px 6px -3px rgba(15, 23, 42, 0.18);
 }
 
