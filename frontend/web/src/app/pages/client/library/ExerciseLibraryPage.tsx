@@ -111,6 +111,7 @@ export function ExerciseLibraryPage() {
       <div className="flex gap-2 overflow-x-auto g-scroll-x pb-1">
         <select
           data-testid="exercise-library-filter-bodypart"
+          aria-label="Lọc theo vùng cơ thể"
           value={bodyPart}
           onChange={(e) => setBodyPart(e.target.value)}
           className="flex-shrink-0 text-xs bg-zinc-900 border border-zinc-700/60 rounded-lg px-2.5 py-2 text-zinc-300"
@@ -124,6 +125,7 @@ export function ExerciseLibraryPage() {
         </select>
         <select
           data-testid="exercise-library-filter-equipment"
+          aria-label="Lọc theo thiết bị"
           value={equipment}
           onChange={(e) => setEquipment(e.target.value)}
           className="flex-shrink-0 text-xs bg-zinc-900 border border-zinc-700/60 rounded-lg px-2.5 py-2 text-zinc-300"
@@ -137,6 +139,7 @@ export function ExerciseLibraryPage() {
         </select>
         <select
           data-testid="exercise-library-filter-activity"
+          aria-label="Lọc theo loại hoạt động"
           value={activityType}
           onChange={(e) => setActivityType(e.target.value)}
           className="flex-shrink-0 text-xs bg-zinc-900 border border-zinc-700/60 rounded-lg px-2.5 py-2 text-zinc-300"
@@ -150,6 +153,7 @@ export function ExerciseLibraryPage() {
         </select>
         <select
           data-testid="exercise-library-filter-difficulty"
+          aria-label="Lọc theo mức độ"
           value={difficulty}
           onChange={(e) => setDifficulty(e.target.value)}
           className="flex-shrink-0 text-xs bg-zinc-900 border border-zinc-700/60 rounded-lg px-2.5 py-2 text-zinc-300"
@@ -163,6 +167,7 @@ export function ExerciseLibraryPage() {
         </select>
         <select
           data-testid="exercise-library-filter-logging-mode"
+          aria-label="Lọc theo cách ghi bài tập"
           value={loggingMode}
           onChange={(e) => setLoggingMode(e.target.value)}
           className="flex-shrink-0 text-xs bg-zinc-900 border border-zinc-700/60 rounded-lg px-2.5 py-2 text-zinc-300"

@@ -145,6 +145,7 @@ export function FoodLibraryPage() {
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
           <select
             data-testid="food-library-source-filter"
+          aria-label="Lọc theo nguồn dữ liệu"
             value={sourceFilter}
             onChange={(event) => setSourceFilter(event.target.value)}
             className="px-3 py-2 rounded-lg border border-zinc-700/60 bg-zinc-900 text-xs text-zinc-300 outline-none focus:ring-2 focus:ring-rose-500/40"
@@ -158,6 +159,7 @@ export function FoodLibraryPage() {
           </select>
           <select
             data-testid="food-library-form-filter"
+          aria-label="Lọc theo dạng thực phẩm"
             value={formFilter}
             onChange={(event) => setFormFilter(event.target.value)}
             className="px-3 py-2 rounded-lg border border-zinc-700/60 bg-zinc-900 text-xs text-zinc-300 outline-none focus:ring-2 focus:ring-rose-500/40"
@@ -171,6 +173,7 @@ export function FoodLibraryPage() {
           </select>
           <select
             data-testid="food-library-supplement-filter"
+          aria-label="Lọc theo loại (thực phẩm / thực phẩm bổ sung)"
             value={supplementFilter}
             onChange={(event) =>
               setSupplementFilter(event.target.value as "all" | "true" | "false")

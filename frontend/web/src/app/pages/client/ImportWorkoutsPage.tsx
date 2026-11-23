@@ -220,6 +220,7 @@ export function ImportWorkoutsPage() {
             type="file"
             accept=".csv,text/csv"
             data-testid="import-file-input"
+            aria-label="Chọn tệp CSV để nhập lịch sử tập"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             className="block w-full text-xs text-zinc-400 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-sky-500/15 file:text-sky-300 file:text-xs hover:file:bg-sky-500/25"
           />

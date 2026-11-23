@@ -936,10 +936,12 @@ export function PTApplicationPage() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
+          type="button"
           onClick={() => navigate("/client/profile")}
+          aria-label="Quay lại hồ sơ"
           className="p-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-all"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4" aria-hidden="true" />
         </button>
         <div>
           <h1 className="text-zinc-100 font-bold text-xl">
@@ -1085,8 +1087,8 @@ export function PTApplicationPage() {
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className={lbl}>Tỉnh/Thành phố</label>
-                    <select
+                    <label htmlFor="pt-app-residence-province" className={lbl}>Tỉnh/Thành phố</label>
+                    <select id="pt-app-residence-province"
                       className={inp}
                       value={formData.residenceProvinceCode ?? ""}
                       onChange={(e) =>
@@ -1102,8 +1104,8 @@ export function PTApplicationPage() {
                     </select>
                   </div>
                   <div>
-                    <label className={lbl}>Phường/Xã</label>
-                    <select
+                    <label htmlFor="pt-app-residence-ward" className={lbl}>Phường/Xã</label>
+                    <select id="pt-app-residence-ward"
                       className={inp}
                       value={formData.residenceWardCode ?? ""}
                       onChange={(e) =>
@@ -1199,8 +1201,8 @@ export function PTApplicationPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={lbl}>Số năm kinh nghiệm PT *</label>
-                  <select
+                  <label htmlFor="pt-app-years-experience" className={lbl}>Số năm kinh nghiệm PT *</label>
+                  <select id="pt-app-years-experience"
                     className={inp}
                     value={formData.yearsOfExperience || ""}
                     onChange={(e) =>
@@ -2000,8 +2002,8 @@ export function PTApplicationPage() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div>
-                            <label className={lbl}>Tỉnh/Thành phố *</label>
-                            <select
+                            <label htmlFor={`pt-app-loc-${idx}-province`} className={lbl}>Tỉnh/Thành phố *</label>
+                            <select id={`pt-app-loc-${idx}-province`}
                               className={inp}
                               value={loc.provinceCode}
                               onChange={(e) =>
@@ -2021,8 +2023,8 @@ export function PTApplicationPage() {
                           </div>
                           {loc.wards.length > 0 && (
                             <div>
-                              <label className={lbl}>Phường/Xã</label>
-                              <select
+                              <label htmlFor={`pt-app-loc-${idx}-ward`} className={lbl}>Phường/Xã</label>
+                              <select id={`pt-app-loc-${idx}-ward`}
                                 className={inp}
                                 value={loc.wardCode}
                                 onChange={(e) =>
