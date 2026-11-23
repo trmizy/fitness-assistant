@@ -24,6 +24,11 @@ import { BeginnerNutritionSummary } from "../../components/nutrition/BeginnerNut
 import { useApp } from "../../context/AppContext";
 import { GoalCoherenceBanner } from "../../components/GoalCoherenceBanner";
 import { ActivePill } from "../../components/ui/ActivePill";
+import { SegmentedControl } from "../../components/ui/nav/SegmentedControl";
+import { isWebPresentation } from "../../utils/webPresentation";
+
+// WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
+const WEB_UI = isWebPresentation();
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -3136,6 +3141,9 @@ export function NutritionPage() {
                   inputs read-only (values come from the app's own
                   calculation); Custom unlocks manual editing with a live
                   Atwater-consistency preview. */}
+              {WEB_UI ? (
+              <SegmentedControl label="Chế độ mục tiêu dinh dưỡng" value={goalMode} onChange={setGoalMode} className="w-full [&>button]:flex-1" options={[{ value: "RECOMMENDED", label: "Được đề xuất", testId: "goal-mode-recommended" }, { value: "CUSTOM", label: "Tự nhập", testId: "goal-mode-custom" }]} testId="goal-mode" />
+              ) : (
               <div
                 role="tablist"
                 aria-label="Chế độ mục tiêu dinh dưỡng"
@@ -3172,6 +3180,7 @@ export function NutritionPage() {
                   <span className="relative">Tự nhập</span>
                 </button>
               </div>
+              )}
               {goalMode === "RECOMMENDED" && (
                 <div className="mt-2 space-y-2">
                   <p className="text-[11px] text-zinc-500">

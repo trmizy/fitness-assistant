@@ -1,0 +1,191 @@
+/*
+ * OBSIDIAN GLASS (design prototype, branch frontend2/obsidian-dashboard-prototype — not for aws-deploy).
+ * Loaded after night-glass.css: it re-points the --ng-* navigation tokens (rail, tooltip, search) at the Obsidian
+ * world and adds --ob-* tokens for the Client dashboard.
+ *
+ * World: a gym at night — matte rubber, brushed steel, the InBody printout. Surfaces stay neutral graphite with a
+ * hint of green-black; the brand green is the one accent and it only marks the selection, the primary action and
+ * the number that matters. Depth comes from surface steps + hairlines, not glow.
+ */
+:root,
+.dark {
+  --ob-bg: #0a0a0a;
+  --ob-deep: #080909;
+  --ob-surface: #121514;
+  --ob-surface-2: #181c1a;
+  --ob-elevated: #252b28;
+  --ob-glass: rgba(18, 21, 20, 0.72);
+  --ob-hair: rgba(245, 245, 245, 0.08);
+  --ob-hair-strong: rgba(245, 245, 245, 0.14);
+  --ob-highlight: rgba(255, 255, 255, 0.06); /* top specular edge */
+  --ob-text: #f5f5f5;
+  --ob-text-2: #a3a3a3;
+  --ob-text-3: #8a8f8c; /* muted, still >= 4.5:1 on --ob-surface */
+  --ob-accent: #22c55e;
+  --ob-accent-ink: #4ade80; /* accent used as text on dark */
+  --ob-accent-soft: rgba(34, 197, 94, 0.12);
+  --ob-accent-line: rgba(34, 197, 94, 0.34);
+  --ob-on-accent: #04130a;
+  --ob-shadow: 0 1px 0 0 var(--ob-highlight) inset, 0 18px 40px -28px rgba(0, 0, 0, 0.9);
+  /* body map */
+  --ob-body: #1d2220;
+  --ob-body-line: rgba(245, 245, 245, 0.1);
+  --ob-body-hover: #2c3430;
+  --ob-body-quiet: #161a18;
+
+  /* navigation (rail, tooltip, search) re-pointed from Night Glass blue-black to Obsidian */
+  --ng-glass: rgba(18, 21, 20, 0.66);
+  --ng-glass-strong: rgba(14, 17, 16, 0.9);
+  --ng-border: rgba(245, 245, 245, 0.1);
+  --ng-border-soft: rgba(245, 245, 245, 0.06);
+  --ng-highlight: rgba(255, 255, 255, 0.07);
+  --ng-text: #f5f5f5;
+  --ng-text-2: #a3a3a3;
+  --ng-icon: #9ca3a0;
+  --ng-accent: #4ade80;
+  --ng-accent-2: #22c55e;
+  --ng-pill: rgba(34, 197, 94, 0.12);
+  --ng-pill-border: rgba(34, 197, 94, 0.3);
+  --ng-glow: 0 0 0 0 transparent;
+  --ng-hover: rgba(245, 245, 245, 0.05);
+  --ng-elevated: #252b28;
+  --ng-focus: #4ade80;
+}
+.light,
+:root[data-theme="light"] {
+  --ob-bg: #f4f5f4;
+  --ob-deep: #eceeed;
+  --ob-surface: #ffffff;
+  --ob-surface-2: #f7f8f7;
+  --ob-elevated: #e9ecea;
+  --ob-glass: rgba(255, 255, 255, 0.78);
+  --ob-hair: rgba(11, 15, 13, 0.08);
+  --ob-hair-strong: rgba(11, 15, 13, 0.14);
+  --ob-highlight: rgba(255, 255, 255, 0.9);
+  --ob-text: #0b0f0d;
+  --ob-text-2: #4a524e;
+  --ob-text-3: #5c6460;
+  --ob-accent: #16a34a;
+  --ob-accent-ink: #15803d;
+  --ob-accent-soft: rgba(22, 163, 74, 0.1);
+  --ob-accent-line: rgba(21, 128, 61, 0.32);
+  --ob-on-accent: #ffffff;
+  --ob-shadow: 0 1px 2px rgba(11, 15, 13, 0.05), 0 16px 36px -26px rgba(11, 15, 13, 0.22);
+  --ob-body: #e3e7e5;
+  --ob-body-line: rgba(11, 15, 13, 0.12);
+  --ob-body-hover: #cfd6d2;
+  --ob-body-quiet: #eef1ef;
+
+  --ng-glass: rgba(255, 255, 255, 0.7);
+  --ng-glass-strong: rgba(255, 255, 255, 0.9);
+  --ng-border: rgba(11, 15, 13, 0.1);
+  --ng-border-soft: rgba(11, 15, 13, 0.06);
+  --ng-highlight: rgba(255, 255, 255, 0.95);
+  --ng-text: #0b0f0d;
+  --ng-text-2: #4a524e;
+  --ng-icon: #4a524e;
+  --ng-accent: #15803d;
+  --ng-accent-2: #16a34a;
+  --ng-pill: rgba(22, 163, 74, 0.1);
+  --ng-pill-border: rgba(21, 128, 61, 0.28);
+  --ng-hover: rgba(11, 15, 13, 0.05);
+  --ng-elevated: #e9ecea;
+  --ng-focus: #15803d;
+}
+
+/* ── Dashboard surfaces ────────────────────────────────────────────────────────────────────────────
+   Three steps, not one glass recipe on everything:
+   .ob-panel  solid surface + hairline (most content: lists, forms, stats)
+   .ob-glass  translucent + blur, only for the hero body analysis (it sits on the deep backdrop)
+   .ob-inset  a quieter well inside a panel (readouts, segmented tracks) */
+.ob-panel {
+  background: var(--ob-surface);
+  border: 1px solid var(--ob-hair);
+  border-radius: 20px;
+  box-shadow: var(--ob-shadow);
+}
+.ob-glass {
+  background: var(--ob-glass);
+  border: 1px solid var(--ob-hair-strong);
+  border-radius: 24px;
+  box-shadow: var(--ob-shadow);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .ob-glass { background: var(--ob-surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+.ob-inset { background: var(--ob-surface-2); border: 1px solid var(--ob-hair); border-radius: 14px; }
+
+/* The dashboard sits on a deep backdrop with one soft neutral vignette (no hue wash). */
+.ob-stage {
+  background:
+    radial-gradient(120% 70% at 30% -10%, color-mix(in srgb, var(--ob-elevated) 55%, transparent) 0%, transparent 60%),
+    var(--ob-bg);
+}
+
+.ob-num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+.ob-link { color: var(--ob-accent-ink); text-underline-offset: 3px; }
+.ob-link:hover { text-decoration: underline; }
+
+/* Segmented control (motion layoutId pill) */
+.ob-seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--ob-surface-2); border: 1px solid var(--ob-hair); }
+.ob-seg-btn {
+  position: relative; isolation: isolate; min-height: 36px; padding: 0 14px; border-radius: 9px;
+  font-size: 13px; font-weight: 500; color: var(--ob-text-2);
+  transition: color 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ob-seg-btn:hover { color: var(--ob-text); }
+.ob-seg-btn[aria-checked="true"], .ob-seg-btn[aria-selected="true"] { color: var(--ob-text); }
+.ob-seg-pill { position: absolute; inset: 0; z-index: -1; border-radius: 9px; background: var(--ob-elevated); box-shadow: inset 0 1px 0 0 var(--ob-highlight); }
+@media (pointer: coarse) { .ob-seg-btn { min-height: 44px; } }
+
+/* Body map */
+.ob-body-part { fill: var(--ob-body); stroke: var(--ob-body-line); stroke-width: 0.12; transition: fill 160ms cubic-bezier(0.22, 1, 0.36, 1); }
+.ob-body-part[data-quiet] { fill: var(--ob-body-quiet); }
+.ob-body-part[data-hover] { fill: var(--ob-body-hover); }
+.ob-body-part[data-on] { fill: var(--ob-accent); stroke: color-mix(in srgb, var(--ob-accent) 60%, black); }
+.ob-body-hit { cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .ob-body-part, .ob-seg-btn { transition: none; } }
+
+/* Readout rows that drive the map (real buttons, keyboard path for the figure) */
+.ob-readout {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px;
+  width: 100%; min-height: 56px; padding: 8px 12px; border-radius: 12px; text-align: left;
+  border: 1px solid transparent;
+  transition: background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), border-color 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ob-readout:hover, .ob-readout[data-hover] { background: var(--ob-surface-2); }
+.ob-readout[aria-pressed="true"] { background: var(--ob-accent-soft); border-color: var(--ob-accent-line); }
+.ob-readout:focus-visible { outline: 2px solid var(--ob-accent-ink); outline-offset: 2px; }
+.ob-readout-name { font-size: 13px; color: var(--ob-text-2); }
+.ob-readout-val { font-size: 18px; font-weight: 600; color: var(--ob-text); }
+.ob-readout-sub { grid-column: 1 / -1; font-size: 12px; color: var(--ob-text-3); }
+.ob-readout[aria-pressed="true"] .ob-readout-name { color: var(--ob-text); }
+
+/* Browser surfaces in the dashboard world */
+.ob-stage ::selection { background: color-mix(in srgb, var(--ob-accent) 30%, transparent); color: var(--ob-text); }
+
+/* Official logo: always the whole asset at its own aspect ratio (never cover, crop or stretch). */
+.gymini-brand-logo { display: block; max-width: 100%; max-height: 100%; object-fit: contain; object-position: center; }
+
+/* Hero: the one moment that may carry brand colour — a faint green light from the top-left corner, no glow. */
+.ob-hero { background-image: radial-gradient(90% 70% at 0% 0%, color-mix(in srgb, var(--ob-accent) 9%, transparent) 0%, transparent 60%); }
+.ob-cta {
+  color: var(--ob-accent-ink); background: var(--ob-accent-soft); border: 1px solid var(--ob-accent-line);
+  transition: background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), border-color 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ob-cta:hover { background: color-mix(in srgb, var(--ob-accent) 18%, transparent); }
+.ob-cta svg { transition: translate 180ms cubic-bezier(0.22, 1, 0.36, 1); }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) { .ob-cta:hover svg { translate: 3px 0; } }
+
+/* Dark theme only: the existing gym photo, very dark, fading into the backdrop by the second screen.
+   Re-added on the owner's request (2026-11-23) after being removed for performance: measured on builds it becomes the
+   LCP element (+2-3 s on slow-4G + 4x CPU) and competes with the API calls. Owner decides whether to keep it. */
+.ob-stage { position: relative; isolation: isolate; }
+:root:not([data-theme="light"]) .ob-stage::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: min(1100px, 140vh); z-index: -1; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(8, 9, 9, 0.88) 0%, rgba(8, 9, 9, 0.93) 55%, var(--ob-bg) 100%),
+    url(/bg-gym.webp) center 30% / cover no-repeat;
+}

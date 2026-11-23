@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { SegmentedControl } from "../../components/ui/nav/SegmentedControl";
+import { isWebPresentation } from "../../utils/webPresentation";
 import { useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BarbellIcon as Dumbbell, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, PlusIcon as Plus, LockIcon as Lock, WarningCircleIcon as AlertCircle, ShareNetworkIcon as Share2, StarIcon as Star, ArrowsDownUpIcon as ArrowUpDown, CaretDownIcon as ChevronDown, ClockIcon as Clock, ChatTextIcon as MessageSquare, TimerIcon as Timer, TargetIcon as Target, ChartBarHorizontalIcon as BarChart3, LightningIcon as Zap, CalendarIcon as Calendar, CalendarBlankIcon as CalendarDays, TrendUpIcon as TrendingUp, PlayIcon as Play, DotsSixVerticalIcon as GripVertical, TrashIcon as Trash2, CheckIcon as Check, XIcon as X, SkipForwardIcon as SkipForward, PauseIcon as Pause, ArrowCounterClockwiseIcon as RotateCcw, TrophyIcon as Trophy, ConfettiIcon as PartyPopper, MagnifyingGlassIcon as Search, SlidersIcon as SlidersHorizontal, CircleNotchIcon as Loader2, RepeatIcon as Repeat } from "@phosphor-icons/react";
@@ -88,6 +90,11 @@ import { StarRating } from "../../components/StarRating";
 import ExerciseMuscleMap from "../../components/ExerciseMuscleMap";
 import { useBackDismissible } from "../../hooks/useBackDismissible";
 import { PlanReviewPanel } from "../../components/plan-review/PlanReviewPanel";
+import { FilterChips } from "../../components/ui/nav/FilterChips";
+import { RadioCards } from "../../components/ui/nav/RadioCards";
+
+// WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
+const WEB_UI = isWebPresentation();
 
 // Format helper
 const formatVideoUrlToImg = (
@@ -5110,6 +5117,10 @@ export function WorkoutLogPage() {
               })()}
 
               {/* Active metric chips */}
+              {WEB_UI ? (
+              // Chart series toggles (multi-select; at least one stays on — same rule as before). The dot is the series legend.
+              <FilterChips multiple label="Chỉ số trên biểu đồ" className="mb-4" options={metricOptions.map((m) => ({ value: m.key, label: m.label, dot: m.color }))} value={[...activeCharts]} onChange={(k) => { const next = new Set(activeCharts); if (next.has(k) && next.size > 1) next.delete(k); else next.add(k); setActiveCharts(next); }} testId="body-chart-series" />
+              ) : (
               <div className="flex flex-wrap gap-2 mb-4">
                 {metricOptions.map((m) => {
                   const isActive = activeCharts.has(m.key);
@@ -5142,6 +5153,7 @@ export function WorkoutLogPage() {
                   );
                 })}
               </div>
+              )}
 
               {/* Chart area */}
               {Array.from(activeCharts).map((chartKey) => {
@@ -8289,6 +8301,9 @@ export function WorkoutLogPage() {
               <p className="text-xs text-zinc-600 mb-3">
                 Loại chỉ số
               </p>
+              {WEB_UI ? (
+              <RadioCards label="Loại chỉ số" columns="grid-cols-2" value={logMetric} onChange={setLogMetric} options={metricOptions.map((m) => ({ value: m.key, label: m.label, description: `Hiện tại: ${m.current}` }))} testId="log-metric-type" />
+              ) : (
               <div className="grid grid-cols-2 gap-2">
                 {metricOptions.map((m) => (
                   <button
@@ -8325,6 +8340,7 @@ export function WorkoutLogPage() {
                   </button>
                 ))}
               </div>
+              )}
             </div>
 
             {/* Value input */}
@@ -8747,6 +8763,8 @@ function SectionTitle({ title, badge }: { title: string; badge?: string }) {
   );
 }
 
+const TIME_FILTER_WEB = isWebPresentation();
+
 const TIME_FILTER_LABELS: Record<TimeFilter, string> = {
   last: "Mới nhất",
   week: "Tuần",
@@ -8761,6 +8779,20 @@ function TimeFilterBar({
   value: TimeFilter;
   onChange: (v: TimeFilter) => void;
 }) {
+  // WEB UI prototype: on the web this is a real segmented control (radiogroup, arrow keys, the selected range is
+  // announced). The packaged app keeps the previous buttons below.
+  if (TIME_FILTER_WEB) {
+    return (
+      <SegmentedControl
+        label="Khoảng thời gian"
+        value={value}
+        onChange={onChange}
+        options={(["last", "week", "month", "all"] as TimeFilter[]).map((v) => ({ value: v, label: TIME_FILTER_LABELS[v] }))}
+        className="mt-1"
+        testId="time-filter"
+      />
+    );
+  }
   return (
     <div className="flex bg-zinc-800/30 rounded-xl p-1 border border-zinc-700/20 w-fit mt-1">
       {(["last", "week", "month", "all"] as TimeFilter[]).map((v) => (

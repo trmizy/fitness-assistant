@@ -6,6 +6,11 @@ import { contractService } from "../../services/api";
 import { GOAL_VI } from "../../utils/labels.vi";
 import { fullName } from "../../utils/fullName";
 import { ActivePill } from "../../components/ui/ActivePill";
+import { FilterChips } from "../../components/ui/nav/FilterChips";
+import { isWebPresentation } from "../../utils/webPresentation";
+
+// WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
+const WEB_UI = isWebPresentation();
 
 type Contract = {
   id: string;
@@ -111,6 +116,9 @@ export function PTClientList() {
             className="flex-1 text-sm outline-none bg-transparent text-zinc-300 placeholder-zinc-600"
           />
         </div>
+        {WEB_UI ? (
+          <FilterChips label="Lọc học viên" options={FILTER_OPTIONS.map((f) => ({ value: f, label: f }))} value={filter} onChange={(f) => setFilter(f)} testId="pt-client-filter" />
+        ) : (
         <div className="flex gap-2 overflow-x-auto g-scroll-x">
           {FILTER_OPTIONS.map((f) => (
             <button
@@ -124,6 +132,7 @@ export function PTClientList() {
             </button>
           ))}
         </div>
+        )}
       </div>
 
       {/* Error state */}

@@ -7,6 +7,11 @@ import { useApp } from "../../../context/AppContext";
 import { profileService } from "../../../services/api";
 import { useNutritionDisplaySettings } from "../../../hooks/useNutritionDisplaySettings";
 import { kjFromKcal } from "../../../utils/units";
+import { FilterChips } from "../../../components/ui/nav/FilterChips";
+import { isWebPresentation } from "../../../utils/webPresentation";
+
+// WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
+const WEB_UI = isWebPresentation();
 
 const PAGE_SIZE = 24;
 
@@ -114,7 +119,9 @@ export function FoodLibraryPage() {
       {/* Sort by macro (spec §18's real, computable "protein-rich / carb-rich
           / fat-rich" allowance — not a fabricated food-group filter). Only
           meaningful for the browse list, not the fuzzy search results. */}
-      {!isSearching && (
+      {!isSearching && (WEB_UI ? (
+        <FilterChips label="Sắp xếp thực phẩm" value={sortBy} onChange={setSortBy} options={([{ value: "name", label: "Tên A-Z" }, { value: "protein", label: "Nhiều protein nhất" }, { value: "carbs", label: "Nhiều carb nhất" }, { value: "fats", label: "Nhiều chất béo nhất" }] as const).map((o) => ({ ...o, testId: `food-library-sort-${o.value}` }))} testId="food-library-sort" />
+        ) : (
         <div className="flex gap-2 overflow-x-auto g-scroll-x pb-1">
           {(
             [
@@ -139,7 +146,7 @@ export function FoodLibraryPage() {
             </button>
           ))}
         </div>
-      )}
+        ))}
 
       {!isSearching && (
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
