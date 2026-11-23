@@ -1,0 +1,159 @@
+/*
+ * NIGHT GLASS (design prototype, branch frontend2/night-glass — not for aws-deploy until design review).
+ * Navigation-only tokens + surfaces: the Client/PT desktop rail, its tooltip bubble, and the /gioi-thieu pill bar.
+ * Dark = deep blue-black frosted glass, cyan accent used selectively (active + focus only).
+ * Light = the same object as pale frosted glass with navy ink, so the existing light theme is not broken.
+ * Only colour / opacity / transform / filter are animated anywhere here — nothing that moves layout.
+ */
+:root,
+.dark {
+  --ng-bg: #050816;
+  --ng-surface: #0b1220;
+  --ng-elevated: #111827;
+  --ng-glass: rgba(15, 23, 42, 0.55);
+  --ng-glass-strong: rgba(11, 18, 32, 0.78);
+  --ng-border: rgba(255, 255, 255, 0.12);
+  --ng-border-soft: rgba(255, 255, 255, 0.07);
+  --ng-highlight: rgba(255, 255, 255, 0.14); /* top specular edge */
+  --ng-text: #f8fafc;
+  --ng-text-2: #b6c2d1;
+  --ng-icon: #93a3b8;
+  --ng-accent: #38bdf8;
+  --ng-accent-2: #22d3ee;
+  --ng-pill: rgba(56, 189, 248, 0.14);
+  --ng-pill-border: rgba(125, 211, 252, 0.28);
+  --ng-glow: 0 0 18px -4px rgba(56, 189, 248, 0.55);
+  --ng-hover: rgba(255, 255, 255, 0.06);
+  --ng-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.75), 0 2px 6px -2px rgba(0, 0, 0, 0.4);
+  --ng-focus: #7dd3fc;
+}
+.light,
+:root[data-theme="light"] {
+  --ng-glass: rgba(255, 255, 255, 0.62);
+  --ng-glass-strong: rgba(255, 255, 255, 0.82);
+  --ng-elevated: #e2e8f0;
+  --ng-border: rgba(15, 23, 42, 0.12);
+  --ng-border-soft: rgba(15, 23, 42, 0.06);
+  --ng-highlight: rgba(255, 255, 255, 0.9);
+  --ng-text: #0b1220;
+  --ng-text-2: #334155;
+  --ng-icon: #475569;
+  --ng-accent: #0369a1; /* sky-700: 4.5:1+ on the pale pill */
+  --ng-accent-2: #0e7490;
+  --ng-pill: rgba(14, 165, 233, 0.13);
+  --ng-pill-border: rgba(3, 105, 161, 0.25);
+  --ng-glow: 0 0 16px -6px rgba(14, 165, 233, 0.45);
+  --ng-hover: rgba(15, 23, 42, 0.05);
+  --ng-shadow: 0 20px 40px -24px rgba(15, 23, 42, 0.35), 0 2px 6px -3px rgba(15, 23, 42, 0.18);
+  --ng-focus: #0369a1;
+}
+
+/* ── Glass surface: fill + blur + hairline border + top specular highlight ───────────────────────── */
+.ng-glass {
+  background: var(--ng-glass);
+  border: 1px solid var(--ng-border);
+  box-shadow: inset 0 1px 0 0 var(--ng-highlight), var(--ng-shadow);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+}
+/* No backdrop-filter support (old WebViews): fall back to a solid-enough fill so text stays readable. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .ng-glass { background: var(--ng-glass-strong); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .ng-glass { background: var(--ng-glass-strong); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+
+/* ── Rail item (icon-only, 44x44 target) ──────────────────────────────────────────────────────────── */
+.ng-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  color: var(--ng-icon);
+  transition: color 150ms ease-out, background-color 150ms ease-out;
+  outline: none;
+}
+.ng-item:hover { color: var(--ng-text); background-color: var(--ng-hover); }
+.ng-item[aria-current="page"], .ng-item[aria-pressed="true"] { color: var(--ng-accent); }
+.ng-item[aria-current="page"]:hover { background-color: transparent; }
+.ng-item:focus-visible { box-shadow: 0 0 0 2px var(--ng-focus); }
+.ng-item > svg { position: relative; width: 20px; height: 20px; }
+
+/* The one active surface that glides between items (motion layoutId). */
+.ng-pill {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: var(--ng-pill);
+  border: 1px solid var(--ng-pill-border);
+  box-shadow: inset 0 1px 0 0 var(--ng-highlight), var(--ng-glow);
+}
+
+/* ── Tooltip bubble (visual twin of the item's accessible name) ───────────────────────────────────── */
+.ng-tip {
+  position: fixed;
+  z-index: 60;
+  padding: 6px 11px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  color: var(--ng-text);
+  background: var(--ng-glass-strong);
+  border: 1px solid var(--ng-border);
+  box-shadow: inset 0 1px 0 0 var(--ng-highlight), var(--ng-shadow);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+}
+
+.ng-divider { width: 28px; height: 1px; background: var(--ng-border-soft); }
+.ng-scroll { scrollbar-width: none; }
+.ng-scroll::-webkit-scrollbar { display: none; }
+
+/* Mobile drawer panel (Client/PT): same glass object, denser fill because page content scrolls underneath. */
+.ng-drawer { background: var(--ng-glass-strong); border-radius: 0 24px 24px 0; border-left: 0; }
+
+/* ── Workspace search: top-bar trigger + palette ──────────────────────────────────────────────────── */
+.ng-search-trigger {
+  display: inline-flex; align-items: center; gap: 10px;
+  min-width: 44px; height: 44px; padding: 0 13px; border-radius: 14px;
+  color: var(--ng-text-2);
+  background: var(--ng-glass);
+  border: 1px solid var(--ng-border);
+  box-shadow: inset 0 1px 0 0 var(--ng-highlight);
+  -webkit-backdrop-filter: blur(16px) saturate(160%); backdrop-filter: blur(16px) saturate(160%);
+  transition: border-color 150ms ease-out, color 150ms ease-out, background-color 150ms ease-out;
+  outline: none;
+}
+@media (min-width: 768px) { .ng-search-trigger { width: min(380px, 38vw); } }
+.ng-search-trigger:hover { color: var(--ng-text); border-color: var(--ng-pill-border); }
+.ng-search-trigger:focus-visible { box-shadow: 0 0 0 2px var(--ng-focus); }
+.ng-kbd {
+  /* no display here: unlayered CSS would beat Tailwind 'hidden' utilities */
+  padding: 1px 6px; border-radius: 6px;
+  font: 600 11px/16px ui-sans-serif, system-ui, sans-serif; color: var(--ng-text-2);
+  border: 1px solid var(--ng-border); background: var(--ng-hover);
+}
+.ng-palette {
+  color: var(--ng-text);
+  background: var(--ng-glass-strong);
+  border: 1px solid var(--ng-border) !important;
+  box-shadow: inset 0 1px 0 0 var(--ng-highlight), 0 40px 80px -30px rgba(0, 0, 0, 0.8);
+  -webkit-backdrop-filter: blur(24px) saturate(170%); backdrop-filter: blur(24px) saturate(170%);
+}
+.ng-palette [data-slot="dialog-close"], .ng-palette > button:last-child { color: var(--ng-text-2); }
+.ng-option {
+  display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 12px;
+  font-size: 14px; color: var(--ng-text-2); cursor: pointer; border: 1px solid transparent;
+}
+.ng-option.is-active { color: var(--ng-text); background: var(--ng-pill); border-color: var(--ng-pill-border); }
+.ng-option.is-active > svg:first-child { color: var(--ng-accent); }
+/* The palette's only field: replace the global green focus outline with an accent underline on the input row
+   (still a clear, 2px, >=3:1 focus indicator — just in the Night Glass language). */
+.ng-palette .ng-field input:focus-visible { outline: none; }
+.ng-palette .ng-field:focus-within { box-shadow: inset 0 -2px 0 0 var(--ng-accent); }

@@ -6,6 +6,7 @@ import { useCall } from "../../context/CallContext";
 import { useNativeBackNavigation } from "../../hooks/useNativeBackNavigation";
 import { useNativeStatusBar } from "../../hooks/useNativeStatusBar";
 import { Sidebar } from "./Sidebar";
+import { NightGlassRail } from "./NightGlassRail";
 import { Topbar } from "./Topbar";
 import { Drawer } from "../ui/Modal";
 import { PageSkeleton } from "./PageSkeleton";
@@ -130,10 +131,17 @@ function AppShellInner() {
     >
       {!neutralSurface && <div className="absolute inset-0 app-theme-overlay pointer-events-none z-0"></div>}
 
-      {/* Desktop Sidebar */}
-      <aside className={`hidden lg:flex flex-col w-64 flex-shrink-0 border-r border-zinc-800/60 z-10 ${neutralSurface ? "bg-[var(--card-bg)]" : "bg-zinc-950/40 backdrop-blur-md"}`}>
-        <Sidebar />
-      </aside>
+      {/* Desktop navigation. NIGHT GLASS prototype: Client/PT get the floating icon rail (in flow, fixed 68 px +
+          gutter, so nothing shifts); Gym Owner / Admin keep the labelled sidebar untouched. */}
+      {neutralSurface ? (
+        <aside className="hidden lg:flex flex-shrink-0 py-3 pl-3 z-20">
+          <NightGlassRail />
+        </aside>
+      ) : (
+        <aside className="hidden lg:flex flex-col w-64 flex-shrink-0 border-r border-zinc-800/60 z-10 bg-zinc-950/40 backdrop-blur-md">
+          <Sidebar />
+        </aside>
+      )}
 
       {/* Mobile sidebar: shared accessible drawer (Esc, backdrop, focus trap + return, scroll lock) */}
       <Drawer
@@ -145,7 +153,7 @@ function AppShellInner() {
         className="lg:hidden"
         data-testid="app-mobile-drawer"
       >
-        <aside className="relative w-72 max-w-[85vw] flex-shrink-0 flex flex-col bg-zinc-900 shadow-2xl">
+        <aside className={`relative w-72 max-w-[85vw] flex-shrink-0 flex flex-col shadow-2xl ${neutralSurface ? "ng-glass ng-drawer" : "bg-zinc-900"}`}>
           <Sidebar />
         </aside>
       </Drawer>

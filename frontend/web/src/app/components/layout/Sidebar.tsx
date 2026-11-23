@@ -43,7 +43,7 @@ import {
  * features share one nav slot instead of each taking a row — keeps this
  * list short enough to be usable on a mobile-width sidebar/drawer.
  */
-const clientNavFull = [
+export const clientNavFull = [
   {
     label: "Tổng quan",
     icon: GyminiDashboardIcon,
@@ -111,7 +111,7 @@ const accountantNav = [{ label: "Tài chính", icon: GyminiMoneyIcon, to: "/gym-
 const ptClientNav = clientNavFull;
 
 /** PT professional workspace nav */
-const ptWorkspaceNav = [
+export const ptWorkspaceNav = [
   {
     label: "Tổng quan PT",
     icon: GyminiDashboardIcon,

@@ -81,20 +81,16 @@ function LandingNav({ reduced }: { reduced: boolean }) {
   }, []);
   const marked = hover ?? inView;
   return (
-    <header className="fixed inset-x-0 top-0 z-30 px-3 pt-3 sm:px-4" data-scrolled={scrolled || undefined}>
+    <header className="pointer-events-none fixed inset-x-0 top-0 z-30 px-3 pt-3 sm:px-4" data-scrolled={scrolled || undefined}>
+      {/* NIGHT GLASS: a floating pill. Over the hero it is a faint glass outline; past 24px it becomes frosted
+          blue-black glass and settles 2% smaller. Height never changes (scale is a transform) = no layout shift. */}
       <motion.div
-        className="mx-auto flex h-14 max-w-6xl items-center gap-3 rounded-2xl border px-3 sm:px-4"
+        className={`pointer-events-auto mx-auto flex h-14 max-w-3xl items-center gap-2 rounded-full pl-2 pr-2 sm:pl-3 ${scrolled ? "ng-glass" : "border border-[var(--ng-border-soft)]"}`}
         initial={false}
-        animate={{
-          // height is fixed on purpose: animating it would move the bar's children = a layout shift.
-          backgroundColor: scrolled ? "color-mix(in srgb, var(--card-bg) 82%, transparent)" : "color-mix(in srgb, var(--card-bg) 0%, transparent)",
-          borderColor: scrolled ? "var(--border-color)" : "rgba(0,0,0,0)",
-          boxShadow: scrolled ? "0 10px 30px -12px rgba(0,0,0,0.45)" : "0 0 0 0 rgba(0,0,0,0)",
-        }}
+        animate={{ scale: scrolled ? 0.98 : 1, y: scrolled ? -2 : 0 }}
         transition={reduced ? { duration: 0 } : { duration: dur.fast, ease: ease.smoothOut }}
-        style={{ backdropFilter: scrolled ? "blur(12px) saturate(140%)" : "none", WebkitBackdropFilter: scrolled ? "blur(12px) saturate(140%)" : "none" }}
       >
-        <a href="#hero-h" className="flex items-center gap-2 rounded-lg" aria-label="Gymini, lên đầu trang">
+        <a href="#hero-h" className="flex min-h-11 items-center gap-2 rounded-full pl-1 pr-3 focus-visible:outline-2 focus-visible:outline-[var(--ng-focus)]" aria-label="Gymini, lên đầu trang">
           <img src="/pwa-icon.svg" alt="" className="h-8 w-8" />
           <span className="font-['Barlow'] text-xl font-bold">Gymini</span>
         </a>
@@ -107,20 +103,20 @@ function LandingNav({ reduced }: { reduced: boolean }) {
               onMouseEnter={() => setHover(l.id)}
               onFocus={() => setHover(l.id)}
               onBlur={() => setHover(null)}
-              className={`relative hidden rounded-lg px-3 py-2 text-sm transition-colors sm:block ${marked === l.id || inView === l.id ? "text-[var(--text-color)]" : "text-[var(--muted-text-color)]"}`}
+              className={`relative isolate hidden min-h-11 items-center rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-[var(--ng-focus)] sm:inline-flex ${marked === l.id || inView === l.id ? "text-[var(--ng-text)]" : "text-[var(--ng-text-2)]"}`}
             >
               {marked === l.id && (
                 <motion.span
                   layoutId="landing-nav-indicator"
                   aria-hidden="true"
-                  className="absolute inset-0 -z-10 rounded-lg bg-[color-mix(in_srgb,var(--primary-color)_14%,transparent)]"
+                  className="ng-pill -z-10 !rounded-full"
                   transition={reduced ? { duration: 0 } : { type: "spring", stiffness: 520, damping: 42 }}
                 />
               )}
               {l.label}
             </a>
           ))}
-          <Link to="/login" className="inline-flex h-10 items-center rounded-xl border border-[var(--border-color)] px-4 text-sm font-semibold transition-colors hover:border-[var(--primary-color)]">Đăng nhập</Link>
+          <Link to="/login" className="ml-1 inline-flex min-h-11 items-center rounded-full border border-[var(--ng-pill-border)] bg-[var(--ng-pill)] px-5 text-sm font-semibold text-[var(--ng-text)] shadow-[inset_0_1px_0_0_var(--ng-highlight)] transition-colors hover:border-[var(--ng-accent)] focus-visible:outline-2 focus-visible:outline-[var(--ng-focus)]">Đăng nhập</Link>
         </nav>
       </motion.div>
     </header>
