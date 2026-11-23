@@ -652,7 +652,6 @@ export function InBodyModule() {
                   leftLeg: latest.leftLegMuscle,
                   rightLeg: latest.rightLegMuscle,
                 }}
-                norms={{ arm: 3.2, trunk: 24.0, leg: 9.5 }}
               />
               <InBodySegmentalDiagram
                 title="Mỡ theo vùng (kg)"
@@ -664,9 +663,11 @@ export function InBodyModule() {
                   leftLeg: latest.leftLegFat,
                   rightLeg: latest.rightLegFat,
                 }}
-                norms={{ arm: 1.0, trunk: 8.0, leg: 2.3 }}
               />
             </div>
+            <p className="text-[11px] leading-4 text-zinc-500 mt-4" data-testid="inbody-segmental-note">
+              Đây là số đo thật từ phiếu của bạn. Phiếu chưa có khoảng chuẩn riêng cho từng vùng nên Gymini không đánh giá Thấp, Bình thường hay Cao cho từng vùng.
+            </p>
           </SectionCard>
 
           {/* Recent history */}
