@@ -1626,6 +1626,11 @@ html[data-workspace="gym-owner"] body {
 .go-seg button:focus-visible { outline: 2px solid var(--go-focus); outline-offset: 2px; }
 .go-seg .go-seg-n { font-variant-numeric: tabular-nums; color: var(--go-ink-3); font-weight: 500; }
 .go-toolbar-row { padding: var(--go-s3) var(--go-s5); border-bottom: 1px solid var(--go-line); }
+.go-members-toolbar { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--go-s3) var(--go-s4); }
+.go-members-search { display: grid; gap: var(--go-s1); flex: 1 1 260px; min-width: 0; max-width: 380px; }
+.go-members-search .go-search { max-width: none; }
+.go-members-search .go-hint-text { margin: 0; }
+@media (max-width: 640px) { .go-members-search { flex-basis: 100%; max-width: none; } }
 .go-list-note { margin: 0; padding: var(--go-s3) var(--go-s5); border-top: 1px solid var(--go-line); color: var(--go-ink-3); font-size: 12px; line-height: 16px; }
 
 /* Data table (ARIA table of rows; sticky header; card rows at 900px and below) */

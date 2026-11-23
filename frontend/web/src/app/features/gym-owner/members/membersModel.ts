@@ -4,9 +4,10 @@
  * the accountant), search / status / plan filter, sort, counts, the member drawer's check-in slice, the plan form rules.
  *
  * Honesty rules the page keeps (docs/gym-owner-redesign/audit/02, 05 section 4, 06 section 3):
- *  - G5: `GET /owner/gyms/:gymId/memberships` is paged by the SERVER (cursor, newest first) and filters by `status` only. The page
- *    offers exactly that: a status filter that goes to the server, "Xem thêm" for the next page. No name search, plan filter or
- *    sort is offered, because the API cannot do them (running them on one page would read as an answer about the whole branch).
+ *  - G5: `GET /owner/gyms/:gymId/memberships` is paged by the SERVER (cursor, newest first) and filters by `status` (and, since the
+ *    member-search contract, `?q=` = name, owner / manager only). The page offers exactly that: a status filter and a name search that
+ *    both go to the server, "Xem thêm" for the next page. No plan filter or sort is offered, and nothing is searched on the loaded
+ *    page (running it on one page would read as an answer about the whole branch). Email / phone are never searched.
  *    Status counts are drawn only when `GET /owner/gyms/:id/stats` returns them (`byStatus`); they are never derived from a page.
  *  - SALES view (accountant) never carries a client id or name; this module drops them even if a server ever sent them.
  *  - A client's internal id is never shown (a row without a name reads "Hội viên chưa có tên").
@@ -328,13 +329,64 @@ export function hasActiveFilters(f: MemberFilters): boolean {
   return f.q.trim() !== "" || f.status !== "all" || f.planId !== "all";
 }
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Member search (`?q=`): contract of gym-service `parseMemberSearchQuery` / `listForOwner`
+// ---------------------------------------------------------------------------------------------------------------------
+
+export const MEMBER_SEARCH_MIN_LENGTH = 2;
+export const MEMBER_SEARCH_MAX_LENGTH = 64;
+/** Wait after the last key before asking the server (the server allows 30 calls / user / minute). */
+export const MEMBER_SEARCH_DEBOUNCE_MS = 400;
+
+/** Only an account that reads FULL member rows (`membership.full`: owner, manager) may search; the accountant has no search box. */
+export function canSearchMembers(can: CanFn): boolean {
+  return membersModeFor(can) === "full";
+}
+
+export type MemberSearchInput =
+  | { state: "idle"; term: "" } // nothing typed
+  | { state: "short"; term: "" } // typed, but fewer than 2 visible characters: the server would answer 400, so no call is made
+  | { state: "ready"; term: string }; // a term the server accepts (trimmed, 2-64)
+
+/** Same visible-length rule as the server: marks removed, runs of spaces collapsed, trimmed. */
+const visibleLength = (s: string): number => s.normalize("NFD").replace(/\p{M}+/gu, "").replace(/\s+/g, " ").trim().length;
+
+export function parseMemberSearchInput(raw: string): MemberSearchInput {
+  const term = raw.trim();
+  if (!term) return { state: "idle", term: "" };
+  if (visibleLength(term) < MEMBER_SEARCH_MIN_LENGTH) return { state: "short", term: "" };
+  return { state: "ready", term: term.slice(0, MEMBER_SEARCH_MAX_LENGTH) };
+}
+
+export type MemberSearchErrorKind = "invalid" | "rate-limited" | "too-broad" | "unavailable" | "forbidden" | "other";
+
+export interface MemberSearchError {
+  kind: MemberSearchErrorKind;
+  message: string;
+  /** Asking again can help (a quota window passes, a lookup recovers). A 400 / 403 / 422 answers the same until the request changes. */
+  retryable: boolean;
+}
+
+/** One Vietnamese sentence per documented answer. An error is never an empty result: the page shows this instead of "không khớp". */
+export function memberSearchError(error: unknown): MemberSearchError {
+  const e = error as { response?: { status?: number; data?: { error?: { code?: string } } } } | null;
+  const status = e?.response?.status;
+  const code = e?.response?.data?.error?.code;
+  if (code === "INVALID_QUERY" || status === 400) return { kind: "invalid", message: `Từ khoá phải có từ ${MEMBER_SEARCH_MIN_LENGTH} đến ${MEMBER_SEARCH_MAX_LENGTH} ký tự. Hãy sửa lại rồi tìm tiếp.`, retryable: false };
+  if (code === "SEARCH_RATE_LIMITED" || status === 429) return { kind: "rate-limited", message: "Bạn tìm quá nhiều lần trong một phút. Chờ một chút rồi tìm lại.", retryable: true };
+  if (code === "MEMBER_SEARCH_TOO_BROAD" || status === 422) return { kind: "too-broad", message: "Chi nhánh có quá nhiều hội viên để tìm theo tên. Hãy chọn một nhóm trạng thái ở trên rồi tìm lại.", retryable: false };
+  if (code === "MEMBER_SEARCH_UNAVAILABLE" || status === 503) return { kind: "unavailable", message: "Chưa tìm được theo tên lúc này. Chưa kết luận có hay không có hội viên khớp, hãy thử lại sau.", retryable: true };
+  if (code === "MEMBER_SEARCH_FORBIDDEN" || status === 403) return { kind: "forbidden", message: "Vai trò của bạn không được tìm hội viên theo tên.", retryable: false };
+  return { kind: "other", message: "Không tìm được lúc này. Chưa kết luận có hay không có hội viên khớp, hãy thử lại.", retryable: true };
+}
+
 /** Rows per request of the paged list (the server allows up to 500; 100 keeps the first paint light). */
 export const MEMBERS_PAGE_SIZE = 100;
 
 /** The note under the table (G5, server paging): how many rows are loaded and whether the server has more; the sort is the server's. */
-export function pageSummary(loaded: number, hasMore: boolean, mode: MembersMode, statusId: string): string {
+export function pageSummary(loaded: number, hasMore: boolean, mode: MembersMode, statusId: string, term = ""): string {
   const noun = mode === "sales" ? "giao dịch" : "hội viên";
-  const scope = statusId === "all" ? "" : ` thuộc nhóm "${statusLabel(statusId)}"`;
+  const scope = (term ? ` khớp "${term}"` : "") + (statusId === "all" ? "" : ` thuộc nhóm "${statusLabel(statusId)}"`);
   return hasMore
     ? `Đã tải ${loaded} ${noun}${scope}, mới nhất trước. Bấm "Xem thêm" để tải tiếp.`
     : `Đã tải hết ${loaded} ${noun}${scope}, mới nhất trước.`;

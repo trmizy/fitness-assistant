@@ -1,18 +1,22 @@
 /**
  * Tab "Hội viên": the memberships of ONE branch from the server-paged `GET /owner/gyms/:gymId/memberships` (G5: cursor, newest first,
- * `status` filter in the database). The page offers only what the API can do: a status filter that is sent to the server and
- * "Xem thêm" for the next page. No name search, plan filter or sort: on one page they would read as an answer about the whole branch.
+ * `status` filter in the database, `q` = name search for owner / manager). The page offers only what the API can do: a status filter and
+ * a name search that are sent to the server and "Xem thêm" for the next page. No plan filter or sort: on one page they would read as an
+ * answer about the whole branch. The search waits for 2+ characters and a pause in typing, drops an older answer when the term
+ * changes (key + abort), starts again from the first page, and shows an error as an error, never as "không khớp".
+ * The accountant has no search box (the server answers 403 MEMBER_SEARCH_FORBIDDEN to a direct call). Email / phone are not searched.
  * Status counts come from `GET /owner/gyms/:id/stats` (`byStatus`) and are drawn only when the server returned them.
  * Owner / manager: FULL rows. Accountant: SALES rows (no name, no identity, no desk link). Row click opens the member drawer.
  * Data is drawn only when it was fetched for the scope on screen (05 section 6.7) and is never kept between two branches.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { CaretRightIcon } from "@phosphor-icons/react";
 import { gymService } from "../../../services/api";
 import type { GymStats } from "../../../types";
 import { formatVND } from "../../../utils/currency";
 import { GoTag } from "../../../components/layout/gym-owner/GoTag";
+import { GoSearch } from "../../../components/layout/gym-owner/GoSearch";
 import { TextStates } from "../../../components/layout/gym-owner/motion";
 import { ScopeStateFrame } from "../scope/PermissionGate";
 import { useGymOwnerScope, useScopeChangeEffect } from "../scope/GymOwnerScopeProvider";
@@ -20,6 +24,12 @@ import { classifyApiError, goKey } from "../scope/scopeModel";
 import { byStatusOf, gymStatsKey, type StatsState } from "../stats/gymStats";
 import {
   MEMBERS_PAGE_SIZE,
+  MEMBER_SEARCH_DEBOUNCE_MS,
+  MEMBER_SEARCH_MAX_LENGTH,
+  MEMBER_SEARCH_MIN_LENGTH,
+  canSearchMembers,
+  memberSearchError,
+  parseMemberSearchInput,
   SALES_MODE_NOTE,
   formatDay,
   isCurrentScopeData,
@@ -55,25 +65,46 @@ export function MembersTab() {
 
   const [status, setStatus] = useState("all");
   const [openId, setOpenId] = useState<string | null>(null);
+  const searchable = canSearchMembers(scope.can);
+  const [qInput, setQInput] = useState("");
+  const [qTerm, setQTerm] = useState(""); // the term the server is asked about: debounced, valid (2-64), never a partial one
+  const typed = parseMemberSearchInput(qInput);
 
-  // Scope change: drawer closed, selected row dropped, filter back to "Tất cả" (05 section 6.4). Nothing here is a form with unsaved work.
+  // Scope change: drawer closed, selected row dropped, filter and search back to the start (05 section 6.4). Nothing here is a form with unsaved work.
   useScopeChangeEffect(() => {
     setOpenId(null);
     setStatus("all");
+    setQInput("");
+    setQTerm("");
   });
+
+  // Debounce: a valid term is committed after a pause; an empty / too short box returns to the plain list at once (no call is made for it).
+  useEffect(() => {
+    if (typed.state !== "ready") {
+      setQTerm("");
+      return;
+    }
+    const t = window.setTimeout(() => setQTerm(typed.term), MEMBER_SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(t);
+  }, [typed.state, typed.term]);
+  const term = searchable ? qTerm : "";
+  const waiting = searchable && typed.state === "ready" && typed.term !== qTerm; // typed, not yet asked
 
   const scopeKey = scope.scopeKey;
   const enabled = mode !== "none" && gymId !== "ALL" && scope.status === "ready";
 
   const list = useInfiniteQuery({
-    queryKey: goKey(scope, "members", { status }),
-    queryFn: async ({ pageParam }) => ({
+    // The term is part of the key: a new term is a new list from the first page (cursor reset), and an answer to an older term can never land here.
+    queryKey: goKey(scope, "members", { status, q: term }),
+    queryFn: async ({ pageParam, signal }) => ({
       scopeKey,
-      ...(await gymService.listOwnedMembershipsPage(gymId, { limit: MEMBERS_PAGE_SIZE, cursor: pageParam, status: statusParamOf(status) })),
+      ...(await gymService.listOwnedMembershipsPage(gymId, { limit: MEMBERS_PAGE_SIZE, cursor: pageParam, status: statusParamOf(status), q: term || undefined }, signal)),
     }),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => (last.hasMore ? last.nextCursor : undefined),
     enabled,
+    // A search that failed says so at once: 429 / 503 / 422 do not improve by being repeated behind the user's back.
+    ...(term ? { retry: false } : {}),
   });
 
   // KPI counts (status counts for the filter). Same key as the Hôm nay branch rows. A failure is "no counts", never zeros.
@@ -87,7 +118,9 @@ export function MembersTab() {
   const nowMs = Date.now();
   const open = openId ? (rows.find((r) => r.id === openId) ?? null) : null;
 
-  if (list.isError && !list.data) {
+  const searchFailure = term && list.isError && !list.data ? memberSearchError(list.error) : null;
+
+  if (list.isError && !list.data && !searchFailure) {
     const kind = classifyApiError(list.error);
     return kind === "forbidden" || kind === "out-of-scope" ? (
       <ScopeStateFrame kind={kind} />
@@ -100,7 +133,7 @@ export function MembersTab() {
     );
   }
 
-  const loading = list.isLoading || scope.status !== "ready" || (!!list.data && pages.length === 0);
+  const loading = (list.isLoading && !searchFailure) || scope.status !== "ready" || (!!list.data && pages.length === 0) || waiting;
   const gym = scope.gyms.find((g) => g.id === gymId);
 
   return (
@@ -109,7 +142,25 @@ export function MembersTab() {
         <div className="go-note go-sales-note" role="note" data-testid="go-sales-note">{SALES_MODE_NOTE}</div>
       )}
       <section className="go-panel" aria-label={sales ? "Giao dịch của chi nhánh" : "Hội viên của chi nhánh"}>
-        <div className="go-toolbar-row">
+        <div className="go-toolbar-row go-members-toolbar">
+          {searchable && (
+            <div className="go-members-search">
+              <GoSearch
+                value={qInput}
+                onChange={setQInput}
+                placeholder="Tìm hội viên theo tên"
+                ariaLabel="Tìm hội viên theo tên"
+                testId="go-members-search"
+                maxLength={MEMBER_SEARCH_MAX_LENGTH}
+                describedBy="go-members-search-hint"
+              />
+              <p id="go-members-search-hint" className="go-hint-text" data-testid="go-members-search-hint" role="status">
+                {typed.state === "short"
+                  ? `Nhập ít nhất ${MEMBER_SEARCH_MIN_LENGTH} ký tự để tìm. Đang hiện danh sách đầy đủ.`
+                  : "Tìm theo tên hội viên, không phân biệt hoa thường và dấu. Không tìm theo email hay số điện thoại."}
+              </p>
+            </div>
+          )}
           <div className="go-seg" role="group" aria-label="Lọc theo trạng thái" data-testid="go-members-seg">
             {segments.map((s) => (
               <button key={s.id} type="button" aria-pressed={status === s.id} onClick={() => setStatus(s.id)} data-seg={s.id} aria-label={s.count === null ? s.label : `${s.label}, ${s.count}`}>
@@ -128,7 +179,29 @@ export function MembersTab() {
           </div>
         )}
 
-        {!loading && rows.length === 0 && (
+        {searchFailure && (
+          <div className="go-state" role="alert" data-testid="go-members-search-error" data-kind={searchFailure.kind}>
+            <h2>Chưa tìm được hội viên</h2>
+            <p>{searchFailure.message}</p>
+            <div className="go-state-actions">
+              {searchFailure.retryable && <button type="button" className="go-btn" data-variant="primary" onClick={() => void list.refetch()}>Thử lại</button>}
+              <button type="button" className="go-btn" onClick={() => setQInput("")}>Xoá tìm kiếm</button>
+            </div>
+          </div>
+        )}
+
+        {!loading && !searchFailure && rows.length === 0 && term && (
+          <div className="go-task-empty" data-testid="go-members-search-empty">
+            <strong>{`Không có hội viên nào khớp "${term}"${status === "all" ? "" : ` ở nhóm "${statusLabel(status)}"`}`}</strong>
+            <span>Thử một phần khác của tên{status === "all" ? "" : ", hoặc tìm trong nhóm Tất cả"}. Tìm theo tên, không theo email hay số điện thoại.</span>
+            <div>
+              {status !== "all" && <button type="button" className="go-btn go-btn-sm" onClick={() => setStatus("all")}>Xem tất cả nhóm</button>}
+              <button type="button" className="go-btn go-btn-sm" onClick={() => setQInput("")}>Xoá tìm kiếm</button>
+            </div>
+          </div>
+        )}
+
+        {!loading && !searchFailure && rows.length === 0 && !term && (
           <div className="go-task-empty" data-testid="go-members-empty">
             <strong>
               {status === "all"
@@ -204,7 +277,7 @@ export function MembersTab() {
 
         {!loading && rows.length > 0 && (
           <div className="go-more-row go-more-row-split" data-testid="go-members-more-row">
-            <p className="go-list-note go-list-note-bare" data-testid="go-members-note">{pageSummary(rows.length, hasMore, mode, status)}</p>
+            <p className="go-list-note go-list-note-bare" data-testid="go-members-note">{pageSummary(rows.length, hasMore, mode, status, term)}</p>
             {hasMore && (
               <button type="button" className="go-btn go-btn-sm" onClick={() => void list.fetchNextPage()} disabled={list.isFetchingNextPage} data-testid="go-members-more">
                 <TextStates value={list.isFetchingNextPage ? "Đang tải" : "Xem thêm"} />
@@ -219,7 +292,7 @@ export function MembersTab() {
           <p className="go-hint-text go-panel-pad" data-testid="go-members-stats-error">Chưa tải được số đếm theo nhóm. Danh sách vẫn đúng, chỉ thiếu số.</p>
         )}
         {segments.some((s) => s.count !== null) && (
-          <p className="go-hint-text go-panel-pad" data-testid="go-members-stats-note">Số đếm theo nhóm do máy chủ tính cho cả chi nhánh (chỉ thẻ thật), không suy ra từ phần đã tải.</p>
+          <p className="go-hint-text go-panel-pad" data-testid="go-members-stats-note">Số đếm theo nhóm do máy chủ tính cho cả chi nhánh (chỉ thẻ thật), không suy ra từ phần đã tải{term ? " và không phải số kết quả tìm" : ""}.</p>
         )}
       </section>
 

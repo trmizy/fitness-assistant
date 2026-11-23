@@ -6223,10 +6223,13 @@ export const gymService = {
   // Server mặc định 200 dòng/trang, tối đa 500; status / expiringBefore (ISO) lọc ở DB.
   listOwnedMembershipsPage: async (
     gymId: string,
-    params: { limit?: number; cursor?: string | null; status?: string; expiringBefore?: string } = {},
+    params: { limit?: number; cursor?: string | null; status?: string; expiringBefore?: string; q?: string } = {},
+    signal?: AbortSignal,
   ): Promise<{ items: GymMembershipContract[]; hasMore: boolean; nextCursor: string | null }> => {
+    // `q` (2-64 ký tự, tìm theo tên, chủ/quản lý): chỉ gửi khi có giá trị; một `q` rỗng sẽ là 400 chứ không phải danh sách đầy đủ.
     const { data } = await api.get(`/owner/gyms/${gymId}/memberships`, {
-      params: { limit: params.limit, cursor: params.cursor || undefined, status: params.status, expiringBefore: params.expiringBefore },
+      params: { limit: params.limit, cursor: params.cursor || undefined, status: params.status, expiringBefore: params.expiringBefore, q: params.q || undefined },
+      signal,
     });
     const items = (data?.data ?? []) as GymMembershipContract[];
     return { items, hasMore: !!data?.meta?.hasMore, nextCursor: data?.meta?.nextCursor ?? null };
