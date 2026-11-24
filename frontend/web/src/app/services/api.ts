@@ -1285,6 +1285,8 @@ export interface CycleProgressSignals {
   adherencePct: number | null;
   rpeTrend: "stable" | "increasing" | "decreasing";
   laggingMuscleGroups: string[];
+  /** Already returned by fitness-service (training-cycle-classification.service.ts ProgressSignals); typed here for D4. */
+  signalBreakdown?: Partial<Record<"bodyComposition" | "volume" | "adherence" | "prs", "up" | "flat" | "down">>;
 }
 
 export interface CycleSummary {
@@ -1777,6 +1779,34 @@ export interface RoadmapPhaseObjective {
   completed?: boolean;
 }
 
+export interface GoalRecommendationResult {
+  status: "RECOMMENDED" | "USER_CHOICE" | "REVIEW_FIRST" | "INSUFFICIENT_DATA";
+  recommended: "WEIGHT_LOSS" | "MUSCLE_GAIN" | "MAINTENANCE" | "ATHLETIC_PERFORMANCE" | null;
+  options: Array<"WEIGHT_LOSS" | "MUSCLE_GAIN" | "MAINTENANCE" | "ATHLETIC_PERFORMANCE">;
+  confidence: "HIGH" | "MEDIUM" | "LOW" | null;
+  basis: "BODY_FAT" | "BMI" | "NONE";
+  headline: string;
+  reasons: string[];
+  caveats: string[];
+  evidence: Array<{ label: string; value: string; kind: "MEASURED" | "USER_ENTERED" | "ESTIMATED"; note?: string }>;
+  reasonCodes: string[];
+  missing: string[];
+}
+
+export interface GoalCoherenceAction {
+  key: "SET_PROFILE_GOAL" | "END_ROADMAP" | "OPEN_PROFILE" | "OPEN_NUTRITION";
+  label: string;
+  value?: string;
+}
+export interface GoalCoherenceResult {
+  coherent: boolean;
+  roadmapId: string | null;
+  profileGoal: string | null;
+  roadmapGoal: string | null;
+  effectiveGoal: { goal: string | null; source: "ROADMAP_PHASE" | "PROFILE" | "NONE"; phaseType: string | null };
+  conflicts: Array<{ code: "PROFILE_VS_ROADMAP" | "GOAL_VS_TARGET_WEIGHT" | "NUTRITION_DIRECTION"; title: string; detail: string; actions: GoalCoherenceAction[] }>;
+}
+
 export interface RoadmapPhaseWithCycles {
   id: string;
   roadmapId: string;
@@ -2131,6 +2161,27 @@ export const fitnessRoadmapService = {
   archive: async (roadmapId: string) => {
     const { data } = await api.post<{ roadmapId: string; archived: boolean }>(
       `/fitness-roadmaps/${roadmapId}/archive`,
+      {},
+    );
+    return data;
+  },
+
+  // G4 — a goal suggestion from the body metrics (profile + latest InBody, optional unsaved overrides). Read-only.
+  getGoalRecommendation: async (inputs: object = {}) => {
+    const { data } = await api.post<{ recommendation: GoalRecommendationResult; profileGoal: string | null }>("/fitness-roadmaps/goal-recommendation", inputs);
+    return data;
+  },
+
+  // Where the user's goals disagree (profile vs roadmap vs target weight vs calories). Read-only, derived.
+  getGoalCoherence: async () => {
+    const { data } = await api.get<GoalCoherenceResult>("/fitness-roadmaps/goal-coherence");
+    return data;
+  },
+
+  // Ends an ACTIVE roadmap so the user can start a new one (archive is refused while a phase is ACTIVE).
+  cancel: async (roadmapId: string) => {
+    const { data } = await api.post<{ roadmapId: string; cancelled: boolean }>(
+      `/fitness-roadmaps/${roadmapId}/cancel`,
       {},
     );
     return data;
@@ -6172,10 +6223,13 @@ export const gymService = {
   // Server mặc định 200 dòng/trang, tối đa 500; status / expiringBefore (ISO) lọc ở DB.
   listOwnedMembershipsPage: async (
     gymId: string,
-    params: { limit?: number; cursor?: string | null; status?: string; expiringBefore?: string } = {},
+    params: { limit?: number; cursor?: string | null; status?: string; expiringBefore?: string; q?: string } = {},
+    signal?: AbortSignal,
   ): Promise<{ items: GymMembershipContract[]; hasMore: boolean; nextCursor: string | null }> => {
+    // `q` (2-64 ký tự, tìm theo tên, chủ/quản lý): chỉ gửi khi có giá trị; một `q` rỗng sẽ là 400 chứ không phải danh sách đầy đủ.
     const { data } = await api.get(`/owner/gyms/${gymId}/memberships`, {
-      params: { limit: params.limit, cursor: params.cursor || undefined, status: params.status, expiringBefore: params.expiringBefore },
+      params: { limit: params.limit, cursor: params.cursor || undefined, status: params.status, expiringBefore: params.expiringBefore, q: params.q || undefined },
+      signal,
     });
     const items = (data?.data ?? []) as GymMembershipContract[];
     return { items, hasMore: !!data?.meta?.hasMore, nextCursor: data?.meta?.nextCursor ?? null };

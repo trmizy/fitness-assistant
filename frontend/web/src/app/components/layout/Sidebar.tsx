@@ -1,4 +1,6 @@
+import { useId } from "react";
 import { NavLink, useNavigate } from "react-router";
+import { motion, useReducedMotion } from "motion/react";
 import { useQuery } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { useApp } from "../../context/AppContext";
@@ -14,6 +16,7 @@ import {
   GyminiCatalogIcon,
   GyminiChatIcon,
   GyminiCompareIcon,
+  GyminiComplaintIcon,
   GyminiContractIcon,
   GyminiDashboardIcon,
   GyminiDiscoverIcon,
@@ -43,7 +46,7 @@ import { fullName } from "../../utils/fullName";
  * features share one nav slot instead of each taking a row — keeps this
  * list short enough to be usable on a mobile-width sidebar/drawer.
  */
-const clientNavFull = [
+export const clientNavFull = [
   {
     label: "Tổng quan",
     icon: GyminiDashboardIcon,
@@ -67,7 +70,7 @@ const clientNavFull = [
   { label: "Trò chuyện", icon: GyminiChatIcon, to: "/client/chat" },
   { label: "Ví", icon: GyminiWalletIcon, to: "/client/wallet" },
   { label: "Khiếu nại của tôi", icon: GyminiDisputeIcon, to: "/disputes" },
-  { label: "Khiếu nại phòng gym", icon: GyminiDisputeIcon, to: "/complaint-cases" },
+  { label: "Khiếu nại phòng gym", icon: GyminiComplaintIcon, to: "/complaint-cases" },
   { label: "Hồ sơ", icon: GyminiProfileIcon, to: "/client/profile" },
   { label: "Cài đặt", icon: GyminiSettingsIcon, to: "/client/settings" },
 ];
@@ -115,7 +118,7 @@ const accountantNav = [{ label: "Tài chính", icon: GyminiMoneyIcon, to: "/gym-
 const ptClientNav = clientNavFull;
 
 /** PT professional workspace nav */
-const ptWorkspaceNav = [
+export const ptWorkspaceNav = [
   {
     label: "Tổng quan PT",
     icon: GyminiDashboardIcon,
@@ -197,6 +200,16 @@ function NavGroup({
   items: NavItem[];
   onClose: () => void;
 }) {
+  // Frontend 2.0: ONE active surface that glides between items (shared layout), instead of each
+  // item swapping its own background. Same colours/border as before. Unique per Sidebar instance
+  // (desktop aside + mobile drawer can both be mounted). Critically damped: no overshoot.
+  const indicatorId = useId();
+  const reduceMotion = useReducedMotion();
+  // NG-3: Sidebar is shared with Gym Owner / Admin (green labels, unchanged). Only Client/PT, whose drawer is the
+  // Obsidian glass panel, get the Obsidian selection language (same as the desktop rail: soft accent pill, accent icon,
+  // plain label colour) instead of the old green label.
+  const { role } = useApp();
+  const obsidian = role === "client" || role === "pt";
   return (
     <>
       {items.map((item) => (
@@ -205,21 +218,33 @@ function NavGroup({
           to={item.to}
           onClick={onClose}
           className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-0.5 text-sm transition-all ${
-              isActive
-                ? "bg-green-500/15 text-green-400 border border-green-500/20"
-                : "text-zinc-500 hover:bg-zinc-800/80 hover:text-zinc-200"
+            `relative flex items-center gap-3 px-3 py-2.5 rounded-lg mb-0.5 text-sm border border-transparent transition-colors duration-150 ${
+              obsidian
+                ? isActive
+                  ? "text-[var(--ob-text)] font-medium"
+                  : "text-[var(--ob-text-2)] hover:bg-[var(--ob-hover)] hover:text-[var(--ob-text)]"
+                : isActive
+                  ? "text-green-400"
+                  : "text-zinc-500 hover:bg-zinc-800/80 hover:text-zinc-200"
             }`
           }
         >
           {({ isActive }) => (
             <>
+              {isActive && (
+                <motion.span
+                  layoutId={`nav-active-${indicatorId}`}
+                  aria-hidden
+                  className={obsidian ? "absolute inset-0 rounded-lg border border-[var(--ob-nav-pill-line)] bg-[var(--ob-accent-soft)]" : "absolute inset-0 rounded-lg bg-green-500/15 border border-green-500/20"}
+                  transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 520, damping: 44, mass: 0.9 }}
+                />
+              )}
               <item.icon
                 weight={isActive ? "bold" : "regular"}
-                className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-green-400" : ""}`}
+                className={`relative w-4 h-4 flex-shrink-0 ${isActive ? (obsidian ? "text-[var(--ob-accent-ink)]" : "text-green-400") : ""}`}
               />
               <AutoText
-                className="flex-1"
+                className="relative flex-1"
                 sourceLang={item.sourceLang || "vi"}
               >
                 {item.label}
@@ -234,7 +259,7 @@ function NavGroup({
                 </span>
               )}
               {isActive && (
-                <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
+                <div className={`relative w-1.5 h-1.5 rounded-full ${obsidian ? "bg-[var(--ob-accent-ink)]" : "bg-green-400"}`} />
               )}
             </>
           )}
@@ -381,7 +406,7 @@ export function Sidebar() {
             <div className="w-4 h-4 bg-green-500/20 rounded flex items-center justify-center">
               <Zap className="w-2.5 h-2.5 text-green-400" />
             </div>
-            <span className="text-xs text-zinc-500 font-semibold tracking-wide uppercase">
+            <span className="text-xs text-zinc-500 font-semibold">
               <AutoText>Tài khoản PT</AutoText>
             </span>
           </div>
@@ -415,11 +440,11 @@ export function Sidebar() {
       )}
 
       {/* ── Navigation ── */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2">
+      <nav aria-label="Điều hướng chính" className="flex-1 overflow-y-auto py-3 px-2">
         {/* Section label */}
         {isPT && (
           <div className="px-3 mb-2">
-            <span className="text-xs font-bold text-zinc-600 uppercase tracking-widest">
+            <span className="text-xs font-bold text-zinc-600">
               <AutoText>
                 {activeView === "pt" ? "Huấn luyện" : "Thể dục của tôi"}
               </AutoText>

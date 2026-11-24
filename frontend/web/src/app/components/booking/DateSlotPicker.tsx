@@ -126,7 +126,7 @@ export function DateSlotPicker({
         </div>
         <div className="grid grid-cols-7 gap-1 mb-2 border-b border-zinc-800/60 pb-2">
           {DAYS.map((d) => (
-            <div key={d} className="text-center text-[10px] text-zinc-600 uppercase font-bold">{d}</div>
+            <div key={d} className="text-center text-[10px] text-zinc-600 font-bold">{d}</div>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-0.5 sm:gap-1">

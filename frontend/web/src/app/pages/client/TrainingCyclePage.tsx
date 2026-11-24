@@ -21,6 +21,8 @@ import {
   type CycleReport,
   type TrainingCycle,
 } from "../../services/api";
+import { QueryErrorNotice } from "../../components/ui/QueryErrorNotice";
+import { activeCycleFailed, hasBlockingError, listFailed, QUERY_ERROR_TEXT } from "../../utils/queryErrorState";
 
 function formatDate(value: string | null) {
   if (!value) return "—";
@@ -168,6 +170,12 @@ function ActiveCycleCard() {
         <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
       </div>
     );
+  }
+
+  // 404 = "no active cycle yet" (valid, offers to start one); any other failure must not read as "no cycle"
+  // (it would invite starting a second cycle) - it is an error with a retry.
+  if (activeCycleFailed(activeQuery)) {
+    return <QueryErrorNotice testId="cycle-active-error" text={QUERY_ERROR_TEXT.inbodyCycle} onRetry={() => activeQuery.refetch()} busy={activeQuery.isFetching} />;
   }
 
   if (!activeQuery.data?.cycle) {
@@ -564,6 +572,9 @@ function CycleProgressSection({ cycleId }: { cycleId: string }) {
         <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
       </div>
     );
+  }
+  if (hasBlockingError(progressQuery)) {
+    return <QueryErrorNotice testId="cycle-progress-error" text={QUERY_ERROR_TEXT.cycleProgress} onRetry={() => progressQuery.refetch()} busy={progressQuery.isFetching} />;
   }
   if (!progressQuery.data) return null;
 
@@ -1488,6 +1499,11 @@ export function TrainingCyclePage() {
 
       <ActiveCycleCard />
 
+      {/* The history list failed: the cycle sections below depend on it, so say so instead of showing "no cycle". */}
+      {listFailed(historyQuery) && (
+        <QueryErrorNotice testId="cycle-history-error" text={QUERY_ERROR_TEXT.cycleHistory} onRetry={() => historyQuery.refetch()} busy={historyQuery.isFetching} />
+      )}
+
       {/* A stale proposal from an older COMPLETED/ANALYZED cycle must never
           be offered once a newer cycle already exists and is running — the
           user has already moved on (whether by approving it or starting a
@@ -1500,6 +1516,7 @@ export function TrainingCyclePage() {
 
       {relevantCycleId && <AdaptiveAssessmentCard cycleId={relevantCycleId} />}
 
+      {!listFailed(historyQuery) && (
       <div>
         <h2 className="text-sm font-bold text-zinc-300 mb-2">Lịch sử chu kỳ</h2>
         {historyQuery.isLoading ? (
@@ -1519,6 +1536,7 @@ export function TrainingCyclePage() {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

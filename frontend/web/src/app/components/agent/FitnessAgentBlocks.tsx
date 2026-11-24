@@ -1,8 +1,35 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { fitnessAgentService, type AgentChatBlock, type AgentReply } from "../../services/fitnessAgent";
+import { profileService } from "../../services/api";
 import { isSafeHttpUrl } from "../../utils/safeUrl";
 import { DayMacroEstimate } from "../nutrition/DayMacroEstimate";
+
+/**
+ * PT photo on a recommendation card. The URL in the saved chat block is a presigned S3 link that is only valid for 5 minutes, so an older
+ * conversation shows a broken image. On a load error, ask the PT detail API for a freshly signed URL once; if that fails too, show the
+ * initial instead of a broken-image icon.
+ */
+function PtCandidateAvatar({ ptId, name, initialUrl }: { ptId: string; name: string; initialUrl?: string | null }) {
+  const [src, setSrc] = useState<string | null>(initialUrl && isSafeHttpUrl(initialUrl) ? initialUrl : null);
+  const [retried, setRetried] = useState(false);
+  useEffect(() => { setSrc(initialUrl && isSafeHttpUrl(initialUrl) ? initialUrl : null); setRetried(false); }, [initialUrl, ptId]);
+  async function recover() {
+    if (retried) return setSrc(null);
+    setRetried(true);
+    try {
+      const detail = await profileService.getPTDetail(ptId);
+      const fresh = detail?.photoUrl;
+      setSrc(typeof fresh === "string" && isSafeHttpUrl(fresh) && fresh !== src ? fresh : null);
+    } catch {
+      setSrc(null);
+    }
+  }
+  if (!src) {
+    return <span aria-hidden className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-300">{(name?.trim()?.[0] ?? "?").toUpperCase()}</span>;
+  }
+  return <img src={src} alt="" onError={() => void recover()} className="h-10 w-10 flex-shrink-0 rounded-full object-cover" />;
+}
 
 /** Backend action results name the destination by domain (ai-service / fitness-service contract). The web app's real routes differ
  * for training: the "Tập luyện" page lives at /client/workout, so "/client/training" would be a 404. Only listed targets get a link. */
@@ -84,7 +111,7 @@ export function FitnessAgentBlock({ block, sessionId, onReply, onQuickReply }: {
     {block.warnings?.map(w => <p key={w} className="text-amber-300">{w}</p>)}
     {(block.type === "PT_RECOMMENDATIONS" || block.type === "PROGRAM_RECOMMENDATIONS") && block.candidates?.map((c, i) => <article key={c.id} className="rounded-xl border border-zinc-700 p-3 space-y-2">
       <div className="flex items-start gap-2">
-        {c.photoUrl && isSafeHttpUrl(c.photoUrl) && <img src={c.photoUrl} alt="" className="h-10 w-10 rounded-full object-cover" />}
+        <PtCandidateAvatar ptId={c.id} name={c.name} initialUrl={c.photoUrl} />
         <div className="min-w-0"><h3 className="font-semibold text-zinc-100">{i + 1}. {c.name}</h3>
           <p className="text-emerald-300">Compatibility Score: {c.compatibility?.total}/100</p></div>
       </div>

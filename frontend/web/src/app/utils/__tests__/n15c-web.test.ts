@@ -42,7 +42,10 @@ describe("N15C-04 reschedule picker touch targets + Vietnamese names", () => {
     assert.match(src, /aria-label="Tháng sau"/);
     assert.equal((src.match(/h-10 w-10/g) ?? []).length, 2);
     assert.match(src, /aspect-square min-h-10/);
-    assert.match(src, /aria-label=\{`Ngày \$\{day\} tháng \$\{month \+ 1\}`\}/);
+    // Every day button is named in Vietnamese ("Ngày X tháng Y") …
+    assert.match(src, /aria-label=\{`Ngày \$\{day\} tháng \$\{month \+ 1\}/);
+    // … and since 797e6011 a fully booked day also says WHY it cannot be picked, not only greyed out.
+    assert.match(src, /\$\{dayFull \? `, \$\{DAY_FULL_HINT\.toLowerCase\(\)\}` : ""\}`\}/);
   });
   it("the reschedule dialog has a 40px Vietnamese close button", () => {
     const booking = read("pages/client/BookingPage.tsx");

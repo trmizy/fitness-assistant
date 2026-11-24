@@ -1,3 +1,11 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+/* Batch 2: additive motion tokens (--g-*). Nothing reads them yet; batches 4-8 adopt them. */
+@import './gymini-motion.css';
+/* NIGHT GLASS navigation surfaces (.ng-*): rail, tooltip, search palette, landing pill. Colours come from --ob-*. */
+@import './night-glass.css';
+/* OBSIDIAN: the single token set of the Client/PT workspace (--ob-*, incl. navigation --ob-nav-*). */
+@import './obsidian.css';
+/* WEB UI shared navigation patterns (.gw-* classes; tokens are --ob-*). */
+@import './gymini-web-ui.css';

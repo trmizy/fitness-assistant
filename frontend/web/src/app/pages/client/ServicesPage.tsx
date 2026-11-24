@@ -24,6 +24,7 @@ export function ServicesPage() {
   return (
     <TabbedPage
       defaultTab={resolveServiceTab(location.pathname)}
+      quiet
       tabs={[
         { value: "coaches", label: "Tìm PT", icon: Search, content: <PTDiscoveryPage /> },
         { value: "booking", label: "Đặt lịch", icon: Calendar, content: <BookingPage /> },

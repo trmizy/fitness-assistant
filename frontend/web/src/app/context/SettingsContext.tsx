@@ -101,8 +101,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     document.documentElement.style.colorScheme = effectiveTheme;
     const logoHref =
       effectiveTheme === "dark"
-        ? "/brand/gymini-logo-dark.png"
-        : "/brand/gymini-logo-light.png";
+        ? "/brand/gymini-logo-dark-180.png" // Batch 0a: icon-sized PNG (apple-touch-icon must be PNG), not the 1.14 MB original
+        : "/brand/gymini-logo-light-180.png";
     document
       .querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"]')
       .forEach((link) => {

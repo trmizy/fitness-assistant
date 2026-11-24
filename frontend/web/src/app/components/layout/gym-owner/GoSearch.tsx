@@ -45,6 +45,8 @@ export function GoSearch({
   ariaLabel,
   testId,
   className = "",
+  maxLength,
+  describedBy,
 }: {
   value: string;
   onChange: (next: string) => void;
@@ -52,6 +54,10 @@ export function GoSearch({
   ariaLabel: string;
   testId?: string;
   className?: string;
+  /** Hard cap of the typed text (the member search is 2-64 characters on the server). */
+  maxLength?: number;
+  /** id of a hint / status element the input is described by. */
+  describedBy?: string;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -181,6 +187,8 @@ export function GoSearch({
         aria-label={ariaLabel}
         autoComplete="off"
         spellCheck={false}
+        maxLength={maxLength}
+        aria-describedby={describedBy}
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />

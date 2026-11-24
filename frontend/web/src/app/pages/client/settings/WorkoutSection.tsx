@@ -41,10 +41,10 @@ export function WorkoutSection() {
         <div className="min-w-0 flex items-start gap-3">
           <Timer className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="text-sm text-zinc-200 font-semibold">
+            <p id="settings-default-rest-label" className="text-sm text-zinc-200 font-semibold">
               Nghỉ mặc định
             </p>
-            <p className="text-xs text-zinc-500">
+            <p id="settings-default-rest-desc" className="text-xs text-zinc-500">
               Dùng khi bài tập hoặc set không có thời gian nghỉ riêng
             </p>
           </div>
@@ -52,6 +52,8 @@ export function WorkoutSection() {
         <div className="flex items-center gap-2 flex-shrink-0">
           <input
             data-testid="settings-workout-default-rest"
+            aria-labelledby="settings-default-rest-label"
+            aria-describedby="settings-default-rest-desc settings-default-rest-unit"
             type="number"
             min={15}
             max={300}
@@ -62,7 +64,7 @@ export function WorkoutSection() {
             }
             className="w-20 px-2 py-1.5 rounded-lg border border-zinc-700/60 bg-zinc-800/60 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
           />
-          <span className="text-xs text-zinc-500">giây</span>
+          <span id="settings-default-rest-unit" className="text-xs text-zinc-500">giây</span>
         </div>
       </div>
 

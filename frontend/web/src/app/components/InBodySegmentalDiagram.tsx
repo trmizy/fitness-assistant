@@ -2,6 +2,12 @@
  * Visual body-silhouette diagram for InBody segmental analysis (left/right
  * arms, trunk, left/right legs) — mirrors the layout of a real InBody
  * printout's "Segmental Lean/Fat Analysis" section instead of a plain table.
+ *
+ * It shows the MEASURED kg of each segment and nothing else by default. A "Thấp / Bình thường / Cao"
+ * verdict (and the % of norm) is drawn ONLY for a segment whose `norms` entry is given, and `norms` must be
+ * the reference range of THIS person taken from their own sheet. There is no population constant here:
+ * a fixed arm / trunk / leg kg judged the same for every sex, height and weight is not a standard, and
+ * rating someone against it would present a made-up reference as if it were a measurement.
  */
 type SegmentalValues = {
   leftArm?: number;
@@ -11,10 +17,11 @@ type SegmentalValues = {
   rightLeg?: number;
 };
 
+/** The person's own reference value per region, from their sheet. Leave a key out (or the whole prop) when the sheet has none. */
 type SegmentalNorms = {
-  arm: number;
-  trunk: number;
-  leg: number;
+  arm?: number;
+  trunk?: number;
+  leg?: number;
 };
 
 type Tone = "muscle" | "fat";
@@ -37,7 +44,7 @@ const TONE_STYLES: Record<
   },
 };
 
-function evaluate(value: number | undefined, norm: number) {
+function evaluate(value: number | undefined | null, norm: number | undefined) {
   if (!value || !norm) return { pct: null as number | null, label: "--" };
   const pct = Math.round((value / norm) * 100);
   const label = pct < 90 ? "Under" : pct > 110 ? "Over" : "Normal";
@@ -52,8 +59,8 @@ function SegmentBadge({
   align,
 }: {
   label: string;
-  value: number | undefined;
-  norm: number;
+  value: number | undefined | null;
+  norm: number | undefined;
   tone: Tone;
   align: "left" | "right" | "center";
 }) {
@@ -107,14 +114,16 @@ export function InBodySegmentalDiagram({
   title: string;
   tone: Tone;
   values: SegmentalValues;
-  norms: SegmentalNorms;
+  /** Optional: the person's own reference range from the sheet. Without it only the measured numbers are shown. */
+  norms?: SegmentalNorms;
 }) {
+  const n = norms ?? {};
   const styles = TONE_STYLES[tone];
 
   return (
     <div>
       <h4
-        className={`text-xs font-bold uppercase tracking-wider mb-3 ${
+        className={`text-xs font-bold mb-3 ${
           tone === "muscle" ? "text-green-400/80" : "text-amber-400/80"
         }`}
       >
@@ -128,14 +137,14 @@ export function InBodySegmentalDiagram({
           <SegmentBadge
             label="Tay trái"
             value={values.leftArm}
-            norm={norms.arm}
+            norm={n.arm}
             tone={tone}
             align="left"
           />
           <SegmentBadge
             label="Chân trái"
             value={values.leftLeg}
-            norm={norms.leg}
+            norm={n.leg}
             tone={tone}
             align="left"
           />
@@ -200,14 +209,14 @@ export function InBodySegmentalDiagram({
           <SegmentBadge
             label="Tay phải"
             value={values.rightArm}
-            norm={norms.arm}
+            norm={n.arm}
             tone={tone}
             align="right"
           />
           <SegmentBadge
             label="Chân phải"
             value={values.rightLeg}
-            norm={norms.leg}
+            norm={n.leg}
             tone={tone}
             align="right"
           />
@@ -219,7 +228,7 @@ export function InBodySegmentalDiagram({
         <SegmentBadge
           label="Thân mình"
           value={values.trunk}
-          norm={norms.trunk}
+          norm={n.trunk}
           tone={tone}
           align="center"
         />

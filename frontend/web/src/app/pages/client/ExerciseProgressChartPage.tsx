@@ -176,7 +176,7 @@ export function ExerciseProgressChartPage() {
             >
               <Trophy className="w-6 h-6 text-amber-400 shrink-0" />
               <div>
-                <p className="text-[10px] text-amber-300/80 uppercase tracking-wider">Kỷ lục cá nhân</p>
+                <p className="text-[10px] text-amber-300/80">Kỷ lục cá nhân</p>
                 <p className="text-sm text-zinc-100 font-semibold">{formatPersonalRecordLine(query.data.personalRecord)}</p>
               </div>
             </div>

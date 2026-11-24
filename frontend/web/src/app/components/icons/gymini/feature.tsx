@@ -10,6 +10,7 @@ import {
   CurrencyDollarIcon,
   GaugeIcon,
   GavelIcon,
+  FlagIcon,
   FlowArrowIcon,
 } from "@phosphor-icons/react";
 import { createGyminiIcon } from "./base";
@@ -52,6 +53,9 @@ export const GyminiSystemIcon = createGyminiIcon("GyminiSystemIcon", GaugeIcon);
 
 // Dispute — gavel (adjudication).
 export const GyminiDisputeIcon = createGyminiIcon("GyminiDisputeIcon", GavelIcon);
+
+// Complaint — a flag (a report about a gym), so "Khiếu nại phòng gym" no longer shares the gavel with "Khiếu nại của tôi".
+export const GyminiComplaintIcon = createGyminiIcon("GyminiComplaintIcon", FlagIcon);
 
 // Workflow — branching flow arrow, distinct from Compare (no branch/merge there) and from
 // Plan's HeadCircuit.

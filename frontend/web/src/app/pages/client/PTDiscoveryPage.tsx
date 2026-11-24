@@ -71,6 +71,13 @@ import {
 } from "../../utils/independentVenue";
 import { PtBookableSchedule } from "../../components/booking/PtBookableSchedule";
 import { PtWeeklySchedule } from "../../components/booking/PtWeeklySchedule";
+import { ActivePill } from "../../components/ui/ActivePill";
+import { ContentTabs, PanelIf } from "../../components/ui/nav/ContentTabs";
+import { isWebPresentation } from "../../utils/webPresentation";
+import { FilterChips } from "../../components/ui/nav/FilterChips";
+
+// WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
+const WEB_UI = isWebPresentation();
 
 const isValidPrice = (p: unknown): p is number =>
   typeof p === "number" && p > 0;
@@ -775,7 +782,7 @@ export function PTDiscoveryPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">
+              <label className="text-xs text-zinc-500 mb-1 block">
                 Giá tối thiểu (VND)
               </label>
               <input
@@ -793,7 +800,7 @@ export function PTDiscoveryPage() {
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">
+              <label className="text-xs text-zinc-500 mb-1 block">
                 Giá tối đa (VND)
               </label>
               <input
@@ -831,7 +838,10 @@ export function PTDiscoveryPage() {
       )}
 
       {/* Server-side specialty chips */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      {WEB_UI ? (
+        <FilterChips label="Lọc theo chuyên môn" value={activeFilter} onChange={setActiveFilter} options={filters.map((f, i) => ({ value: filterValues[i], label: f }))} testId="pt-discovery-specialty" />
+      ) : (
+      <div className="flex gap-2 overflow-x-auto g-scroll-x pb-1">
         {filters.map((f, i) => (
           <button
             key={f}
@@ -847,6 +857,7 @@ export function PTDiscoveryPage() {
           </button>
         ))}
       </div>
+      )}
 
       {listUpdatedNotice && (
         <div
@@ -1197,6 +1208,11 @@ export function PTDiscoveryPage() {
                 </div>
 
                 {/* Tabs */}
+                {WEB_UI ? (
+                <ContentTabs idBase="pt-discovery-detail" label="Thông tin huấn luyện viên" value={detailTab} tabs={[{ key: "detail", label: "Chi tiết" },
+                      { key: "pricing", label: "Giá gói" },
+                      { key: "reviews", label: "Đánh giá" },]} onChange={(k) => setDetailTab(k as typeof detailTab)} testId="pt-discovery-tabs">{null}</ContentTabs>
+                ) : (
                 <div role="tablist" aria-label="Thông tin huấn luyện viên" className="flex gap-1 bg-zinc-800/60 border-b border-zinc-700/40 p-1">
                   {(
                     [
@@ -1211,18 +1227,21 @@ export function PTDiscoveryPage() {
                       role="tab"
                       aria-selected={detailTab === t.key}
                       onClick={() => setDetailTab(t.key)}
-                      className={`flex-1 min-h-10 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
+                      className={`relative flex-1 min-h-10 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
                         detailTab === t.key
-                          ? "bg-green-500 text-black shadow-sm"
+                          ? "text-black"
                           : "text-zinc-500 hover:text-zinc-300"
                       }`}
                     >
-                      {t.label}
+                      {detailTab === t.key && <ActivePill group="pt-discovery-detail" className="rounded-lg bg-green-500 shadow-sm" />}
+                      <span className="relative">{t.label}</span>
                     </button>
                   ))}
                 </div>
+                )}
 
                 <div className="p-5 space-y-5">
+                  <PanelIf web={WEB_UI} idBase="pt-discovery-detail" tabKey={detailTab} className="space-y-5">
                   {detailTab === "detail" && (
                     <>
                   <div>
@@ -1252,7 +1271,7 @@ export function PTDiscoveryPage() {
                     if (photos.length === 0) return null;
                     return (
                       <div>
-                        <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Hình ảnh</h4>
+                        <h4 className="text-xs font-bold text-zinc-400 mb-2">Hình ảnh</h4>
                         <div className="grid grid-cols-3 gap-2">
                           {photos.map((p, i) => (
                             <ListingImage key={p.id} url={p.url} alt={`Ảnh ${i + 1} của huấn luyện viên`} className="aspect-square w-full rounded-lg" />
@@ -1276,7 +1295,7 @@ export function PTDiscoveryPage() {
                   {(app?.educationBackground ||
                     app?.previousWorkExperience) && (
                     <div>
-                      <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                      <h4 className="text-xs font-bold text-zinc-400 mb-2">
                         Kinh nghiệm & Học vấn
                       </h4>
                       <div className="space-y-2 text-sm text-zinc-400 leading-relaxed">
@@ -1303,7 +1322,7 @@ export function PTDiscoveryPage() {
                   {/* Training Methods */}
                   {app?.trainingMethodsApproach && (
                     <div>
-                      <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                      <h4 className="text-xs font-bold text-zinc-400 mb-2">
                         Phương pháp huấn luyện
                       </h4>
                       <p className="text-sm text-zinc-400 leading-relaxed">
@@ -1316,7 +1335,7 @@ export function PTDiscoveryPage() {
                   {((app?.targetClientGroups?.length ?? 0) > 0 ||
                     (app?.primaryTrainingGoals?.length ?? 0) > 0) && (
                     <div>
-                      <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                      <h4 className="text-xs font-bold text-zinc-400 mb-2">
                         Đối tượng & Mục tiêu
                       </h4>
                       {app.targetClientGroups?.length > 0 && (
@@ -1352,7 +1371,7 @@ export function PTDiscoveryPage() {
                   {/* Gym affiliation */}
                   {app?.gymAffiliation && (
                     <div>
-                      <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                      <h4 className="text-xs font-bold text-zinc-400 mb-1">
                         Phòng gym
                       </h4>
                       <p className="text-sm text-zinc-300">
@@ -1369,7 +1388,7 @@ export function PTDiscoveryPage() {
                     socialLinks.tiktok ||
                     socialLinks.facebook) && (
                     <div>
-                      <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                      <h4 className="text-xs font-bold text-zinc-400 mb-2">
                         Links
                       </h4>
                       <div className="flex flex-wrap gap-2">
@@ -1478,7 +1497,7 @@ export function PTDiscoveryPage() {
                           </div>
                         </div>
 
-                        <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                        <h4 className="text-xs font-bold text-zinc-400 mb-2">
                           Bình luận
                         </h4>
                         {(ptDetail.recentReviews?.length ?? 0) > 0 ? (
@@ -1611,6 +1630,7 @@ export function PTDiscoveryPage() {
                     </div>
                   </div>
                   )}
+                  </PanelIf>
 
                   {/* Message button — persistent across all 3 tabs, not tied to any one
                       of them, since messaging the PT is a fine follow-up whichever tab

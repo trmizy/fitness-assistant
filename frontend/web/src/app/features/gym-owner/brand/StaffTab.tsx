@@ -12,6 +12,7 @@ import { CopyIcon, PlusIcon } from "@phosphor-icons/react";
 import { gymService } from "../../../services/api";
 import { GoModal } from "../../../components/layout/gym-owner/GoModal";
 import { GoTag } from "../../../components/layout/gym-owner/GoTag";
+import { GoRowMenu } from "../../../components/layout/gym-owner/GoRowMenu";
 import { SuccessCheck, TextStates, useShake } from "../../../components/layout/gym-owner/motion";
 import { useGymOwnerScope, useScopeChangeEffect } from "../scope/GymOwnerScopeProvider";
 import { ScopeStateFrame } from "../scope/PermissionGate";
@@ -170,7 +171,7 @@ export function StaffTab({ onDirty }: { onDirty: (dirty: boolean) => void }) {
         </div>
       )}
 
-      <section className="go-panel" aria-labelledby="go-h-staff">
+      <section className="go-panel go-panel-menus" aria-labelledby="go-h-staff">
         <div className="go-panel-head go-panel-head-row">
           <div>
             <h2 id="go-h-staff">Tài khoản nhân sự</h2>
@@ -215,20 +216,15 @@ export function StaffTab({ onDirty }: { onDirty: (dirty: boolean) => void }) {
                 <div role="cell" className="go-dt-cell" data-label="Chi nhánh được gán">{scopeCell(a.role, a.scopedGymIds)}</div>
                 <div role="cell" className="go-dt-cell" data-label="Trạng thái"><GoTag tone="ok" text="Đang hoạt động" /></div>
                 <div role="cell" className="go-dt-cell go-dt-actions">
-                  <button
-                    type="button"
-                    ref={(el) => {
+                  <GoRowMenu
+                    label={`Thao tác với ${staffName(a)}`}
+                    testId="staff-menu-button"
+                    triggerRef={(el) => {
                       if (el) triggers.current.set(`a-${a.id}`, el);
                       else triggers.current.delete(`a-${a.id}`);
                     }}
-                    className="go-btn go-btn-sm"
-                    data-tone="risk"
-                    aria-label={`Thu hồi quyền của ${staffName(a)}`}
-                    onClick={() => setTarget({ kind: "account", id: a.id, name: staffName(a), role: a.role ?? "" })}
-                    data-testid="staff-menu-button"
-                  >
-                    Thu hồi
-                  </button>
+                    items={[{ label: "Thu hồi quyền", ariaLabel: `Thu hồi quyền của ${staffName(a)}`, danger: true, testId: "staff-revoke-item", onSelect: () => setTarget({ kind: "account", id: a.id, name: staffName(a), role: a.role ?? "" }) }]}
+                  />
                 </div>
               </div>
             ))}
@@ -238,7 +234,7 @@ export function StaffTab({ onDirty }: { onDirty: (dirty: boolean) => void }) {
       </section>
 
       {!loading && invites.length > 0 && (
-        <section className="go-panel" aria-labelledby="go-h-invites" data-testid="go-invites">
+        <section className="go-panel go-panel-menus" aria-labelledby="go-h-invites" data-testid="go-invites">
           <div className="go-panel-head">
             <h2 id="go-h-invites">Lời mời đang chờ</h2>
             <p>Người được mời chưa nhận. {RESEND_NOTE}</p>
@@ -268,20 +264,15 @@ export function StaffTab({ onDirty }: { onDirty: (dirty: boolean) => void }) {
                       <SuccessCheck show={resent === inv.id} size={14} />
                       <TextStates value={resending === inv.id ? "Đang gửi" : resent === inv.id ? "Đã gửi lại" : "Gửi lại"} />
                     </button>
-                    <button
-                      type="button"
-                      ref={(el) => {
+                    <GoRowMenu
+                      label={`Thao tác với lời mời tới ${inv.email}`}
+                      testId="go-invite-menu"
+                      triggerRef={(el) => {
                         if (el) triggers.current.set(`i-${inv.id}`, el);
                         else triggers.current.delete(`i-${inv.id}`);
                       }}
-                      className="go-btn go-btn-sm"
-                      data-tone="risk"
-                      aria-label={`Thu hồi lời mời tới ${inv.email}`}
-                      onClick={() => setTarget({ kind: "invite", id: inv.id, email: inv.email ?? "", role: inv.role ?? "" })}
-                      data-testid="go-invite-revoke"
-                    >
-                      Thu hồi
-                    </button>
+                      items={[{ label: "Thu hồi lời mời", ariaLabel: `Thu hồi lời mời tới ${inv.email}`, danger: true, testId: "go-invite-revoke", onSelect: () => setTarget({ kind: "invite", id: inv.id, email: inv.email ?? "", role: inv.role ?? "" }) }]}
+                    />
                   </div>
                 </div>
               );

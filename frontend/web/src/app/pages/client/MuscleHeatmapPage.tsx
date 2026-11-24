@@ -5,6 +5,7 @@ import { ArrowLeftIcon as ArrowLeft, FlameIcon as Flame, CircleNotchIcon as Load
 import { useNavigate } from "react-router";
 import { MUSCLE_CODE_TO_BODY_MUSCLES_REGIONS, isBackViewMuscle } from "../../constants/muscleRegionMap";
 import { statsService, type MuscleHeatmapEntry } from "../../services/api";
+import { makeBodyChartStatic, listVi } from "../../utils/bodyChartA11y";
 
 /**
  * Roadmap P3.1 "Muscle heatmap"
@@ -64,6 +65,9 @@ export function MuscleHeatmapPage() {
     } else {
       chartRef.current.update({ view, bodyState });
     }
+    // A11Y-4: display-only chart -> one named image that says which muscles were trained most.
+    const top = listVi([...muscles].sort((a, b) => b.intensity - a.intensity).slice(0, 5).map((m) => m.nameVi), 5);
+    makeBodyChartStatic(containerRef.current, `Bản đồ nhiệt nhóm cơ, ${view === ViewSide.FRONT ? "mặt trước" : "mặt sau"}${top ? ". Tập nhiều nhất: " + top : ". Chưa có dữ liệu tập"}`);
   }, [muscles, view, heatmapQuery.isLoading]);
 
   useEffect(() => {

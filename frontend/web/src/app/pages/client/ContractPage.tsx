@@ -368,7 +368,7 @@ export function ContractPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
             <FileText className="w-5 h-5 text-green-400" /> Hợp đồng của tôi
@@ -379,14 +379,14 @@ export function ContractPage() {
         </div>
         <button
           onClick={() => navigate("/client/coaches")}
-          className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/25"
+          className="flex shrink-0 items-center gap-2 whitespace-nowrap bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/25"
         >
           Tìm huấn luyện viên
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="flex gap-2 overflow-x-auto g-scroll-x pb-1">
         {tabs.map((t) => (
           <button
             key={t.value}
@@ -410,7 +410,7 @@ export function ContractPage() {
           </p>
           <button
             onClick={() => navigate("/client/coaches")}
-            className="px-6 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-xl transition-all shadow-lg shadow-green-500/20"
+            className="whitespace-nowrap px-6 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-xl transition-all shadow-lg shadow-green-500/20"
           >
             Tìm huấn luyện viên
           </button>

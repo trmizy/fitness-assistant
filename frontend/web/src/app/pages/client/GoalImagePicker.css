@@ -1,0 +1,61 @@
+/*
+ * Goal photo picker motion — transitions.dev patterns (shimmer text, texts reveal, success check), tokens scoped here.
+ * Colours come from the app theme tokens (--foreground / --muted-foreground), so both themes work. Only transform/opacity/background-position
+ * animate, and everything rests under prefers-reduced-motion.
+ */
+.t-goalimg {
+  --duration-stagger: 40ms;
+  --duration-slow: 400ms;
+  --distance-medium: 12px;
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --shimmer-duration: 1.6s;
+}
+
+/* "Gymini is looking at your photo": a highlight band sweeps across muted text */
+.t-goalimg-shimmer {
+  color: var(--muted-foreground);
+  background-image: linear-gradient(100deg, var(--muted-foreground) 35%, var(--foreground) 50%, var(--muted-foreground) 65%);
+  background-size: 250% 100%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: t-goalimg-sweep var(--shimmer-duration) linear infinite;
+}
+
+/* result rows rise in a short stagger (blurred rise kept subtle) */
+.t-goalimg-rise {
+  animation: t-goalimg-rise-in var(--duration-slow) var(--ease-smooth-out) both;
+  animation-delay: calc(var(--i, 0) * var(--duration-stagger));
+}
+
+@keyframes t-goalimg-sweep {
+  from {
+    background-position: 125% 0;
+  }
+  to {
+    background-position: -125% 0;
+  }
+}
+
+@keyframes t-goalimg-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--distance-medium));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-goalimg-shimmer {
+    animation: none;
+    background-image: none;
+    -webkit-text-fill-color: currentColor;
+  }
+  .t-goalimg-rise {
+    animation: none;
+  }
+}

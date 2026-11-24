@@ -41,6 +41,7 @@ Do agent partner thực hiện. Tất cả là chỉnh cấu hình của tài ng
 | IAM role `user` | Quyền S3 trên `pt-physique/*`, quyền invoke Lambda gym/payment | Ảnh PT, gọi service |
 | IAM role `gym` | Quyền S3 trên `listing-photos/*`, `branch-documents/*`, `complaint-photos/*` | Ảnh tin đăng, giấy tờ chi nhánh, ảnh khiếu nại |
 | Aurora `fitness-assistant-dev-aurora` | **Bật Data API** (chủ repo bật, 17/11) | Đọc/ghi dữ liệu test mà không cần bastion |
+| Env Lambda `user`: `CHAT_SERVICE_URL` (**do script quản lý, không đặt cứng**) | `dev-start.ps1 -Chat` đặt thành `http://<DNS ALB chat mới>` (bước 6c); `dev-stop.ps1 -Chat` để rỗng (bước 2b-iii). Công cụ: `scripts/aws/lib/set-lambda-env.cjs` (đọc map env, đổi đúng 1 khoá, ghi lại cả map) | ALB chat được tạo lại mỗi lần `dev-start -Chat` nên DNS đổi mỗi ngày; đặt cứng một lần sẽ hỏng từ hôm sau. Cần cho đẩy thông báo realtime và `POST /internal/contracts/connect` (tự tạo chat khi kích hoạt hợp đồng). Hai lời gọi này là best-effort, chat tắt thì hợp đồng vẫn kích hoạt. 19/11/2026 |
 
 Toàn bộ cấu hình trên đã được ghi lại thành script `scripts/aws/dev-manual-config.mjs` (nhánh `aws-deploy`): chạy không tham số là chỉ kiểm tra, `--apply` là áp dụng. **Lưu ý:** pipeline hay stack nào ghi đè cấu hình Lambda/CORS/IAM sẽ trả các mục này về giá trị cũ.
 

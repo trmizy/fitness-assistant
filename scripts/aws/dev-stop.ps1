@@ -68,7 +68,8 @@ param(
     [switch]$Backend,
     [switch]$Secrets,
     [switch]$Execute,
-    [switch]$FromAutoStop
+    [switch]$FromAutoStop,
+    [switch]$NoCostReport
 )
 
 $ErrorActionPreference = "Stop"
@@ -311,12 +312,13 @@ if (-not $Execute) {
     if ($Chat) {
         Write-Host "2) Push graceful-disable runtime-config.json BEFORE any teardown"
         Write-Host "2b-ii) Scale Chat ECS service ($EcsService) to 0 and wait (up to 300s) for it to drain"
+        Write-Host "2b-iii) Blank CHAT_SERVICE_URL on the user Lambda (the chat ALB is about to be deleted; node lib/set-lambda-env.cjs ... --empty)"
     }
     Write-Host ""
     Write-Host "3) Apply resolved target state to the stack (only the requested flag(s) change, everything else preserved)"
     if ($Backend) {
         Write-Host ""
-        Write-Host "8) Suspend DEV-pausable schedules (capture state to $SchedulerStateFile first), then stop Aurora"
+        Write-Host "8) Suspend DEV-pausable schedules (capture state to $SchedulerStateFile first), then stop Aurora, then close the app Lambdas (lib/lambda-gate.cjs close)"
     }
     Write-Host ""
     Write-Host "9) Run the cost leak check separately: ./scripts/aws/dev-cost-leak-check.ps1"
@@ -370,6 +372,16 @@ if ($Chat) {
         exit 1
     }
     Write-Host "   Chat ECS is at 0/0." -ForegroundColor Green
+
+    Write-Host ""
+    Write-Host "2b-iii) Blanking CHAT_SERVICE_URL on the user Lambda (the chat ALB is deleted below; dev-start -Chat sets it to the new one)..."
+    # Warning-only: a stale value only makes the best-effort chat calls fail fast, it must never block the shutdown.
+    try {
+        node (Join-Path $PSScriptRoot "lib/set-lambda-env.cjs") "fitness-assistant-dev-user" "CHAT_SERVICE_URL" "--empty"
+        if ($LASTEXITCODE -ne 0) { throw "set-lambda-env exit $LASTEXITCODE" }
+    } catch {
+        Write-Host "   WARNING: user Lambda CHAT_SERVICE_URL was NOT blanked: $($_.Exception.Message)." -ForegroundColor Yellow
+    }
 }
 
 if ($Backend) {
@@ -394,6 +406,30 @@ if ($Backend) {
     if (-not $auroraOk) {
         Write-Host "HARD STOP: Aurora did not reach stopped." -ForegroundColor Red
         exit 1
+    }
+
+    # Only after Aurora is really stopped (a failed stop must not leave the app closed while its database is up): reject every request
+    # to the HTTP-facing Lambdas at once instead of letting each one wait 30 s for a database that is not there (billed + error alarms,
+    # 2026-11-22). Warning-only: closing the gate is a cost/noise measure and must never turn a finished shutdown into a failure.
+    # dev-start -Backend opens it again right after Aurora is AVAILABLE.
+    Write-Host ""
+    Write-Host "2d) Closing the app Lambdas (reserved concurrency 0) until the next dev-start -Backend..."
+    try {
+        node (Join-Path $PSScriptRoot "lib/lambda-gate.cjs") close
+        if ($LASTEXITCODE -ne 0) { throw "lambda-gate exit $LASTEXITCODE" }
+    } catch {
+        Write-Host "   WARNING: Lambda gate was NOT fully closed: $($_.Exception.Message). Requests will reach the Lambdas and time out (small cost). Retry: node scripts/aws/lib/lambda-gate.cjs close" -ForegroundColor Yellow
+    }
+
+    # Public entrances: API Gateway throttle 0 (api.gymini.vn answers 429 at once - a 4xx, so no apigw-5xx-high alarm) and the CloudFront
+    # distribution disabled (gymini.vn / www / the AI stream refuse every request; ~5-15 min to take effect). dev-start -Backend reopens both.
+    Write-Host ""
+    Write-Host "2e) Closing the public entrances (API Gateway throttle 0 + CloudFront disabled) until the next dev-start -Backend..."
+    try {
+        node (Join-Path $PSScriptRoot "lib/web-gate.cjs") close
+        if ($LASTEXITCODE -ne 0) { throw "web-gate exit $LASTEXITCODE" }
+    } catch {
+        Write-Host "   WARNING: public entrances were NOT fully closed: $($_.Exception.Message). Retry: node scripts/aws/lib/web-gate.cjs close" -ForegroundColor Yellow
     }
 }
 
@@ -524,6 +560,18 @@ if ($Secrets) {
 
 Write-Host ""
 Write-Host "6) Run the cost leak check separately: ./scripts/aws/dev-cost-leak-check.ps1"
+
+# 7) Cost report: month-to-date + last days + top services (ONE Cost Explorer call, ~0.01 USD; skip with -NoCostReport).
+# Informational only - a failure here is one line and never changes the exit state of a finished shutdown.
+if (-not $NoCostReport) {
+    Write-Host ""
+    Write-Host "7) Cost report (AWS Cost Explorer, ~0.01 USD per run; -NoCostReport to skip)"
+    try {
+        node (Join-Path $PSScriptRoot "lib/cost-report.cjs")
+    } catch {
+        Write-Host "   cost report unavailable: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+}
 
 Write-Host ""
 Write-Host "Real execution complete." -ForegroundColor Green

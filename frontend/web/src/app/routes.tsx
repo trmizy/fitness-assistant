@@ -1,12 +1,27 @@
 import { createBrowserRouter, Navigate, Outlet } from "react-router";
 import { lazy, Suspense } from "react";
 import { AppProvider } from "./context/AppContext";
+// R3 (owner decision): AppShell stays in the entry chunk. Lazy-loading it (option A, bb73065f) made /login faster
+// but delayed the shell ~0.5 s for RETURNING users (warm cache), measured in 4 rounds. /login keeps only the
+// LoginPage-chunk preload from vite.config.ts.
 import { AppShell } from "./components/layout/AppShell";
-import { AdminShell } from "./components/layout/admin/AdminShell";
+// Merge note: AdminShell stays lazy (Frontend 2.0 perf, see AdminShellLazy below), so the static AdminShell import from
+// feature/payment-gateways is dropped; GymOwnerShell + the V2 flag are kept as the Gym Owner side asked.
 import { GymOwnerShell } from "./components/layout/gym-owner/GymOwnerShell";
 import { isGymOwnerV2Enabled } from "./features/gym-owner/flag";
 import { LegacyAdminRedirect } from "./components/layout/admin/LegacyAdminRedirect";
 import { PageSkeleton } from "./components/layout/PageSkeleton";
+
+// Batch 0b — admin-only shell (and its nav badges' reconciliation/finance utils) is no longer in
+// every visitor's entry chunk. Same PageSkeleton fallback as the page-level Suspense.
+const AdminShellLazy = lazy(() => import("./components/layout/admin/AdminShell").then((m) => ({ default: m.AdminShell })));
+function AdminShell() {
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <AdminShellLazy />
+    </Suspense>
+  );
+}
 
 /**
  * Vòng 4 / Phase D2 — every page below used to be a static import (61 of them at last count),
@@ -30,6 +45,7 @@ const GymManagementKitchenSink = lazy(() =>
 // Auth pages
 const LoginPage = lazy(() => import("./pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })));
 const AttributionsPage = lazy(() => import("./pages/public/AttributionsPage").then((m) => ({ default: m.AttributionsPage })));
+const LandingPage = lazy(() => import("./pages/public/LandingPage").then((m) => ({ default: m.LandingPage })));
 const PublicGymPage = lazy(() => import("./pages/public/PublicGymPage").then((m) => ({ default: m.PublicGymPage })));
 const ClientGymDeepLink = lazy(() => import("./pages/public/PublicGymPage").then((m) => ({ default: m.ClientGymDeepLink })));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage").then((m) => ({ default: m.RegisterPage })));
@@ -41,7 +57,8 @@ const PartnerPasswordResetPage = lazy(() => import("./pages/auth/PartnerPassword
 const ForgotPasswordPage = lazy(() => import("./pages/auth/ForgotPasswordPage").then((m) => ({ default: m.ForgotPasswordPage })));
 
 // Client pages
-const ClientDashboard = lazy(() => import("./pages/client/ClientDashboard").then((m) => ({ default: m.ClientDashboard })));
+// The dashboard route renders the Obsidian dashboard (the `?classic` dev switch is gone).
+const ClientDashboard = lazy(() => import("./pages/client/ObsidianDashboard").then((m) => ({ default: m.ObsidianDashboard })));
 const InBodyModule = lazy(() => import("./pages/client/InBodyModule").then((m) => ({ default: m.InBodyModule })));
 const NutritionPage = lazy(() => import("./pages/client/NutritionPage").then((m) => ({ default: m.NutritionPage })));
 const ProfilePage = lazy(() => import("./pages/client/ProfilePage").then((m) => ({ default: m.ProfilePage })));
@@ -227,6 +244,8 @@ export const router = createBrowserRouter([
       { index: true, element: <RootRedirect /> },
       { path: "login", Component: LoginPage },
       { path: "attributions", Component: AttributionsPage },
+      // Frontend 2.0 (owner D2): public landing on its OWN route. "/" stays RootRedirect (Capacitor boots there).
+      { path: "gioi-thieu", Component: LandingPage },
       // Liên kết chia sẻ của chi tiết phòng gym (nút Chia sẻ): khách → /login rồi quay lại chi tiết; đã đăng nhập → chi tiết ngay.
       { path: "gyms/:id", Component: PublicGymPage },
       { path: "register", Component: RegisterPage },

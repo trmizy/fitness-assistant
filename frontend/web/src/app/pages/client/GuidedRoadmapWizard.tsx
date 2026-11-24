@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   ArrowLeftIcon as ArrowLeft,
@@ -27,6 +27,8 @@ import {
 import { fitnessAgentService } from "../../services/fitnessAgent";
 import { ACTIVITY_LEVELS } from "../../constants/activityLevels";
 import { focusLabels } from "../../components/agent/FitnessAgentBlocks";
+import { GoalImagePicker } from "./GoalImagePicker";
+import { GoalSuggestion } from "../../components/GoalSuggestion";
 
 /**
  * Gymini Guided Roadmap Creation — the 4-visible-step wizard replacing the
@@ -160,6 +162,9 @@ export function GuidedRoadmapWizard({ onClose, onCreated }: { onClose: () => voi
 
   useEffect(() => {
     if (prefilledRef.current) return;
+    // Wait until BOTH have settled. This used to fire as soon as either had data (InBody history answers [] first for a user
+    // with no measurements), lock itself with prefilledRef and never apply the profile (goal, age, height, weight).
+    if (profileQuery.isPending || inbodyHistoryQuery.isPending) return;
     if (!profileQuery.data && !inbodyHistoryQuery.data) return;
     prefilledRef.current = true;
     const p = profileQuery.data ?? {};
@@ -167,6 +172,9 @@ export function GuidedRoadmapWizard({ onClose, onCreated }: { onClose: () => voi
     if (p.gender) setGender(p.gender);
     if (p.heightCm) setHeightCm(String(p.heightCm));
     if (p.currentWeight) setWeightKg(String(p.currentWeight));
+    // The wizard used to start from a hard-coded "Giảm mỡ", whatever the profile said. Start from the profile's goal/target instead.
+    if (GOAL_OPTIONS.some((g) => g.key === p.goal)) setGoal(p.goal as GoalKey);
+    if (typeof p.targetWeight === "number" && p.targetWeight > 0) setTargetWeightKg(String(p.targetWeight));
 
     const history = Array.isArray(inbodyHistoryQuery.data) ? inbodyHistoryQuery.data : [];
     const latest = history[0];
@@ -193,10 +201,32 @@ export function GuidedRoadmapWizard({ onClose, onCreated }: { onClose: () => voi
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [goalImageAttrs, setGoalImageAttrs] = useState<GoalVisualAttributes | null>(null);
   const [goalImageNote, setGoalImageNote] = useState<string | null>(null);
-  const [goalImageStatus, setGoalImageStatus] = useState<"idle" | "analyzing" | "unusable">("idle");
+  const [goalImageStatus, setGoalImageStatus] = useState<"idle" | "analyzing" | "unusable" | "error">("idle");
+  // The AI's reading of the photo is only a suggestion: it is used for the roadmap draft once the user says it matches what they want.
+  const [goalImageConfirmed, setGoalImageConfirmed] = useState(false);
   const [roadmapName, setRoadmapName] = useState("Lộ trình của tôi");
+  const queryClient = useQueryClient();
+  const profileGoal = GOAL_OPTIONS.find((g) => g.key === profileQuery.data?.goal) ?? null;
+  const syncProfileGoalMutation = useMutation({
+    mutationFn: (next: GoalKey) => profileService.updateProfile({ goal: next }),
+    onSuccess: () => {
+      toast.success("Đã cập nhật mục tiêu hồ sơ");
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["goal-coherence"] });
+    },
+    onError: (error: any) => toast.error(error?.response?.data?.error ?? "Không thể cập nhật mục tiêu hồ sơ"),
+  });
+
+  function clearGoalImage() {
+    setGoalImageAttrs(null);
+    setGoalImageNote(null);
+    setGoalImageConfirmed(false);
+    setGoalImageStatus("idle");
+  }
 
   async function handleGoalImage(file: File) {
+    setGoalImageConfirmed(false);
+    setGoalImageAttrs(null);
     setGoalImageStatus("analyzing");
     try {
       const reply = await fitnessAgentService.image(file);
@@ -209,11 +239,11 @@ export function GuidedRoadmapWizard({ onClose, onCreated }: { onClose: () => voi
       }
       setGoalImageAttrs(attrs);
       setGoalImageStatus("idle");
-    } catch (error: any) {
-      setGoalImageStatus("unusable");
+    } catch {
+      // The request itself failed (service down/busy): say so instead of blaming the photo. The picker shows it inline with a retry.
+      setGoalImageStatus("error");
       setGoalImageAttrs(null);
       setGoalImageNote(null);
-      toast.error(error?.message ?? "Không thể phân tích ảnh — bạn vẫn có thể tiếp tục không cần ảnh.");
     }
   }
 
@@ -268,7 +298,7 @@ export function GuidedRoadmapWizard({ onClose, onCreated }: { onClose: () => voi
       fitnessRoadmapService.generateAiDraft({
         goalType: goal,
         timeframeWeeks,
-        goalVisualAttributes: goalImageAttrs
+        goalVisualAttributes: goalImageAttrs && goalImageConfirmed
           ? { muscularity: goalImageAttrs.muscularity, relativeLeanness: goalImageAttrs.relativeLeanness, focusMuscles: goalImageAttrs.focusMuscles }
           : undefined,
         targetWeightKg: targetWeightKg ? Number(targetWeightKg) : undefined,
@@ -622,6 +652,17 @@ export function GuidedRoadmapWizard({ onClose, onCreated }: { onClose: () => voi
 
       {step === 3 && (
         <div className="space-y-4">
+          <GoalSuggestion
+            currentGoal={goal}
+            onChoose={(g) => setGoal(g)}
+            inputs={{
+              ...(weightKg ? { weightKg: Number(weightKg) } : {}),
+              ...(heightCm ? { heightCm: Number(heightCm) } : {}),
+              ...(age ? { age: Number(age) } : {}),
+              ...(gender === "MALE" || gender === "FEMALE" || gender === "OTHER" ? { gender } : {}),
+              ...(effectiveBodyFatPct != null && !Number.isNaN(effectiveBodyFatPct) ? { bodyFatPct: effectiveBodyFatPct, bodyFatMethod } : {}),
+            }}
+          />
           <div>
             <label className={labelClass}>Mục tiêu của bạn</label>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -641,6 +682,26 @@ export function GuidedRoadmapWizard({ onClose, onCreated }: { onClose: () => voi
                 </button>
               ))}
             </div>
+            {profileGoal && profileGoal.key !== goal && (
+              <div className="mt-2 space-y-2 rounded-xl border border-amber-500/40 bg-amber-500/5 p-3" data-testid="wizard-goal-differs">
+                <p className="text-xs text-zinc-300">
+                  Hồ sơ của bạn đang là <strong>{profileGoal.label}</strong>. Lộ trình này sẽ theo <strong>{GOAL_OPTIONS.find((g) => g.key === goal)?.label}</strong>, và Gymini dùng hướng này để tính dinh dưỡng và đánh giá chu kỳ khi lộ trình chạy.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={syncProfileGoalMutation.isPending}
+                    onClick={() => syncProfileGoalMutation.mutate(goal)}
+                    className="min-h-11 rounded-lg bg-amber-500 px-3 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-60"
+                  >
+                    Cập nhật hồ sơ thành {GOAL_OPTIONS.find((g) => g.key === goal)?.label}
+                  </button>
+                  <button type="button" onClick={() => setGoal(profileGoal.key)} className="min-h-11 rounded-lg border border-zinc-600 px-3 text-sm font-semibold text-zinc-300 hover:border-amber-500/50">
+                    Giữ theo hồ sơ ({profileGoal.label})
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -694,60 +755,17 @@ export function GuidedRoadmapWizard({ onClose, onCreated }: { onClose: () => voi
             </div>
           )}
 
-          <div>
-            <label className={labelClass}>Ảnh mục tiêu (không bắt buộc)</label>
-            <input
-              type="file"
-              accept="image/jpeg,image/png"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void handleGoalImage(file);
-              }}
-              className="block w-full text-xs text-zinc-400"
-            />
-            <p className="mt-1 text-xs text-zinc-600">
-              Ảnh chỉ dùng để gợi ý phong cách hình ảnh mong muốn (mức độ cơ bắp, độ săn chắc tổng thể) — KHÔNG phải một phép đo cơ thể
-              chính xác, không được dùng để chẩn đoán hay so sánh với người khác.
-            </p>
-            {goalImageStatus === "analyzing" && (
-              <p className="mt-1 flex items-center gap-1.5 text-xs text-zinc-500">
-                <Loader2 className="h-3 w-3 animate-spin" /> Đang phân tích ảnh...
-              </p>
-            )}
-            {goalImageStatus === "unusable" && <p className="mt-1 text-xs text-amber-400">Ảnh không dùng được — bạn vẫn có thể tiếp tục không cần ảnh.</p>}
-            {goalImageAttrs && (
-              <div className="mt-2 space-y-2 rounded-lg border border-green-500/20 bg-green-500/5 p-3">
-                <p className="text-xs font-semibold text-green-300">Đã phân tích ảnh mục tiêu</p>
-                <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
-                  <div>
-                    <p className="text-zinc-500">Mức cơ bắp</p>
-                    <p className="font-semibold text-zinc-200">
-                      {goalImageAttrs.muscularity ? MUSCULARITY_LABEL[goalImageAttrs.muscularity] ?? goalImageAttrs.muscularity : "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-zinc-500">Độ săn chắc</p>
-                    <p className="font-semibold text-zinc-200">
-                      {goalImageAttrs.relativeLeanness ? LEANNESS_LABEL[goalImageAttrs.relativeLeanness] ?? goalImageAttrs.relativeLeanness : "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-zinc-500">Độ tin cậy</p>
-                    <p className="font-semibold text-zinc-200">{Math.round(goalImageAttrs.confidence * 100)}%</p>
-                  </div>
-                </div>
-                {goalImageAttrs.focusMuscles.length > 0 && (
-                  <div className="text-xs">
-                    <p className="text-zinc-500">Nhóm cơ nổi bật</p>
-                    <p className="font-semibold text-zinc-200">
-                      {goalImageAttrs.focusMuscles.map((m) => focusLabels[m] ?? m).join(", ")}
-                    </p>
-                  </div>
-                )}
-                {goalImageNote && <p className="text-xs text-zinc-500">{goalImageNote}</p>}
-              </div>
-            )}
-          </div>
+          <GoalImagePicker
+            status={goalImageStatus}
+            attrs={goalImageAttrs}
+            confirmed={goalImageConfirmed}
+            muscularityLabel={MUSCULARITY_LABEL}
+            leannessLabel={LEANNESS_LABEL}
+            focusLabels={focusLabels}
+            onPick={(file) => void handleGoalImage(file)}
+            onConfirm={() => setGoalImageConfirmed(true)}
+            onClear={clearGoalImage}
+          />
         </div>
       )}
 
@@ -755,7 +773,7 @@ export function GuidedRoadmapWizard({ onClose, onCreated }: { onClose: () => voi
         <div className="space-y-4">
           {/* Fitness Diagnosis */}
           <div className="rounded-xl border border-zinc-700/60 bg-zinc-900/50 p-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Chẩn đoán thể trạng</p>
+            <p className="mb-2 text-xs font-semibold text-zinc-500">Chẩn đoán thể trạng</p>
             {!diagnosisQuery.data ? (
               <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />
             ) : (
@@ -798,7 +816,7 @@ export function GuidedRoadmapWizard({ onClose, onCreated }: { onClose: () => voi
 
           {/* Roadmap Report */}
           <div className="rounded-xl border border-green-500/20 bg-gradient-to-br from-green-500/10 to-zinc-900 p-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-green-400">Báo cáo lộ trình</p>
+            <p className="mb-2 text-xs font-semibold text-green-400">Báo cáo lộ trình</p>
             {draftMutation.isPending && (
               <p className="flex items-center gap-2 text-sm text-zinc-400">
                 <Loader2 className="h-4 w-4 animate-spin" /> Gymini đang soạn lộ trình...
@@ -977,7 +995,7 @@ export function EnergyBreakdownCard({
 }) {
   return (
     <div className="rounded-xl border border-zinc-700/60 bg-zinc-900/50 p-4">
-      <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+      <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
         <Flame className="h-3.5 w-3.5 text-orange-400" /> Tiêu hao năng lượng hiện tại
       </p>
       {insufficientInputs && (

@@ -58,7 +58,7 @@ export function ReasonDialog({ open, onOpenChange, title, description, label, pl
           {description && <DialogDescription asChild><div>{description}</div></DialogDescription>}
         </DialogHeader>
         <div className="space-y-2">
-          <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500" htmlFor="reason-dialog-text">
+          <label className="block text-xs font-semibold text-zinc-500" htmlFor="reason-dialog-text">
             {label}
           </label>
           <Textarea

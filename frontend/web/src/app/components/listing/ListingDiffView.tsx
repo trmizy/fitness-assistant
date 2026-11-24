@@ -28,7 +28,7 @@ const del = "border-red-500/25 bg-red-500/10 text-red-300";
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="rounded-xl border border-zinc-800/70 bg-zinc-900/60 p-3">
-      <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">{title}</h4>
+      <h4 className="mb-2 text-xs font-semibold text-zinc-500">{title}</h4>
       {children}
     </section>
   );

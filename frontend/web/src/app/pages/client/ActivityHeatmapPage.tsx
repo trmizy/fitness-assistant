@@ -86,6 +86,7 @@ export function ActivityHeatmapPage() {
         <button
           type="button"
           data-testid="activity-heatmap-prev-month"
+          aria-label="Tháng trước"
           onClick={() => {
             if (month === 0) { setYear((y) => y - 1); setMonth(11); } else setMonth((m) => m - 1);
             setSelectedDate(null);
@@ -100,6 +101,7 @@ export function ActivityHeatmapPage() {
         <button
           type="button"
           data-testid="activity-heatmap-next-month"
+          aria-label="Tháng sau"
           onClick={() => {
             if (month === 11) { setYear((y) => y + 1); setMonth(0); } else setMonth((m) => m + 1);
             setSelectedDate(null);

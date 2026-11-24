@@ -27,6 +27,8 @@ import {
   type RoadmapNutritionReadiness,
 } from "../../services/api";
 import { EnergyBreakdownCard, GuidedRoadmapWizard, PhaseForecastCard, STRATEGY_BUCKET_LABEL } from "./GuidedRoadmapWizard";
+import { RoadmapJourneyMap } from "./RoadmapJourneyMap";
+import { GoalCoherenceBanner } from "../../components/GoalCoherenceBanner";
 
 // FitnessRoadmap + RoadmapPhase "Fitness Journey" experience — Phase C of
 // the roadmap next-phase work. Orchestration/read-only view over the real
@@ -321,7 +323,7 @@ function PendingRebuildBanner({
         <div className="space-y-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">Hiện tại</p>
+              <p className="mb-1.5 text-xs font-semibold text-zinc-500">Hiện tại</p>
               <div className="space-y-1.5">
                 {affectedCurrentPhases.map((phase, i) => (
                   <div key={phase.id} className="rounded-lg border border-zinc-700/60 bg-zinc-900/50 p-2 text-xs">
@@ -334,7 +336,7 @@ function PendingRebuildBanner({
               </div>
             </div>
             <div>
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-amber-300">Đề xuất mới</p>
+              <p className="mb-1.5 text-xs font-semibold text-amber-300">Đề xuất mới</p>
               <div className="space-y-1.5">
                 {previewQuery.data.proposedPhases.map((phase, i) => (
                   <div key={i} className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-2 text-xs">
@@ -379,11 +381,11 @@ function trendLabel(trend: { direction: "up" | "flat" | "down"; changePerWeek: n
 }
 
 const ASSESSMENT_DECISION_LABEL: Record<string, string> = {
-  KEEP: "Giữ nguyên",
-  PROGRESS: "Tăng tải",
-  ADJUST: "Điều chỉnh nhỏ",
-  DELOAD: "Giảm tải (deload)",
-  REBUILD: "Xây lại chương trình",
+  KEEP: "giữ nguyên chương trình",
+  PROGRESS: "tăng dần mức tập",
+  ADJUST: "chỉnh nhẹ chương trình",
+  DELOAD: "tập nhẹ lại để cơ thể hồi phục",
+  REBUILD: "xây lại chương trình",
   INSUFFICIENT_DATA: "Chưa đủ dữ liệu",
 };
 
@@ -471,14 +473,17 @@ function ActivePhaseDetail({
     <div className="space-y-4 rounded-2xl border border-green-500/20 bg-gradient-to-br from-green-500/10 to-zinc-900 p-5">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-green-400">Giai đoạn hiện tại</p>
+          <p className="text-xs font-semibold text-green-400">Giai đoạn hiện tại</p>
           <p className="text-lg font-bold text-zinc-100">{phase.name}</p>
           <p className="text-xs text-zinc-500">{PHASE_TYPE_LABEL[phase.phaseType]}</p>
         </div>
-        <span className="rounded-full border border-green-500/30 bg-green-500/10 px-2.5 py-1 text-xs font-bold text-green-400">
-          Chu kỳ {phase.progress.cycleCount}
-          {phase.objective?.maxCycles ? ` / ${phase.objective.maxCycles}` : ""}
-        </span>
+        <div className="text-right">
+          <span className="rounded-full border border-green-500/30 bg-green-500/10 px-2.5 py-1 text-xs font-bold text-green-400">
+            Chu kỳ {phase.progress.cycleCount}
+            {phase.objective?.maxCycles ? ` / ${phase.objective.maxCycles}` : ""}
+          </span>
+          <p className="mt-1 text-[11px] text-zinc-600">1 chu kỳ ≈ 1 tháng tập, cuối kỳ được đánh giá</p>
+        </div>
       </div>
 
       {activeCycle ? (
@@ -629,7 +634,7 @@ function ActivePhaseDetail({
       ) : readiness.kind === "READY_TO_ADVANCE" ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-green-500/30 bg-green-500/10 p-3">
           <p className="text-xs font-semibold text-green-300">
-            Chu kỳ trước đã được đánh giá ({ASSESSMENT_DECISION_LABEL[readiness.lastDecision] ?? readiness.lastDecision}) — sẵn sàng chuyển tiếp.
+            Gymini đã đánh giá chu kỳ vừa rồi: {ASSESSMENT_DECISION_LABEL[readiness.lastDecision] ?? readiness.lastDecision}. Bạn có thể bắt đầu chu kỳ tiếp theo.
           </p>
           <button
             type="button"
@@ -799,6 +804,19 @@ const CONFIDENCE_TIER_LABEL: Record<string, string> = {
   LOW: "Thấp",
 };
 
+// The journey map plus the measured weight of finished phases. Shares the forecast query (same key) with AdaptiveForecastSection, so it is one request.
+function JourneyMapSection({ roadmapId, phases, forecasts }: { roadmapId: string; phases: RoadmapPhaseWithCycles[]; forecasts: any }) {
+  const forecastQuery = useQuery({
+    queryKey: ["fitness-roadmap", "current-forecast", roadmapId],
+    queryFn: fitnessRoadmapService.getCurrentForecast,
+    retry: false,
+  });
+  const actuals = ((forecastQuery.data as CurrentForecastResult | undefined)?.reconciliations ?? [])
+    .filter((r) => r.weight && Number.isFinite(r.weight.actual))
+    .map((r) => ({ phaseIndex: r.phaseIndex, weightKg: r.weight!.actual }));
+  return <RoadmapJourneyMap phases={phases} forecasts={forecasts} phaseTypeLabel={PHASE_TYPE_LABEL} actuals={actuals} />;
+}
+
 function AdaptiveForecastSection({ roadmapId }: { roadmapId: string }) {
   const forecastQuery = useQuery({
     queryKey: ["fitness-roadmap", "current-forecast", roadmapId],
@@ -820,7 +838,7 @@ function AdaptiveForecastSection({ roadmapId }: { roadmapId: string }) {
     <div className="space-y-4">
       {latestReconciliation && (
         <div className="space-y-3 rounded-2xl border border-zinc-700/60 bg-zinc-900/60 p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Chu kỳ vừa qua</p>
+          <p className="text-xs font-semibold text-zinc-500">Chu kỳ vừa qua</p>
           <div className="grid grid-cols-3 gap-2 text-center">
             <div>
               <p className="text-xs text-zinc-500">Dự kiến</p>
@@ -862,7 +880,7 @@ function AdaptiveForecastSection({ roadmapId }: { roadmapId: string }) {
 
       {nearTermForecast && (
         <div className="space-y-2 rounded-2xl border border-green-500/20 bg-gradient-to-br from-green-500/10 to-zinc-900 p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-green-400">Dự báo đã cập nhật</p>
+          <p className="text-xs font-semibold text-green-400">Dự báo đã cập nhật</p>
           <p className="text-sm text-zinc-200">
             Khoảng dự báo tham khảo: {nearTermForecast.projectedEndWeightRangeKg.low}–{nearTermForecast.projectedEndWeightRangeKg.high} kg
             <span className="text-zinc-500"> (kỳ vọng ~{nearTermForecast.projectedEndWeightRangeKg.expected} kg)</span>
@@ -910,41 +928,6 @@ function AdaptiveForecastSection({ roadmapId }: { roadmapId: string }) {
 }
 
 // ── Phase timeline ────────────────────────────────────────────────────────
-
-function PhaseTimeline({ phases }: { phases: RoadmapPhaseWithCycles[] }) {
-  return (
-    <div className="space-y-0">
-      {phases.map((phase, i) => {
-        const cfg = PHASE_STATUS_CONFIG[phase.status];
-        const isLast = i === phases.length - 1;
-        return (
-          <div key={phase.id} className="flex gap-3">
-            <div className="flex flex-col items-center">
-              <div className={`h-3 w-3 flex-shrink-0 rounded-full ${cfg.dotClassName}`} />
-              {!isLast && <div className="w-px flex-1 bg-zinc-800" style={{ minHeight: 24 }} />}
-            </div>
-            <div className={`min-w-0 flex-1 pb-4 ${isLast ? "" : ""}`}>
-              <div className="flex items-center gap-2">
-                <p className={`text-sm font-semibold ${phase.status === "ACTIVE" ? "text-zinc-100" : "text-zinc-400"}`}>
-                  {phase.name}
-                </p>
-                <span className={`text-xs ${cfg.textClassName}`}>{cfg.label}</span>
-              </div>
-              <p className="text-xs text-zinc-600">
-                {PHASE_TYPE_LABEL[phase.phaseType]} · {formatDate(phase.plannedStartAt)} → {formatDate(phase.plannedEndAt)}
-              </p>
-              {phase.progress.cycleCount > 0 && (
-                <p className="text-xs text-zinc-600">
-                  {phase.progress.completedCycleCount}/{phase.progress.cycleCount} chu kỳ đã hoàn thành
-                </p>
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 // ── DRAFT roadmap review (Accept ≠ Activate — master task §4) ───────────
 
@@ -1000,7 +983,7 @@ function DraftRoadmapDetail({ data, onChanged }: { data: FitnessRoadmapProjectio
     <div className="space-y-4 rounded-2xl border border-green-500/20 bg-gradient-to-br from-green-500/10 to-zinc-900 p-5">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-green-400">Bản nháp lộ trình</p>
+          <p className="text-xs font-semibold text-green-400">Bản nháp lộ trình</p>
           <p className="text-lg font-bold text-zinc-100">{roadmap.name}</p>
           <p className="text-xs text-zinc-500">
             {GOAL_OPTIONS.find((g) => g.key === roadmap.goalType)?.label ?? roadmap.goalType} · Dự kiến bắt đầu{" "}
@@ -1123,6 +1106,7 @@ function DraftRoadmapDetail({ data, onChanged }: { data: FitnessRoadmapProjectio
 
 export function RoadmapJourneyPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
 
   // getCurrent is ACTIVE-only by contract (unchanged, intentional — see
@@ -1157,6 +1141,33 @@ export function RoadmapJourneyPage() {
     },
   });
 
+  const cancelMutation = useMutation({
+    mutationFn: (roadmapId: string) => fitnessRoadmapService.cancel(roadmapId),
+    onSuccess: () => {
+      toast.success("Đã kết thúc lộ trình. Bạn có thể tạo lộ trình mới.");
+      refresh();
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error ?? "Không thể kết thúc lộ trình");
+    },
+  });
+  const confirmAndCancel = (roadmapId: string) => {
+    if (cancelMutation.isPending) return;
+    if (
+      !window.confirm(
+        [
+          "Kết thúc lộ trình này để tạo lộ trình mới?",
+          "",
+          "• Chu kỳ đang chạy và các giai đoạn chưa tới sẽ dừng lại.",
+          "• Các buổi tập sắp tới của chu kỳ đó sẽ bị huỷ.",
+          "• Lịch sử các buổi đã tập, số đo và đánh giá vẫn được giữ nguyên.",
+        ].join("\n"),
+      )
+    )
+      return;
+    cancelMutation.mutate(roadmapId);
+  };
+
   // Starting the next cycle/phase is a consequential action: it is NEVER triggered by "checking progress" — the evaluation is shown read-only on
   // the page; the user must press a separately named button AND confirm.
   const advanceInFlight = useRef(false);
@@ -1178,7 +1189,15 @@ export function RoadmapJourneyPage() {
       refresh();
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.error ?? "Không thể bắt đầu chu kỳ tiếp theo");
+      if (error?.response?.data?.code === "ACTIVE_CYCLE_OUTSIDE_PHASE") {
+        // Backend never closes a user's cycle on its own; point to where they can do it.
+        toast.error("Bạn đang có một chu kỳ tập khác chưa kết thúc nên chưa thể sang chu kỳ mới.", {
+          action: { label: "Mở nhật ký tập", onClick: () => navigate("/client/workout/cycle") },
+          duration: 10_000,
+        });
+      } else {
+        toast.error(error?.response?.data?.error ?? "Không thể bắt đầu chu kỳ tiếp theo");
+      }
       refresh(); // a timeout may still have been processed by the server
     },
     onSettled: () => {
@@ -1283,18 +1302,9 @@ export function RoadmapJourneyPage() {
             )}
           </p>
         </div>
-        {roadmap.status === "ACTIVE" && readiness?.kind === "READY_TO_ADVANCE" && (
-          <button
-            type="button"
-            onClick={() => confirmAndAdvance(roadmap.id)}
-            disabled={advanceMutation.isPending}
-            className="flex items-center gap-1.5 rounded-lg border border-green-500/40 px-3 py-1.5 text-xs font-semibold text-green-300 hover:bg-green-500/10 disabled:opacity-60"
-          >
-            {advanceMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
-            Bắt đầu chu kỳ tiếp theo
-          </button>
-        )}
       </div>
+
+      {roadmap.status === "ACTIVE" && <GoalCoherenceBanner />}
 
       {pendingRebuild && roadmap.status === "ACTIVE" && (
         <PendingRebuildBanner
@@ -1333,9 +1343,32 @@ export function RoadmapJourneyPage() {
       )}
 
       <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/40 p-5">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">Toàn bộ hành trình</p>
-        <PhaseTimeline phases={phases} />
+        <p className="mb-3 text-xs font-semibold text-zinc-500">Toàn bộ hành trình</p>
+        <JourneyMapSection
+          roadmapId={roadmap.id}
+          phases={phases}
+          forecasts={(roadmap.configuration as any)?.roadmapProjectionSnapshot?.phaseForecasts ?? null}
+        />
       </div>
+
+      {roadmap.status === "ACTIVE" && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-zinc-700/60 bg-zinc-900/40 p-4">
+          <div>
+            <p className="text-sm font-semibold text-zinc-200">Muốn đổi mục tiêu hoặc làm lại từ đầu?</p>
+            <p className="text-xs text-zinc-500">Kết thúc lộ trình này rồi tạo lộ trình mới. Lịch sử tập luyện vẫn được giữ.</p>
+          </div>
+          <button
+            type="button"
+            data-testid="roadmap-cancel-button"
+            onClick={() => confirmAndCancel(roadmap.id)}
+            disabled={cancelMutation.isPending}
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-600 px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:border-red-500/40 hover:text-red-300 disabled:opacity-60"
+          >
+            {cancelMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            Kết thúc lộ trình
+          </button>
+        </div>
+      )}
 
       {(roadmap.status === "COMPLETED" || roadmap.status === "CANCELLED") && (
         <button

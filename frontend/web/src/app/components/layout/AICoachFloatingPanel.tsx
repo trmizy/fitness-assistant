@@ -1,4 +1,5 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
+import { useLocation } from "react-router";
 import { CircleNotchIcon as Loader2 } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
 import { useApp } from "../../context/AppContext";
@@ -21,6 +22,18 @@ const AICoachPage = lazy(() => import("../../pages/client/AICoachPage").then((m)
  */
 export function AICoachFloatingPanel() {
   const { isAiCoachOpen, closeAiCoach } = useApp();
+  const location = useLocation();
+  const lastRoute = useRef(`${location.pathname}${location.search}`);
+
+  // Below 1024px this panel is a FULL-SCREEN sheet (fixed inset-0). A link inside a chat card (e.g. "Xem hồ sơ & đặt lịch" -> /client/services?ptId=)
+  // changes the page behind it, so the user saw nothing happen until a reload reset the panel. Close the sheet when the route changes.
+  // On desktop it is a corner card that does not cover the page, so it stays open.
+  useEffect(() => {
+    const route = `${location.pathname}${location.search}`;
+    if (route === lastRoute.current) return;
+    lastRoute.current = route;
+    if (isAiCoachOpen && window.matchMedia("(max-width: 1023px)").matches) closeAiCoach();
+  }, [location.pathname, location.search, isAiCoachOpen, closeAiCoach]);
 
   return (
     <AnimatePresence>

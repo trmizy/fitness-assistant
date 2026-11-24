@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { ACTIVITY_LEVELS } from "../../constants/activityLevels";
 import { SESSION_DURATION_MAX, SESSION_DURATION_MIN, validateSessionDuration } from "./onboarding.validation";
 
+import { GoalSuggestion } from "../../components/GoalSuggestion";
 /**
  * First-run onboarding wizard — collects everything the Decision Engine and
  * plan-generation flows need but that a brand-new profile leaves null:
@@ -22,7 +23,7 @@ import { SESSION_DURATION_MAX, SESSION_DURATION_MIN, validateSessionDuration } f
 
 const inp =
   "w-full px-3 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 placeholder-zinc-600 transition-all";
-const lbl = "text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block font-semibold";
+const lbl = "text-xs text-zinc-500 mb-1.5 block font-semibold";
 
 const steps = [
   { key: "level", label: "Trình độ & Mục tiêu", icon: Target },
@@ -476,7 +477,10 @@ export function OnboardingWizardPage() {
   }
 
   return (
-    <div className="w-full min-w-0 p-4 md:p-6 max-w-3xl mx-auto space-y-5">
+    // Hybrid (Codex idea, owner D3 prototype): two columns from lg — intro + stepper on the left (sticky), the step on
+    // the right. All logic, the step icons and the body-metric goal suggestion are unchanged; no photo (D-U1 neutral).
+    <div className="w-full min-w-0 p-4 md:p-6 max-w-3xl lg:max-w-6xl mx-auto space-y-5 lg:space-y-0 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)] lg:items-start lg:gap-6">
+      <aside className="space-y-5 lg:sticky lg:top-6">
       <div>
         <h1 className="text-zinc-100 flex items-center gap-2">
           <Dumbbell className="w-5 h-5 text-green-400" /> Thiết lập hồ sơ tập luyện
@@ -488,7 +492,9 @@ export function OnboardingWizardPage() {
 
       {/* Stepper */}
       <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
-        <div className="flex items-start gap-1 overflow-x-auto pb-1">
+        {/* Hybrid: from lg the stepper lives in the narrow left column, where six horizontal steps cut off
+            "Xem lại"; there it becomes a vertical list with full labels. Below lg it is unchanged. */}
+        <div className="flex items-start gap-1 overflow-x-auto pb-1 lg:flex-col lg:items-stretch lg:overflow-visible lg:pb-0">
           {steps.map((s, i) => {
             const done = i < currentStep;
             const active = i === currentStep;
@@ -497,7 +503,9 @@ export function OnboardingWizardPage() {
                 key={s.key}
                 type="button"
                 onClick={() => i < currentStep && setCurrentStep(i)}
-                className="flex flex-col items-center gap-1.5 flex-1 min-w-0 sm:min-w-[60px] group transition-all"
+                aria-current={i === currentStep ? "step" : undefined}
+                aria-label={s.label}
+                className="flex flex-col items-center gap-1.5 flex-1 min-w-0 sm:min-w-[60px] group transition-all lg:flex-row lg:flex-none lg:gap-3 lg:rounded-lg lg:px-2 lg:py-1.5 lg:text-left"
               >
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all flex-shrink-0 ${
@@ -511,7 +519,7 @@ export function OnboardingWizardPage() {
                   {done ? <Check className="w-4 h-4" /> : <s.icon className="w-4 h-4" />}
                 </div>
                 <span
-                  className={`text-[10px] text-center leading-tight hidden sm:block font-medium ${active ? "text-green-400" : done ? "text-zinc-400" : "text-zinc-600"}`}
+                  className={`text-[10px] text-center leading-tight hidden sm:block font-medium lg:text-sm lg:text-left ${active ? "text-green-400" : done ? "text-zinc-400" : "text-zinc-600"}`}
                 >
                   {s.label}
                 </span>
@@ -530,6 +538,7 @@ export function OnboardingWizardPage() {
           />
         </div>
       </div>
+      </aside>
 
       <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden flex flex-col min-h-[360px]">
         <div className="p-4 sm:p-6 flex-1 min-w-0 space-y-5">
@@ -543,6 +552,7 @@ export function OnboardingWizardPage() {
                       key={lvl.key}
                       type="button"
                       onClick={() => setExperienceLevel(lvl.key)}
+                      aria-pressed={experienceLevel === lvl.key}
                       className={`text-left p-3 rounded-xl border-2 transition-all ${
                         experienceLevel === lvl.key
                           ? "border-green-500 bg-green-500/10"
@@ -555,6 +565,16 @@ export function OnboardingWizardPage() {
                   ))}
                 </div>
               </div>
+              <GoalSuggestion
+                currentGoal={goal}
+                onChoose={(g) => setGoal(g)}
+                inputs={{
+                  ...(currentWeight ? { weightKg: Number(currentWeight) } : {}),
+                  ...(heightCm ? { heightCm: Number(heightCm) } : {}),
+                  ...(age ? { age: Number(age) } : {}),
+                  ...(gender === "MALE" || gender === "FEMALE" || gender === "OTHER" ? { gender } : {}),
+                }}
+              />
               <div>
                 <label className={lbl}>Mục tiêu chính *</label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -563,6 +583,7 @@ export function OnboardingWizardPage() {
                       key={g.key}
                       type="button"
                       onClick={() => setGoal(g.key)}
+                      aria-pressed={goal === g.key}
                       className={`flex flex-col items-center gap-1 px-3 py-3 border-2 rounded-xl text-sm transition-all ${
                         goal === g.key
                           ? "border-green-500 bg-green-500/10 text-green-400 font-semibold"
@@ -945,7 +966,7 @@ function ReviewRow({ label, value, onEdit }: { label: string; value?: string; on
   return (
     <div className="flex items-center justify-between gap-2 bg-zinc-800/40 rounded-lg px-3 py-2">
       <div>
-        <div className="text-[11px] text-zinc-600 uppercase tracking-wider">{label}</div>
+        <div className="text-[11px] text-zinc-600">{label}</div>
         <div className="text-zinc-200">{value || "—"}</div>
       </div>
       <button type="button" onClick={onEdit} className="text-[11px] text-green-400 hover:text-green-300 flex-shrink-0">

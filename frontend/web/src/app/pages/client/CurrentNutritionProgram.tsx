@@ -690,7 +690,7 @@ export function CurrentNutritionProgram() {
         {/* Explanation */}
         {explanation && (
           <div className="mx-4 mb-4 bg-zinc-950 border border-zinc-800 rounded-lg p-3">
-            <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2 font-semibold">
+            <p className="text-[10px] text-zinc-500 mb-2 font-semibold">
               Giải thích kế hoạch
             </p>
             <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-line">
@@ -735,7 +735,7 @@ export function CurrentNutritionProgram() {
         <div className="bg-zinc-900 rounded-xl border border-green-500/30 p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <div className="text-[10px] text-green-400 font-bold uppercase tracking-wider mb-0.5">
+              <div className="text-[10px] text-green-400 font-bold mb-0.5">
                 Đang áp dụng
               </div>
               <h4 className="text-sm font-bold text-zinc-100">
@@ -821,7 +821,7 @@ export function CurrentNutritionProgram() {
       {/* Completed plans */}
       {completedPlans.length > 0 && (
         <div className="space-y-3">
-          <p className="text-xs text-zinc-500 font-semibold uppercase tracking-wider">
+          <p className="text-xs text-zinc-500 font-semibold">
             Kế hoạch đã tạo
           </p>
           {completedPlans.map((plan: any) => (
@@ -833,7 +833,7 @@ export function CurrentNutritionProgram() {
       {/* Failed plans */}
       {failedPlans.length > 0 && (
         <div className="space-y-3">
-          <p className="text-xs text-zinc-500 font-semibold uppercase tracking-wider">
+          <p className="text-xs text-zinc-500 font-semibold">
             Tạo thất bại
           </p>
           {failedPlans.map((plan: any) => (
@@ -874,7 +874,7 @@ export function CurrentNutritionProgram() {
             <div className="overflow-y-auto flex-1 p-4 space-y-4">
               {/* Basic section */}
               <div className="space-y-3">
-                <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">
+                <p className="text-[10px] text-zinc-500 font-semibold">
                   Thông tin cơ bản
                 </p>
                 <div>
@@ -1060,7 +1060,7 @@ export function CurrentNutritionProgram() {
                 <div className="space-y-4 border border-zinc-800/60 rounded-xl p-3">
                   {/* Body stats */}
                   <div>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mb-2">
+                    <p className="text-[10px] text-zinc-500 font-semibold mb-2">
                       Thông tin cơ thể
                     </p>
                     <div className="grid grid-cols-3 gap-2">
@@ -1130,7 +1130,7 @@ export function CurrentNutritionProgram() {
 
                   {/* Training */}
                   <div>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mb-2">
+                    <p className="text-[10px] text-zinc-500 font-semibold mb-2">
                       Lịch tập luyện
                     </p>
                     <div className="grid grid-cols-2 gap-2">
@@ -1218,7 +1218,7 @@ export function CurrentNutritionProgram() {
 
                   {/* Advanced phase */}
                   <div>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mb-2">
+                    <p className="text-[10px] text-zinc-500 font-semibold mb-2">
                       Giai đoạn & Kinh nghiệm
                     </p>
                     <div className="grid grid-cols-2 gap-2">
@@ -1312,7 +1312,7 @@ export function CurrentNutritionProgram() {
 
                   {/* Restrictions */}
                   <div>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mb-2">
+                    <p className="text-[10px] text-zinc-500 font-semibold mb-2">
                       Hạn chế thực phẩm
                     </p>
                     <div className="flex flex-wrap gap-1.5 mb-2">

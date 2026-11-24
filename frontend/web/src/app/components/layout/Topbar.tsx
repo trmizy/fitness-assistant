@@ -12,6 +12,8 @@ import { ThemeToggle } from "../settings/ThemeToggle";
 import { AutoText } from "../i18n/AutoText";
 import { useAutoTranslate } from "../../hooks/useAutoTranslate";
 import { useRealtimeNotifications } from "../../hooks/useRealtimeNotifications";
+import { WorkspaceSearch } from "./WorkspaceSearch";
+import { AppLogo } from "../brand/AppLogo";
 
 // Roadmap P4.1 "Notifications/reminders" (§27) — labels for the 5 new
 // event types this pass added; every pre-existing type keeps using the
@@ -105,6 +107,9 @@ export function Topbar() {
   const notifications: AppNotification[] = notifData?.notifications || [];
   const unreadCount: number = unreadData?.count || 0;
   const realtimeConnected = realtimeStatus === "connected";
+  // NIGHT GLASS prototype: Client/PT get workspace search in the top bar; the language picker moves into the account
+  // menu (all widths) instead of sitting in the bar. Gym Owner keeps the previous bar unchanged.
+  const nightGlass = role === "client" || role === "pt";
 
   const handleLogout = () => {
     logout();
@@ -158,18 +163,20 @@ export function Topbar() {
   return (
     <header className="h-14 bg-zinc-950/40 backdrop-blur-md border-b border-zinc-800/60 flex items-center justify-between px-4 sticky top-0 z-40">
       {/* Left: hamburger + search */}
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
         <button
           type="button"
           aria-label="Mở menu"
           aria-haspopup="dialog"
-          className="lg:hidden p-2.5 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
+          className="lg:hidden p-3 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
           onClick={() => setSidebarOpen(true)}
         >
           <Menu className="w-5 h-5" aria-hidden="true" />
         </button>
-        {/* Ô tìm kiếm tổng đã gỡ khỏi thanh trên cùng ở mọi vai trò. Trang /client/search vẫn còn,
-            vào từ Thư viện (LibraryPage). */}
+        {/* Phones/tablets have no rail: the official logo sits in the bar, whole (contained, not cropped). */}
+        {nightGlass && <AppLogo className="lg:hidden h-10 w-10 flex-shrink-0" imgClassName="gymini-brand-logo h-10 w-10" />}
+        {/* Client/PT: workspace search (functions + the existing /client/search library page). Gym Owner: none. */}
+        {nightGlass && <WorkspaceSearch />}
       </div>
 
       {/* Right: workspace switcher + notifications + user */}
@@ -181,7 +188,7 @@ export function Topbar() {
             }`}
             title={realtimeConnected ? "Đang kết nối trực tiếp" : "Mất kết nối trực tiếp"}
           />
-          <LanguageSwitcher />
+          {!nightGlass && <LanguageSwitcher />}
           <ThemeToggle />
         </div>
 
@@ -439,7 +446,7 @@ export function Topbar() {
             {/* PT: workspace switcher in dropdown */}
             {isPT && (
               <div className="px-3 py-2 border-b border-zinc-800">
-                <p className="text-xs text-zinc-600 font-semibold uppercase tracking-wider mb-1.5 px-1">
+                <p className="text-xs text-zinc-600 font-semibold mb-1.5 px-1">
                   <AutoText>Chuyển chế độ</AutoText>
                 </p>
                 <div className="flex gap-1.5">
@@ -467,10 +474,11 @@ export function Topbar() {
               </div>
             )}
 
-            {/* Language / theme (phones only: from md up they sit in the top bar) */}
-            <div className="flex md:hidden items-center gap-2 px-3 py-2 border-b border-zinc-800">
+            {/* Language / theme. Theme sits in the top bar from md up; for Client/PT the language picker now lives
+                only here (every width), for Gym Owner it is still in the bar from md up. */}
+            <div className={`${nightGlass ? "flex" : "flex md:hidden"} items-center gap-2 px-3 py-2 border-b border-zinc-800`}>
               <LanguageSwitcher />
-              <ThemeToggle />
+              <span className="md:hidden"><ThemeToggle /></span>
             </div>
 
             {/* Mỗi vai trò có trang hồ sơ của riêng mình. Admin chưa có — trước đây admin và chủ gym

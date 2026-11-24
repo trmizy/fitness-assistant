@@ -14,6 +14,8 @@ import {
   roadmapPhaseForecastInputSchema,
 } from "../models/fitness-roadmap.models";
 import { fitnessRoadmapService } from "../services/fitness-roadmap.service";
+import { getGoalCoherence } from "../services/goal-coherence.service";
+import { getGoalRecommendation } from "../services/goal-recommendation.service";
 
 function handleServiceError(res: Response, error: any, fallbackMessage: string): void {
   if (error instanceof z.ZodError) {
@@ -195,6 +197,33 @@ export const fitnessRoadmapController = {
       res.json(result);
     } catch (error: any) {
       handleServiceError(res, error, "Failed to archive fitness roadmap");
+    }
+  },
+
+  // G4 — suggests a goal from the body metrics (profile + latest InBody, with optional wizard overrides). Read-only.
+  async goalRecommendation(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const body = fitnessDiagnosisInputSchema.parse(req.body ?? {});
+      res.json(await getGoalRecommendation(req.user!.id, body));
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to compute goal recommendation");
+    }
+  },
+
+  async goalCoherence(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      res.json(await getGoalCoherence(req.user!.id));
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to check goal coherence");
+    }
+  },
+
+  async cancel(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await fitnessRoadmapService.cancelRoadmap(req.user!.id, req.params.roadmapId);
+      res.json(result);
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to end fitness roadmap");
     }
   },
 };

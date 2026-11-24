@@ -183,11 +183,11 @@ describe("stats line of a branch (GET /owner/gyms/:id/stats)", () => {
 
 describe("members list is paged by the server (CODE AUDIT of MembersTab)", () => {
   const t = src("members/MembersTab.tsx");
-  it("uses the paged API with the status filter and 'Xem thêm', and offers no client search / plan filter / sort", () => {
-    assert.match(t, /listOwnedMembershipsPage\(gymId, \{ limit: MEMBERS_PAGE_SIZE, cursor: pageParam, status: statusParamOf\(status\) \}\)/);
+  it("uses the paged API with the status filter (+ the server name search) and 'Xem thêm', and offers no client-side filter / plan filter / sort", () => {
+    assert.match(t, /listOwnedMembershipsPage\(gymId, \{ limit: MEMBERS_PAGE_SIZE, cursor: pageParam, status: statusParamOf\(status\), q: term \|\| undefined \}, signal\)/);
     assert.match(t, /fetchNextPage/);
     assert.match(t, /getNextPageParam: \(last\) => \(last\.hasMore \? last\.nextCursor : undefined\)/);
-    assert.doesNotMatch(t, /GoSearch|applyMemberView|filterMembers|MEMBER_SORTS|go-members-search|go-members-plan|go-members-sort/);
+    assert.doesNotMatch(t, /applyMemberView|filterMembers|MEMBER_SORTS|go-members-plan|go-members-sort/);
     assert.doesNotMatch(t, /chưa phân trang/);
   });
   it("status counts are drawn only from the stats answer (serverSegments(byStatusOf(...)))", () => {
@@ -315,11 +315,11 @@ describe("Tài chính: wallet view (server numbers only)", () => {
     assert.equal(walletRowState({ loading: false, failed: true, approved: false }), "no-wallet");
     assert.equal(walletRowState({ loading: false, failed: false, approved: true }), "ready");
   });
-  it("R3: Hiệu lực keeps a fixed minimum width so the members table does not jump; no search box is rendered", () => {
+  it("R3: Hiệu lực keeps a fixed minimum width so the members table does not jump; the only <input> is the server-side name search (GoSearch)", () => {
     const t = src("members/MembersTab.tsx");
     assert.match(t, /minmax\(236px, 1\.3fr\)/);
     assert.match(t, /go-validity-main/);
-    assert.doesNotMatch(t, /go-members-search|GoSearch|<input/);
+    assert.doesNotMatch(t, /<input/);
   });
 });
 

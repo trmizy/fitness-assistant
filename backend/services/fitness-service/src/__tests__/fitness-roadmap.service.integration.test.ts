@@ -517,6 +517,73 @@ test("FitnessRoadmap archive blocks active phase/cycle and preserves history whe
   }
 });
 
+test("FitnessRoadmap cancelRoadmap ends an ACTIVE roadmap, closes its running cycle/phases, and lets the user start a new roadmap", testOpts, async () => {
+  const { prisma: db, fitnessRoadmapService: service } = await loadModules();
+  const userId = `roadmap-cancel-${randomUUID()}`;
+  const otherUserId = `roadmap-cancel-other-${randomUUID()}`;
+
+  try {
+    const draft = await service.createDraftRoadmap(userId, {
+      name: "Cancel lifecycle",
+      goalType: "MAINTENANCE",
+      plannedStartAt: "2026-09-10",
+      phases: [
+        { phaseIndex: 1, name: "Phase one", phaseType: "MAINTENANCE", plannedStartAt: "2026-09-10", plannedEndAt: "2026-10-10" },
+        { phaseIndex: 2, name: "Phase two", phaseType: "MAINTENANCE", plannedStartAt: "2026-10-10", plannedEndAt: "2026-11-10" },
+      ],
+    });
+    const activated = await service.activateRoadmap(userId, draft.roadmap.id);
+    await assert.rejects(() => service.archiveRoadmap(userId, draft.roadmap.id), (error: any) => error.status === 409);
+
+    // ownership: another user can neither see nor end this roadmap
+    await assert.rejects(() => service.cancelRoadmap(otherUserId, draft.roadmap.id), (error: any) => error.status === 404);
+
+    const program = await db.workoutProgram.create({
+      data: { userId, name: "Cancel test program", status: "ACTIVE", days: { create: { dayNumber: 1, title: "Day" } } },
+      include: { days: true },
+    });
+    const dayMs = 86_400_000;
+    const future = await db.workoutSchedule.create({
+      data: { userId, date: new Date(Date.now() + 3 * dayMs), programDayId: program.days[0].id, trainingCycleId: activated.activeCycle!.id, sourceType: "CANCEL_TEST" },
+    });
+    const past = await db.workoutSchedule.create({
+      data: { userId, date: new Date(Date.now() - 3 * dayMs), programDayId: program.days[0].id, trainingCycleId: activated.activeCycle!.id, sourceType: "CANCEL_TEST" },
+    });
+
+    const result = await service.cancelRoadmap(userId, draft.roadmap.id);
+    assert.equal(result.cancelled, true);
+
+    assert.equal((await db.workoutSchedule.findUnique({ where: { id: future.id } }))?.status, "CANCELLED", "upcoming never-started session is cancelled");
+    assert.equal((await db.workoutSchedule.findUnique({ where: { id: past.id } }))?.status, "NOT_STARTED", "past session is history and untouched");
+
+    const roadmap = await db.fitnessRoadmap.findUnique({ where: { id: draft.roadmap.id }, include: { phases: true } });
+    assert.equal(roadmap?.status, "CANCELLED");
+    assert.ok(roadmap?.actualEndAt);
+    assert.deepEqual(roadmap!.phases.map((phase) => phase.status).sort(), ["CANCELLED", "CANCELLED"]);
+    const cycle = await db.trainingCycle.findUnique({ where: { id: activated.activeCycle!.id } });
+    assert.equal(cycle?.status, "CANCELLED");
+
+    // idempotent
+    assert.equal((await service.cancelRoadmap(userId, draft.roadmap.id)).cancelled, true);
+
+    // the user is no longer blocked: a new roadmap can be drafted and activated
+    const next = await service.createDraftRoadmap(userId, {
+      name: "Fresh start",
+      goalType: "MAINTENANCE",
+      plannedStartAt: "2026-11-21",
+      phases: [{ phaseIndex: 1, name: "Phase one", phaseType: "MAINTENANCE", plannedStartAt: "2026-11-21", plannedEndAt: "2026-12-21" }],
+    });
+    const nextActive = await service.activateRoadmap(userId, next.roadmap.id);
+    assert.equal(nextActive.roadmap.status, "ACTIVE");
+    // a DRAFT/COMPLETED roadmap cannot be "cancelled"
+    await db.fitnessRoadmap.update({ where: { id: next.roadmap.id }, data: { status: "COMPLETED" } });
+    await assert.rejects(() => service.cancelRoadmap(userId, next.roadmap.id), (error: any) => error.status === 409);
+  } finally {
+    await cleanupFitnessServiceData(db, userId);
+    await cleanupFitnessServiceData(db, otherUserId);
+  }
+});
+
 test(
   "FitnessRoadmap archiveRoadmap on a never-activated DRAFT is not blocked by an unrelated ACTIVE legacy training cycle (found via real E2E)",
   testOpts,
@@ -3020,7 +3087,14 @@ test(
           assert.ok(projection.trainingReadiness, "trainingReadiness must be computed whenever a real ACTIVE cycle exists");
           assert.equal(projection.trainingReadiness!.status, "NEEDS_GENERATION");
           assert.equal(projection.trainingReadiness!.lastAssessmentDecision, assessment!.decision);
-          assert.equal(projection.trainingReadiness!.canReuseLastProgram, false, "ADJUST must never offer blind reuse");
+          // Blind reuse is offered only after a KEEP decision (with a prior ACTIVE program, which this test has); every other
+          // decision (ADJUST/PROGRESS/DELOAD/REBUILD) must regenerate. The decision itself depends on the cycle's goal, which now
+          // follows its roadmap phase (effective-goal.service), so this asserts the rule, not one specific decision.
+          assert.equal(
+            projection.trainingReadiness!.canReuseLastProgram,
+            assessment!.decision === "KEEP",
+            "blind reuse is offered only after a KEEP decision",
+          );
           assert.ok(projection.nutritionReadiness, "nutritionReadiness must be computed alongside trainingReadiness");
           assert.equal(projection.nutritionReadiness!.status, "NEEDS_GENERATION", "no real NutritionGoal exists for this synthetic user");
         }
@@ -3115,3 +3189,68 @@ test(
     }
   },
 );
+
+test("goalForPhaseType maps every phase type to an engine goal; energy-neutral and unknown phases never become a deficit or a surplus", async () => {
+  const { goalForPhaseType } = await import("../services/effective-goal.service");
+  assert.equal(goalForPhaseType("FAT_LOSS"), "WEIGHT_LOSS");
+  assert.equal(goalForPhaseType("MINI_CUT"), "WEIGHT_LOSS");
+  assert.equal(goalForPhaseType("LEAN_GAIN"), "MUSCLE_GAIN");
+  assert.equal(goalForPhaseType("PERFORMANCE"), "ATHLETIC_PERFORMANCE");
+  for (const neutral of ["MAINTENANCE", "DIET_BREAK", "RECOVERY", "RECOMPOSITION", "SOMETHING_NEW", null, undefined]) {
+    assert.equal(goalForPhaseType(neutral as any), "MAINTENANCE", String(neutral));
+  }
+});
+
+test("effective goal: the ACTIVE roadmap phase decides (profile MUSCLE_GAIN + FAT_LOSS roadmap -> WEIGHT_LOSS), a stale cycle snapshot is repaired on read, the profile is the fallback", testOpts, async () => {
+  const { prisma: db, fitnessRoadmapService: service } = await loadModules();
+  const { resolveEffectiveGoal, resolveCycleGoal } = await import("../services/effective-goal.service");
+  const { getGoalCoherence } = await import("../services/goal-coherence.service");
+  const userId = `effective-goal-${randomUUID()}`;
+
+  try {
+    const draft = await service.createDraftRoadmap(userId, {
+      name: "Effective goal",
+      goalType: "WEIGHT_LOSS",
+      plannedStartAt: "2026-09-10",
+      phases: [
+        { phaseIndex: 1, name: "Cut", phaseType: "FAT_LOSS", plannedStartAt: "2026-09-10", plannedEndAt: "2026-11-05" },
+        { phaseIndex: 2, name: "Hold", phaseType: "MAINTENANCE", plannedStartAt: "2026-11-05", plannedEndAt: "2026-12-05" },
+      ],
+    });
+
+    // no ACTIVE roadmap yet: the profile goal decides
+    const before = await resolveEffectiveGoal(userId, "MUSCLE_GAIN");
+    assert.equal(before.goal, "MUSCLE_GAIN");
+    assert.equal(before.source, "PROFILE");
+
+    const activated = await service.activateRoadmap(userId, draft.roadmap.id);
+    const during = await resolveEffectiveGoal(userId, "MUSCLE_GAIN");
+    assert.equal(during.goal, "WEIGHT_LOSS", "the running phase beats the profile goal");
+    assert.equal(during.source, "ROADMAP_PHASE");
+    assert.equal(during.phaseType, "FAT_LOSS");
+
+    // the cycle created by activation follows its phase (written when it is linked to the phase)
+    const cycleId = activated.activeCycle!.id;
+    assert.equal((await db.trainingCycle.findUnique({ where: { id: cycleId } }))?.goal, "WEIGHT_LOSS");
+
+    // a snapshot made before this existed (profile goal) is repaired on read; a legacy cycle with no phase keeps its own goal
+    await db.trainingCycle.update({ where: { id: cycleId }, data: { goal: "MUSCLE_GAIN" } });
+    const stale = await db.trainingCycle.findUnique({ where: { id: cycleId } });
+    assert.equal(await resolveCycleGoal(stale!), "WEIGHT_LOSS");
+    assert.equal(await resolveCycleGoal({ goal: "MUSCLE_GAIN", roadmapPhaseId: null }), "MUSCLE_GAIN");
+
+    // the coherence report reflects the running roadmap (no profile reachable in this test env, so no profile conflict)
+    const coherence = await getGoalCoherence(userId);
+    assert.equal(coherence.roadmapId, draft.roadmap.id);
+    assert.equal(coherence.roadmapGoal, "WEIGHT_LOSS");
+    assert.equal(coherence.effectiveGoal.source, "ROADMAP_PHASE");
+
+    // roadmap ends -> the profile goal applies again
+    await service.cancelRoadmap(userId, draft.roadmap.id);
+    const after = await resolveEffectiveGoal(userId, "MUSCLE_GAIN");
+    assert.equal(after.goal, "MUSCLE_GAIN");
+    assert.equal(after.source, "PROFILE");
+  } finally {
+    await cleanupFitnessServiceData(db, userId);
+  }
+});

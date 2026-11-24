@@ -2,7 +2,10 @@ import axios from "axios";
 import { api } from "./api";
 // Listing Management D2: registers the "new client" headers (X-Gymini-Listing-Flow: 2 on every /owner/application call).
 import "./listingFlowHeaders";
-import { amenitySelectionPayload, type AmenitySelection } from "../utils/gymListing";
+// Batch 0b — type-only here; the value is imported inside saveAmenities. RootRedirect imports this
+// module (APPLICANT_STATES) on every launch, and a static value import dragged the whole gym
+// listing util + amenity icon map + PT listing util into the entry chunk.
+import type { AmenitySelection } from "../utils/gymListing";
 import type { AmenityCategory } from "../types";
 
 /**
@@ -267,7 +270,7 @@ export const partnerApplication = {
     unwrap(await api.put("/owner/application/social", v)),
   /** The amenity step: amenityIds replace the branch's amenities, `proposals` are new custom ones, `proposalIds` the own pending ones to keep. */
   saveAmenities: async (sel: AmenitySelection) => unwrap<{ amenities: ApplicationAmenity[]; amenityProposals: ApplicationAmenityProposal[]; amenityCount: number }>(
-    await api.put("/owner/application/amenities", amenitySelectionPayload(sel)),
+    await api.put("/owner/application/amenities", (await import("../utils/gymListing")).amenitySelectionPayload(sel)),
   ),
   saveLegal: async (v: { legalName: string; taxCode?: string | null; businessLicenseNo?: string | null }) =>
     unwrap(await api.put("/owner/application/legal", v)),
