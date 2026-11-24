@@ -9,7 +9,7 @@
  *   5) shortcuts  6) food | tips   (visual direction: the owner's Obsidian Glass reference image)
  * Per-section states come from listDataState (R1): an API error is never shown as "no data" or a fake 0.
  */
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { motion, useReducedMotion } from "motion/react";
@@ -90,8 +90,15 @@ function ObsidianDashboardInner() {
   const recentCycles = cyclesQuery.data;
   // First paint waits for the same core queries as the previous dashboard. One skeleton, then the whole page.
   // Errors/empties are still per section below (R1).
-  const firstLoad = [profileQuery, inbodyQuery, workoutQuery, monthQuery, programQuery, schedulesQuery].some((q) => q.isLoading);
-  // The D4 inputs are NOT awaited (they cost ~0.7-0.9 s of data-ready on slow 4G); the verdict slot is reserved instead.
+  // The goal-coherence answer is part of that wait, ONCE: its banner is drawn ABOVE the header and is as tall as 300 px, so when it arrived
+  // after first paint it pushed the header, the KPIs and the hero down (layout shift 0.17 at 1440, 0.38 at 390, measured with layout-shift
+  // attribution). An error or a "coherent" answer simply draws no banner (as before). The gate opens for good after the first answer: an
+  // errored query that refetches (the banner mounts and refetches on mount) is "loading" again, and gating on that every time sent the
+  // page back to the skeleton in an endless request loop (found with a mocked 500).
+  const coherenceSettled = useRef(false);
+  if (!coherenceQuery.isLoading) coherenceSettled.current = true;
+  const firstLoad = [profileQuery, inbodyQuery, workoutQuery, monthQuery, programQuery, schedulesQuery].some((q) => q.isLoading) || (!coherenceSettled.current && coherenceQuery.isLoading);
+  // The cycles query (D4 verdict inputs) is still NOT awaited (it costs ~0.7-0.9 s of data-ready on slow 4G); the verdict slot is reserved instead.
   const verdictPending = coherenceQuery.isLoading || cyclesQuery.isLoading;
 
   const history = useMemo(() => {
