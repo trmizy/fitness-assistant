@@ -27,6 +27,7 @@ import {
   useToast,
 } from "../../../src/components/ui";
 import { contractService, sessionService } from "../../../src/services/api";
+import { useApp } from "../../../src/context/AppContext";
 import { usePullToRefresh } from "../../../src/hooks/usePullToRefresh";
 import { useWorkspaceAccent } from "../../../src/theme/workspace";
 import { JoinSessionButton } from "../../../src/features/call/JoinSessionButton";
@@ -60,6 +61,8 @@ import {
   groupOf,
   incomingReschedule,
   mergeSessionSources,
+  clientUpcomingKey,
+  rawSessionsForRole,
   normalizeRescheduleHistory,
   normalizeSessions,
   outgoingReschedule,
@@ -109,6 +112,8 @@ export default function BookingScreen() {
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const queryClient = useQueryClient();
+  const { user } = useApp();
+  const uid = user?.id ?? "guest";
 
   const [segment, setSegment] = useState(SEGMENTS[0]);
   const [openSession, setOpenSession] = useState<SessionRow | null>(null);
@@ -130,9 +135,11 @@ export default function BookingScreen() {
   // list endpoints below only ever answer with what is upcoming or waiting on the client.
   const historyContracts = contracts.filter((c) => ["ACTIVE", "COMPLETED", "EXPIRED"].includes(c.status));
 
+  // Client calendar: only sessions where I am the CLIENT (a PT who also trains as a client keeps the sessions they
+  // teach on the PT schedule). Key is role- and identity-scoped; invalidating ["sessions-upcoming"] still matches it.
   const upcomingQuery = useQuery({
-    queryKey: ["sessions-upcoming"],
-    queryFn: () => sessionService.getMyUpcoming(),
+    queryKey: clientUpcomingKey(uid),
+    queryFn: () => sessionService.getMyUpcoming("client"),
   });
   const pendingQuery = useQuery({
     queryKey: ["sessions-pending-confirmation"],
@@ -150,7 +157,7 @@ export default function BookingScreen() {
   const sessions = useMemo(
     () =>
       mergeSessionSources(
-        normalizeSessions(upcomingQuery.data),
+        normalizeSessions(rawSessionsForRole(upcomingQuery.data, "client", uid)),
         normalizeSessions(pendingQuery.data),
         ...historyQueries.map((query) => normalizeSessions(query.data)),
       ),

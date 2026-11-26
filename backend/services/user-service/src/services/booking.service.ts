@@ -313,6 +313,63 @@ async function assertClientSlotFree(
   }
 }
 
+/** 409 - the SAME person already has a live session in their OTHER role (a PT who also trains as a client, or a
+ *  client who is also a PT) overlapping the slot. Same-role overlaps keep their own answers (CLIENT_SCHEDULE_CONFLICT / plain 409). */
+export const SCHEDULE_CONFLICT_OTHER_ROLE = "SCHEDULE_CONFLICT_OTHER_ROLE";
+
+type CrossRoleParty = "PT" | "CLIENT";
+
+/**
+ * Which participant of a PT<->client session is already busy in their OTHER role over [startAt, endAt), or null.
+ *  - the PT is busy when they are the CLIENT of someone else's session (findClientConflict on the PT's id);
+ *  - the client is busy when they are the PT of someone else's session (findConflict on the client's id).
+ * Same live statuses / overlap rule as the same-role checks (REQUESTED + CONFIRMED, touching ends do not overlap);
+ * `statuses` narrows it for the confirm path, which (BR-31) only counts CONFIRMED. `excludeSessionId` is the session
+ * being moved. When `tx` is given, BOTH users' `user-schedule` locks are taken first, in sorted id order.
+ */
+async function findCrossRoleBusyParty(p: {
+  ptUserId: string;
+  clientUserId: string;
+  startAt: Date;
+  endAt: Date;
+  excludeSessionId?: string;
+  statuses?: SessionStatus[];
+  tx?: Prisma.TransactionClient;
+}): Promise<CrossRoleParty | null> {
+  if (p.ptUserId === p.clientUserId) return null;
+  if (p.tx) await sessionRepository.lockUserSchedules(p.tx, [p.ptUserId, p.clientUserId]);
+  const ptAsClient = await sessionRepository.findClientConflict(p.ptUserId, p.startAt, p.endAt, p.excludeSessionId, p.tx, p.statuses);
+  if (ptAsClient) return "PT";
+  const clientAsPt = await sessionRepository.findConflict(p.clientUserId, p.startAt, p.endAt, p.excludeSessionId, p.statuses, p.tx);
+  return clientAsPt ? "CLIENT" : null;
+}
+
+function crossRoleMessage(busy: CrossRoleParty, actor: "CLIENT" | "PT"): string {
+  if (busy === "PT") {
+    return actor === "PT"
+      ? "Bạn đang có một buổi tập khác với tư cách học viên trùng khung giờ này"
+      : "Huấn luyện viên này đang bận một buổi tập khác (với tư cách học viên) trùng khung giờ này";
+  }
+  return actor === "CLIENT"
+    ? "Bạn đang có một buổi dạy (với tư cách huấn luyện viên) trùng khung giờ này"
+    : "Học viên đang có một buổi dạy khác (với tư cách huấn luyện viên) trùng khung giờ này";
+}
+
+/** Throws 409 SCHEDULE_CONFLICT_OTHER_ROLE when either participant is busy in their other role (see findCrossRoleBusyParty). */
+async function assertNoCrossRoleConflict(p: {
+  ptUserId: string;
+  clientUserId: string;
+  startAt: Date;
+  endAt: Date;
+  actor: "CLIENT" | "PT";
+  excludeSessionId?: string;
+  statuses?: SessionStatus[];
+  tx?: Prisma.TransactionClient;
+}): Promise<void> {
+  const busy = await findCrossRoleBusyParty(p);
+  if (busy) throw codedError(crossRoleMessage(busy, p.actor), 409, SCHEDULE_CONFLICT_OTHER_ROLE);
+}
+
 /**
  * Daily cap (session-booking-rules.ts): the client may hold at most MAX_CLIENT_SESSIONS_PER_DAY live sessions
  * (REQUESTED counts like CONFIRMED) starting on the same local day, over all their PTs. Must run inside the booking
@@ -744,6 +801,8 @@ export const bookingService = {
         throw err("Hợp đồng đã dùng hết số buổi", 400);
       }
 
+      // ONE schedule lock per person, both participants, sorted order: PT lock -> contract lock -> user-schedule locks.
+      await sessionRepository.lockUserSchedules(tx, [contract.ptUserId, clientUserId]);
       const conflict = await sessionRepository.findConflict(
         contract.ptUserId,
         startAt,
@@ -756,6 +815,8 @@ export const bookingService = {
         throw err("Khung giờ này trùng với một buổi tập khác", 409);
       }
       await assertClientSlotFree(clientUserId, startAt, endAt, "CLIENT", undefined, tx);
+      // Cross-role: the PT may be a client elsewhere at this hour, the client may be teaching.
+      await assertNoCrossRoleConflict({ ptUserId: contract.ptUserId, clientUserId, startAt, endAt, actor: "CLIENT", tx });
       // Daily cap: REQUESTED + CONFIRMED (+ other live) sessions of the client on this day, under the client lock.
       await assertClientDailyCap(clientUserId, startAt, tx);
 
@@ -885,8 +946,8 @@ export const bookingService = {
       const remaining = getRemainingEntitlements(entitled) - activeSessionCount;
       if (remaining <= 0) throw err("Hợp đồng đã dùng hết số buổi", 400);
 
-      // Client lock before any client-side read: PT lock -> contract lock -> client lock, the one global order.
-      await sessionRepository.lockClientSchedule(tx, clientUserId);
+      // Both participants' user-schedule locks (sorted) before any client-side read: PT lock -> contract lock -> user locks.
+      await sessionRepository.lockUserSchedules(tx, [contract.ptUserId, clientUserId]);
 
       const candidates = wellFormed.filter((r) => !problems.has(r.index));
       // The batch (together with what the contract already holds) may not exceed the remaining sessions.
@@ -911,6 +972,11 @@ export const bookingService = {
             code: CLIENT_SCHEDULE_CONFLICT,
             message: "Bạn đã có một buổi tập khác (đang chờ duyệt hoặc đã xác nhận) trùng khung giờ này",
           });
+          continue;
+        }
+        const busy = await findCrossRoleBusyParty({ ptUserId: contract.ptUserId, clientUserId, startAt: r.startAt, endAt: r.endAt, tx });
+        if (busy) {
+          flag(r.index, { status: 409, code: SCHEDULE_CONFLICT_OTHER_ROLE, message: crossRoleMessage(busy, "CLIENT") });
         }
       }
 
@@ -1028,6 +1094,18 @@ export const bookingService = {
       if (conflict) {
         throw err("Huấn luyện viên đã có một buổi tập khác trong khung giờ này", 409);
       }
+      // Cross-role (BR-31 statuses: only CONFIRMED sessions block a confirmation): the PT is not a client elsewhere at
+      // this hour, and the client is not teaching. Both user-schedule locks (sorted) are taken inside.
+      await assertNoCrossRoleConflict({
+        ptUserId: freshSession.ptUserId,
+        clientUserId: freshSession.clientUserId,
+        startAt: freshSession.scheduledStartAt,
+        endAt: freshSession.scheduledEndAt,
+        actor: "PT",
+        excludeSessionId: freshSession.id,
+        statuses: [SessionStatus.CONFIRMED],
+        tx,
+      });
 
       const won = await sessionRepository.transitionStatus(
         sessionId,
@@ -1780,8 +1858,8 @@ export const bookingService = {
   },
 
   // ── Get my upcoming sessions ────────────────────────────────────
-  async getMyUpcoming(userId: string) {
-    const sessions = await sessionRepository.findUpcomingByUser(userId);
+  async getMyUpcoming(userId: string, as?: "pt" | "client") {
+    const sessions = await sessionRepository.findUpcomingByUser(userId, as);
     if (sessions.length === 0) return sessions;
 
     // Collect the "other party" IDs for each session
@@ -1924,6 +2002,15 @@ export const bookingService = {
     await assertGymMembershipCoversSession(contract, proposedStart, session.sessionMode);
     // ...and the client must be free then too (re-checked under lock on accept).
     await assertClientSlotFree(session.clientUserId, proposedStart, proposedEnd, isClient ? "CLIENT" : "PT", sessionId);
+    // ...and neither participant may be busy in their OTHER role then (re-checked under the locks on accept).
+    await assertNoCrossRoleConflict({
+      ptUserId: session.ptUserId,
+      clientUserId: session.clientUserId,
+      startAt: proposedStart,
+      endAt: proposedEnd,
+      actor: isClient ? "CLIENT" : "PT",
+      excludeSessionId: sessionId,
+    });
     // Daily cap on the target day (same 409 CLIENT_DAILY_SESSION_LIMIT as booking; the moved session is not counted).
     await assertClientDailyCap(session.clientUserId, proposedStart, undefined, sessionId);
 
@@ -2074,6 +2161,8 @@ export const bookingService = {
       const membershipContract = await contractRepository.findById(session.contractId);
       if (membershipContract) await assertGymMembershipCoversSession(membershipContract, request.proposedStartAt, session.sessionMode);
       await withPtScheduleLock(session.ptUserId, null, async (tx) => {
+        // Both participants' user-schedule locks first (sorted) - see sessionRepository.lockUserSchedules.
+        await sessionRepository.lockUserSchedules(tx, [session.ptUserId, session.clientUserId]);
         // B27: time has passed since the proposal - the 24 h lead time and the contract window are re-checked
         // at the moment of acceptance, on the contract as it is now.
         assertBookingLeadTime(
@@ -2105,6 +2194,15 @@ export const bookingService = {
           session.id,
           tx,
         );
+        await assertNoCrossRoleConflict({
+          ptUserId: session.ptUserId,
+          clientUserId: session.clientUserId,
+          startAt: request.proposedStartAt,
+          endAt: request.proposedEndAt,
+          actor: isClient ? "CLIENT" : "PT",
+          excludeSessionId: session.id,
+          tx,
+        });
         // Daily cap re-checked at accept time under the client lock: a booking made since the proposal may have filled the day.
         await assertClientDailyCap(session.clientUserId, request.proposedStartAt, tx, session.id);
 

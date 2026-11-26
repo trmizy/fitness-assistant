@@ -87,11 +87,16 @@ export const sessionRepository = {
       orderBy: { scheduledStartAt: "asc" },
     }),
 
-  /** Upcoming sessions for a user (as either client or PT) */
-  findUpcomingByUser: (userId: string) =>
+  /** Upcoming sessions for a user. `as` splits the two calendars of a PT who also trains as a client:
+   *  "pt" = only sessions the user TEACHES, "client" = only sessions the user ATTENDS; omitted = both (legacy shape). */
+  findUpcomingByUser: (userId: string, as?: "pt" | "client") =>
     prisma.session.findMany({
       where: {
-        OR: [{ clientUserId: userId }, { ptUserId: userId }],
+        ...(as === "pt"
+          ? { ptUserId: userId }
+          : as === "client"
+            ? { clientUserId: userId }
+            : { OR: [{ clientUserId: userId }, { ptUserId: userId }] }),
         // Filtering on scheduledStartAt used to mean a session vanished from "My
         // Schedule"/"upcoming" the instant its start time arrived — even while it was
         // still running (an ONLINE session's join window stays open well past its start,
@@ -335,11 +340,13 @@ export const sessionRepository = {
     endAt: Date,
     excludeId?: string,
     db: Db = prisma,
+    /** Defaults to REQUESTED/CONFIRMED; the confirm path passes [CONFIRMED] only (BR-31, same as findConflict). */
+    statuses?: SessionStatus[],
   ) =>
     db.session.findFirst({
       where: {
         clientUserId,
-        status: { in: [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
+        status: { in: statuses ?? [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
         ...(excludeId && { id: { not: excludeId } }),
         scheduledStartAt: { lt: endAt },
         scheduledEndAt: { gt: startAt },
@@ -347,11 +354,12 @@ export const sessionRepository = {
       select: { id: true },
     }),
 
-  /** Slot display for a CLIENT: their REQUESTED/CONFIRMED sessions (any PT) overlapping the day — mirrors findClientConflict. */
+  /** Slot display for a CLIENT: their REQUESTED/CONFIRMED sessions overlapping the day - as the client (any PT) AND as
+   *  a trainer (a PT who also trains as a client is one person: both roles share one clock) - mirrors the booking checks. */
   findClientBookingConflictsByDate: (clientUserId: string, dayStart: Date, dayEnd: Date) =>
     prisma.session.findMany({
       where: {
-        clientUserId,
+        OR: [{ clientUserId }, { ptUserId: clientUserId }],
         status: { in: [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
         scheduledStartAt: { lt: dayEnd },
         scheduledEndAt: { gt: dayStart },
@@ -389,11 +397,23 @@ export const sessionRepository = {
     return rows.map((r) => r.scheduledStartAt);
   },
 
-  /** Serialises schedule writes of ONE client across all of their PTs (the per-PT lock alone lets two bookings with
-   *  two different PTs at the same hour both pass). Taken LAST, inside withPtScheduleLock, so the order is always
-   *  PT lock -> (contract lock) -> client lock. */
-  lockClientSchedule: async (tx: Prisma.TransactionClient, clientUserId: string) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${"client-schedule:" + clientUserId}, 0))`;
+  /** Serialises schedule writes of ONE person across BOTH of their roles (client with any PT, and trainer for their
+   *  own clients): the per-PT lock alone lets two bookings with two different PTs at the same hour both pass, and
+   *  does not cover the same person acting as a client. The key is per user id, not per role: this is the single
+   *  `user-schedule:<userId>` lock. Taken LAST, inside withPtScheduleLock, so the order is always
+   *  PT lock -> (contract lock) -> user-schedule lock(s). */
+  lockClientSchedule: async (tx: Prisma.TransactionClient, userId: string) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${"user-schedule:" + userId}, 0))`;
+  },
+
+  /** Takes the `user-schedule:<id>` lock of every given user, de-duplicated and in SORTED id order - two transactions
+   *  needing the same two people (A books B while B books A) queue instead of deadlocking. Advisory transaction locks
+   *  are re-entrant, so a later lockClientSchedule on the same id is a no-op. Call it BEFORE any single
+   *  lockClientSchedule in the same transaction (never take a higher id first). */
+  lockUserSchedules: async (tx: Prisma.TransactionClient, userIds: string[]) => {
+    for (const id of [...new Set(userIds)].sort()) {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${"user-schedule:" + id}, 0))`;
+    }
   },
 
   /** Full proposal history for one session, newest first — for dispute resolution. */
@@ -429,11 +449,12 @@ export const sessionRepository = {
       },
     }),
 
-  /** Slot display must mirror booking's overlap rule, including legacy sessions on ended contracts. */
+  /** Slot display must mirror booking's overlap rule, including legacy sessions on ended contracts. The PT's own
+   *  sessions AS A CLIENT (with another PT) busy them as well: one person cannot be in two places at once. */
   findBookingConflictsByDate: (ptUserId: string, dayStart: Date, dayEnd: Date) =>
     prisma.session.findMany({
       where: {
-        ptUserId,
+        OR: [{ ptUserId }, { clientUserId: ptUserId }],
         status: { in: [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
         scheduledStartAt: { lt: dayEnd },
         scheduledEndAt: { gt: dayStart },

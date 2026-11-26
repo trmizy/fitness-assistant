@@ -16,6 +16,8 @@ import { Modal, ModalTitle } from "../../components/ui/Modal";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { confirmedSessionsOnDate, ptBlockDayNotice, ptCancelDoneMessage, ptCancelNotice } from "./ptCancelNotice";
 import { useNavigate } from "react-router";
+import { useApp } from "../../context/AppContext";
+import { sessionsForRole, upcomingSessionsKey } from "../../utils/sessionRoleView";
 import { sessionsToClose, sessionWhenLabel } from "./sessionsToClose";
 import { formatDateTimeVi } from "../../utils/contractGymOptions"; // "19:00 25/11/2026" - the PT-11 fix: date shown, no seconds
 import { fullName } from "../../utils/fullName";
@@ -137,6 +139,7 @@ type Tab = "schedule" | "availability";
 
 export function PTSchedulePage() {
   const navigate = useNavigate();
+  const { user } = useApp();
   const queryClient = useQueryClient();
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -172,10 +175,12 @@ export function PTSchedulePage() {
   };
 
   // ── Queries ──────────────────────────────────────────────────────
-  const { data: upcomingSessions = [], isLoading: loadingSessions } = useQuery({
-    queryKey: ["sessions-upcoming"],
-    queryFn: () => sessionService.getMyUpcoming(),
+  // PT schedule: only sessions I TEACH (my own sessions as a client of another PT belong to the client calendar).
+  const { data: upcomingRaw = [], isLoading: loadingSessions } = useQuery({
+    queryKey: upcomingSessionsKey("pt", user?.id),
+    queryFn: () => sessionService.getMyUpcoming("pt"),
   });
+  const upcomingSessions = sessionsForRole(upcomingRaw as Session[], "pt", user?.id);
   // Moves already used per session (history read up front), so "đã dời 2 lần" is known before the form is filled.
   const acceptedMovesFor = useAcceptedMoves(upcomingSessions as Session[]);
 

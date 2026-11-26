@@ -152,6 +152,23 @@ export function outgoingReschedule(session: SessionRow): RescheduleRequest | nul
   return request && request.requestedBy === "CLIENT" ? request : null;
 }
 
+/**
+ * A PT can also train as a client of another PT, and `/sessions/upcoming` returns both kinds of session. The two
+ * calendars must not mix: the PT schedule / dashboard show only the sessions the user TEACHES (ptUserId === me), the
+ * client screens only the sessions the user ATTENDS (clientUserId === me). The server does the split (`?as=pt|client`);
+ * the same filter is applied here so an older server that ignores the parameter still yields the right list.
+ */
+export type SessionRole = "pt" | "client";
+
+/** Query keys: role-scoped AND identity-scoped; both keep the "sessions-upcoming" prefix the notification refresh invalidates. */
+export const clientUpcomingKey = (userId: string | null | undefined) => ["sessions-upcoming", "client", userId ?? "guest"] as const;
+
+export function rawSessionsForRole(raw: unknown, role: SessionRole, userId: string | null | undefined): any[] {
+  const list: any[] = Array.isArray(raw) ? raw : [];
+  if (!userId) return list;
+  return list.filter((s) => (role === "pt" ? s?.ptUserId === userId : s?.clientUserId === userId));
+}
+
 export function normalizeSessions(raw: any): SessionRow[] {
   const list = Array.isArray(raw?.sessions) ? raw.sessions : Array.isArray(raw?.data) ? raw.data : Array.isArray(raw) ? raw : [];
   return list

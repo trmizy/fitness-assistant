@@ -9,6 +9,7 @@ import {
 } from "../../services/api";
 import { toast } from "sonner";
 import { useApp } from "../../context/AppContext";
+import { sessionsForRole, upcomingSessionsKey } from "../../utils/sessionRoleView";
 import { useCall } from "../../context/CallContext";
 import { getJoinSessionState } from "../../utils/sessionUtils";
 import { withRefundLabel } from "../../utils/sessionRefund";
@@ -261,10 +262,13 @@ export function BookingPage() {
   const ptLatestEndByWeekday = latestEndByWeekday(ptWeeklyHours);
 
   // Fetch upcoming sessions
-  const { data: upcomingSessions = [], isLoading: loadingUpcoming } = useQuery({
-    queryKey: ["sessions-upcoming"],
-    queryFn: () => sessionService.getMyUpcoming(),
+  // Client calendar: only sessions where I am the CLIENT (a PT who also trains as a client keeps the sessions they
+  // teach on the PT schedule, not here).
+  const { data: upcomingRaw = [], isLoading: loadingUpcoming } = useQuery({
+    queryKey: upcomingSessionsKey("client", user?.id),
+    queryFn: () => sessionService.getMyUpcoming("client"),
   });
+  const upcomingSessions = sessionsForRole(upcomingRaw as Session[], "client", user?.id);
 
   // Moves already used per session (history read up front), so "đã dời 2 lần" is known before the form is filled.
   const acceptedMovesFor = useAcceptedMoves(upcomingSessions as Session[]);

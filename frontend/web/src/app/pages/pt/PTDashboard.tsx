@@ -15,6 +15,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useApp } from "../../context/AppContext";
+import { sessionsForRole, upcomingSessionsKey } from "../../utils/sessionRoleView";
 import { useCall } from "../../context/CallContext";
 import {
   contractService,
@@ -148,14 +149,16 @@ export function PTDashboard() {
   });
   const { data: contracts = [], isLoading: contractsLoading } = contractsQuery;
 
+  // PT dashboard: only sessions I TEACH (my own sessions as a client of another PT belong to the client calendar).
   const {
-    data: upcomingSessions = [],
+    data: upcomingRaw = [],
     isLoading: sessionsLoading,
     isError: sessionsError,
   } = useQuery({
-    queryKey: ["sessions-upcoming"],
-    queryFn: () => sessionService.getMyUpcoming(),
+    queryKey: upcomingSessionsKey("pt", user?.id),
+    queryFn: () => sessionService.getMyUpcoming("pt"),
   });
+  const upcomingSessions = sessionsForRole(upcomingRaw as Session[], "pt", user?.id);
 
   const pendingPlansQuery = useQuery({
     queryKey: ["pt-pending-plans-count"],

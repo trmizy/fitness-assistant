@@ -80,7 +80,7 @@ import {
 } from "../../src/features/dashboard/dashboardBody";
 import { pickNextPtSession } from "../../src/features/services/nextPtSession";
 import { normalizeContracts } from "../../src/features/services/contracts";
-import { mergeSessionSources, normalizeSessions, SESSION_STATUS } from "../../src/features/services/sessions";
+import { clientUpcomingKey, mergeSessionSources, normalizeSessions, rawSessionsForRole, SESSION_STATUS } from "../../src/features/services/sessions";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { designTokens } from "../../src/theme/colors";
 import { anchorOptionsFor } from "../../src/config/returnPath";
@@ -660,9 +660,11 @@ const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.g
  * can never break the home screen.
  */
 function NextPtSessionCard() {
+  const { user } = useApp();
+  const uid = user?.id ?? "guest";
   const upcomingQuery = useQuery({
-    queryKey: ["sessions-upcoming"],
-    queryFn: () => sessionService.getMyUpcoming(),
+    queryKey: clientUpcomingKey(uid),
+    queryFn: () => sessionService.getMyUpcoming("client"),
   });
   const pendingQuery = useQuery({
     queryKey: ["sessions-pending-confirmation"],
@@ -675,11 +677,11 @@ function NextPtSessionCard() {
 
   const sessions = useMemo(() => {
     try {
-      return mergeSessionSources(normalizeSessions(upcomingQuery.data), normalizeSessions(pendingQuery.data));
+      return mergeSessionSources(normalizeSessions(rawSessionsForRole(upcomingQuery.data, "client", uid)), normalizeSessions(pendingQuery.data));
     } catch {
       return [];
     }
-  }, [upcomingQuery.data, pendingQuery.data]);
+  }, [upcomingQuery.data, pendingQuery.data, uid]);
   const next = useMemo(() => pickNextPtSession(sessions, new Date()), [sessions]);
 
   if (upcomingQuery.isLoading || upcomingQuery.isError || !next) return null;

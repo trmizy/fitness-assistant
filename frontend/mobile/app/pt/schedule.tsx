@@ -33,7 +33,7 @@ import { availabilityService, sessionService } from "../../src/services/api";
 import { useApp } from "../../src/context/AppContext";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { SlotCalendarPicker } from "../../src/features/services/SlotCalendarPicker";
-import { RESCHEDULE_LEAD_HOURS, rescheduleErrorMessage, rescheduleSubmitHint } from "../../src/features/services/sessions";
+import { RESCHEDULE_LEAD_HOURS, rawSessionsForRole, rescheduleErrorMessage, rescheduleSubmitHint } from "../../src/features/services/sessions";
 import { InlineRefusal } from "../../src/features/services/InlineRefusal";
 import { JoinSessionButton } from "../../src/features/call/JoinSessionButton";
 import { darkColors, designTokens } from "../../src/theme/colors";
@@ -98,14 +98,15 @@ export default function PtScheduleScreen() {
   const [month, setMonth] = useState(today.getMonth());
   const [day, setDay] = useState<number>(today.getDate());
 
-  const sessionsQuery = useQuery({ queryKey: ["pt-sessions-upcoming", uid], queryFn: () => sessionService.getMyUpcoming() });
+  // PT schedule: only sessions I TEACH (my own sessions as a client of another PT belong to the client screens).
+  const sessionsQuery = useQuery({ queryKey: ["pt-sessions-upcoming", uid], queryFn: () => sessionService.getMyUpcoming("pt") });
   const availQuery = useQuery({ queryKey: ["pt-availability", uid], queryFn: () => availabilityService.getAvailability("me") });
   const exceptionsQuery = useQuery({ queryKey: ["pt-exceptions", uid], queryFn: () => availabilityService.getExceptions() });
   // Money-flow 4.3: already-past sessions a client reported the trainer absent for. A separate,
   // time-unfiltered read - they never appear in the upcoming list.
   const noShowQuery = useQuery({ queryKey: ["pt-no-show-reports", uid], queryFn: () => sessionService.listNoShowReports() });
 
-  const sessions = sessionsOf(sessionsQuery.data);
+  const sessions = sessionsOf(rawSessionsForRole(sessionsQuery.data, "pt", uid));
   // N15M-11: a session notification opens this screen with ?sessionId=<id> - jump to that session's day and outline it.
   const { sessionId: sessionIdParam } = useLocalSearchParams<{ sessionId?: string }>();
   const openedParam = useRef<string | null>(null);

@@ -84,7 +84,13 @@ export const bookingController = {
   async getMyUpcoming(req: any, res: Response) {
     try {
       const userId = req.headers["x-user-id"] as string;
-      const sessions = await bookingService.getMyUpcoming(userId);
+      // ?as=pt|client splits the calendars of a PT who also trains as a client; absent = both roles (unchanged).
+      const asRaw = typeof req.query?.as === "string" ? req.query.as.toLowerCase() : undefined;
+      if (asRaw !== undefined && asRaw !== "pt" && asRaw !== "client") {
+        res.status(400).json({ error: "Tham số 'as' chỉ nhận 'pt' hoặc 'client'" });
+        return;
+      }
+      const sessions = await bookingService.getMyUpcoming(userId, asRaw as "pt" | "client" | undefined);
       // Sessions embed their contract row: the client must not receive the PT's revenue split with it.
       res.json(withJoinWindow(redactContractSplit(sessions, { userId, role: req.headers["x-user-role"] as string | undefined })));
     } catch (error: any) {
