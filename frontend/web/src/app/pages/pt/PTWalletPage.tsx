@@ -43,11 +43,11 @@ export function PTWalletPage() {
   // money moves until an admin confirms a real bank transfer and marks it paid.
   const { data: withdrawals = [] } = useQuery<any[]>({
     queryKey: ["pt-withdrawals"],
-    queryFn: () => walletService.getMyWithdrawals(),
+    queryFn: () => walletService.getMyWithdrawals("PT"),
   });
 
   const withdrawMutation = useMutation({
-    mutationFn: () => walletService.requestWithdrawal(amount, payoutInfo),
+    mutationFn: () => walletService.requestWithdrawal(amount, payoutInfo, "PT"),
     onSuccess: () => {
       toast.success("Đã gửi yêu cầu rút tiền");
       setShowForm(false);

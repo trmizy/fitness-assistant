@@ -47,11 +47,11 @@ export function WalletPage() {
   // admin confirms a real bank transfer and marks it paid.
   const { data: withdrawals = [] } = useQuery<any[]>({
     queryKey: ["client-withdrawals"],
-    queryFn: () => walletService.getMyWithdrawals(),
+    queryFn: () => walletService.getMyWithdrawals("CLIENT"),
   });
 
   const withdrawMutation = useMutation({
-    mutationFn: () => walletService.requestWithdrawal(amount, payoutInfo),
+    mutationFn: () => walletService.requestWithdrawal(amount, payoutInfo, "CLIENT"),
     onSuccess: () => {
       toast.success("Đã gửi yêu cầu rút tiền");
       setShowForm(false);

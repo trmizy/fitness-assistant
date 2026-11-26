@@ -103,8 +103,33 @@ const withdrawalRequestSchema = z.object({
   payoutInfo: z.string().min(1),
 });
 
+/**
+ * Which of the caller's OWN wallets a /me/withdrawals call is about. A PT is also a client: refunds and compensation land in the CLIENT
+ * wallet (GET /me/wallet), teaching income in the PT wallet, so the caller names the wallet with `wallet: "CLIENT" | "PT"` (body on POST,
+ * query on GET). Absent -> the historical default (role PT -> PT, otherwise CLIENT), so an old app build behaves exactly as before.
+ * The wallet is always keyed by req.user.userId, never by anything the client sends. A CUSTOMER may only use CLIENT (403 otherwise);
+ * any other value is 400.
+ */
+export function resolveWithdrawalWallet(
+  role: string | undefined,
+  raw: unknown,
+): { ok: true; ownerType: WalletOwnerType } | { ok: false; status: number; code: string; message: string } {
+  if (raw === undefined || raw === null || raw === '') return { ok: true, ownerType: role === 'PT' ? 'PT' : 'CLIENT' };
+  if (raw !== 'CLIENT' && raw !== 'PT') {
+    return { ok: false, status: 400, code: 'INVALID_WALLET', message: 'Ví không hợp lệ (chỉ nhận CLIENT hoặc PT).' };
+  }
+  if (raw === 'PT' && role !== 'PT') {
+    return { ok: false, status: 403, code: 'WALLET_NOT_ALLOWED', message: 'Tài khoản này không có ví huấn luyện viên.' };
+  }
+  return { ok: true, ownerType: raw };
+}
+
 router.post('/withdrawals', requireWalletHolderRole, async (req: Request, res: Response) => {
-  const ownerType: WalletOwnerType = req.user!.role === 'PT' ? 'PT' : 'CLIENT';
+  const selected = resolveWithdrawalWallet(req.user!.role, (req.body as { wallet?: unknown } | undefined)?.wallet);
+  if (!selected.ok) {
+    return res.status(selected.status).json({ success: false, error: { code: selected.code, message: selected.message } });
+  }
+  const ownerType = selected.ownerType;
   const parsed = withdrawalRequestSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
@@ -120,7 +145,11 @@ router.post('/withdrawals', requireWalletHolderRole, async (req: Request, res: R
 });
 
 router.get('/withdrawals', requireWalletHolderRole, async (req: Request, res: Response) => {
-  const ownerType: WalletOwnerType = req.user!.role === 'PT' ? 'PT' : 'CLIENT';
+  const selected = resolveWithdrawalWallet(req.user!.role, req.query.wallet);
+  if (!selected.ok) {
+    return res.status(selected.status).json({ success: false, error: { code: selected.code, message: selected.message } });
+  }
+  const ownerType = selected.ownerType;
   const list = await withdrawalService.listMine(ownerType, req.user!.userId);
   return res.json({ success: true, data: list });
 });
