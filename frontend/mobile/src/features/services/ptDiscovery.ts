@@ -17,6 +17,10 @@
 import { displaySpecialty } from "../../constants/specialties";
 import { fullName as personFullName } from "../../lib/personName";
 
+/** "Mới trên Gymini": the trainer was approved within the last 30 days (`isNewTrainer`, decided by the server). */
+export const NEW_TRAINER_LABEL = "Mới trên Gymini";
+export const NEW_TRAINER_DESCRIPTION = "PT mới gia nhập nền tảng trong 30 ngày qua";
+
 export type PtPhysiquePhoto = { id: string; url: string; isCover: boolean; sortOrder: number };
 
 export type PtRow = {
@@ -43,6 +47,8 @@ export type PtRow = {
   physiquePhotos: PtPhysiquePhoto[];
   /** Free slots the PT has in the next 28 days — the same number the low-availability check uses. */
   slots28: number | null;
+  /** Approved within the last 30 days; older servers send no flag, which reads as false (no badge). */
+  isNewTrainer: boolean;
   acceptingClients: boolean;
   notAcceptingReason: string | null;
   suspended: boolean;
@@ -147,6 +153,7 @@ export function normalizePt(raw: any): PtRow {
     physiquePhotos: normalizePhysiquePhotos(raw),
     slots28:
       typeof raw?.availableSlotsNext28Days === "number" ? raw.availableSlotsNext28Days : null,
+    isNewTrainer: raw?.isNewTrainer === true,
     acceptingClients: raw?.isAcceptingClients !== false,
     notAcceptingReason: raw?.notAcceptingReason ?? null,
     suspended: raw?.ptSuspended === true,
@@ -199,6 +206,7 @@ export function mergePtSources(detail: any, listRow: PtRow | null): PtRow | null
     areaCodes: fromDetail.areaCodes?.province || fromDetail.areaCodes?.ward ? fromDetail.areaCodes : listRow.areaCodes,
     rating: fromDetail.rating ?? listRow.rating,
     ratingCount: fromDetail.ratingCount || listRow.ratingCount,
+    isNewTrainer: fromDetail.isNewTrainer || listRow.isNewTrainer,
   };
 }
 

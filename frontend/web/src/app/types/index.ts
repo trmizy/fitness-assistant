@@ -1130,7 +1130,9 @@ export interface PtSearchRequest {
 }
 
 export interface PtSearchResponse {
-  pts: Array<Record<string, any> & { distanceKm?: number | null; distanceBasis?: DiscoveryDistanceBasis }>;
+  pts: Array<
+    Record<string, any> & { distanceKm?: number | null; distanceBasis?: DiscoveryDistanceBasis; isNewTrainer?: boolean }
+  >;
   nextCursor: string | null;
   hasMore: boolean;
   appliedScope: DiscoveryScope;

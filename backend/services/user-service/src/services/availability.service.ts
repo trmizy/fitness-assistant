@@ -106,6 +106,38 @@ export interface SlotBookedRow {
  * number this produces drives the purchase warning a client is shown, and until it was
  * pinned by tests it was silently ignoring every booking and day off.
  */
+/**
+ * Booked rows for the PTs' calendars, read from BOTH roles: a session where the PT TEACHES (`ptUserId`) and one where the
+ * same person ATTENDS as a client (`clientUserId`), REQUESTED/CONFIRMED only. A trainer who also trains as a client is one
+ * person with one clock (the booking path already refuses an overlap), so a free-slot count that ignored the client-role
+ * hours would offer hours booking then rejects. Each row is keyed by the PT whose calendar it blocks.
+ * (Same filters as sessionRepository.findBookedByPTsAndRange plus the client role; kept here so the shared repository
+ * function stays untouched.)
+ */
+export async function findBookedAsPtOrClient(
+  ptUserIds: string[],
+  from: Date,
+  to: Date,
+): Promise<{ ptUserId: string; scheduledStartAt: Date }[]> {
+  if (ptUserIds.length === 0) return [];
+  const wanted = new Set(ptUserIds);
+  const rows = await prisma.session.findMany({
+    where: {
+      OR: [{ ptUserId: { in: ptUserIds } }, { clientUserId: { in: ptUserIds } }],
+      status: { in: [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
+      scheduledStartAt: { gte: from },
+      scheduledEndAt: { lte: to },
+    },
+    select: { ptUserId: true, clientUserId: true, scheduledStartAt: true },
+  });
+  const out: { ptUserId: string; scheduledStartAt: Date }[] = [];
+  for (const r of rows) {
+    if (wanted.has(r.ptUserId)) out.push({ ptUserId: r.ptUserId, scheduledStartAt: r.scheduledStartAt });
+    if (wanted.has(r.clientUserId)) out.push({ ptUserId: r.clientUserId, scheduledStartAt: r.scheduledStartAt });
+  }
+  return out;
+}
+
 export function countSlotsFromRows(input: {
   ptUserIds: string[];
   availabilities: SlotAvailabilityRow[];
@@ -664,7 +696,7 @@ export const availabilityService = {
     const [availabilities, exceptions, bookedSessions] = await Promise.all([
       availabilityRepository.findByPTs(ptUserIds),
       availabilityRepository.findExceptionsByPTsAndRange(ptUserIds, fromDate, toDate),
-      sessionRepository.findBookedByPTsAndRange(ptUserIds, fromDate, toDate),
+      findBookedAsPtOrClient(ptUserIds, fromDate, toDate),
     ]);
 
     return countSlotsFromRows({
@@ -683,7 +715,7 @@ export const availabilityService = {
    * list/search: the statement count per request is a measured plan threshold, and every round trip
    * queues on the Prisma pool under concurrency). The row filters are identical to the three finders it
    * replaces (availabilityRepository.findByPTs / findExceptionsByPTsAndRange,
-   * sessionRepository.findBookedByPTsAndRange); timestamps are UTC wall clock exactly as Prisma stores them.
+   * findBookedAsPtOrClient); timestamps are UTC wall clock exactly as Prisma stores them.
    */
   async countAvailableSlotsForPTsOneQuery(
     ptUserIds: string[],
@@ -710,11 +742,23 @@ export const availabilityService = {
             AND e.date >= ${fromIso}::timestamp AND e.date <= ${toIso}::timestamp) AS exceptions,
         (SELECT COALESCE(json_agg(json_build_object(
             'ptUserId', s.pt_user_id, 'scheduledStartAt', ${iso("s.scheduled_start_at")})), '[]'::json)
-           FROM sessions s
-          WHERE s.pt_user_id = ANY(${ptUserIds}::text[])
-            AND s.status IN ('REQUESTED'::"SessionStatus", 'CONFIRMED'::"SessionStatus")
-            AND s.scheduled_start_at >= ${fromIso}::timestamp
-            AND s.scheduled_end_at <= ${toIso}::timestamp) AS booked
+           FROM (
+            -- the PT's own calendar: sessions they teach ...
+            SELECT s.pt_user_id AS pt_user_id, s.scheduled_start_at
+              FROM sessions s
+             WHERE s.pt_user_id = ANY(${ptUserIds}::text[])
+               AND s.status IN ('REQUESTED'::"SessionStatus", 'CONFIRMED'::"SessionStatus")
+               AND s.scheduled_start_at >= ${fromIso}::timestamp
+               AND s.scheduled_end_at <= ${toIso}::timestamp
+            UNION ALL
+            -- ... and sessions they attend as a client (one person, one clock; indexed by sessions_client_user_id_idx)
+            SELECT s.client_user_id AS pt_user_id, s.scheduled_start_at
+              FROM sessions s
+             WHERE s.client_user_id = ANY(${ptUserIds}::text[])
+               AND s.status IN ('REQUESTED'::"SessionStatus", 'CONFIRMED'::"SessionStatus")
+               AND s.scheduled_start_at >= ${fromIso}::timestamp
+               AND s.scheduled_end_at <= ${toIso}::timestamp
+          ) s) AS booked
     `);
     const row = rows[0];
 
@@ -778,7 +822,7 @@ export const availabilityService = {
     const [availabilities, exceptions, bookedSessions] = await Promise.all([
       availabilityRepository.findByPTs([ptUserId]),
       availabilityRepository.findExceptionsByPTsAndRange([ptUserId], from, to),
-      sessionRepository.findBookedByPTsAndRange([ptUserId], from, to),
+      findBookedAsPtOrClient([ptUserId], from, to),
     ]);
 
     return findEarliestSlotFromRows({

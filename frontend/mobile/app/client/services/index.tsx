@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react-native";
 import { GymCard } from "../../../src/features/services/GymCard";
+import { NewTrainerBadge } from "../../../src/features/services/NewTrainerBadge";
 
 import {
   Avatar,
@@ -517,6 +518,7 @@ function TrainerCard({ pt, distance, onPress }: { pt: PtRow; distance?: Distance
                 </View>
               ) : null}
             </View>
+            {pt.isNewTrainer ? <NewTrainerBadge className="mt-1.5" /> : null}
             {distance?.text ? (
               <View
                 testID={`pt-badge-${distance.kind.toLowerCase()}`}

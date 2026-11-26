@@ -64,6 +64,7 @@ import {
 } from "../../../../src/features/services/ptDiscovery";
 import { usePtArea } from "../../../../src/features/services/usePtArea";
 import { buildPtRequestReturnPath } from "../../../../src/features/payments/paymentReturn";
+import { NewTrainerBadge } from "../../../../src/features/services/NewTrainerBadge";
 import { GymPhotoGallery } from "../../../../src/features/services/GymPhotoGallery";
 import { PhotoAttribution } from "../../../../src/features/services/PhotoAttribution";
 import { contractRequestError } from "../../../../src/features/services/contracts";
@@ -333,6 +334,7 @@ export default function TrainerDetailScreen() {
               </View>
 
               <View className="mt-3 flex-row flex-wrap gap-1.5">
+                {pt.isNewTrainer ? <NewTrainerBadge /> : null}
                 {pt.specialties.map((s) => (
                   <Badge key={s} tone="neutral">
                     {s}

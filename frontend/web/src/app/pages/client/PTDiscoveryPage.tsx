@@ -52,6 +52,8 @@ import { PACKAGE_CHANGED_MESSAGE, PACKAGE_CHANGED_TITLE, isPtGone, readPackageCh
 import { QUICK_FILTERS } from "../../constants/specialties";
 import { optionLabel, TARGET_GROUP_OPTIONS, TRAINING_GOAL_OPTIONS } from "../../utils/ptListing";
 import { Stars } from "../../components/gym/Stars";
+import { NewTrainerBadge } from "../../components/ui/NewTrainerBadge";
+import { isNewTrainerPt } from "../../utils/ptNewTrainer";
 import { GymDetailModal } from "../../components/gym/GymDetailModal";
 import { buildPtRequestResumePath, parsePtRequestResume } from "../../utils/paymentReturn";
 import {
@@ -947,6 +949,7 @@ export function PTDiscoveryPage() {
                               {fullName(pt)}
                             </span>
                             <Award className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                            {isNewTrainerPt(pt) && <NewTrainerBadge />}
                           </div>
                           {/* A PT with no reviews shows "Chưa có đánh giá", never 0 stars —
                               an unrated trainer is unknown, not badly rated. */}
@@ -1140,6 +1143,7 @@ export function PTDiscoveryPage() {
                           <span className="flex items-center gap-1 text-xs bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20">
                             <Award className="w-3 h-3" /> Đã xác minh
                           </span>
+                          {isNewTrainerPt(selectedPT) && <NewTrainerBadge />}
                           {selectedPT.avgRating != null ? (
                             <span className="flex items-center gap-1.5 text-xs text-zinc-400">
                               <Stars value={selectedPT.avgRating} size={13} />

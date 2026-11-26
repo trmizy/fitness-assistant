@@ -278,7 +278,9 @@ async function hydrateDiscoveryPublicPts(
           ratingCount: row.ratingCount,
           availableSlotsNext28Days: row.availableSlotsNext28Days,
           matchReason: row.matchReason,
-          ...(distMeta ? { distanceKm: distMeta.distanceKm, distanceBasis: distMeta.distanceBasis } : {}),
+          ...(distMeta
+            ? { distanceKm: distMeta.distanceKm, distanceBasis: distMeta.distanceBasis, isNewTrainer: distMeta.isNewTrainer }
+            : {}),
         }),
       );
     }),

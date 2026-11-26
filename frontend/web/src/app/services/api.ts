@@ -5450,8 +5450,9 @@ export const sessionService = {
     const { data } = await api.get(`/sessions/contract/${contractId}`);
     return data;
   },
-  getMyUpcoming: async () => {
-    const { data } = await api.get("/sessions/upcoming");
+  /** `as` splits the calendars of a PT who also trains as a client: "pt" = sessions I teach, "client" = sessions I attend. */
+  getMyUpcoming: async (as?: "pt" | "client") => {
+    const { data } = await api.get("/sessions/upcoming", as ? { params: { as } } : undefined);
     return data;
   },
   /** N15B-06 (PT): CONFIRMED sessions whose end has passed but that were never closed - "Cần chốt buổi". */
@@ -5777,14 +5778,15 @@ export const walletService = {
     const { data } = await api.get('/me/pt-wallet/transactions');
     return data?.data ?? data;
   },
-  // Money-flow plan 5.3 — self-service withdrawal requests. Works for both the CLIENT and PT
-  // wallet: payment-service infers which one from the caller's role.
-  requestWithdrawal: async (amount: string, payoutInfo: string) => {
-    const { data } = await api.post('/me/withdrawals', { amount, payoutInfo });
+  // Money-flow plan 5.3 — self-service withdrawal requests. A PT is also a client, so the caller names the wallet:
+  // 'CLIENT' = refund/compensation wallet (client wallet page), 'PT' = teaching-income wallet (PT wallet page).
+  // Omitted -> the server's old default (role PT -> PT, otherwise CLIENT).
+  requestWithdrawal: async (amount: string, payoutInfo: string, wallet?: 'CLIENT' | 'PT') => {
+    const { data } = await api.post('/me/withdrawals', { amount, payoutInfo, ...(wallet ? { wallet } : {}) });
     return data?.data ?? data;
   },
-  getMyWithdrawals: async () => {
-    const { data } = await api.get('/me/withdrawals');
+  getMyWithdrawals: async (wallet?: 'CLIENT' | 'PT') => {
+    const { data } = await api.get('/me/withdrawals', wallet ? { params: { wallet } } : undefined);
     return data?.data ?? data;
   },
 };
@@ -6237,6 +6239,11 @@ export const gymService = {
   // Item 4: KPI do DB đếm (ngày VN). Không truyền from/to = 7 ngày kết thúc hôm nay; tối đa 92 ngày. `checkins` / `memberships` là null nếu vai trò không được đọc.
   getGymStats: async (gymId: string, params: { from?: string; to?: string } = {}): Promise<GymStats> => {
     const { data } = await api.get(`/owner/gyms/${gymId}/stats`, { params });
+    return data?.data ?? data;
+  },
+  // Biểu đồ giai đoạn 2: heatmap giờ cao điểm, gia hạn, thực nhận (sổ ví). Cùng luật khoảng ngày VN như /stats (tối đa 92 ngày); phần nào vai trò không được đọc là null, `unavailable` liệt kê phần đọc được nhưng payment-service lỗi.
+  getGymAnalytics: async (gymId: string, params: { from?: string; to?: string } = {}): Promise<unknown> => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/analytics`, { params });
     return data?.data ?? data;
   },
 

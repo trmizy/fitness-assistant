@@ -87,6 +87,7 @@ export async function hydratePublicPtsByIdsSingleQuery(userIds: string[]): Promi
         'searchWard', p.search_ward,
         'gymId', p.gym_id,
         'ptApplication', CASE WHEN pa.id IS NULL THEN NULL ELSE json_build_object(
+          'approvedAt', ${ISO("pa.approved_at")},
           'serviceMode', pa.service_mode,
           'operatingAreas', COALESCE(pa.operating_areas, ARRAY[]::text[]),
           'gymAffiliation', pa.gym_affiliation,
@@ -165,6 +166,7 @@ export async function hydratePublicPtsByIdsSingleQuery(userIds: string[]): Promi
   return rows.map((row) => {
     const doc = row.doc;
     if (doc.ptApplication) {
+      doc.ptApplication.approvedAt = toDate(doc.ptApplication.approvedAt);
       doc.ptApplication.certificates = doc.ptApplication.certificates.map((c: any) => ({
         ...c,
         issueDate: toDate(c.issueDate),

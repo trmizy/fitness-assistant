@@ -20,6 +20,7 @@
  */
 import { Prisma, PtRestrictionScope, SessionMode } from "../generated/prisma";
 import { prisma } from "../repositories/profile.repository";
+import { isNewTrainerApprovedAt } from "./pt-new-trainer";
 
 type Db = Pick<typeof prisma, "ptRestriction" | "userProfile">;
 
@@ -92,6 +93,8 @@ export const PT_PUBLIC_PROFILE_SELECT = {
   gymId: true,
   ptApplication: {
     select: {
+      // Internal only: feeds the `isNewTrainer` flag (30-day rule); the DTO never emits the date itself.
+      approvedAt: true,
       serviceMode: true,
       operatingAreas: true,
       gymAffiliation: true,
@@ -218,6 +221,8 @@ export interface PtPublicExtras {
   matchReason?: string | null;
   distanceKm?: number | null;
   distanceBasis?: "GPS" | "WARD_CENTER" | null;
+  /** Overrides the flag derived from approvedAt (search results pass the exact value the ranking used). */
+  isNewTrainer?: boolean;
 }
 
 export function toPublicPtPackageDto(p: {
@@ -276,6 +281,8 @@ export function toPublicPtDto(source: PublishedPtSource, extras: PtPublicExtras 
     searchWard: source.searchWard,
     // Always false here: a suspended trainer is never in this DTO. Kept so old clients that read it keep working.
     ptSuspended: false,
+    // Approved within NEW_TRAINER_WINDOW_DAYS (pt-new-trainer.ts): the "Mới trên Gymini" label. Additive field.
+    isNewTrainer: extras.isNewTrainer ?? isNewTrainerApprovedAt(app?.approvedAt ?? null),
 
     ptApplication: app
       ? {
