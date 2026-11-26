@@ -67,6 +67,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [activeView, setActiveView] = useState<WorkspaceView>("client");
   const [user, setUser] = useState<User | null>(null);
 
+  // The AI Coach floating panel is a global overlay owned by THIS provider, which outlives every login/logout/account switch
+  // (it is mounted above the router). Its open flag therefore used to survive an identity change: the panel stayed open
+  // for the next account, on its session list, over the dashboard. Close it whenever the authenticated identity changes
+  // (login, logout, session expiry, account switch, registration). Adjusted during render (not in an effect) so the
+  // incoming account never gets even one frame of the previous account's open panel.
+  const aiCoachOwnerId = user?.id ?? null;
+  const [panelOwnerId, setPanelOwnerId] = useState<string | null>(aiCoachOwnerId);
+  if (panelOwnerId !== aiCoachOwnerId) {
+    setPanelOwnerId(aiCoachOwnerId);
+    setIsAiCoachOpen(false);
+  }
+
   // Restore the session BEFORE the router renders anything. Nothing below this point
   // sees a half-known auth state, which is what used to flash the login screen on
   // every cold start (see services/session.ts for the full reasoning).

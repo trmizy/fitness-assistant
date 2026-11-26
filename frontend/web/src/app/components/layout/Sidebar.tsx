@@ -16,7 +16,6 @@ import {
   GyminiCatalogIcon,
   GyminiChatIcon,
   GyminiCompareIcon,
-  GyminiComplaintIcon,
   GyminiContractIcon,
   GyminiDashboardIcon,
   GyminiDiscoverIcon,
@@ -69,8 +68,7 @@ export const clientNavFull = [
   { label: "Dịch vụ", icon: GyminiServicesIcon, to: "/client/services" },
   { label: "Trò chuyện", icon: GyminiChatIcon, to: "/client/chat" },
   { label: "Ví", icon: GyminiWalletIcon, to: "/client/wallet" },
-  { label: "Khiếu nại của tôi", icon: GyminiDisputeIcon, to: "/disputes" },
-  { label: "Khiếu nại phòng gym", icon: GyminiComplaintIcon, to: "/complaint-cases" },
+  // Khiếu nại (Khiếu nại của tôi / Khiếu nại phòng gym) moved to the Topbar "Khiếu nại" button — see complaintEntry.ts.
   { label: "Hồ sơ", icon: GyminiProfileIcon, to: "/client/profile" },
   { label: "Cài đặt", icon: GyminiSettingsIcon, to: "/client/settings" },
 ];
@@ -126,7 +124,6 @@ export const ptWorkspaceNav = [
   },
   { label: "Học viên", icon: GyminiUsersIcon, to: "/pt/clients" },
   { label: "Hợp đồng", icon: GyminiContractIcon, to: "/pt/contracts" },
-  { label: "Khiếu nại của tôi", icon: GyminiDisputeIcon, to: "/disputes" },
   { label: "Duyệt kế hoạch", icon: GyminiPlanIcon, to: "/pt/plans" },
   { label: "Lịch dạy", icon: GyminiScheduleIcon, to: "/pt/schedule" },
   {

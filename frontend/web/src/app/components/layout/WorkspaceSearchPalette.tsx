@@ -19,6 +19,8 @@ import { AutoText } from "../i18n/AutoText";
 import { useAutoTranslate } from "../../hooks/useAutoTranslate";
 import { rankEntries, type SearchEntry } from "../../utils/searchText";
 import { clientNavFull, ptWorkspaceNav } from "./Sidebar";
+import { GyminiComplaintIcon, GyminiDisputeIcon } from "../brand/GyminiLucide";
+import { ALL_COMPLAINT_DESTINATIONS } from "./complaintEntry";
 
 /** Words people actually type for each destination (Vietnamese without accents is handled by searchKey). */
 const KEYWORDS: Record<string, string[]> = {
@@ -61,7 +63,9 @@ export default function WorkspaceSearchPalette({ open, onOpenChange, returnFocus
     const own = isPT && activeView === "pt" ? ptWorkspaceNav.map((i) => ({ ...i, group: "Huấn luyện" })) : [];
     const seen = new Set(own.map((i) => i.to));
     const mine = clientNavFull.filter((i) => !seen.has(i.to)).map((i) => ({ ...i, group: isPT && activeView === "pt" ? "Cá nhân" : undefined }));
-    return [...own, ...mine].map((i) => ({ label: i.label, to: i.to, icon: i.icon, group: i.group, sourceLang: (i as { sourceLang?: "vi" | "en" }).sourceLang, keywords: KEYWORDS[i.to] }));
+    // Khiếu nại left the sidebar for the Topbar button; Ctrl+K still finds both destinations (as it always did, in either PT mode).
+    const complaints = ALL_COMPLAINT_DESTINATIONS.map((d) => ({ label: d.label, to: d.to, icon: d.key === "disputes" ? GyminiDisputeIcon : GyminiComplaintIcon, group: isPT && activeView === "pt" ? "Cá nhân" : undefined }));
+    return [...own, ...mine, ...complaints].map((i) => ({ label: i.label, to: i.to, icon: i.icon, group: i.group, sourceLang: (i as { sourceLang?: "vi" | "en" }).sourceLang, keywords: KEYWORDS[i.to] }));
   }, [isPT, activeView]);
 
   const matches = useMemo(() => rankEntries(entries, q).slice(0, q.trim() ? 8 : entries.length), [entries, q]);

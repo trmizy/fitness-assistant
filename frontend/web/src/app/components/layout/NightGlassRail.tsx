@@ -29,7 +29,7 @@ type Tip = { label: string; x: number; y: number } | null;
 type ShowTip = (el: HTMLElement, label: string, via: "pointer" | "focus") => void;
 
 /** Secondary destinations sit under a divider so the primary journey reads first (same items, same order). */
-const SECONDARY = new Set(["/client/wallet", "/disputes", "/complaint-cases", "/client/profile", "/client/settings", "/pt/wallet", "/pt/profile", "/pt/listing"]);
+const SECONDARY = new Set(["/client/wallet", "/client/profile", "/client/settings", "/pt/wallet", "/pt/profile", "/pt/listing"]);
 
 function useRailLabel(label: string, sourceLang?: AppLanguage) {
   return useAutoTranslate(label, sourceLang || "vi").text;

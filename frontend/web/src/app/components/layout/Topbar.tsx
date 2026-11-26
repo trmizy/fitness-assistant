@@ -14,6 +14,7 @@ import { useAutoTranslate } from "../../hooks/useAutoTranslate";
 import { useRealtimeNotifications } from "../../hooks/useRealtimeNotifications";
 import { WorkspaceSearch } from "./WorkspaceSearch";
 import { AppLogo } from "../brand/AppLogo";
+import { ComplaintEntryButton } from "./ComplaintEntryButton";
 
 // Roadmap P4.1 "Notifications/reminders" (§27) — labels for the 5 new
 // event types this pass added; every pre-existing type keeps using the
@@ -235,6 +236,9 @@ export function Topbar() {
             </AutoText>
           </span>
         </div>
+
+        {/* Khiếu nại (client + PT, both modes): moved here from the sidebar; right of the green role chip. */}
+        <ComplaintEntryButton />
 
         {pendingCount > 0 && (
           <Popover open={aiTasksOpen && pendingAiTasksOpen.length > 0} onOpenChange={setAiTasksOpen}>

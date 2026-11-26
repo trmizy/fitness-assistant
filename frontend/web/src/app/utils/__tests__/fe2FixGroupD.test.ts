@@ -34,9 +34,11 @@ describe("NG-3 drawer: Obsidian active label, scoped to Client/PT; distinct comp
     // the legacy green label is still the fallback for Gym Owner / Admin
     assert.match(s, /: isActive\s*\? "text-green-400"/);
   });
-  it('"Khiếu nại của tôi" (gavel) and "Khiếu nại phòng gym" (flag) no longer share an icon', () => {
-    assert.match(s, /label: "Khiếu nại của tôi", icon: GyminiDisputeIcon/);
-    assert.match(s, /label: "Khiếu nại phòng gym", icon: GyminiComplaintIcon, to: "\/complaint-cases"/);
+  it('"Khiếu nại của tôi" (gavel) and "Khiếu nại phòng gym" (flag) keep distinct icons where they remain searchable (they left the sidebar for the Topbar button)', () => {
+    assert.doesNotMatch(s, /to: "\/complaint-cases"/);
+    assert.doesNotMatch(s, /label: "Khiếu nại của tôi"/);
+    const palette = read("components/layout/WorkspaceSearchPalette.tsx");
+    assert.match(palette, /d\.key === "disputes" \? GyminiDisputeIcon : GyminiComplaintIcon/);
   });
   it("Gym Owner and Admin keep their own entries unchanged", () => {
     assert.match(s, /label: "Khiếu nại phòng gym", icon: GyminiDisputeIcon, to: "\/gym-owner\/complaint-cases"/);
