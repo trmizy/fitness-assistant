@@ -19,6 +19,7 @@ import { membershipController } from '../controllers/membership.controller';
 import { affiliationController } from '../controllers/affiliation.controller';
 import { checkinController } from '../controllers/checkin.controller';
 import { gymStatsController } from '../controllers/gym-stats.controller';
+import { gymAnalyticsController } from '../controllers/gym-analytics.controller';
 import { assistedCheckinController } from '../controllers/assisted-checkin.controller';
 import { noStorePrivate } from '../middleware/no-store.middleware';
 import { financeController } from '../controllers/finance.controller';
@@ -185,6 +186,8 @@ router.get('/gyms/:gymId/memberships', requirePermission(['membership.full', 'me
 // Item 4 — KPI cho dashboard: đếm check-in theo NGÀY VN + số hội viên đang chạy / sắp hết hạn ngay trong DB (không tải danh sách).
 // Cổng any-of cùng quyền với hai route láng giềng (checkins, memberships); từng khối trả về chỉ khi vai trò có quyền tương ứng (xem controller).
 router.get('/gyms/:gymId/stats', requirePermission(['checkin.list', 'membership.full', 'membership.sales'], { gymParam: 'gymId' }), asyncHandler(gymStatsController.get));
+// Biểu đồ cho chủ: giờ cao điểm check-in (thứ x giờ, giờ VN), doanh số theo ngày/gói, thu nhập ròng (từ SỔ CÁI payment-service), tỷ lệ gia hạn. Cổng any-of; từng phần chỉ trả khi vai trò có quyền tương ứng, ngược lại null (xem controller).
+router.get('/gyms/:gymId/analytics', requirePermission(['checkin.list', 'membership.full', 'membership.sales', 'finance.wallet.view'], { gymParam: 'gymId' }), asyncHandler(gymAnalyticsController.get));
 
 // Phase 4 — the gym displays this QR at the desk; members scan it to check themselves in.
 router.get('/gyms/:gymId/checkin-qr', requirePermission('checkin.qr', { gymParam: 'gymId' }), asyncHandler(checkinController.getGymQr));

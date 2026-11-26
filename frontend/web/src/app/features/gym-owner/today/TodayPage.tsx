@@ -20,6 +20,11 @@ import { SubtleNumber, TextStates } from "../../../components/layout/gym-owner/m
 import { useGymOwnerScope } from "../scope/GymOwnerScopeProvider";
 import { branchCodes, branchStatusText, goKey, pickableGyms } from "../scope/scopeModel";
 import { GYM_STATS_KEY, gymStatsKey, invalidateGymStats, type StatsState } from "../stats/gymStats";
+import { CheckinTrendPanel } from "../charts/CheckinTrendPanel";
+import { HeatmapPanel } from "../charts/HeatmapPanel";
+import { RenewalPanel } from "../charts/RenewalPanel";
+import { MembershipStatusPanel } from "../charts/MembershipStatusPanel";
+import { chartAccess } from "../charts/chartsModel";
 import {
   LOADING,
   MAX_ROWS,
@@ -203,10 +208,15 @@ export function TodayPage() {
     for (const q of all) if (q.isError) void q.refetch();
   };
 
+  const retryStats = () => {
+    for (const q of statsQs) if (q.isError) void q.refetch();
+  };
+
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   if (!role) return null;
 
   const single = gyms.length === 1 || gymId !== "ALL";
+  const access = chartAccess(scope.can);
   const notice = coverageNotice(model, codes);
   const rows = branchRows(view, model, codes, (g) => branchStatusText(g).text, statsById);
   const empty = model.complete && model.tasks.length === 0;
@@ -300,6 +310,22 @@ export function TodayPage() {
           </ul>
         </section>
       </div>
+
+      {/* Charts (phase 1): trends of the branches in view. Each panel draws only when the role may read its data (chartAccess, from permissions[]). */}
+      {live.length > 0 && (access.checkins || access.members) && (
+        <div className="go-today-trends" data-testid="go-today-trends">
+          <CheckinTrendPanel gyms={live} codes={codes} />
+          <MembershipStatusPanel gymIds={live.map((g) => g.id)} statsById={statsById} scopeLabel={live.length > 1 ? `Tất cả ${live.length} chi nhánh cộng lại` : live[0].name} onRetry={retryStats} />
+        </div>
+      )}
+
+      {/* Charts (phase 2): peak hours + renewal, from /analytics. Same fail-closed gating: heatmap needs checkin.list, renewal membership.full | membership.sales. */}
+      {live.length > 0 && (access.heatmap || access.renewal) && (
+        <div className="go-today-trends" data-kind="insight" data-testid="go-today-insights">
+          <HeatmapPanel gyms={live} />
+          <RenewalPanel gyms={live} />
+        </div>
+      )}
     </div>
   );
 }

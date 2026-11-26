@@ -129,6 +129,9 @@
   --go-money-locked: #1d4f91;
   --go-money-available: #166534;
   --go-shadow-pop: 0 12px 32px rgb(20 32 26 / 0.14);
+  /* Chart series colours beyond the status tokens (charts never rely on colour alone: every series is also named in text). */
+  --go-chart-5: #6d28d9;
+  --go-chart-6: #0e7490;
   --tt-bg: var(--go-ink);
   --tt-fg: var(--go-bg);
 
@@ -182,6 +185,8 @@
   --go-money-locked: #93c5fd;
   --go-money-available: #4ade80;
   --go-shadow-pop: 0 12px 32px rgb(0 0 0 / 0.5);
+  --go-chart-5: #c4b5fd;
+  --go-chart-6: #67e8f9;
 }
 
 /* ================================================================== */
@@ -1971,3 +1976,132 @@ html[data-workspace="gym-owner"] body {
 :root[data-theme="light"] [data-workspace="gym-owner"] :is(.bg-amber-500\/10, .bg-amber-500\/15, .bg-amber-500\/20):is(.text-amber-300, .text-amber-400) {
   color: #92400e;
 }
+
+/* ---------------------------------------------------------------------------------------------------------------------
+   Charts (phase 1): Hôm nay check-ins + membership status, Tài chính sales. Workspace tokens only; no chart relies on colour alone
+   (every series has its name and exact figure as text, deltas carry an icon and a sign).
+   --------------------------------------------------------------------------------------------------------------------- */
+.go-today-trends { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--go-s6); align-items: start; margin-top: var(--go-s6); }
+.go-today-trends > .go-chart-panel:only-child { grid-column: 1 / -1; }
+.go-chart-pair { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--go-s4); align-items: start; }
+@media (max-width: 1000px) { .go-today-trends, .go-chart-pair { grid-template-columns: minmax(0, 1fr); gap: var(--go-s4); } }
+@media (max-width: 900px) { .go-today-trends { margin-top: var(--go-s4); } }
+.go-chart-panel { min-width: 0; }
+.go-chart-body { display: grid; gap: var(--go-s3); padding: var(--go-s4) var(--go-s5) var(--go-s5); min-width: 0; }
+.go-chart-body > * { min-width: 0; }
+@media (max-width: 900px) { .go-chart-body { padding-left: var(--go-s4); padding-right: var(--go-s4); } }
+.go-panel-head-row > .go-chart-controls { flex: 0 1 auto; }
+.go-chart-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--go-s2); min-width: 0; }
+@media (max-width: 640px) { .go-chart-controls { justify-content: flex-start; width: 100%; } }
+.go-chart-seg button { min-height: 32px; }
+.go-chart-kpi { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--go-s1) var(--go-s3); min-width: 0; }
+.go-chart-kpi-num { font-family: var(--go-font-display); font-weight: 600; font-size: 28px; line-height: 34px; color: var(--go-ink); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.go-chart-kpi-unit { color: var(--go-ink-2); font-size: 14px; }
+.go-chart-delta { display: inline-flex; align-items: center; gap: var(--go-s1); font-size: 13px; font-weight: 600; color: var(--go-ink-2); }
+.go-chart-delta[data-dir="up"] { color: var(--go-ok); }
+.go-chart-delta[data-dir="down"] { color: var(--go-risk); }
+.go-chart-delta svg { flex: none; }
+.go-chart-plot { width: 100%; min-width: 0; height: 220px; overflow: hidden; }
+.go-chart-plot .recharts-wrapper, .go-chart-plot .recharts-surface { max-width: 100%; }
+.go-chart-sum { margin: 0; color: var(--go-ink-3); font-size: 12px; line-height: 16px; }
+.go-chart-skel { display: grid; gap: var(--go-s3); align-content: start; }
+.go-chart-skel .go-skel-bar { animation: t-skel-pulse var(--pulse-dur) var(--ease-in-out) infinite; }
+@media (prefers-reduced-motion: reduce) { .go-chart-skel .go-skel-bar { animation: none !important; } }
+.go-chart-state { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--go-s3); padding: var(--go-s4); border-radius: var(--go-r-sm); background: var(--go-surface-2); color: var(--go-ink-2); font-size: 14px; }
+.go-chart-state > div { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.go-chart-state strong { color: var(--go-ink); font-weight: 600; }
+.go-chart-state[data-tone="risk"] { background: var(--go-risk-bg); color: var(--go-risk); }
+.go-chart-state[data-tone="risk"] strong { color: inherit; }
+.go-chart-tip { display: grid; gap: 2px; padding: var(--go-s2) var(--go-s3); border: 1px solid var(--go-line-strong); border-radius: var(--go-r-sm); background: var(--go-surface); color: var(--go-ink); box-shadow: var(--go-shadow-pop); font-size: 12px; line-height: 16px; }
+.go-chart-tip span { color: var(--go-ink-2); font-variant-numeric: tabular-nums; }
+.go-chart-details { border-top: 1px solid var(--go-line); padding-top: var(--go-s2); font-size: 13px; }
+.go-chart-details > summary { cursor: pointer; color: var(--go-ink-2); font-weight: 500; min-height: 28px; display: flex; align-items: center; }
+.go-chart-details > summary:focus-visible { outline: 2px solid var(--go-focus); outline-offset: 2px; border-radius: var(--go-r-sm); }
+.go-chart-table-wrap { max-height: 260px; overflow: auto; margin-top: var(--go-s2); }
+.go-chart-table-wrap:focus-visible { outline: 2px solid var(--go-focus); outline-offset: 2px; }
+.go-chart-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.go-chart-table th, .go-chart-table td { padding: var(--go-s1) var(--go-s2); border-bottom: 1px solid var(--go-line); text-align: left; font-weight: 400; color: var(--go-ink); }
+.go-chart-table thead th { position: sticky; top: 0; background: var(--go-surface); color: var(--go-ink-2); font-weight: 600; }
+.go-chart-table .go-num { text-align: right; }
+
+/* Horizontal bars as a list (branches, plans): the name and the exact figure are text, the bar is only the picture. */
+.go-hbar-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--go-s3); min-width: 0; }
+.go-hbar-row { display: grid; gap: var(--go-s1); min-width: 0; }
+.go-hbar-top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--go-s3); min-width: 0; }
+.go-hbar-name { min-width: 0; overflow-wrap: anywhere; font-size: 14px; color: var(--go-ink); font-weight: 500; }
+.go-hbar-val { flex: none; font-size: 14px; font-weight: 600; color: var(--go-ink); font-variant-numeric: tabular-nums; }
+.go-hbar-track { height: 8px; border-radius: 4px; background: var(--go-surface-2); overflow: hidden; }
+.go-hbar-fill { display: block; height: 100%; border-radius: 4px; background: var(--go-action); }
+.go-hbar-sub { color: var(--go-ink-3); font-size: 12px; line-height: 16px; }
+
+/* Donut + legend: stacked (donut above its legend) by default, side by side only when the panel is wide (tablet, full-width panel). */
+.go-donut { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: var(--go-s4); min-width: 0; }
+.go-donut .go-legend { width: 100%; }
+.go-donut-plot { position: relative; width: 176px; height: 176px; max-width: 100%; }
+@media (max-width: 1000px) and (min-width: 561px) { .go-donut { grid-template-columns: 200px minmax(0, 1fr); align-items: center; justify-items: stretch; } .go-donut-plot { width: 200px; height: 200px; } }
+.go-donut-center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; pointer-events: none; }
+.go-donut-center strong { font-family: var(--go-font-display); font-size: 26px; line-height: 30px; font-weight: 600; color: var(--go-ink); font-variant-numeric: tabular-nums; }
+.go-donut-center span { font-size: 12px; color: var(--go-ink-3); }
+.go-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--go-s2); min-width: 0; }
+.go-legend li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto 44px; align-items: center; gap: var(--go-s2); font-size: 13px; color: var(--go-ink); }
+.go-legend li[data-zero="true"] { color: var(--go-ink-3); }
+.go-legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+.go-legend-name { min-width: 0; overflow-wrap: anywhere; }
+.go-legend-val { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.go-legend-pct { color: var(--go-ink-3); font-variant-numeric: tabular-nums; text-align: right; font-size: 12px; }
+
+/* ---------------------------------------------------------------------------------------------------------------------
+   Charts (phase 2): Giờ cao điểm heatmap, Gia hạn card, Thực nhận. Tokens only; every cell / bar also has its figure as text.
+   --------------------------------------------------------------------------------------------------------------------- */
+.go-today-trends[data-kind="insight"] { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+@media (max-width: 1000px) { .go-today-trends[data-kind="insight"] { grid-template-columns: minmax(0, 1fr); } }
+.go-fd-insights { display: grid; gap: var(--go-s4); margin-top: var(--go-s6); min-width: 0; }
+.go-fd-insights > * { min-width: 0; }
+@media (max-width: 900px) { .go-fd-insights { margin-top: var(--go-s4); } }
+
+.go-heat-peak { margin: 0; font-size: 15px; font-weight: 600; color: var(--go-ink); overflow-wrap: anywhere; }
+.go-heat { --go-heat-max: 70%; container-type: inline-size; min-width: 0; }
+:root[data-theme="dark"] [data-workspace="gym-owner"] .go-heat, :root[data-theme="dark"][data-workspace="gym-owner"] .go-heat, .dark [data-workspace="gym-owner"] .go-heat, .dark[data-workspace="gym-owner"] .go-heat { --go-heat-max: 45%; }
+.go-heat-grid { display: grid; grid-template-columns: 28px repeat(var(--n), minmax(0, 1fr)); grid-auto-rows: 26px; gap: 2px; min-width: 0; }
+.go-heat-hl, .go-heat-wl { display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--go-ink-3); font-variant-numeric: tabular-nums; min-width: 0; }
+.go-heat-hl { grid-row: 1; grid-column: var(--c); }
+.go-heat-wl { grid-column: 1; grid-row: var(--r); justify-content: flex-start; }
+.go-heat-h-l { display: none; }
+.go-heat-cell {
+  grid-row: var(--r); grid-column: var(--c);
+  display: flex; align-items: center; justify-content: center; min-width: 0; border-radius: 3px;
+  background: color-mix(in srgb, var(--go-action) calc(var(--lv) * var(--go-heat-max)), var(--go-surface-2));
+  color: var(--go-ink); font-size: 10px; line-height: 1; font-variant-numeric: tabular-nums;
+}
+.go-heat-cell[data-peak="true"] { outline: 2px solid var(--go-ink); outline-offset: -1px; font-weight: 700; z-index: 1; }
+/* A narrow panel (phone, or a half-width card): hours run down, weekdays across - 7 columns always fit, no sideways scroll. */
+@container (max-width: 520px) {
+  .go-heat-grid { grid-template-columns: 46px repeat(7, minmax(0, 1fr)); grid-auto-rows: 24px; }
+  .go-heat-hl { grid-row: var(--c); grid-column: 1; justify-content: flex-start; }
+  .go-heat-wl { grid-column: var(--r); grid-row: 1; justify-content: center; }
+  .go-heat-h-s { display: none; }
+  .go-heat-h-l { display: inline; }
+  .go-heat-cell { grid-row: var(--c); grid-column: var(--r); font-size: 11px; }
+}
+.go-heat-legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--go-s2); font-size: 12px; color: var(--go-ink-3); }
+.go-heat-swatch { width: 18px; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--go-action) calc(var(--lv) * 70%), var(--go-surface-2)); border: 1px solid var(--go-line); }
+:root[data-theme="dark"] [data-workspace="gym-owner"] .go-heat-swatch, .dark [data-workspace="gym-owner"] .go-heat-swatch { background: color-mix(in srgb, var(--go-action) calc(var(--lv) * 45%), var(--go-surface-2)); }
+.go-heat-legend-note { flex-basis: 100%; }
+
+.go-ren-text { margin: 0; color: var(--go-ink); font-size: 14px; line-height: 20px; overflow-wrap: anywhere; }
+.go-ren-sub { margin: var(--go-s2) 0 0; font-size: 14px; font-weight: 600; color: var(--go-ink); }
+.go-ren-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--go-s2); margin: 0; }
+.go-ren-stats > div { padding: var(--go-s3); border-radius: var(--go-r-sm); background: var(--go-surface-2); min-width: 0; }
+.go-ren-stats dt { font-size: 12px; line-height: 16px; color: var(--go-ink-2); overflow-wrap: anywhere; }
+.go-ren-stats dd { margin: 2px 0 0; font-family: var(--go-font-display); font-size: 22px; line-height: 28px; font-weight: 600; color: var(--go-ink); font-variant-numeric: tabular-nums; }
+.go-ren-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--go-s2) var(--go-s4); font-size: 13px; color: var(--go-ink); }
+.go-ren-legend li { display: inline-flex; align-items: center; gap: var(--go-s2); }
+.go-ren-legend strong { font-variant-numeric: tabular-nums; }
+
+.go-net-break { list-style: none; margin: 0; padding: 0; display: grid; min-width: 0; border-top: 1px solid var(--go-line); }
+.go-net-break li { display: flex; align-items: baseline; justify-content: space-between; gap: var(--go-s3); padding: var(--go-s2) 0; border-bottom: 1px solid var(--go-line); min-width: 0; font-size: 14px; color: var(--go-ink-2); }
+.go-net-break li[data-strong="true"] { color: var(--go-ink); font-weight: 600; }
+.go-net-break li[data-key="net"] { border-bottom: 2px solid var(--go-line-strong); }
+.go-net-label { display: grid; min-width: 0; overflow-wrap: anywhere; }
+.go-net-hint { font-size: 12px; line-height: 16px; font-weight: 400; color: var(--go-ink-3); }
+.go-net-val { flex: none; font-variant-numeric: tabular-nums; text-align: right; }

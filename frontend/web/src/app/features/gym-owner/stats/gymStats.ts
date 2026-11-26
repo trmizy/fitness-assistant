@@ -15,6 +15,8 @@ import type { GymStats } from "../../../types";
 export const GYM_STATS_KEY = "gym-owner-stats";
 
 export const gymStatsKey = (userId: string, gymId: string) => [GYM_STATS_KEY, userId, gymId] as const;
+/** The same endpoint with an explicit from/to (charts). Starts with `gymStatsKey`, so `invalidateGymStats` refreshes it too. */
+export const gymStatsRangeKey = (userId: string, gymId: string, from: string, to: string) => [GYM_STATS_KEY, userId, gymId, "range", from, to] as const;
 
 /** Refresh the stats of one branch (after an assisted check-in) or every branch of this user. */
 export function invalidateGymStats(queryClient: Pick<QueryClient, "invalidateQueries">, userId: string, gymId?: string): Promise<unknown> {

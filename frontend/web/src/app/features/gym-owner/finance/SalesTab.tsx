@@ -11,6 +11,8 @@ import { gymService } from "../../../services/api";
 import { formatVND } from "../../../utils/currency";
 import { recognizedSales, salesCsv } from "../../../utils/financeExport";
 import { GoTag } from "../../../components/layout/gym-owner/GoTag";
+import { SalesChartsPanel } from "../charts/SalesChartsPanel";
+import { NetIncomePanel } from "../charts/NetIncomePanel";
 import { useBrandPlans } from "../members/useBrandPlans";
 import { memberStatusTag, planNameOf } from "../members/membersModel";
 import { useGymOwnerScope } from "../scope/GymOwnerScopeProvider";
@@ -47,6 +49,8 @@ export function SalesTab({ gyms }: { gyms: ScopeGym[] }) {
   const coverage = coverageLine(gyms.length, failedNames);
   const stamp = new Date().toISOString().slice(0, 10);
   const shown = rows.slice(0, SALES_ROWS_SHOWN);
+  // Plan names for the by-plan chart: a name that did not load is said so, never replaced by a wrong one.
+  const planNameForChart = (id: string) => (plans.query.isError ? "Gói (chưa tải được tên)" : planNameOf(id, planRows));
 
   return (
     <div className="go-stack" data-testid="go-fin-sales">
@@ -56,6 +60,10 @@ export function SalesTab({ gyms }: { gyms: ScopeGym[] }) {
           <button type="button" className="go-btn go-btn-sm" onClick={() => failedIdx.forEach((i) => void qs[i].refetch())}>Thử lại</button>
         </div>
       )}
+      {/* Charts: drawn from the rows loaded here (no extra request); SalesChartsPanel gates on membership.sales and never draws a partial total. */}
+      <SalesChartsPanel rows={rows} loading={loading} partial={failedNames.length > 0} planName={planNameForChart} plansLoading={plans.query.isLoading} />
+      {/* Phase 2: "Thực nhận" (the wallet ledger) right under the gross sales chart; gated on finance.wallet.view, fetched from /analytics. */}
+      <NetIncomePanel gyms={gyms} />
       <section className="go-panel" aria-labelledby="go-h-sales">
         <div className="go-panel-head go-panel-head-row">
           <div>

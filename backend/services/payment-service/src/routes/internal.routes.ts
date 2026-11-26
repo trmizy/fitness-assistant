@@ -7,6 +7,7 @@ import { serviceSecretMiddleware } from '../middleware/serviceSecret.middleware'
 import { transactionRepository } from '../repositories/transaction.repository';
 import { walletService, InsufficientBalanceError, WalletNotActiveError } from '../services/wallet.service';
 import { gymDebtSummary } from '../services/gym-debt-recovery';
+import { GYM_INCOME_MAX_RANGE_MS, gymMembershipIncomeService } from '../services/gym-membership-income.service';
 import { prisma } from '../repositories/prisma';
 import { getProvider, providerConfigStatus, DEFAULT_PROVIDER } from '../services/payment.service';
 import { assertRatesValid, buildMoneyBreakdown, type RateTable, type TerminationReason } from '../services/contract-money';
@@ -1152,6 +1153,29 @@ router.get('/payments/:transactionId', async (req: Request, res: Response) => {
   const txn = await transactionRepository.findById(req.params.transactionId);
   if (!txn) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } });
   return res.json({ success: true, data: txn });
+});
+
+// GET /internal/gyms/:gymId/membership-income?from=<ISO instant>&to=<ISO instant> - READ-ONLY owner analytics (gym-service /owner/gyms/:gymId/analytics).
+// What the gym wallet's ledger says it earned from membership sales per Vietnam day; see gym-membership-income.service.ts. Writes nothing, creates no wallet.
+router.get('/gyms/:gymId/membership-income', async (req: Request, res: Response) => {
+  const parsed = z
+    .object({
+      from: z.string().datetime({ offset: true }),
+      to: z.string().datetime({ offset: true }),
+    })
+    .safeParse(req.query);
+  if (!parsed.success) return res.status(400).json({ success: false, error: { code: 'INVALID_QUERY', message: 'from và to phải là thời điểm ISO-8601' } });
+  const start = new Date(parsed.data.from);
+  const end = new Date(parsed.data.to);
+  if (!(end.getTime() > start.getTime()) || end.getTime() - start.getTime() > GYM_INCOME_MAX_RANGE_MS) {
+    return res.status(400).json({ success: false, error: { code: 'INVALID_RANGE', message: 'to phải sau from và khoảng tối đa 93 ngày' } });
+  }
+  try {
+    return res.json({ success: true, data: await gymMembershipIncomeService.forGym(req.params.gymId, start, end) });
+  } catch (e) {
+    logger.error({ err: (e as Error).message, gymId: req.params.gymId }, 'gym membership income read failed');
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: GENERIC_FAILURE_MESSAGE } });
+  }
 });
 
 // GET /internal/wallets/:ownerType/:ownerId

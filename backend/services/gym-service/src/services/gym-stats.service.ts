@@ -37,7 +37,7 @@ function parseLocalDate(raw: string, name: string): string {
   return raw;
 }
 
-function shiftLocalDate(localDate: string, days: number): string {
+export function shiftLocalDate(localDate: string, days: number): string {
   return localDateOf(new Date(windowOfLocalDate(localDate).start.getTime() + days * DAY_MS));
 }
 

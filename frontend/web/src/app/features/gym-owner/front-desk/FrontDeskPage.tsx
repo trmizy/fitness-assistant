@@ -23,9 +23,14 @@ import { GoSearch } from "../../../components/layout/gym-owner/GoSearch";
 import { GoTag } from "../../../components/layout/gym-owner/GoTag";
 import { ScopeStateFrame } from "../scope/PermissionGate";
 import { useGymOwnerScope, useScopeChangeEffect } from "../scope/GymOwnerScopeProvider";
+import { CheckinTrendPanel } from "../charts/CheckinTrendPanel";
+import { HeatmapPanel } from "../charts/HeatmapPanel";
 import { ExceptionsTab } from "./ExceptionsTab";
 import { ExceptionDrawer } from "./ExceptionDrawer";
 import { FD_TAB_IDS, FD_TAB_LABEL, canUseDesk, fdSearch, findException, parseFdTab, pendingCount, shouldAskBeforeLeaving, type FdTabId } from "./frontDeskModel";
+
+/** One branch in view: no branch code chip is needed. */
+const NO_CODES: Readonly<Record<string, string>> = {};
 
 export function FrontDeskPage() {
   const scope = useGymOwnerScope();
@@ -66,6 +71,9 @@ export function FrontDeskPage() {
 
   const [guestQ, setGuestQ] = useState("");
   const guests = useMemo(() => filterByName(todayQ.data?.clients ?? [], guestQ), [todayQ.data, guestQ]);
+  // Check-in trend + peak hours of THIS branch (the one the strip selected / the receptionist is assigned to): only with checkin.list.
+  const chartGyms = useMemo(() => (gym ? [{ id: gym.id, name: gym.name }] : []), [gym]);
+  const showCharts = ready && tab === "checkin" && scope.can("checkin.list") && chartGyms.length > 0;
 
   // Scope change: drawer closed (the `exception` param belongs to the old branch), search boxes cleared, flags reset by the unmounts.
   useScopeChangeEffect(() => {
@@ -188,6 +196,12 @@ export function FrontDeskPage() {
                 </div>
               </section>
             </div>
+          </div>
+        )}
+        {showCharts && (
+          <div className="go-fd-insights" data-testid="go-fd-insights">
+            <CheckinTrendPanel gyms={chartGyms} codes={NO_CODES} />
+            <HeatmapPanel gyms={chartGyms} />
           </div>
         )}
       </div>

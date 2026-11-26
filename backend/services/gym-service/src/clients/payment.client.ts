@@ -60,6 +60,27 @@ export interface MembershipSupplementAnswer {
   obligationId?: string;
 }
 
+export interface GymMembershipIncomeDay {
+  date: string;
+  sales: number;
+  grossPrice: number;
+  gymShare: number;
+  feeAtSale: number;
+  referralCommission: number;
+  adjustments: number;
+  net: number;
+}
+
+/** payment-service GET /internal/gyms/:gymId/membership-income. `daily` holds only the days with ledger entries. */
+export interface GymMembershipIncomeAnswer {
+  gymId: string;
+  from: string;
+  to: string;
+  walletFound: boolean;
+  daily: GymMembershipIncomeDay[];
+  totals: Omit<GymMembershipIncomeDay, 'date'>;
+}
+
 export const paymentClient = {
   /**
    * Start a gateway checkout for a membership. The client pays the gateway directly; the
@@ -294,6 +315,30 @@ export const paymentClient = {
     return paymentRequest<any>({
       method: 'GET',
       path: `/internal/payments/${transactionId}`,
+      timeout: 10_000,
+    });
+  },
+
+  /**
+   * READ-ONLY: what the gym wallet's ledger says it earned from membership sales per Vietnam day, between two instants ([start, end)).
+   * The ledger owner (payment-service) does the aggregation; gym-service never recomputes a split or a commission.
+   */
+  async getGymMembershipIncome(gymId: string, start: Date, end: Date): Promise<GymMembershipIncomeAnswer> {
+    const qs = new URLSearchParams({ from: start.toISOString(), to: end.toISOString() });
+    if (process.env.PAYMENT_LAMBDA_NAME) {
+      const result = await invokeHttpLambda({
+        functionName: process.env.PAYMENT_LAMBDA_NAME,
+        method: 'GET',
+        path: `/internal/gyms/${gymId}/membership-income`,
+        queryStringParameters: Object.fromEntries(qs),
+        headers,
+      });
+      throwForLambdaHttpError(result);
+      return result.body.data as GymMembershipIncomeAnswer;
+    }
+    return paymentRequest<GymMembershipIncomeAnswer>({
+      method: 'GET',
+      path: `/internal/gyms/${gymId}/membership-income?${qs.toString()}`,
       timeout: 10_000,
     });
   },
