@@ -225,34 +225,41 @@ export const conversationRepository = {
 
   /**
    * Aggregate stats for the overview card: totals, averages, distributions.
-   * Uses two raw queries (for AVG and distribution) plus standard count calls.
+   * Raw SQL only (counts, AVG/p95, distributions, plan statuses): the test-account exclusion list can be tens of thousands
+   * of ids and must reach Postgres as one array parameter, never one bind variable per id.
    */
   async adminGetOverviewStats(excludeUserIds: string[] | null = null) {
     const now = new Date();
     // Test/seed/eval accounts left out on the server (2026-11-08). Anonymous rows (user_id NULL) are kept.
     const ex = excludeUserIds ?? [];
-    const cw: Prisma.ConversationWhereInput = ex.length ? { OR: [{ userId: null }, { userId: { notIn: ex } }] } : {};
+    // The exclusion list can hold tens of thousands of ids (seed-scale data). Prisma's `notIn` binds ONE variable per id and
+    // Postgres caps a statement at 32767, so every query in this function is raw SQL where the whole list is a single
+    // text[] parameter (`= ANY($n)`). Do not reintroduce `notIn: ex` here (GET /admin/ai/overview returned 500, 2026-11-27).
     const rawNot = ex.length ? Prisma.sql` AND ("user_id" IS NULL OR NOT ("user_id" = ANY(${ex})))` : Prisma.empty;
     const since24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const since7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const [
-      total,
-      total24h,
-      fallbackCount,
-      deterministicFallbackCount,
-      warningCount,
-      avgResult,
-      slowCount,
-      intentRows,
-      langRows,
-      planStats,
-    ] = await Promise.all([
-      prisma.conversation.count({ where: cw }),
-      prisma.conversation.count({ where: { createdAt: { gte: since24h }, ...cw } }),
-      prisma.conversation.count({ where: { usedFallback: true, ...cw } }),
-      prisma.conversation.count({ where: { usedDeterministicFallback: true, ...cw } }),
-      prisma.conversation.count({ where: { warningCount: { gt: 0 }, ...cw } }),
+    const [countRows, avgResult, intentRows, langRows, planStats] = await Promise.all([
+      prisma.$queryRaw<
+        Array<{
+          total: bigint;
+          last24h: bigint;
+          fallback: bigint;
+          deterministic_fallback: bigint;
+          warning: bigint;
+          slow: bigint;
+        }>
+      >`
+        SELECT
+          COUNT(*)                                                                    AS total,
+          COUNT(*) FILTER (WHERE "created_at" >= ${since24h})                         AS last24h,
+          COUNT(*) FILTER (WHERE "used_fallback" = true)                              AS fallback,
+          COUNT(*) FILTER (WHERE "used_deterministic_fallback" = true)                AS deterministic_fallback,
+          COUNT(*) FILTER (WHERE "warning_count" > 0)                                 AS warning,
+          COUNT(*) FILTER (WHERE "response_time" > 10 AND "created_at" >= ${since7d}) AS slow
+        FROM "conversations"
+        WHERE TRUE${rawNot}
+      `,
       prisma.$queryRaw<Array<{ avg: number | null; p95: number | null }>>`
         SELECT
           AVG("response_time")                                                                   AS avg,
@@ -260,9 +267,6 @@ export const conversationRepository = {
         FROM "conversations"
         WHERE "created_at" >= ${since7d}${rawNot}
       `,
-      prisma.conversation.count({
-        where: { responseTime: { gt: 10 }, createdAt: { gte: since7d }, ...cw },
-      }),
       prisma.$queryRaw<Array<{ route_intent: string | null; cnt: bigint }>>`
         SELECT "route_intent", COUNT(*) AS cnt
         FROM "conversations"
@@ -279,8 +283,21 @@ export const conversationRepository = {
         WHERE "created_at" >= ${since7d} AND "response_language" IS NOT NULL${rawNot}
         GROUP BY "response_language"
       `,
-      prisma.workoutPlan.groupBy({ by: ["status"], ...(ex.length ? { where: { userId: { notIn: ex } } } : {}), _count: { _all: true } }),
+      prisma.$queryRaw<Array<{ status: string; cnt: bigint }>>`
+        SELECT "status"::text AS status, COUNT(*) AS cnt
+        FROM "workout_plans"
+        WHERE TRUE${rawNot}
+        GROUP BY "status"
+      `,
     ]);
+
+    const counts = countRows[0];
+    const total = Number(counts?.total ?? 0);
+    const total24h = Number(counts?.last24h ?? 0);
+    const fallbackCount = Number(counts?.fallback ?? 0);
+    const deterministicFallbackCount = Number(counts?.deterministic_fallback ?? 0);
+    const warningCount = Number(counts?.warning ?? 0);
+    const slowCount = Number(counts?.slow ?? 0);
 
     const avgLatency = avgResult[0]?.avg ?? null;
     const p95Latency = avgResult[0]?.p95 ?? null;
@@ -297,7 +314,7 @@ export const conversationRepository = {
 
     const planStatusMap: Record<string, number> = {};
     for (const row of planStats) {
-      planStatusMap[row.status] = row._count._all;
+      planStatusMap[row.status] = Number(row.cnt);
     }
 
     return {
