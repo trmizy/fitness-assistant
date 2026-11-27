@@ -125,10 +125,18 @@ export type PublishedGymSource = Prisma.GymGetPayload<{ include: typeof DETAIL_I
 export type PublishedGymListSource = Prisma.GymGetPayload<{ include: typeof LIST_INCLUDE }> & { readonly [publishedBrand]: true };
 
 export const gymPublicRepository = {
-  /** Newest first, exactly like the previous `findApproved`. */
-  async findPublishedList(): Promise<PublishedGymListSource[]> {
+  /**
+   * Newest first, exactly like the previous `findApproved` (id desc only breaks createdAt ties, so a page boundary is
+   * stable). `page` is applied in the DB (take/skip); without it the whole list is returned, as before.
+   */
+  async findPublishedList(page?: { limit: number; offset: number }): Promise<PublishedGymListSource[]> {
     const where = await gymPublicWhere();
-    const rows = await prisma.gym.findMany({ where, include: LIST_INCLUDE, orderBy: { createdAt: 'desc' } });
+    const rows = await prisma.gym.findMany({
+      where,
+      include: LIST_INCLUDE,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      ...(page ? { take: page.limit, skip: page.offset } : {}),
+    });
     return rows as PublishedGymListSource[];
   },
 

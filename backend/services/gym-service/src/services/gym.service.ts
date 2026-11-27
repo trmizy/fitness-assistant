@@ -71,12 +71,36 @@ async function auditAdminUpdate(
   });
 }
 
+/** Legacy `GET /gyms` page size: a Lambda response is capped at 6 MB, and the unpaginated list of ~2.4k branches blew it (HTTP 413 -> 500). */
+export const LEGACY_LIST_DEFAULT_LIMIT = 50;
+export const LEGACY_LIST_MAX_LIMIT = 100;
+
+/**
+ * `?limit=&offset=` of the legacy list. Old app versions send neither, and a public read must never 4xx them, so bad
+ * input is clamped, not rejected: a missing / non-integer / < 1 limit -> 50, a limit above 100 -> 100, a missing /
+ * non-integer / negative offset -> 0.
+ */
+export function parseLegacyListPage(query: { limit?: unknown; offset?: unknown }): { limit: number; offset: number } {
+  const int = (v: unknown): number | null => {
+    const raw = Array.isArray(v) ? v[0] : v;
+    if (typeof raw !== 'string' || !/^-?\d{1,9}$/.test(raw.trim())) return null;
+    return Number(raw.trim());
+  };
+  const l = int(query.limit);
+  const o = int(query.offset);
+  return {
+    limit: l === null || l < 1 ? LEGACY_LIST_DEFAULT_LIMIT : Math.min(l, LEGACY_LIST_MAX_LIMIT),
+    offset: o === null || o < 0 ? 0 : o,
+  };
+}
+
 export const gymService = {
-  async listApproved() {
+  async listApproved(page: { limit: number; offset: number } = { limit: LEGACY_LIST_DEFAULT_LIMIT, offset: 0 }) {
     // Listing Management B1 — one visibility rule (gymPublicWhere: APPROVED + OPEN + owner not hidden). Phase 5 mục 5.1:
     // tạm khoá/chấm dứt đối tác thì ẩn khỏi trang tìm kiếm công khai, dù `status`/`operationalStatus` riêng của từng
     // chi nhánh không đổi (khách cũ vẫn check-in bình thường — chỉ khách MỚI không tìm thấy để đăng ký).
-    const gyms = await gymPublicRepository.findPublishedList();
+    // Phân trang ở DB (take/skip) → rating + giá thấp nhất chỉ tính cho đúng trang trả về.
+    const gyms = await gymPublicRepository.findPublishedList(page);
     const brandIds = [...new Set(gyms.map((g) => g.brandId).filter((id): id is string => !!id))];
     const [ratings, cheapestByBrand] = await Promise.all([
       reviewRepository.aggregateForGyms(gyms.map((g) => g.id)),
