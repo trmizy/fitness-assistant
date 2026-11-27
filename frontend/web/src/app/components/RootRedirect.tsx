@@ -1,19 +1,21 @@
+import { lazy } from "react";
 import { Navigate } from "react-router";
 import { useApp } from "../context/AppContext";
 import { ROLE_HOME } from "../config/landing";
 import { useGymOwnerAccessState } from "../hooks/useGymOwnerAccessState";
 import { APPLICANT_STATES } from "../services/partnerApplication";
 
+// Public website home for guests. Lazy: signed-in users never download it (Root already provides the <Suspense>).
+const PublicHomeEntry = lazy(() => import("../pages/public-site/PublicHomeEntry").then((m) => ({ default: m.PublicHomeEntry })));
+
 /**
- * Decides where "/" goes, based on whether a session survived.
+ * Decides what "/" shows, based on whether a session survived.
  *
- * This route used to be a hard `<Navigate to="/login" replace />`. On the web that is
- * mostly invisible — people open a real URL, or the browser restores the last one. In the
- * Capacitor app it is the whole ballgame: the WebView ALWAYS boots at "/", so every single
- * launch was pushed to the login screen no matter how healthy the stored session was. And
- * because LoginPage only navigates away after a successful manual submit, a user with a
- * perfectly valid session simply sat there and had to type their password again — which is
- * exactly the "it logs me out every time I close the app" report.
+ * - Signed in: go straight to the role's home (gym owner applicants: to their application). This is unchanged and
+ *   matters because the app can boot at "/" with a perfectly valid stored session — pushing those users to a login
+ *   form made them type their password again ("it logs me out every time I close the app").
+ * - Guest: the public website home page (canonical URL "/"; the old /gioi-thieu redirects here). It used to be a hard
+ *   `<Navigate to="/login" replace />`; the site header's "Đăng nhập" / "Bắt đầu" buttons lead on to /login and /register.
  *
  * Safe to read `isAuthenticated` synchronously here: session restore resolves before the
  * router renders anything (AppProvider holds the splash until then), so this is a settled
@@ -29,5 +31,6 @@ export function RootRedirect() {
       return <Navigate to="/partner/application" replace />;
     }
   }
-  return <Navigate to={isAuthenticated ? ROLE_HOME[role] : "/login"} replace />;
+  if (!isAuthenticated) return <PublicHomeEntry />;
+  return <Navigate to={ROLE_HOME[role]} replace />;
 }

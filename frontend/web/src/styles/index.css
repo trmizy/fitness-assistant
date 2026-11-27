@@ -9,3 +9,5 @@
 @import './obsidian.css';
 /* WEB UI shared navigation patterns (.gw-* classes; tokens are --ob-*). */
 @import './gymini-web-ui.css';
+/* PUBLIC SITE (trang chủ cho khách + /huan-luyen-vien, /phong-gym, /kien-thuc...): mọi token/class dưới `.ps-root`, tiền tố ps-; không động tới phần còn lại của app. */
+@import './public-site.css';

@@ -10,8 +10,9 @@ import { readFileSync } from "node:fs";
 const read = (rel: string) => readFileSync(new URL(`../../${rel}`, import.meta.url), "utf8");
 const readStyle = (n: string) => readFileSync(new URL(`../../../styles/${n}`, import.meta.url), "utf8");
 
-describe("NG-2 landing navbar uses the official logo", () => {
-  const s = read("pages/public/LandingPage.tsx");
+// The Frontend 2.0 landing (pages/public/LandingPage.tsx) was replaced by the public site; its header carries the same logo rule.
+describe("NG-2 public-site header uses the official logo", () => {
+  const s = read("components/public-site/SiteHeader.tsx");
   it("no pwa-icon, theme-aware AppLogo, whole asset (gymini-brand-logo = contain)", () => {
     assert.doesNotMatch(s, /pwa-icon/);
     assert.match(s, /<AppLogo[^>]*gymini-brand-logo/);
@@ -21,8 +22,8 @@ describe("NG-2 landing navbar uses the official logo", () => {
     assert.match(a, /\/brand\/gymini-logo-dark-384\.webp/);
     assert.match(a, /\/brand\/gymini-logo-light-384\.webp/);
   });
-  it("the pill stays a pill", () => {
-    assert.match(s, /rounded-full[^"]*\$\{scrolled \? "ng-glass"/);
+  it("the nav pill stays a pill", () => {
+    assert.match(s, /ps-nav-pill[^"]*rounded-full/);
   });
 });
 
