@@ -804,7 +804,11 @@ test('9. GET /gyms & GET /gyms/:id preserve DTO/order and log LEGACY_GET_GYMS_RE
   const listRes = await callApi('GET', '/gyms', undefined, { 'x-gymini-client': markerHeader });
   assert.equal(listRes.status, 200);
   assert.equal(listRes.body.success, true);
-  assert.ok(Array.isArray(listRes.body.data) && listRes.body.data.length >= 2000);
+  // Legacy GET /gyms is capped (default 50, hard max 100) - the unpaginated 2.4k-row response exceeded the Lambda 6 MB limit.
+  assert.ok(Array.isArray(listRes.body.data) && listRes.body.data.length === 50);
+  const maxRes = await callApi('GET', '/gyms?limit=100000');
+  assert.equal(maxRes.status, 200);
+  assert.equal(maxRes.body.data.length, 100);
 
   // Verify default createdAt DESC ordering preserved
   const gyms = listRes.body.data as any[];

@@ -289,7 +289,7 @@ export function LoginPage() {
           {/* R2: on its own line — sharing the sign-up sentence made it wrap mid-phrase at 360–390px. */}
           <p className="mt-2 text-center text-sm">
             <Link
-              to="/gioi-thieu"
+              to="/"
               className="inline-flex min-h-6 items-center whitespace-nowrap text-zinc-400 font-semibold hover:text-zinc-200 transition-colors"
             >
               Tìm hiểu Gymini

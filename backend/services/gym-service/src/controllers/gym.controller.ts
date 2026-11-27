@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { logger } from '@gym-coach/shared';
-import { gymService } from '../services/gym.service';
+import { gymService, parseLegacyListPage } from '../services/gym.service';
 import { principalId } from '../middleware/partner-context.middleware';
 import {
   clientHeaderOf,
@@ -31,7 +31,7 @@ export const gymController = {
       clientHeader: clientHeaderOf(req),
       outcome: 'LEGACY_GET_GYMS_READ',
     });
-    const gyms = await gymService.listApproved();
+    const gyms = await gymService.listApproved(parseLegacyListPage(req.query));
     res.json({ success: true, data: gyms });
   },
 

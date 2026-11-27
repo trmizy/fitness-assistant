@@ -45,7 +45,14 @@ const GymManagementKitchenSink = lazy(() =>
 // Auth pages
 const LoginPage = lazy(() => import("./pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })));
 const AttributionsPage = lazy(() => import("./pages/public/AttributionsPage").then((m) => ({ default: m.AttributionsPage })));
-const LandingPage = lazy(() => import("./pages/public/LandingPage").then((m) => ({ default: m.LandingPage })));
+// Website công khai (thay landing Frontend 2.0 cũ): khung + các trang tải lười; code ở pages/public-site và components/public-site.
+const PublicSiteLayout = lazy(() => import("./components/public-site/PublicSiteLayout").then((m) => ({ default: m.PublicSiteLayout })));
+const TrainersPage = lazy(() => import("./pages/public-site/TrainersPage").then((m) => ({ default: m.TrainersPage })));
+const GymsPage = lazy(() => import("./pages/public-site/GymsPage").then((m) => ({ default: m.GymsPage })));
+const KnowledgePage = lazy(() => import("./pages/public-site/KnowledgePage").then((m) => ({ default: m.KnowledgePage })));
+const ArticlePage = lazy(() => import("./pages/public-site/ArticlePage").then((m) => ({ default: m.ArticlePage })));
+const TermsPage = lazy(() => import("./pages/public-site/LegalPage").then((m) => ({ default: m.TermsPage })));
+const PrivacyPage = lazy(() => import("./pages/public-site/LegalPage").then((m) => ({ default: m.PrivacyPage })));
 const PublicGymPage = lazy(() => import("./pages/public/PublicGymPage").then((m) => ({ default: m.PublicGymPage })));
 const ClientGymDeepLink = lazy(() => import("./pages/public/PublicGymPage").then((m) => ({ default: m.ClientGymDeepLink })));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage").then((m) => ({ default: m.RegisterPage })));
@@ -238,14 +245,24 @@ export const router = createBrowserRouter([
     Component: Root,
     errorElement: <RouteErrorBoundary />,
     children: [
-      // Not a hard redirect to /login — see RootRedirect. The Capacitor WebView always
-      // boots at "/", so this single line decided whether every app launch landed on the
-      // login screen or in the app.
+      // "/" — see RootRedirect: a guest sees the public home page, a signed-in user goes to their workspace.
       { index: true, element: <RootRedirect /> },
       { path: "login", Component: LoginPage },
       { path: "attributions", Component: AttributionsPage },
-      // Frontend 2.0 (owner D2): public landing on its OWN route. "/" stays RootRedirect (Capacitor boots there).
-      { path: "gioi-thieu", Component: LandingPage },
+      // The old Frontend 2.0 landing lived here; the public site now owns "/" (canonical URL), so keep old links/bookmarks working.
+      { path: "gioi-thieu", element: <Navigate to="/" replace /> },
+      // Public website (guests and signed-in users can both view): shared header/footer layout, pathless.
+      {
+        Component: PublicSiteLayout,
+        children: [
+          { path: "huan-luyen-vien", Component: TrainersPage },
+          { path: "phong-gym", Component: GymsPage },
+          { path: "kien-thuc", Component: KnowledgePage },
+          { path: "kien-thuc/:slug", Component: ArticlePage },
+          { path: "dieu-khoan", Component: TermsPage },
+          { path: "quyen-rieng-tu", Component: PrivacyPage },
+        ],
+      },
       // Liên kết chia sẻ của chi tiết phòng gym (nút Chia sẻ): khách → /login rồi quay lại chi tiết; đã đăng nhập → chi tiết ngay.
       { path: "gyms/:id", Component: PublicGymPage },
       { path: "register", Component: RegisterPage },

@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Disallow: /client/
+Disallow: /pt/
+Disallow: /gym-owner/
+Disallow: /admin/
+Disallow: /partner/
+Disallow: /disputes/
+Disallow: /complaint-cases/
+Disallow: /dat-lai-mat-khau/
+Disallow: /dev/
+Disallow: /login
+Disallow: /register
+Disallow: /quen-mat-khau
+
+Sitemap: https://gymini.vn/sitemap.xml

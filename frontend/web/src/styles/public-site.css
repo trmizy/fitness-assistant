@@ -1,0 +1,342 @@
+/* ═══════════════════════════════════════════════════════════════
+   GYMINI PUBLIC SITE (trang chủ cho khách, /huan-luyen-vien, /phong-gym, /kien-thuc, /dieu-khoan, /quyen-rieng-tu)
+
+   NAMESPACE: tệp này KHÔNG được làm đổi bất cứ thứ gì ngoài `.ps-root`.
+     - Token màu/chuyển động là biến `--ps-*` khai báo trên `.ps-root` (KHÔNG phải :root).
+     - Tên màu Tailwind có tiền tố `ps-` (`bg-ps-sunk`, `text-ps-ink`, `font-ps-display`...).
+     - Mọi class tuỳ biến có tiền tố `ps-` và nằm dưới `.ps-root`; keyframes `ps-*`.
+   Class component nằm trong `@layer components` để utility Tailwind (`hidden`, `md:inline-flex`...) vẫn ghi đè được.
+   Ngoại lệ phải dùng `!important`: `letter-spacing` của tiêu đề, vì fonts.css (app) đặt `h1-h4 { letter-spacing }`
+   KHÔNG nằm trong layer nên thắng mọi class trong layer; `!important` trong layer thắng khai báo thường không-layer.
+
+   Màu bám palette của app Gymini (slate cho light, zinc cho dark, emerald/green làm accent).
+   Accent light dùng emerald-700 (#047857) để chữ trắng trên nút đạt WCAG AA (5.5:1).
+   Giao diện sáng/tối do SettingsContext của app điều khiển (`data-theme` trên <html>).
+   ═══════════════════════════════════════════════════════════════ */
+
+@theme inline {
+  --color-ps-bg: var(--ps-bg);
+  /* Chữ đè trên ảnh: app ép `.text-white` sang màu tối ở light mode (theme.css), nên trang công khai dùng màu riêng. */
+  --color-ps-white: #ffffff;
+  --color-ps-elev: var(--ps-bg-elev);
+  --color-ps-sunk: var(--ps-bg-sunk);
+  --color-ps-ink: var(--ps-ink);
+  --color-ps-ink-2: var(--ps-ink-2);
+  --color-ps-ink-3: var(--ps-ink-3);
+  --color-ps-line: var(--ps-line);
+  --color-ps-line-strong: var(--ps-line-strong);
+  --color-ps-accent: var(--ps-accent);
+  --color-ps-accent-ink: var(--ps-accent-ink);
+  --color-ps-accent-text: var(--ps-accent-text);
+  --color-ps-accent-soft: var(--ps-accent-soft);
+  --color-ps-band: var(--ps-band-bg);
+  --color-ps-band-elev: var(--ps-band-elev);
+  --color-ps-band-ink: var(--ps-band-ink);
+  --color-ps-band-muted: var(--ps-band-muted);
+  --color-ps-band-line: var(--ps-band-line);
+  --color-ps-band-accent: var(--ps-band-accent);
+  --font-ps-display: "Barlow", "Inter", system-ui, sans-serif;
+  --font-ps-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* ── Token + nền của website ──────────────────────────────────── */
+.ps-root {
+  --ps-bg: #f8fafc;
+  --ps-bg-elev: #ffffff;
+  --ps-bg-sunk: #eef2f6;
+  --ps-ink: #0f172a;
+  --ps-ink-2: #334155;
+  --ps-ink-3: #475569;
+  --ps-line: #e2e8f0;
+  --ps-line-strong: #cbd5e1;
+  --ps-accent: #047857;
+  --ps-accent-ink: #ffffff;
+  --ps-accent-text: #047857;
+  --ps-accent-bright: #10b981;
+  --ps-accent-soft: rgba(16, 185, 129, 0.12);
+  --ps-band-bg: #0a0a0a;
+  --ps-band-elev: #151517;
+  --ps-band-ink: #f4f4f5;
+  --ps-band-muted: #a1a1aa;
+  --ps-band-line: #27272a;
+  --ps-band-accent: #22c55e;
+  --ps-shadow: 15 23 42;
+  --ps-header-bg: rgba(248, 250, 252, 0.82);
+  --ps-font-display: "Barlow", "Inter", system-ui, sans-serif;
+  --ps-font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Motion scale — transitions.dev (_root.css). Không dùng số ms tự chế. */
+  --ps-duration-stagger: 40ms;
+  --ps-duration-micro: 80ms;
+  --ps-duration-quick: 150ms;
+  --ps-duration-fast: 250ms;
+  --ps-duration-medium: 350ms;
+  --ps-duration-slow: 400ms;
+  --ps-duration-very-slow: 500ms;
+  --ps-ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ps-ease-in-out: ease-in-out;
+  --ps-ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --ps-distance-micro: 4px;
+  --ps-distance-base: 8px;
+  --ps-distance-medium: 12px;
+  --ps-distance-large: 30px;
+  --ps-scale-large: 0.96;
+  --ps-scale-medium: 0.97;
+  --ps-scale-small: 0.98;
+  --ps-blur-small: 2px;
+  --ps-blur-medium: 3px;
+
+  background: var(--ps-bg);
+  color: var(--ps-ink);
+  font-family: var(--ps-font-sans);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] .ps-root {
+  --ps-bg: #0a0a0a;
+  --ps-bg-elev: #141416;
+  --ps-bg-sunk: #111113;
+  --ps-ink: #f4f4f5;
+  --ps-ink-2: #d4d4d8;
+  --ps-ink-3: #a1a1aa;
+  --ps-line: #27272a;
+  --ps-line-strong: #3f3f46;
+  --ps-accent: #22c55e;
+  --ps-accent-ink: #052e16;
+  --ps-accent-text: #4ade80;
+  --ps-accent-bright: #4ade80;
+  --ps-accent-soft: rgba(34, 197, 94, 0.14);
+  --ps-band-bg: #111113;
+  --ps-band-elev: #1a1a1d;
+  --ps-band-ink: #f4f4f5;
+  --ps-band-muted: #a1a1aa;
+  --ps-band-line: #2a2a2e;
+  --ps-band-accent: #22c55e;
+  --ps-shadow: 0 0 0;
+  --ps-header-bg: rgba(10, 10, 10, 0.78);
+  color-scheme: dark;
+}
+
+/* ── Base (chỉ trong .ps-root) ────────────────────────────────── */
+@layer base {
+  .ps-root {
+    /* app: `* { border-color: var(--border-color) }` — website cần currentColor như preflight của Tailwind. */
+    & *, & *::before, & *::after { border-color: currentColor; }
+    & h1, & h2, & h3, & h4 { text-wrap: balance; font-size: inherit; font-weight: inherit; line-height: inherit; }
+    & p { text-wrap: pretty; }
+    & img { max-width: 100%; display: block; }
+    & :focus-visible { outline: 2px solid var(--ps-accent-bright); outline-offset: 3px; border-radius: 10px; }
+  }
+}
+
+@layer components {
+  .ps-root {
+    /* ── Type scale ─────────────────────────────────────────────── */
+    .ps-t-display {
+      font-family: var(--ps-font-display);
+      font-weight: 600;
+      font-size: clamp(2.6rem, 1.1rem + 6vw, 6.75rem);
+      line-height: 1.04;
+      letter-spacing: -0.035em !important;
+    }
+    .ps-t-h2 {
+      font-family: var(--ps-font-display);
+      font-weight: 600;
+      font-size: clamp(2rem, 1.1rem + 3.4vw, 4.1rem);
+      line-height: 1.08;
+      letter-spacing: -0.03em !important;
+    }
+    .ps-t-h3 {
+      font-family: var(--ps-font-display);
+      font-weight: 600;
+      font-size: clamp(1.4rem, 1.05rem + 1.1vw, 1.95rem);
+      line-height: 1.15;
+      letter-spacing: -0.015em !important;
+    }
+    .ps-t-lead { font-size: clamp(1.125rem, 1rem + 0.45vw, 1.375rem); line-height: 1.55; color: var(--ps-ink-2); }
+    .ps-t-label { font-size: 0.9rem; font-weight: 500; color: var(--ps-ink-3); letter-spacing: 0; }
+    .ps-t-muted { color: var(--ps-ink-2); }
+    .ps-tnum { font-variant-numeric: tabular-nums; }
+
+    /* ── Layout ─────────────────────────────────────────────────── */
+    .ps-wrap {
+      width: 100%;
+      max-width: 1360px;
+      margin-inline: auto;
+      padding-left: max(16px, env(safe-area-inset-left, 0px), 4vw);
+      padding-right: max(16px, env(safe-area-inset-right, 0px), 4vw);
+    }
+    @media (min-width: 1500px) { .ps-wrap { padding-left: 56px; padding-right: 56px; } }
+
+    /* ── Buttons (pill) ─────────────────────────────────────────── */
+    .ps-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.55rem;
+      min-height: 3.25rem; padding: 0 1.6rem; border-radius: 999px;
+      font-weight: 600; font-size: 1rem; white-space: nowrap; line-height: 1;
+      transition: background-color var(--ps-duration-fast) var(--ps-ease-smooth-out),
+                  color var(--ps-duration-fast) var(--ps-ease-smooth-out),
+                  border-color var(--ps-duration-fast) var(--ps-ease-smooth-out),
+                  transform var(--ps-duration-quick) var(--ps-ease-smooth-out);
+    }
+    .ps-btn:active { transform: scale(var(--ps-scale-small)); }
+    .ps-btn svg { transition: transform var(--ps-duration-medium) var(--ps-ease-smooth-out); }
+    .ps-btn:hover svg { transform: translateX(var(--ps-distance-micro)); }
+    .ps-btn-primary { background: var(--ps-accent); color: var(--ps-accent-ink); }
+    .ps-btn-primary:hover { background: color-mix(in srgb, var(--ps-accent) 86%, var(--ps-ink)); }
+    .ps-btn-secondary { background: var(--ps-bg-sunk); color: var(--ps-ink); border: 1px solid var(--ps-line); }
+    .ps-btn-secondary:hover { background: var(--ps-bg-elev); border-color: var(--ps-line-strong); }
+    .ps-btn-on-dark { background: #f4f4f5; color: #0a0a0a; }
+    .ps-btn-on-dark:hover { background: #ffffff; }
+    .ps-btn-ghost-dark { color: #f4f4f5; border: 1px solid rgba(244, 244, 245, 0.28); }
+    .ps-btn-ghost-dark:hover { border-color: rgba(244, 244, 245, 0.6); background: rgba(244, 244, 245, 0.06); }
+    .ps-btn-sm { min-height: 2.5rem; padding: 0 1.1rem; font-size: 0.92rem; }
+
+    /* Link có gạch chân trượt */
+    .ps-link-u {
+      background: linear-gradient(currentColor, currentColor) 0 100% / 0 1.5px no-repeat;
+      transition: background-size var(--ps-duration-medium) var(--ps-ease-smooth-out);
+    }
+    .ps-link-u:hover, .group:hover .ps-link-u { background-size: 100% 1.5px; }
+
+    /* ── Header: trong suốt → nền mờ khi cuộn ───────────────────── */
+    .ps-site-header {
+      background: transparent; border-bottom: 1px solid transparent;
+      transition: background-color var(--ps-duration-medium) var(--ps-ease-smooth-out), border-color var(--ps-duration-medium) var(--ps-ease-smooth-out);
+    }
+    .ps-site-header.ps-is-solid {
+      background: var(--ps-header-bg); border-bottom-color: var(--ps-line);
+      -webkit-backdrop-filter: saturate(1.4) blur(14px); backdrop-filter: saturate(1.4) blur(14px);
+    }
+    .ps-nav-pill { background: color-mix(in srgb, var(--ps-bg-elev) 70%, transparent); border: 1px solid var(--ps-line); }
+
+    /* Mobile menu sheet (transitions-dev #07 panel reveal) */
+    .ps-sheet { animation: ps-sheet-in var(--ps-duration-slow) var(--ps-ease-smooth-out) both; }
+    .ps-sheet-item { animation: ps-item-in var(--ps-duration-very-slow) var(--ps-ease-smooth-out) both; animation-delay: calc(var(--i, 0) * var(--ps-duration-stagger) + 80ms); }
+
+    /* ── LAYER 1 · Entrance: dòng chữ trượt lên trong mặt nạ ─────
+       Chia theo DÒNG (không theo ký tự) — screen reader đọc nguyên câu. */
+    .ps-line-mask { display: block; overflow: clip; padding-block: 0.06em 0.12em; margin-block: -0.06em -0.12em; }
+    .ps-line-mask > span {
+      display: inline-block; animation: ps-line-up 700ms var(--ps-ease-smooth-out) both;
+      animation-delay: calc(var(--i, 0) * 90ms + 60ms);
+    }
+    .ps-enter { animation: ps-enter-up var(--ps-duration-very-slow) var(--ps-ease-smooth-out) both; animation-delay: calc(var(--d, 0) * 1ms); }
+
+    /* Ảnh chèn trong tiêu đề (People × Trainers × Spaces) */
+    .ps-chip-img {
+      display: inline-block; vertical-align: -0.12em; height: 0.82em; aspect-ratio: 1.55; border-radius: 999px;
+      overflow: hidden; margin-inline: 0.12em 0.04em; background: var(--ps-bg-sunk);
+      animation: ps-chip-in 800ms var(--ps-ease-smooth-out) both; animation-delay: calc(var(--i, 0) * 90ms + 380ms);
+    }
+    .ps-chip-img img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* ── LAYER 2 · Scroll storytelling (CSS scroll-driven, native scroll) ─
+       Trình duyệt chưa hỗ trợ animation-timeline: nội dung hiện đầy đủ, tĩnh. */
+    @supports (animation-timeline: view()) {
+      .ps-sr { animation: ps-sr-in linear both; animation-timeline: view(); animation-range: entry 5% entry 55%; }
+      .ps-stage-zoom { animation: ps-stage-zoom linear both; animation-timeline: view(); animation-range: entry 0% cover 40%; }
+      .ps-stmt-word {
+        animation: ps-word-on linear both; animation-timeline: --ps-stmt;
+        animation-range: cover calc(18% + var(--p) * 34%) cover calc(22% + var(--p) * 34%);
+      }
+      .ps-stmt { view-timeline-name: --ps-stmt; }
+      .ps-parallax-slow { animation: ps-px-slow linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
+    }
+
+    /* ── LAYER 4 · Signature: Đường tiến ────────────────────────── */
+    .ps-pl-path {
+      stroke-dasharray: var(--len, 4000); stroke-dashoffset: var(--len, 4000);
+      transition: stroke-dashoffset 1600ms var(--ps-ease-smooth-out);
+    }
+    .ps-pl-path.ps-is-drawn { stroke-dashoffset: 0; }
+    .ps-pl-node {
+      transform-box: fill-box; transform-origin: center; transform: scale(0);
+      transition: transform var(--ps-duration-very-slow) var(--ps-ease-bounce); transition-delay: var(--nd, 0ms);
+    }
+    .ps-pl-node.ps-is-on { transform: scale(1); }
+    .ps-pl-dot-halo { animation: ps-halo 1800ms var(--ps-ease-in-out) infinite; transform-box: fill-box; transform-origin: center; }
+
+    /* Tabs sliding (transitions-dev #16) */
+    .ps-seg { position: relative; display: inline-flex; gap: 2px; padding: 4px; border-radius: 999px; background: var(--ps-bg-sunk); border: 1px solid var(--ps-line); }
+    .ps-seg-pill {
+      position: absolute; top: 4px; left: 0; height: calc(100% - 8px); border-radius: 999px; background: var(--ps-bg-elev);
+      box-shadow: 0 1px 2px rgb(var(--ps-shadow) / 0.12), 0 4px 12px -4px rgb(var(--ps-shadow) / 0.14);
+      transition: transform var(--ps-duration-fast) var(--ps-ease-smooth-out), width var(--ps-duration-fast) var(--ps-ease-smooth-out);
+    }
+    .ps-seg-tab {
+      position: relative; z-index: 1; min-height: 2.6rem; padding: 0 1.05rem; border-radius: 999px; font-weight: 600; font-size: 0.95rem;
+      color: var(--ps-ink-3); white-space: nowrap; transition: color var(--ps-duration-fast) var(--ps-ease-smooth-out);
+    }
+    .ps-seg-tab[aria-selected="true"], .ps-seg-tab:hover { color: var(--ps-ink); }
+    .ps-seg.ps-on-dark { background: var(--ps-band-elev); border-color: var(--ps-band-line); }
+    .ps-seg.ps-on-dark .ps-seg-pill { background: #f4f4f5; box-shadow: none; }
+    .ps-seg.ps-on-dark .ps-seg-tab { color: var(--ps-band-muted); }
+    .ps-seg.ps-on-dark .ps-seg-tab[aria-selected="true"] { color: #0a0a0a; }
+    .ps-seg.ps-on-dark .ps-seg-tab:not([aria-selected="true"]):hover { color: var(--ps-band-ink); }
+
+    /* Con dấu quyết định */
+    .ps-stamp {
+      display: inline-block; border: 4px solid var(--ps-band-accent); color: var(--ps-band-accent); font-family: var(--ps-font-display);
+      font-weight: 700; letter-spacing: 0.02em; padding: 0.3em 0.7em 0.35em; border-radius: 10px; transform: rotate(-5deg); line-height: 1.1;
+    }
+    .ps-stamp.ps-is-pressing { animation: ps-stamp-press 560ms var(--ps-ease-bounce) both; }
+
+    /* Đổi nội dung mềm (transitions-dev #34) */
+    .ps-swap-in { animation: ps-swap-in var(--ps-duration-slow) var(--ps-ease-smooth-out) both; animation-delay: calc(var(--d, 0) * 1ms); }
+    .ps-photo-in { animation: ps-photo-in 700ms var(--ps-ease-smooth-out) both; }
+
+    /* Ảnh có zoom nhẹ khi hover (card bài viết) */
+    .ps-zoom-img { transition: transform 700ms var(--ps-ease-smooth-out); }
+    .group:hover .ps-zoom-img { transform: scale(1.04); }
+
+    /* Lưới chấm rất nhẹ cho nền hero */
+    .ps-dots {
+      background-image: radial-gradient(rgb(var(--ps-shadow) / 0.09) 1px, transparent 1.3px); background-size: 24px 24px;
+      mask-image: radial-gradient(ellipse 70% 60% at 30% 30%, #000 30%, transparent 75%);
+    }
+
+    /* Bài viết: typography đọc dài */
+    .ps-prose { font-size: 1.125rem; line-height: 1.75; color: var(--ps-ink-2); }
+    .ps-prose h2 {
+      font-family: var(--ps-font-display); font-weight: 600; font-size: 1.75rem; letter-spacing: -0.02em !important;
+      line-height: 1.2; color: var(--ps-ink); margin: 2.4em 0 0.6em;
+    }
+    .ps-prose p { margin: 0 0 1.15em; }
+    .ps-prose ul { margin: 0 0 1.2em; padding-left: 1.2em; list-style: disc; }
+    .ps-prose li { margin: 0.35em 0; }
+    .ps-prose strong { color: var(--ps-ink); font-weight: 600; }
+  }
+}
+
+:root[data-theme="dark"] .ps-root .ps-dots { background-image: radial-gradient(rgba(244, 244, 245, 0.07) 1px, transparent 1.3px); }
+
+/* Keyframes (tên có tiền tố ps-, không đụng keyframes của app) */
+@keyframes ps-sheet-in { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: none; } }
+@keyframes ps-item-in { from { opacity: 0; transform: translateY(12px); filter: blur(2px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes ps-line-up { from { transform: translateY(108%); } to { transform: none; } }
+@keyframes ps-enter-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes ps-chip-in { from { clip-path: inset(0 50% 0 50% round 999px); transform: scale(0.9); } to { clip-path: inset(0 0 0 0 round 999px); transform: none; } }
+@keyframes ps-sr-in { from { opacity: 0.15; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+@keyframes ps-stage-zoom { from { transform: scale(0.93); } to { transform: none; } }
+@keyframes ps-word-on { from { opacity: 0.18; } to { opacity: 1; } }
+@keyframes ps-px-slow { from { transform: translateY(-6%) scale(1.12); } to { transform: translateY(6%) scale(1.12); } }
+@keyframes ps-halo { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 0.15; transform: scale(1.8); } }
+@keyframes ps-stamp-press {
+  0% { opacity: 0; transform: rotate(-5deg) scale(1.7); filter: blur(3px); }
+  55% { opacity: 1; filter: none; }
+  100% { opacity: 1; transform: rotate(-5deg) scale(1); }
+}
+@keyframes ps-swap-in { from { opacity: 0; transform: translateY(8px); filter: blur(2px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes ps-photo-in { from { clip-path: inset(100% 0 0 0); transform: scale(1.06); } to { clip-path: inset(0 0 0 0); transform: none; } }
+
+/* ── Reduced motion: trạng thái cuối, tĩnh (chỉ trong .ps-root) ── */
+@media (prefers-reduced-motion: reduce) {
+  .ps-root, .ps-root *, .ps-root *::before, .ps-root *::after { animation: none !important; transition-duration: 1ms !important; }
+  .ps-root .ps-pl-path { stroke-dashoffset: 0 !important; }
+  .ps-root .ps-pl-node { transform: scale(1) !important; }
+}
