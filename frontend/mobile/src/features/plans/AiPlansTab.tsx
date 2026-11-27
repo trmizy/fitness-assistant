@@ -12,7 +12,6 @@ import {
   RotateCcw,
   Salad,
   Sparkles,
-  Wand2,
 } from "lucide-react-native";
 
 import { Badge, BottomSheet, Button, Card, EmptyState, Stagger, StaggerItem, Tappable, useToast } from "../../components/ui";
@@ -259,24 +258,9 @@ export function AiPlansTab() {
 
               <StaggerItem>
                 {featured ? (
-                  <View className="flex-row gap-3">
-                    <View className="flex-1">
-                      <Button
-                        variant="secondary"
-                        full
-                        icon={Wand2}
-                        disabled={llmDown}
-                        onPress={() => router.push({ pathname: "/client/plans/wizard", params: { mode: "adjust", planId: featured.id } })}
-                      >
-                        Điều chỉnh
-                      </Button>
-                    </View>
-                    <View className="flex-1">
-                      <Button variant="secondary" full icon={Archive} onPress={() => askArchive(featured)}>
-                        Ẩn kế hoạch
-                      </Button>
-                    </View>
-                  </View>
+                  <Button variant="secondary" full icon={Archive} onPress={() => askArchive(featured)}>
+                    Ẩn kế hoạch
+                  </Button>
                 ) : null}
                 <View className="mt-3">
                   <Button full size="lg" icon={Sparkles} disabled={llmDown} onPress={() => router.push("/client/plans/wizard")}>

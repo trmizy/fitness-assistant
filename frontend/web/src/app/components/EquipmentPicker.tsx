@@ -1,6 +1,11 @@
 import { useMemo, useState } from "react";
 import { MagnifyingGlassIcon as Search, CheckIcon as Check, XIcon as X } from "@phosphor-icons/react";
 import type { EquipmentCatalogItem } from "../services/api";
+import { RadioCards } from "./ui/nav/RadioCards";
+import { isWebPresentation } from "../utils/webPresentation";
+
+// WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
+const WEB_UI = isWebPresentation();
 
 // Internal-only fallback catalog entries — never meant to be picked by a
 // user directly (see backend/services/fitness-service/prisma/
@@ -212,7 +217,7 @@ export function EquipmentPicker({
         {grouped.map(({ category, items }) => (
           <div key={category} data-testid={`equipment-category-${category}`}>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+              <span className="text-[11px] font-semibold text-zinc-400">
                 {CATEGORY_LABELS[category] ?? category}
               </span>
               <div className="flex items-center gap-2">
@@ -243,8 +248,9 @@ export function EquipmentPicker({
                     type="button"
                     data-testid={`equipment-item-${eq.slug}`}
                     data-checked={checked}
+                    {...(WEB_UI ? { role: "checkbox", "aria-checked": checked } : {})}
                     onClick={() => toggle(eq.slug)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-left text-xs transition-all ${
+                    className={`${WEB_UI ? "min-h-11 " : ""}flex items-center gap-2 px-3 py-2 rounded-lg border text-left text-xs transition-all ${
                       checked
                         ? "border-green-500 bg-green-500/10 text-green-400"
                         : "border-zinc-700/60 text-zinc-400 hover:border-zinc-600"
@@ -311,6 +317,16 @@ export function TrainingLocationPresetRow({
       <label className="text-xs text-zinc-500 mb-1.5 block">
         Bạn thường tập ở đâu? (gợi ý sẵn thiết bị bên dưới, bạn vẫn chỉnh được)
       </label>
+      {WEB_UI ? (
+        <div className="space-y-2">
+          <RadioCards label="Bạn thường tập ở đâu?" columns="sm:grid-cols-2" value={applied} onChange={(key) => { const p = TRAINING_LOCATION_PRESETS.find((x) => x.key === key); if (!p) return; setApplied(p.key); onApply(p.slugs); }} options={TRAINING_LOCATION_PRESETS.map((p) => ({ value: p.key, label: p.label, description: p.description, testId: `training-location-preset-${p.key}` }))} testId="training-location-presets" />
+          {applied && (
+            <button type="button" onClick={() => setApplied(null)} className="inline-flex min-h-11 items-center gap-1 rounded-[var(--ob-r-md)] px-2 text-xs text-[var(--ob-text-2)] hover:bg-[var(--ob-hover)]">
+              <X className="h-3.5 w-3.5" aria-hidden="true" /> Bỏ gợi ý
+            </button>
+          )}
+        </div>
+      ) : (
       <div className="flex flex-wrap gap-1.5">
         {TRAINING_LOCATION_PRESETS.map((p) => (
           <button
@@ -341,6 +357,7 @@ export function TrainingLocationPresetRow({
           </button>
         )}
       </div>
+      )}
     </div>
   );
 }

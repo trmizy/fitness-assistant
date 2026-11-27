@@ -112,6 +112,7 @@ export function Modal({
         />
         <DialogPrimitive.Content
           data-slot="modal"
+          data-placement={placement}
           data-testid={rest["data-testid"]}
           aria-modal="true"
           aria-label={ariaLabel}

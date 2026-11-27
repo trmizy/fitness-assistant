@@ -143,6 +143,14 @@ export function notificationMeta(eventType: string | null): { title: string; ico
       return { title: "Chi nhánh tạm đóng cửa", icon: "alert", tone: "warning" };
     case "GYM_BRANCH_REOPENED":
       return { title: "Chi nhánh mở cửa lại", icon: "check", tone: "primary" };
+    // Front desk (item 6): a check-in exception request waits for the owner / manager to approve it (opens "Quầy lễ tân").
+    case "GYM_CHECKIN_EXCEPTION_REQUESTED":
+      return { title: "Ngoại lệ check-in chờ duyệt", icon: "alert", tone: "warning" };
+    // Plan review (PT <-> client): the client asked a PT to review a plan / the PT answered.
+    case "PLAN_REVIEW_REQUESTED":
+      return { title: "Yêu cầu duyệt kế hoạch", icon: "file", tone: "primary" };
+    case "PLAN_REVIEW_DECIDED":
+      return { title: "PT đã phản hồi kế hoạch", icon: "check", tone: "primary" };
     default:
       return { title: "Thông báo", icon: "bell", tone: "primary" };
   }
@@ -167,6 +175,8 @@ const LINK_MAP: Record<string, string> = {
   "/client/pt-application": "/client/profile/pt-application",
   // Listing Management (M1): the server links PT listing notifications to "/pt/listing".
   "/pt/listing": "/pt/listing",
+  // Front desk (item 6): gym-service links the exception notice to `/gym-owner/front-desk?gymId=<id>`; the mobile screen has its own branch switcher.
+  "/gym-owner/front-desk": "/gym-owner/front-desk",
 };
 
 /**
@@ -189,6 +199,18 @@ const GYM_BRANCH_LINK = /^\/gym-owner\/gyms\/([A-Za-z0-9_-]+)$/;
 export function gymBranchRoute(link: string): string | null {
   const id = GYM_BRANCH_LINK.exec(link.split("#")[0].split("?")[0].replace(/\/+$/, ""))?.[1];
   return id ? `/gym-owner/branch?gymId=${id}` : null;
+}
+
+/**
+ * Check-in exception notices (item 6): gym-service links them to `/gym-owner/front-desk?gymId=<id>`. The mobile route is the same
+ * path ("Quầy lễ tân" tab); the branch id is kept so the desk opens on that branch (an unknown id falls back to the first branch).
+ */
+const GYM_FRONT_DESK_LINK = /^\/gym-owner\/front-desk$/;
+export function gymFrontDeskRoute(link: string): string | null {
+  const [rawPath, query = ""] = link.split("#")[0].split("?");
+  if (!GYM_FRONT_DESK_LINK.test(rawPath.replace(/\/+$/, ""))) return null;
+  const id = /(?:^|&)gymId=([A-Za-z0-9_-]{1,64})(?:&|$)/.exec(query)?.[1];
+  return id ? `/gym-owner/front-desk?gymId=${id}` : "/gym-owner/front-desk";
 }
 
 const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
@@ -226,6 +248,8 @@ export function notificationRoute(n: Pick<AppNotification, "link" | "entityType"
     if (gymListing) return gymListing;
     const gymBranch = gymBranchRoute(n.link);
     if (gymBranch) return gymBranch;
+    const gymFrontDesk = gymFrontDeskRoute(n.link);
+    if (gymFrontDesk) return gymFrontDesk;
     const path = n.link.split("?")[0].replace(/\/+$/, "");
     if (LINK_MAP[path]) return refine(LINK_MAP[path], n.entityType, entityId);
     for (const [prefix, target] of Object.entries(LINK_MAP)) if (path.startsWith(`${prefix}/`)) return refine(target, n.entityType, entityId);

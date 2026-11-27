@@ -32,8 +32,8 @@ import {
 import { WarningCircleIcon, NotePencilIcon } from "@phosphor-icons/react";
 import type {
   Gym,
-  GymMembershipContract,
   GymMembershipContractStatus,
+  GymStats,
 } from "../../types";
 
 type Collaboration = Record<string, unknown>;
@@ -75,40 +75,22 @@ function shortenClientId(clientId: string): string {
   return `Khách #${clientId.slice(0, 8)}`;
 }
 
-function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
+/** 7 ngày (hoặc bất kỳ khoảng nào) do server đếm theo NGÀY VN; chỉ gắn nhãn thứ cho trục biểu đồ. */
+function buildCheckinTrend(daily: { date: string; count: number }[]): { day: string; count: number }[] {
+  return daily.map((d) => ({
+    day: new Date(`${d.date}T00:00:00+07:00`).toLocaleDateString("vi-VN", { weekday: "short", timeZone: "Asia/Ho_Chi_Minh" }),
+    count: d.count,
+  }));
 }
 
-function buildCheckinTrend(checkins: { createdAt: string }[]): { day: string; count: number }[] {
-  const today = new Date();
-  const days: { day: string; count: number }[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(today.getDate() - i);
-    const count = checkins.filter((c) => isSameDay(new Date(c.createdAt), date)).length;
-    days.push({ day: date.toLocaleDateString("vi-VN", { weekday: "short" }), count });
-  }
-  return days;
-}
-
-function buildMembershipDistribution(memberships: GymMembershipContract[]) {
-  const counts: Record<GymMembershipContractStatus, number> = {
-    ACTIVE: 0,
-    PENDING_PAYMENT: 0,
-    EXPIRED: 0,
-    CANCELLED: 0,
-  };
-  for (const m of memberships) counts[m.status] += 1;
-  return (Object.keys(counts) as GymMembershipContractStatus[])
-    .filter((status) => counts[status] > 0)
+/** Phân bổ theo trạng thái từ số đếm của server (không tải danh sách hội viên). Trạng thái chưa có nhãn (vd PENDING_ISSUE) không vẽ. */
+function buildMembershipDistribution(byStatus: Record<string, number>) {
+  return (Object.keys(MEMBERSHIP_STATUS_LABEL) as GymMembershipContractStatus[])
+    .filter((status) => (byStatus[status] ?? 0) > 0)
     .map((status) => ({
       status,
       label: MEMBERSHIP_STATUS_LABEL[status],
-      value: counts[status],
+      value: byStatus[status],
       color: MEMBERSHIP_PIE_COLORS[status],
     }));
 }
@@ -219,23 +201,24 @@ export function GymOwnerDashboard() {
     enabled: !!activeBrandId,
   });
 
+  // KPI + biểu đồ do SERVER đếm (ngày VN, trong DB): không còn tính từ danh sách check-in cắt 50 dòng hay danh sách hội viên đầy đủ.
   const {
-    data: memberships = [],
-    isLoading: membershipsLoading,
-    isError: membershipsError,
-  } = useQuery<GymMembershipContract[]>({
-    queryKey: ["owned-gym-memberships", activeGymId],
-    queryFn: () => gymService.listOwnedMemberships(activeGymId),
+    data: stats,
+    isLoading: statsLoading,
+    isError: statsError,
+  } = useQuery<GymStats>({
+    queryKey: ["owned-gym-stats", activeGymId],
+    queryFn: () => gymService.getGymStats(activeGymId),
     enabled: !!activeGymId,
   });
 
+  // "Hội viên gần đây": chỉ 6 dòng mới nhất (trang đầu của danh sách phân trang), không tải cả danh sách.
   const {
-    data: checkins = [],
-    isLoading: checkinsLoading,
-    isError: checkinsError,
-  } = useQuery<{ id: string; createdAt: string }[]>({
-    queryKey: ["owned-gym-checkins", activeGymId],
-    queryFn: () => gymService.listCheckins(activeGymId),
+    data: recentPage,
+    isLoading: recentLoading,
+  } = useQuery({
+    queryKey: ["owned-gym-memberships", activeGymId, "recent"],
+    queryFn: () => gymService.listOwnedMembershipsPage(activeGymId, { limit: 6 }),
     enabled: !!activeGymId,
   });
 
@@ -257,8 +240,10 @@ export function GymOwnerDashboard() {
 
   const isInitialLoading = gymsLoading;
   const availableBalance = Number(wallet?.availableBalance ?? 0);
-  const activeMembersCount = memberships.filter((m) => m.status === "ACTIVE").length;
-  const todaysCheckinsCount = checkins.filter((c) => isSameDay(new Date(c.createdAt), new Date())).length;
+  const activeMembersCount = stats?.memberships?.active ?? 0;
+  const expiringSoonCount = stats?.memberships?.expiringSoon ?? 0;
+  const expiringSoonDays = stats?.memberships?.expiringSoonDays ?? 7;
+  const todaysCheckinsCount = stats?.checkins?.today ?? 0;
   const averageRating = reviews?.averageRating ?? 0;
   const activePlansCount = plans.filter((p) => p.status === "ACTIVE").length;
   // A brand agreement covers every branch of the brand; `gymId` on it is only the representative branch.
@@ -287,7 +272,7 @@ export function GymOwnerDashboard() {
       bg: "bg-blue-500/10",
       iconBg: "bg-blue-500/15",
       border: "border-blue-500/20",
-      loading: membershipsLoading,
+      loading: statsLoading,
     },
     {
       label: "Lượt Check-in hôm nay",
@@ -298,7 +283,7 @@ export function GymOwnerDashboard() {
       bg: "bg-violet-500/10",
       iconBg: "bg-violet-500/15",
       border: "border-violet-500/20",
-      loading: checkinsLoading,
+      loading: statsLoading,
     },
     {
       label: "Điểm đánh giá trung bình",
@@ -319,11 +304,9 @@ export function GymOwnerDashboard() {
   const branchesNeedingChanges = gyms.filter((g) => !!g.changesRequestedAt);
   const hasAttentionItems = branchesPendingFirstReview.length > 0 || branchesNeedingChanges.length > 0;
 
-  const membershipDistribution = buildMembershipDistribution(memberships);
-  const checkinTrend = buildCheckinTrend(checkins);
-  const recentMemberships = [...memberships]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 6);
+  const membershipDistribution = buildMembershipDistribution(stats?.memberships?.byStatus ?? {});
+  const checkinTrend = buildCheckinTrend(stats?.checkins?.daily ?? []);
+  const recentMemberships = recentPage?.items ?? [];
 
   if (isInitialLoading) {
     return (
@@ -436,9 +419,9 @@ export function GymOwnerDashboard() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <div className="animate-in fade-in-0 slide-in-from-bottom-2 duration-500 delay-150 fill-mode-both rounded-xl border border-zinc-800/60 bg-zinc-900 p-4 lg:col-span-2">
           <h4 className="mb-3 text-sm font-bold text-zinc-200">Phân bổ hội viên</h4>
-          {membershipsLoading ? (
+          {statsLoading ? (
             <SkeletonChart />
-          ) : membershipsError ? (
+          ) : statsError ? (
             <ErrorState message="Không tải được dữ liệu hội viên. Thử tải lại trang." />
           ) : membershipDistribution.length === 0 ? (
             <EmptyState icon={UsersRound} title="Chưa có hội viên" hint="Hội viên xuất hiện sau khi có người mua gói." />
@@ -468,9 +451,9 @@ export function GymOwnerDashboard() {
         </div>
         <div className="animate-in fade-in-0 slide-in-from-bottom-2 duration-500 delay-200 fill-mode-both rounded-xl border border-zinc-800/60 bg-zinc-900 p-4 lg:col-span-3">
           <h4 className="mb-3 text-sm font-bold text-zinc-200">Lượt Check-in 7 ngày qua</h4>
-          {checkinsLoading ? (
+          {statsLoading ? (
             <SkeletonChart />
-          ) : checkinsError ? (
+          ) : statsError ? (
             <ErrorState message="Không tải được dữ liệu check-in. Thử tải lại trang." />
           ) : (
             <ResponsiveContainer width="100%" height={140}>
@@ -499,7 +482,7 @@ export function GymOwnerDashboard() {
               Xem tất cả
             </button>
           </div>
-          {membershipsLoading ? (
+          {recentLoading ? (
             <div className="divide-y divide-zinc-800/40">
               <SkeletonRow />
               <SkeletonRow />
@@ -548,6 +531,10 @@ export function GymOwnerDashboard() {
             <div className="flex items-center justify-between px-4 py-3">
               <span className="text-xs text-zinc-400">Gói hội viên đang bán</span>
               <span className="text-sm font-bold text-zinc-200">{activePlansCount}</span>
+            </div>
+            <div className="flex items-center justify-between px-4 py-3">
+              <span className="text-xs text-zinc-400">Thẻ sắp hết hạn ({expiringSoonDays} ngày tới)</span>
+              <span className="text-sm font-bold text-zinc-200">{expiringSoonCount}</span>
             </div>
             {showCollaborations && (
               <div className="flex items-center justify-between px-4 py-3">

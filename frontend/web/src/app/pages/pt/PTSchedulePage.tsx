@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ActivePill } from "../../components/ui/ActivePill";
 import { CalendarIcon as Calendar, ClockIcon as Clock, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, XIcon as X, PlusIcon as Plus, CircleNotchIcon as Loader2, CheckIcon as Check, CheckCircleIcon as CheckCircle, XCircleIcon as XCircle, WarningOctagonIcon as AlertOctagon, ProhibitIcon as Ban, GearSixIcon as Settings } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sessionService, availabilityService, contractService } from "../../services/api";
@@ -13,11 +14,21 @@ import type {
 import { DateSlotPicker, type DateSlotValue } from "../../components/booking/DateSlotPicker";
 import { Modal, ModalTitle } from "../../components/ui/Modal";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
-import { confirmedSessionsOnDate, ptBlockDayNotice, ptCancelNotice } from "./ptCancelNotice";
+import { confirmedSessionsOnDate, ptBlockDayNotice, ptCancelDoneMessage, ptCancelNotice } from "./ptCancelNotice";
 import { useNavigate } from "react-router";
+import { useApp } from "../../context/AppContext";
+import { sessionsForRole, upcomingSessionsKey } from "../../utils/sessionRoleView";
 import { sessionsToClose, sessionWhenLabel } from "./sessionsToClose";
 import { formatDateTimeVi } from "../../utils/contractGymOptions"; // "19:00 25/11/2026" - the PT-11 fix: date shown, no seconds
 import { fullName } from "../../utils/fullName";
+import { rescheduleBlockedReason, rescheduleErrorMessage, rescheduleSubmitHint } from "../../utils/reschedule";
+import { useAcceptedMoves } from "../../hooks/useAcceptedMoves";
+import { isWebPresentation } from "../../utils/webPresentation";
+import { QueryErrorNotice } from "../../components/ui/QueryErrorNotice";
+import { listFailed, QUERY_ERROR_TEXT } from "../../utils/queryErrorState";
+
+// WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
+const WEB_UI = isWebPresentation();
 
 // Mirrors booking.service.ts's own NO_SHOW_GRACE_MINUTES default (env-overridable server-side,
 // so this can drift by a few minutes from whatever the server actually enforces — harmless:
@@ -128,6 +139,7 @@ type Tab = "schedule" | "availability";
 
 export function PTSchedulePage() {
   const navigate = useNavigate();
+  const { user } = useApp();
   const queryClient = useQueryClient();
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -163,10 +175,14 @@ export function PTSchedulePage() {
   };
 
   // ── Queries ──────────────────────────────────────────────────────
-  const { data: upcomingSessions = [], isLoading: loadingSessions } = useQuery({
-    queryKey: ["sessions-upcoming"],
-    queryFn: () => sessionService.getMyUpcoming(),
+  // PT schedule: only sessions I TEACH (my own sessions as a client of another PT belong to the client calendar).
+  const { data: upcomingRaw = [], isLoading: loadingSessions } = useQuery({
+    queryKey: upcomingSessionsKey("pt", user?.id),
+    queryFn: () => sessionService.getMyUpcoming("pt"),
   });
+  const upcomingSessions = sessionsForRole(upcomingRaw as Session[], "pt", user?.id);
+  // Moves already used per session (history read up front), so "đã dời 2 lần" is known before the form is filled.
+  const acceptedMovesFor = useAcceptedMoves(upcomingSessions as Session[]);
 
   // Money-flow plan 4.3: sessions a client reported this PT as a no-show for. A separate,
   // time-unfiltered query — these are already in the past, so they never appear in
@@ -192,10 +208,13 @@ export function PTSchedulePage() {
 
   // N15B-06: an in-person session that is over but still CONFIRMED is no longer in "upcoming" - without this list the PT could
   // only close it from the contract page.
-  const { data: awaitingRaw = [] } = useQuery({
+  const awaitingQuery = useQuery({
     queryKey: ["sessions-awaiting-completion"],
     queryFn: () => sessionService.listAwaitingCompletion(),
   });
+  const awaitingRaw = awaitingQuery.data ?? [];
+  // A failed list must not read as "nothing to close" (FE2-FIX group B).
+  const awaitingFailed = listFailed(awaitingQuery);
   const awaitingCompletion = sessionsToClose(awaitingRaw as Session[]);
 
   const { data: availability = [], isLoading: loadingAvail } = useQuery({
@@ -261,10 +280,10 @@ export function PTSchedulePage() {
   });
 
   const cancelSessionMut = useMutation({
-    mutationFn: (id: string) =>
+    mutationFn: ({ id }: { id: string; status: string }) =>
       sessionService.cancelSession(id, "PT hủy buổi tập"),
-    onSuccess: () => {
-      toast.success("Đã hủy buổi tập");
+    onSuccess: (_data, vars) => {
+      toast.success(ptCancelDoneMessage(vars.status));
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
     },
     onError: (err: any) => toast.error(err?.response?.data?.error || "Thao tác không thành công"),
@@ -300,17 +319,40 @@ export function PTSchedulePage() {
   const [rescheduleTarget, setRescheduleTarget] = useState<Session | null>(null);
   const [rescheduleSlot, setRescheduleSlot] = useState<DateSlotValue | null>(null);
   const [rescheduleReason, setRescheduleReason] = useState("");
+  // The server's own reason for refusing, kept inside the modal (the toast alone vanishes in seconds).
+  const [rescheduleError, setRescheduleError] = useState<string | null>(null);
   const requestRescheduleMut = useMutation({
     mutationFn: ({ id, proposedStartAt, proposedEndAt, reason }: { id: string; proposedStartAt: string; proposedEndAt: string; reason: string }) =>
       sessionService.requestReschedule(id, proposedStartAt, proposedEndAt, reason),
+    onMutate: () => setRescheduleError(null),
     onSuccess: () => {
       toast.success("Đã gửi yêu cầu dời lịch — chờ khách xác nhận");
       setRescheduleTarget(null);
       setRescheduleSlot(null);
       setRescheduleReason("");
+      setRescheduleError(null);
+      queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
+      queryClient.invalidateQueries({ queryKey: ["session-reschedule-history"] });
+    },
+    onError: (err: any) => {
+      const message = rescheduleErrorMessage(err, "Không thể gửi yêu cầu dời lịch");
+      setRescheduleError(message);
+      toast.error(message);
+      // A refusal usually means the list is stale (the client proposed meanwhile, a move was used): reload it.
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error || "Không thể gửi yêu cầu dời lịch"),
+  });
+
+  // The PT withdraws their own open proposal (confirmed in a dialog first; server: proposer only, only while PENDING).
+  const [withdrawRequestId, setWithdrawRequestId] = useState<string | null>(null);
+  const withdrawMut = useMutation({
+    mutationFn: (requestId: string) => sessionService.cancelReschedule(requestId),
+    onSuccess: () => toast.success("Đã rút lại đề nghị dời lịch — buổi giữ nguyên giờ cũ"),
+    onError: (err: any) => toast.error(rescheduleErrorMessage(err, "Không thể rút lại đề nghị")),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
+      queryClient.invalidateQueries({ queryKey: ["session-reschedule-history"] });
+    },
   });
 
   // Money-flow plan 4.3 — PT responds to a client's no-show report.
@@ -440,6 +482,9 @@ export function PTSchedulePage() {
       </div>
 
       {/* N15B-06: finished in-person sessions nobody closed yet */}
+      {awaitingFailed && (
+        <QueryErrorNotice testId="pt-sessions-to-close-error" text={QUERY_ERROR_TEXT.ptSessionsToClose} onRetry={() => awaitingQuery.refetch()} busy={awaitingQuery.isFetching} />
+      )}
       {awaitingCompletion.length > 0 && (
         <section data-testid="pt-sessions-to-close" aria-label="Cần chốt buổi" className="bg-blue-500/5 border border-blue-500/30 rounded-xl p-4 space-y-3">
           <div>
@@ -458,7 +503,7 @@ export function PTSchedulePage() {
                   data-testid="pt-session-complete"
                   onClick={() => completeMut.mutate(s.id)}
                   disabled={completeMut.isPending}
-                  className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-blue-500 px-4 text-xs font-bold text-white transition-all hover:bg-blue-400 disabled:opacity-50"
+                  className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white transition-all hover:bg-blue-700 disabled:opacity-50"
                 >
                   <CheckCircle className="w-4 h-4" /> Hoàn thành
                 </button>
@@ -534,12 +579,21 @@ export function PTSchedulePage() {
       )}
 
       {/* Tabs */}
+      {WEB_UI ? (
+        // Not a tab bar: this page has one view, and "Lịch làm việc" goes to another page — so it is a link.
+        <div className="flex justify-end">
+          <a href="/pt/listing" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; e.preventDefault(); navigate("/pt/listing"); }} className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--ob-r-md)] border border-[var(--ob-hair-strong)] px-3 text-sm font-medium text-[var(--ob-text)] hover:bg-[var(--ob-hover)]" data-testid="pt-schedule-availability-link">
+            <Settings className="h-4 w-4" aria-hidden="true" /> Lịch làm việc
+          </a>
+        </div>
+      ) : (
       <div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl w-full sm:w-auto sm:inline-flex">
         <button
           onClick={() => setTab("schedule")}
-          className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${tab === "schedule" ? "bg-green-500 text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}
+          className={`relative flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${tab === "schedule" ? "text-black" : "text-zinc-500 hover:text-zinc-300"}`}
         >
-          Buổi tập
+          {tab === "schedule" && <ActivePill group="pt-schedule-tab" className="rounded-lg bg-green-500 shadow-sm" />}
+          <span className="relative">Buổi tập</span>
         </button>
         <button
           onClick={() => navigate("/pt/listing")}
@@ -548,6 +602,7 @@ export function PTSchedulePage() {
           <Settings className="w-3.5 h-3.5" /> Lịch làm việc
         </button>
       </div>
+      )}
 
       {/* ─── SCHEDULE TAB ─── */}
       {tab === "schedule" && (
@@ -556,7 +611,9 @@ export function PTSchedulePage() {
           <div className="lg:col-span-2 bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
             <div className="flex items-center justify-between mb-4">
               <button
+                type="button"
                 onClick={prevMonth}
+                aria-label="Tháng trước"
                 className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -565,7 +622,9 @@ export function PTSchedulePage() {
                 {MONTHS[month]} {year}
               </h3>
               <button
+                type="button"
                 onClick={nextMonth}
+                aria-label="Tháng sau"
                 className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -708,7 +767,7 @@ export function PTSchedulePage() {
                                 <button
                                   onClick={() => completeMut.mutate(s.id)}
                                   disabled={completeMut.isPending}
-                                  className="flex items-center gap-1 bg-blue-500 hover:bg-blue-400 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all"
+                                  className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all"
                                 >
                                   <CheckCircle className="w-3 h-3" /> Hoàn thành
                                 </button>
@@ -732,8 +791,7 @@ export function PTSchedulePage() {
                               session (server rejects a second one anyway with a 409 — no
                               point letting the PT hit it) and inside the ≥12h cutoff
                               requestReschedule itself enforces. */}
-                          {(!s.rescheduleRequests || s.rescheduleRequests.length === 0) &&
-                            new Date(s.scheduledStartAt).getTime() - Date.now() >= 12 * 60 * 60 * 1000 && (
+                          {!rescheduleBlockedReason(s, { viewer: "PT", acceptedMoves: acceptedMovesFor(s.id) }) && (
                               <button
                                 onClick={() => setRescheduleTarget(s)}
                                 className="flex items-center gap-1 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors"
@@ -752,13 +810,33 @@ export function PTSchedulePage() {
                         </>
                       )}
                     </div>
+                    {/* "Đề xuất dời lịch" is simply absent when the session cannot be moved - say why (an open proposal is explained by its own card below). */}
+                    {s.status === "CONFIRMED" && (!s.rescheduleRequests || s.rescheduleRequests.length === 0) &&
+                      rescheduleBlockedReason(s, { viewer: "PT", acceptedMoves: acceptedMovesFor(s.id) }) && (
+                        <p className="mt-2 text-xs text-zinc-500" data-testid="reschedule-blocked-reason">
+                          Chưa dời lịch được: {rescheduleBlockedReason(s, { viewer: "PT", acceptedMoves: acceptedMovesFor(s.id) })}
+                        </p>
+                      )}
                     {/* Money-flow plan 3.3: gate on the pending-request list, not a session
                         status — the session stays CONFIRMED while a proposal is pending. */}
                     {s.rescheduleRequests && s.rescheduleRequests.length > 0 && (
                       <div className="mt-2 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
                         {s.rescheduleRequests[0].requestedBy === "PT" ? (
-                          <div className="text-amber-400 font-medium">
-                            Bạn đã gửi yêu cầu dời lịch sang {formatDateTimeVi(s.rescheduleRequests[0].proposedStartAt)}. Đang chờ khách xác nhận.
+                          <div className="flex flex-col gap-2">
+                            <div className="text-amber-400 font-medium">
+                              Bạn đã gửi yêu cầu dời lịch sang {formatDateTimeVi(s.rescheduleRequests[0].proposedStartAt)}. Đang chờ khách xác nhận.
+                            </div>
+                            <div>
+                              <button
+                                type="button"
+                                data-testid="withdraw-reschedule"
+                                onClick={() => setWithdrawRequestId(s.rescheduleRequests![0].id)}
+                                disabled={withdrawMut.isPending}
+                                className="min-h-9 px-3 py-1.5 border border-amber-500/40 text-amber-300 hover:bg-amber-500/10 text-xs font-bold rounded-lg transition-colors"
+                              >
+                                Rút lại đề nghị
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <div className="flex flex-col gap-2">
@@ -797,7 +875,7 @@ export function PTSchedulePage() {
 
             {/* All upcoming sidebar */}
             <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
-              <h4 className="text-xs font-bold text-zinc-600 mb-3 uppercase tracking-wider">
+              <h4 className="text-xs font-bold text-zinc-600 mb-3">
                 Sắp diễn ra
               </h4>
               {sessions.length === 0 ? (
@@ -1033,10 +1111,26 @@ export function PTSchedulePage() {
         </div>
       )}
 
+      <ConfirmDialog
+        open={!!withdrawRequestId}
+        onOpenChange={(o) => !o && setWithdrawRequestId(null)}
+        title="Rút lại đề nghị dời lịch?"
+        description="Buổi tập giữ nguyên giờ cũ. Bạn có thể gửi một đề nghị mới sau."
+        confirmLabel="Rút lại"
+        cancelLabel="Không"
+        onConfirm={() => {
+          if (withdrawRequestId) withdrawMut.mutate(withdrawRequestId);
+          setWithdrawRequestId(null);
+        }}
+      />
+
       {/* ─── PT ĐỀ XUẤT DỜI LỊCH ─── */}
       <Modal
         open={!!(rescheduleTarget)}
-        onClose={() => setRescheduleTarget(null)}
+        onClose={() => {
+          setRescheduleTarget(null);
+          setRescheduleError(null);
+        }}
         closeOnBackdrop={false}
         placement="sheet"
         data-testid="pt-reschedule-modal"
@@ -1053,7 +1147,10 @@ export function PTSchedulePage() {
               <DateSlotPicker
                 ptUserId={rescheduleTarget.ptUserId}
                 value={rescheduleSlot}
-                onChange={setRescheduleSlot}
+                onChange={(v) => {
+                  setRescheduleSlot(v);
+                  setRescheduleError(null);
+                }}
               />
               <div>
                 <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Lý do dời lịch</label>
@@ -1066,6 +1163,20 @@ export function PTSchedulePage() {
                 />
               </div>
             </div>
+            {rescheduleError && (
+              <div
+                role="alert"
+                data-testid="reschedule-error"
+                className="mx-5 mb-3 shrink-0 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300"
+              >
+                {rescheduleError}
+              </div>
+            )}
+            {rescheduleSubmitHint({ dateStr: rescheduleSlot?.dateStr, slot: rescheduleSlot?.slot, reason: rescheduleReason }) && (
+              <p className="px-5 pb-2 shrink-0 text-center text-xs text-zinc-500" data-testid="reschedule-submit-hint">
+                {rescheduleSubmitHint({ dateStr: rescheduleSlot?.dateStr, slot: rescheduleSlot?.slot, reason: rescheduleReason })}
+              </p>
+            )}
             <div className="p-5 border-t border-white/10 flex gap-3 shrink-0 bg-white/5 backdrop-blur-md">
               <button
                 type="button"
@@ -1073,6 +1184,7 @@ export function PTSchedulePage() {
                   setRescheduleTarget(null);
                   setRescheduleSlot(null);
                   setRescheduleReason("");
+                  setRescheduleError(null);
                 }}
                 className="min-h-10 flex-1 py-2.5 border border-white/10 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors"
               >
@@ -1110,7 +1222,7 @@ export function PTSchedulePage() {
         confirmLabel="Huỷ buổi"
         cancelLabel="Không"
         onConfirm={() => {
-          if (cancelTarget) cancelSessionMut.mutate(cancelTarget.id);
+          if (cancelTarget) cancelSessionMut.mutate({ id: cancelTarget.id, status: cancelTarget.status });
           setCancelTarget(null);
         }}
       />

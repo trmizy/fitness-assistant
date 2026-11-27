@@ -59,6 +59,23 @@ const m = {
 
 const WEEK = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
 
+// The booking sheet drops every slot that starts within BOOKING_LEAD_HOURS (24h) of "now", so the picked 07:00 / 09:00 slots only
+// exist when the clock is early enough in the day. Pin ONLY the Date (every timer stays real, so waitFor/findBy keep working) to
+// 03:00 local: tomorrow's 07:00 and 09:00 are then 28h / 30h away on whatever day and at whatever time the suite is run.
+const FIXED_NOW = new Date(2026, 10, 20, 3, 0, 0);
+const REAL_TIMERS = [
+  "nextTick", "setTimeout", "clearTimeout", "setInterval", "clearInterval", "setImmediate", "clearImmediate",
+  "requestAnimationFrame", "cancelAnimationFrame", "requestIdleCallback", "cancelIdleCallback", "performance", "hrtime", "queueMicrotask",
+] as const;
+
+beforeAll(() => {
+  jest.useFakeTimers({ now: FIXED_NOW, doNotFake: [...REAL_TIMERS] });
+});
+
+afterAll(() => {
+  jest.useRealTimers();
+});
+
 beforeEach(() => {
   jest.clearAllMocks();
   m.contracts.mockResolvedValue([

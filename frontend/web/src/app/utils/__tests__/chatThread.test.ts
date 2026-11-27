@@ -95,6 +95,12 @@ describe("chat partner name and role (N09F-04)", () => {
     assert.equal(chatRoleLabel("ADMIN"), "Quản trị viên");
   });
 
+  it("a single-word name stored with a '.' lastName shows without the dot", () => {
+    assert.equal(chatPartnerName({ firstName: "duy", lastName: ".", role: "CUSTOMER" }), "duy");
+    assert.equal(chatPartnerInitial({ firstName: "duy", lastName: ".", role: "CUSTOMER" }), "D");
+    assert.equal(chatPartnerName({ firstName: ".", lastName: ".", role: "CUSTOMER" }), "Học viên");
+  });
+
   it("an unknown role is not mislabelled as a student", () => {
     assert.equal(chatRoleLabel(undefined), "Thành viên");
     assert.equal(chatRoleLabel("SOMETHING_NEW"), "Thành viên");

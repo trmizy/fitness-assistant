@@ -8,6 +8,7 @@ import { authService } from "../../../services/api";
 import { SectionCard } from "./components/SectionCard";
 import { PASSWORD_POLICY_HINT, isPasswordPolicyMet } from "../../../utils/passwordPolicy";
 import { authErrorMessage } from "../../../utils/authErrors";
+import { fullName } from "../../../utils/fullName";
 
 const inputClass =
   "w-full px-3 py-2 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 bg-zinc-800/60 text-zinc-200 transition-all";
@@ -76,7 +77,7 @@ export function AccountSection() {
         </div>
         <div className="min-w-0">
           <p className="text-sm text-zinc-200 font-semibold truncate">
-            {`${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() ||
+            {fullName(user) ||
               "Chưa đặt tên"}
           </p>
           <p className="text-xs text-zinc-500 truncate">{user?.email}</p>

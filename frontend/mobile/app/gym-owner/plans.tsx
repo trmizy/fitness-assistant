@@ -23,12 +23,13 @@ import {
 import { gymService } from "../../src/services/api";
 import { useApp } from "../../src/context/AppContext";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
+import { useStaffPermissions } from "../../src/features/gymOwner/useStaffPermissions";
+import { InlineRefusal } from "../../src/features/services/InlineRefusal";
 import { designTokens } from "../../src/theme/colors";
 import { formatVND } from "../../src/utils/currency";
 import {
   EMPTY_PLAN_FORM,
   brandDisplayName,
-  isBrandOwner,
   ownedPlans,
   planFormError,
   planLimitText,
@@ -57,14 +58,15 @@ export default function GymOwnerPlansScreen() {
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<PlanForm>(EMPTY_PLAN_FORM);
+  // A server refusal is written INSIDE the sheet: it is a native Modal, so the app's root toast is drawn underneath it and never seen.
+  const [refusal, setRefusal] = useState<string | null>(null);
 
   const brandsQuery = useQuery({ queryKey: ["owned-brands", uid], queryFn: () => gymService.listOwnedBrands() });
-  const statusQuery = useQuery({
-    queryKey: ["partner-onboarding-status", uid],
-    queryFn: () => gymService.getOnboardingStatus(),
-  });
+  // Item 5 (Ngài chốt): a MANAGER may VIEW plans but only the owner creates / stops them (POST/PATCH are requirePartnerOwner).
+  // Write controls show only when the server's permissions[] lists plan.write — fail-closed (unknown role / old server => read-only).
+  const { can } = useStaffPermissions();
+  const canWritePlans = can("plan.write");
   const brand = theBrand(brandsQuery.data);
-  const isOwner = isBrandOwner(statusQuery.data);
 
   const plansQuery = useQuery({
     queryKey: ["owned-brand-plans", brand?.id],
@@ -80,10 +82,11 @@ export default function GymOwnerPlansScreen() {
     onSuccess: () => {
       toast.show("Đã tạo gói hội viên", "success");
       setForm(EMPTY_PLAN_FORM);
+      setRefusal(null);
       setOpen(false);
       void qc.invalidateQueries({ queryKey: ["owned-brand-plans", brand?.id] });
     },
-    onError: (e: any) => toast.show(e?.response?.data?.error?.message || "Không tạo được gói", "danger"),
+    onError: (e: any) => setRefusal(e?.response?.data?.error?.message || e?.response?.data?.message || "Không tạo được gói. Vui lòng thử lại."),
   });
 
   const toggle = useMutation({
@@ -128,11 +131,12 @@ export default function GymOwnerPlansScreen() {
                   <Text className="font-body-semibold text-foreground">{brandDisplayName(brand)}</Text> — áp dụng cho
                   mọi chi nhánh. Khách check-in ở đâu cũng trừ chung một hạn mức lượt.
                 </Text>
-                {isOwner ? (
+                {canWritePlans ? (
                   <Button
                     icon={Plus}
                     onPress={() => {
                       setForm(EMPTY_PLAN_FORM);
+                      setRefusal(null);
                       setOpen(true);
                     }}
                   >
@@ -153,7 +157,7 @@ export default function GymOwnerPlansScreen() {
                 <EmptyState
                   icon={Ticket}
                   title="Chưa có gói nào"
-                  description="Tạo gói đầu tiên để khách bắt đầu đăng ký hội viên."
+                  description={canWritePlans ? "Tạo gói đầu tiên để khách bắt đầu đăng ký hội viên." : "Chủ sở hữu chưa tạo gói nào."}
                 />
               </StaggerItem>
             ) : (
@@ -188,7 +192,7 @@ export default function GymOwnerPlansScreen() {
                       </View>
                       <View className="flex-row items-center justify-between border-t border-border pt-3">
                         <Badge tone={st.tone}>{st.label}</Badge>
-                        {isOwner ? (
+                        {canWritePlans ? (
                           <Tappable
                             accessibilityLabel={isActive ? "Ngừng bán gói này" : "Mở bán lại gói này"}
                             disabled={toggle.isPending}
@@ -216,7 +220,7 @@ export default function GymOwnerPlansScreen() {
         )}
       </ScrollView>
 
-      <BottomSheet open={open} onClose={() => setOpen(false)} title="Gói hội viên mới">
+      <BottomSheet open={open && canWritePlans} onClose={() => setOpen(false)} title="Gói hội viên mới">
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 12, paddingBottom: 8 }}>
           <Input
             label="Tên gói"
@@ -278,7 +282,14 @@ export default function GymOwnerPlansScreen() {
             <Text className="font-body text-[11px] text-muted-foreground">Để trống cả hai = luôn mở bán.</Text>
           </View>
 
-          <Button disabled={!!error || createPlan.isPending} onPress={() => createPlan.mutate()}>
+          <InlineRefusal message={refusal} testID="plan-create-refusal" />
+          <Button
+            disabled={!!error || createPlan.isPending}
+            onPress={() => {
+              setRefusal(null);
+              createPlan.mutate();
+            }}
+          >
             {createPlan.isPending ? "Đang tạo…" : "Tạo gói"}
           </Button>
           {error ? <Text className="text-center font-body text-xs text-muted-foreground">{error}</Text> : null}

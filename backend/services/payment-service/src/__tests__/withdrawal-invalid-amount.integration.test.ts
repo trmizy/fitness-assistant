@@ -79,13 +79,13 @@ for (const bad of ['abc', '12abc', 'Infinity', 'NaN', '  ', '10000.555', '10000.
 }
 
 test('POST /internal/withdrawals/gym/:gymId with amount "abc" -> 400 INVALID_AMOUNT too', skipOpts, async () => {
-  const r = await post('/internal/withdrawals/gym/gym-invalid-amount', { amount: 'abc', payoutInfo: 'Bank ABC 0123' }, SERVICE_SECRET);
+  const r = await post('/internal/withdrawals/gym/gym-invalid-amount', { amount: 'abc', payoutInfo: 'Bank ABC 0123', payoutSource: 'REGISTERED_ACCOUNT', requestedByUserId: 'test-owner' }, SERVICE_SECRET);
   assert.equal(r.status, 400);
   assert.equal(r.json.error.code, 'INVALID_AMOUNT');
 });
 
 test('POST /internal/withdrawals/gym/:gymId with a fractional dong amount -> 400 INVALID_AMOUNT too (C2-02)', skipOpts, async () => {
-  const r = await post('/internal/withdrawals/gym/gym-invalid-amount', { amount: '10000.555', payoutInfo: 'Bank ABC 0123' }, SERVICE_SECRET);
+  const r = await post('/internal/withdrawals/gym/gym-invalid-amount', { amount: '10000.555', payoutInfo: 'Bank ABC 0123', payoutSource: 'REGISTERED_ACCOUNT', requestedByUserId: 'test-owner' }, SERVICE_SECRET);
   assert.equal(r.status, 400);
   assert.equal(r.json.error.code, 'INVALID_AMOUNT');
 });

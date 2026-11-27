@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ActivePill } from "../../components/ui/ActivePill";
 import { CalendarIcon as Calendar, ClockIcon as Clock, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, CheckCircleIcon as CheckCircle, WarningCircleIcon as AlertCircle, XCircleIcon as XCircle, CircleNotchIcon as Loader2, StarIcon as Star, MapPinIcon as MapPin, ChatTextIcon as MessageSquare, FileTextIcon as FileText, ArrowsClockwiseIcon as RefreshCw, XIcon as X } from "@phosphor-icons/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -8,6 +9,7 @@ import {
 } from "../../services/api";
 import { toast } from "sonner";
 import { useApp } from "../../context/AppContext";
+import { sessionsForRole, upcomingSessionsKey } from "../../utils/sessionRoleView";
 import { useCall } from "../../context/CallContext";
 import { getJoinSessionState } from "../../utils/sessionUtils";
 import { withRefundLabel } from "../../utils/sessionRefund";
@@ -28,8 +30,16 @@ import {
 } from "../../utils/batchBooking";
 import { readMembershipNotCovered, type MembershipNotCovered } from "../../utils/membershipRenewal";
 import { MembershipNotCoveredNotice } from "../../components/gym/MembershipNotCoveredNotice";
+import { cancelSuccessText, rescheduleBlockedReason, rescheduleErrorMessage, rescheduleSubmitHint } from "../../utils/reschedule";
+import { useAcceptedMoves } from "../../hooks/useAcceptedMoves";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { bookedDayKeys, localDayKey, sessionTabFor, sessionTimeRange, sessionsOnDay } from "../../utils/daySessions";
 import { fullName } from "../../utils/fullName";
+import { ContentTabs, TabPanel } from "../../components/ui/nav/ContentTabs";
+import { isWebPresentation } from "../../utils/webPresentation";
+
+// WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
+const WEB_UI = isWebPresentation();
 
 const DAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const MONTHS = [
@@ -252,10 +262,16 @@ export function BookingPage() {
   const ptLatestEndByWeekday = latestEndByWeekday(ptWeeklyHours);
 
   // Fetch upcoming sessions
-  const { data: upcomingSessions = [], isLoading: loadingUpcoming } = useQuery({
-    queryKey: ["sessions-upcoming"],
-    queryFn: () => sessionService.getMyUpcoming(),
+  // Client calendar: only sessions where I am the CLIENT (a PT who also trains as a client keeps the sessions they
+  // teach on the PT schedule, not here).
+  const { data: upcomingRaw = [], isLoading: loadingUpcoming } = useQuery({
+    queryKey: upcomingSessionsKey("client", user?.id),
+    queryFn: () => sessionService.getMyUpcoming("client"),
   });
+  const upcomingSessions = sessionsForRole(upcomingRaw as Session[], "client", user?.id);
+
+  // Moves already used per session (history read up front), so "đã dời 2 lần" is known before the form is filled.
+  const acceptedMovesFor = useAcceptedMoves(upcomingSessions as Session[]);
 
   // Money-flow plan 4.1: sessions the PT reported as done and the client still has to
   // confirm or dispute. Distinct from "upcoming" — these are already in the past.
@@ -410,8 +426,9 @@ export function BookingPage() {
   const cancelMutation = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       sessionService.cancelSession(id, reason),
-    onSuccess: () => {
-      toast.success("Đã hủy lịch tập");
+    onSuccess: (_data, vars) => {
+      const cancelled = (upcomingSessions as Session[]).find((x) => x.id === vars.id);
+      toast.success(cancelSuccessText(cancelled?.status ?? ""));
       setCancelId(null);
       setCancelReason("");
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
@@ -491,6 +508,9 @@ export function BookingPage() {
   const [acceptMembershipRefusal, setAcceptMembershipRefusal] = useState<{ requestId: string; refusal: MembershipNotCovered } | null>(null);
   const [rescheduleSlot, setRescheduleSlot] = useState<DateSlotValue | null>(null);
   const [rescheduleReason, setRescheduleReason] = useState<string>("");
+  // The server's reason for refusing (12 h cut-off, 2 moves used, PT hours...), kept INSIDE the modal: a toast alone vanishes
+  // in seconds and, on a phone, sits behind the sheet's dimmed backdrop.
+  const [rescheduleError, setRescheduleError] = useState<string | null>(null);
 
   const rescheduleMutation = useMutation({
     mutationFn: ({
@@ -510,18 +530,41 @@ export function BookingPage() {
         proposedEndAt,
         reason
       ),
-    onMutate: () => setRescheduleMembershipRefusal(null),
+    onMutate: () => {
+      setRescheduleMembershipRefusal(null);
+      setRescheduleError(null);
+    },
     onSuccess: () => {
       toast.success("Đã gửi yêu cầu dời lịch!");
       setRescheduleMembershipRefusal(null);
+      setRescheduleError(null);
       setRescheduleTarget(null);
       setRescheduleSlot(null);
       setRescheduleReason("");
       queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
+      queryClient.invalidateQueries({ queryKey: ["session-reschedule-history"] });
     },
     onError: (err: any) => {
-      setRescheduleMembershipRefusal(readMembershipNotCovered(err));
-      toast.error(err?.response?.data?.error || "Không thể yêu cầu dời lịch");
+      const refusal = readMembershipNotCovered(err);
+      setRescheduleMembershipRefusal(refusal);
+      const message = rescheduleErrorMessage(err, "Không thể yêu cầu dời lịch");
+      if (!refusal) setRescheduleError(message);
+      toast.error(message);
+      // The refusal usually means the list is out of date (a proposal opened meanwhile, a move already used): reload it.
+      queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
+    },
+  });
+
+  // Withdrawing the client's own open proposal (confirmed in a dialog first; server: proposer only, only while PENDING).
+  const [withdrawRequestId, setWithdrawRequestId] = useState<string | null>(null);
+  const withdrawMutation = useMutation({
+    mutationFn: (requestId: string) => sessionService.cancelReschedule(requestId),
+    onSuccess: () => toast.success("Đã rút lại đề nghị dời lịch — buổi giữ nguyên giờ cũ"),
+    onError: (err: any) => toast.error(rescheduleErrorMessage(err, "Không thể rút lại đề nghị")),
+    // Success or refusal (usually: the PT answered meanwhile) - reload so the card shows the real state.
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["sessions-upcoming"] });
+      queryClient.invalidateQueries({ queryKey: ["session-reschedule-history"] });
     },
   });
 
@@ -563,108 +606,9 @@ export function BookingPage() {
     past: "Đã qua",
   };
 
-  return (
-    <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
-            <Calendar className="w-5 h-5 text-green-400" /> Lịch tập luyện
-          </h1>
-          <p className="text-zinc-500 text-sm mt-0.5">
-            Đặt và quản lý các buổi tập của bạn
-          </p>
-        </div>
-        {selectedContract && (
-          <span className="px-3 py-1 bg-zinc-800 text-zinc-400 text-xs font-bold rounded-full flex items-center gap-1.5 border border-zinc-700/50">
-            <Clock className="w-3 h-3" />
-            còn {remainingSessions} buổi
-          </span>
-        )}
-      </div>
-
-      {/* ─── E-SIGN SECTION ─── */}
-      {(pendingSigContracts as any[]).map((contract) => (
-        <div
-          key={contract.id}
-          className="bg-zinc-900 rounded-2xl border border-amber-500/20 p-4 space-y-3"
-        >
-          {contract.eSignTestMode && (
-            <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 px-3 py-2 rounded-lg text-xs font-medium">
-              ⚠ Chữ ký điện tử đang ở chế độ thử nghiệm (test mode) — không có
-              giá trị pháp lý production
-            </div>
-          )}
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-zinc-100 font-bold text-sm">
-                Chờ ký hợp đồng
-              </h3>
-              <p className="text-zinc-500 text-xs mt-0.5">
-                {contract.packageName}
-              </p>
-            </div>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 font-semibold">
-              Chờ ký
-            </span>
-          </div>
-          <p className="text-sm text-zinc-400">
-            {contract.eSignStatus === "SENT" &&
-              "Đang chờ cả hai bên ký. Kiểm tra email của bạn."}
-            {contract.eSignStatus === "PARTIALLY_SIGNED" &&
-              (contract.clientSignedAt && !contract.ptSignedAt
-                ? "Bạn đã ký. Đang chờ huấn luyện viên ký."
-                : !contract.clientSignedAt && contract.ptSignedAt
-                  ? "Huấn luyện viên đã ký. Đang chờ bạn ký."
-                  : "Đang xử lý...")}
-            {contract.eSignStatus === "DECLINED" && (
-              <span className="text-red-400">Một bên đã từ chối ký.</span>
-            )}
-            {contract.eSignStatus === "EXPIRED" && (
-              <span className="text-zinc-400">Yêu cầu ký đã hết hạn.</span>
-            )}
-            {contract.eSignStatus === "ERROR" && (
-              <span className="text-red-400">
-                Có lỗi xảy ra khi gửi yêu cầu ký. Vui lòng thử lại.
-              </span>
-            )}
-            {!contract.eSignStatus && "Đang chuẩn bị yêu cầu ký..."}
-          </p>
-          <div className="flex items-center gap-2 flex-wrap">
-            {["ERROR", "EXPIRED"].includes(contract.eSignStatus || "") && (
-              <button
-                onClick={() => handleResendESign(contract.id)}
-                disabled={resendingId === contract.id}
-                className="flex items-center gap-1.5 text-xs font-semibold text-green-400 hover:text-green-300 border border-green-500/20 bg-green-500/10 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
-              >
-                {resendingId === contract.id ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-3.5 h-3.5" />
-                )}
-                Gửi lại email ký
-              </button>
-            )}
-          </div>
-        </div>
-      ))}
-
-      {/* Tabs */}
-      <div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl w-full sm:w-auto sm:inline-flex">
-        {(["book", "upcoming", "confirm", "past"] as Tab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`relative flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${tab === t ? "bg-green-500 text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}
-          >
-            {tabLabels[t]}
-            {t === "confirm" && (pendingConfirmSessions as Session[]).length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                {(pendingConfirmSessions as Session[]).length}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+  // Tab panels shared by both presentations (only the active one renders; per-tab loading unchanged).
+  const bookingPanels = (
+    <>
 
       {/* ─── BOOK TAB ─── */}
       {tab === "book" && (
@@ -684,7 +628,7 @@ export function BookingPage() {
             <div className="space-y-4">
               {/* Contract selector */}
               {activeContracts.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto">
+                <div className="flex gap-2 overflow-x-auto g-scroll-x">
                   {activeContracts.map((c) => (
                     <button
                       key={c.id}
@@ -734,7 +678,7 @@ export function BookingPage() {
                     {DAYS.map((d) => (
                       <div
                         key={d}
-                        className="text-center text-[10px] text-zinc-600 uppercase tracking-tighter font-bold"
+                        className="text-center text-[10px] text-zinc-600 tracking-tighter font-bold"
                       >
                         {d}
                       </div>
@@ -1044,7 +988,7 @@ export function BookingPage() {
                     <div className="flex items-start gap-2">
                       <AlertCircle className="w-4 h-4 text-zinc-600 flex-shrink-0 mt-0.5" />
                       <div className="space-y-1">
-                        <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">
+                        <p className="text-xs text-zinc-400 font-bold">
                           Quy tắc đặt lịch
                         </p>
                         <p className="text-xs text-zinc-500 leading-relaxed">
@@ -1163,7 +1107,7 @@ export function BookingPage() {
                           );
                         })()}
                         <div className="flex gap-1.5">
-                          {hoursUntil >= 12 && (
+                          {!rescheduleBlockedReason(s, { acceptedMoves: acceptedMovesFor(s.id) }) && (
                             <button
                               onClick={() => setRescheduleTarget(s)}
                               className="flex items-center gap-1 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
@@ -1180,6 +1124,12 @@ export function BookingPage() {
                         </div>
                       </div>
                     </div>
+                    {/* "Dời lịch" is simply absent when the session cannot be moved - say why (an open proposal is explained by its own card below). */}
+                    {(!s.rescheduleRequests || s.rescheduleRequests.length === 0) && rescheduleBlockedReason(s, { acceptedMoves: acceptedMovesFor(s.id) }) && hoursUntil > 0 && (
+                      <p className="mt-2 text-xs text-zinc-500" data-testid="reschedule-blocked-reason">
+                        Chưa dời lịch được: {rescheduleBlockedReason(s, { acceptedMoves: acceptedMovesFor(s.id) })}
+                      </p>
+                    )}
                     {/* Owner decision 20/11/2026: no 24h grace - cancelling a CONFIRMED session always costs the client the session. */}
                     {s.status === "CONFIRMED" && hoursUntil > 0 && (
                       <div className="mt-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1.5">
@@ -1193,7 +1143,20 @@ export function BookingPage() {
                     {s.rescheduleRequests && s.rescheduleRequests.length > 0 && (
                       <div className="mt-2 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
                         {s.rescheduleRequests[0].requestedBy === "CLIENT" ? (
-                          <div className="text-amber-400 font-medium">Bạn đã gửi yêu cầu dời lịch sang {formatDateTime(s.rescheduleRequests[0].proposedStartAt)}. Đang chờ PT xác nhận.</div>
+                          <div className="flex flex-col gap-2">
+                            <div className="text-amber-400 font-medium">Bạn đã gửi yêu cầu dời lịch sang {formatDateTime(s.rescheduleRequests[0].proposedStartAt)}. Đang chờ PT xác nhận.</div>
+                            <div>
+                              <button
+                                type="button"
+                                data-testid="withdraw-reschedule"
+                                onClick={() => setWithdrawRequestId(s.rescheduleRequests![0].id)}
+                                disabled={withdrawMutation.isPending}
+                                className="min-h-9 px-3 py-1.5 border border-amber-500/40 text-amber-300 hover:bg-amber-500/10 text-xs font-bold rounded-lg transition-colors"
+                              >
+                                Rút lại đề nghị
+                              </button>
+                            </div>
+                          </div>
                         ) : (
                           <div className="flex flex-col gap-2">
                             <div className="text-amber-400 font-medium">PT yêu cầu dời lịch sang {formatDateTime(s.rescheduleRequests[0].proposedStartAt)}</div>
@@ -1414,7 +1377,7 @@ export function BookingPage() {
         <div>
           {/* Contract selector for past sessions */}
           {activeContracts.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto mb-4">
+            <div className="flex gap-2 overflow-x-auto g-scroll-x mb-4">
               {activeContracts.map((c) => (
                 <button
                   key={c.id}
@@ -1531,6 +1494,121 @@ export function BookingPage() {
             </div>
           )}
         </div>
+      )}
+    </>
+  );
+
+  return (
+    <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
+            <Calendar className="w-5 h-5 text-green-400" /> Lịch tập luyện
+          </h1>
+          <p className="text-zinc-500 text-sm mt-0.5">
+            Đặt và quản lý các buổi tập của bạn
+          </p>
+        </div>
+        {selectedContract && (
+          <span className="px-3 py-1 bg-zinc-800 text-zinc-400 text-xs font-bold rounded-full flex items-center gap-1.5 border border-zinc-700/50">
+            <Clock className="w-3 h-3" />
+            còn {remainingSessions} buổi
+          </span>
+        )}
+      </div>
+
+      {/* ─── E-SIGN SECTION ─── */}
+      {(pendingSigContracts as any[]).map((contract) => (
+        <div
+          key={contract.id}
+          className="bg-zinc-900 rounded-2xl border border-amber-500/20 p-4 space-y-3"
+        >
+          {contract.eSignTestMode && (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 px-3 py-2 rounded-lg text-xs font-medium">
+              ⚠ Chữ ký điện tử đang ở chế độ thử nghiệm (test mode) — không có
+              giá trị pháp lý production
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-zinc-100 font-bold text-sm">
+                Chờ ký hợp đồng
+              </h3>
+              <p className="text-zinc-500 text-xs mt-0.5">
+                {contract.packageName}
+              </p>
+            </div>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 font-semibold">
+              Chờ ký
+            </span>
+          </div>
+          <p className="text-sm text-zinc-400">
+            {contract.eSignStatus === "SENT" &&
+              "Đang chờ cả hai bên ký. Kiểm tra email của bạn."}
+            {contract.eSignStatus === "PARTIALLY_SIGNED" &&
+              (contract.clientSignedAt && !contract.ptSignedAt
+                ? "Bạn đã ký. Đang chờ huấn luyện viên ký."
+                : !contract.clientSignedAt && contract.ptSignedAt
+                  ? "Huấn luyện viên đã ký. Đang chờ bạn ký."
+                  : "Đang xử lý...")}
+            {contract.eSignStatus === "DECLINED" && (
+              <span className="text-red-400">Một bên đã từ chối ký.</span>
+            )}
+            {contract.eSignStatus === "EXPIRED" && (
+              <span className="text-zinc-400">Yêu cầu ký đã hết hạn.</span>
+            )}
+            {contract.eSignStatus === "ERROR" && (
+              <span className="text-red-400">
+                Có lỗi xảy ra khi gửi yêu cầu ký. Vui lòng thử lại.
+              </span>
+            )}
+            {!contract.eSignStatus && "Đang chuẩn bị yêu cầu ký..."}
+          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            {["ERROR", "EXPIRED"].includes(contract.eSignStatus || "") && (
+              <button
+                onClick={() => handleResendESign(contract.id)}
+                disabled={resendingId === contract.id}
+                className="flex items-center gap-1.5 text-xs font-semibold text-green-400 hover:text-green-300 border border-green-500/20 bg-green-500/10 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {resendingId === contract.id ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                )}
+                Gửi lại email ký
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {/* Tabs */}
+      {WEB_UI ? (
+        <ContentTabs label="Đặt lịch" value={tab} tabs={(["book", "upcoming", "confirm", "past"] as Tab[]).map((t) => ({ key: t, label: tabLabels[t], badge: t === "confirm" ? (pendingConfirmSessions as Session[]).length : undefined }))} onChange={setTab} testId="booking-tabs">
+          <TabPanel tabKey={tab} className="space-y-4">{bookingPanels}</TabPanel>
+        </ContentTabs>
+      ) : (
+        <>
+<div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl w-full sm:w-auto sm:inline-flex overflow-x-auto g-scroll-x">
+        {(["book", "upcoming", "confirm", "past"] as Tab[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`relative flex-auto sm:flex-none whitespace-nowrap px-2 sm:px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${tab === t ? "text-black" : "text-zinc-500 hover:text-zinc-300"}`}
+          >
+            {tab === t && <ActivePill group="booking-tab" className="rounded-lg bg-green-500 shadow-sm" />}
+            <span className="relative">{tabLabels[t]}</span>
+            {t === "confirm" && (pendingConfirmSessions as Session[]).length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                {(pendingConfirmSessions as Session[]).length}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+          {bookingPanels}
+        </>
       )}
 
       {/* ─── HỦY LỊCH ─── */}
@@ -1649,6 +1727,19 @@ export function BookingPage() {
         )}
       </Modal>
 
+      <ConfirmDialog
+        open={!!withdrawRequestId}
+        onOpenChange={(o) => !o && setWithdrawRequestId(null)}
+        title="Rút lại đề nghị dời lịch?"
+        description="Buổi tập giữ nguyên giờ cũ. Bạn có thể gửi một đề nghị mới sau."
+        confirmLabel="Rút lại"
+        cancelLabel="Không"
+        onConfirm={() => {
+          if (withdrawRequestId) withdrawMutation.mutate(withdrawRequestId);
+          setWithdrawRequestId(null);
+        }}
+      />
+
       {/* ─── DỜI LỊCH ─── */}
       <Modal
         open={!!(rescheduleTarget)}
@@ -1657,6 +1748,7 @@ export function BookingPage() {
           setRescheduleSlot(null);
           setRescheduleReason("");
           setRescheduleMembershipRefusal(null);
+          setRescheduleError(null);
         }}
         closeOnBackdrop={false}
         placement="sheet"
@@ -1677,7 +1769,10 @@ export function BookingPage() {
               <DateSlotPicker
                 ptUserId={rescheduleTarget.ptUserId}
                 value={rescheduleSlot}
-                onChange={setRescheduleSlot}
+                onChange={(v) => {
+                  setRescheduleSlot(v);
+                  setRescheduleError(null);
+                }}
                 fullDays={fullSessionDays(
                   [...(upcomingSessions as Session[]), ...(contractSessions as Session[])],
                   rescheduleTarget.id,
@@ -1697,6 +1792,20 @@ export function BookingPage() {
                 <MembershipNotCoveredNotice refusal={rescheduleMembershipRefusal} />
               )}
             </div>
+            {rescheduleError && (
+              <div
+                role="alert"
+                data-testid="reschedule-error"
+                className="mx-5 mb-3 shrink-0 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300"
+              >
+                {rescheduleError}
+              </div>
+            )}
+            {rescheduleSubmitHint({ dateStr: rescheduleSlot?.dateStr, slot: rescheduleSlot?.slot, reason: rescheduleReason }) && (
+              <p className="px-5 pb-2 shrink-0 text-center text-xs text-zinc-500" data-testid="reschedule-submit-hint">
+                {rescheduleSubmitHint({ dateStr: rescheduleSlot?.dateStr, slot: rescheduleSlot?.slot, reason: rescheduleReason })}
+              </p>
+            )}
             <div className="p-5 border-t border-white/10 flex gap-3 shrink-0 bg-white/5 backdrop-blur-md">
               <button
                 type="button"
@@ -1705,6 +1814,7 @@ export function BookingPage() {
                   setRescheduleSlot(null);
                   setRescheduleReason("");
                   setRescheduleMembershipRefusal(null);
+                  setRescheduleError(null);
                 }}
                 className="min-h-10 flex-1 py-2.5 border border-white/10 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-white/10 transition-colors"
               >

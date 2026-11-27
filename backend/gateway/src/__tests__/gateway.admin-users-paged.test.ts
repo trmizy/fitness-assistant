@@ -10,9 +10,9 @@ import assert from "node:assert/strict";
 import http from "node:http";
 
 process.env.NODE_ENV = "test";
-process.env.AUTH_SERVICE_URL = "http://127.0.0.1:4051";
-process.env.USER_SERVICE_URL = "http://127.0.0.1:4052";
-process.env.GYM_SERVICE_URL = "http://127.0.0.1:4053";
+process.env.AUTH_SERVICE_URL = "http://127.0.0.1:4161";
+process.env.USER_SERVICE_URL = "http://127.0.0.1:4162";
+process.env.GYM_SERVICE_URL = "http://127.0.0.1:4163";
 process.env.INTERNAL_SERVICE_SECRET = "gateway-secret-admin-users-paged-test";
 
 let app: any;
@@ -92,9 +92,9 @@ test.before(async () => {
       res.end();
     });
   });
-  await new Promise<void>((r) => authServer.listen(4051, "127.0.0.1", r));
-  await new Promise<void>((r) => userServer.listen(4052, "127.0.0.1", r));
-  await new Promise<void>((r) => gymServer.listen(4053, "127.0.0.1", r));
+  await new Promise<void>((r) => authServer.listen(4161, "127.0.0.1", r));
+  await new Promise<void>((r) => userServer.listen(4162, "127.0.0.1", r));
+  await new Promise<void>((r) => gymServer.listen(4163, "127.0.0.1", r));
   gatewayServer = http.createServer(app);
   await new Promise<void>((r) => gatewayServer.listen(0, "127.0.0.1", r));
   base = `http://127.0.0.1:${(gatewayServer.address() as any).port}`;

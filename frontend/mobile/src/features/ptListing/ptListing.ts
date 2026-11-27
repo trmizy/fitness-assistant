@@ -14,6 +14,7 @@
  * No React, no Expo import: runs under `tsx --test`.
  */
 import { EMPTY_PACKAGE, packageFormFrom, type PackageForm } from "../pt/pt";
+import { fullName } from "../../lib/personName";
 
 // ── limits ────────────────────────────────────────────────────────────────────────────────────
 export type ListingLimits = { maxPhotos: number; maxPackages: number; maxStagedPhotos: number };
@@ -775,7 +776,7 @@ export function normalizePreview(raw: any): PreviewView | null {
   const price = (v: unknown) => (typeof v === "number" && v > 0 ? v : null);
   return {
     revisionStatus: String(raw.revisionStatus ?? ""),
-    name: [raw.firstName, raw.lastName].filter(Boolean).join(" ").trim() || "Huấn luyện viên",
+    name: fullName(raw, "Huấn luyện viên"),
     specialties: strList(raw.specialties),
     profile: normalizeProfile(app),
     fromPricePerSession: price(raw.fromPricePerSession),

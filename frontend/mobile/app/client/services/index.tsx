@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react-native";
 import { GymCard } from "../../../src/features/services/GymCard";
+import { NewTrainerBadge } from "../../../src/features/services/NewTrainerBadge";
 
 import {
   Avatar,
@@ -517,6 +518,7 @@ function TrainerCard({ pt, distance, onPress }: { pt: PtRow; distance?: Distance
                 </View>
               ) : null}
             </View>
+            {pt.isNewTrainer ? <NewTrainerBadge className="mt-1.5" /> : null}
             {distance?.text ? (
               <View
                 testID={`pt-badge-${distance.kind.toLowerCase()}`}
@@ -1206,6 +1208,11 @@ function ContractsTab({ onFindPt, highlightId }: { onFindPt: () => void; highlig
           />
         ) : (
           <View className="gap-3 px-5">
+            {contracts.some((c) => c.status === "ACTIVE") ? (
+              <Button variant="secondary" icon={CalendarClock} onPress={() => router.push("/client/services/booking")}>
+                Lịch tập với PT
+              </Button>
+            ) : null}
             {open.length > 0 ? (
               <Text className="font-body-medium text-xs text-muted-foreground">Đang diễn ra</Text>
             ) : null}

@@ -773,7 +773,7 @@ export function GuidedRoadmapWizard({ onClose, onCreated }: { onClose: () => voi
         <div className="space-y-4">
           {/* Fitness Diagnosis */}
           <div className="rounded-xl border border-zinc-700/60 bg-zinc-900/50 p-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Chẩn đoán thể trạng</p>
+            <p className="mb-2 text-xs font-semibold text-zinc-500">Chẩn đoán thể trạng</p>
             {!diagnosisQuery.data ? (
               <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />
             ) : (
@@ -816,7 +816,7 @@ export function GuidedRoadmapWizard({ onClose, onCreated }: { onClose: () => voi
 
           {/* Roadmap Report */}
           <div className="rounded-xl border border-green-500/20 bg-gradient-to-br from-green-500/10 to-zinc-900 p-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-green-400">Báo cáo lộ trình</p>
+            <p className="mb-2 text-xs font-semibold text-green-400">Báo cáo lộ trình</p>
             {draftMutation.isPending && (
               <p className="flex items-center gap-2 text-sm text-zinc-400">
                 <Loader2 className="h-4 w-4 animate-spin" /> Gymini đang soạn lộ trình...
@@ -995,7 +995,7 @@ export function EnergyBreakdownCard({
 }) {
   return (
     <div className="rounded-xl border border-zinc-700/60 bg-zinc-900/50 p-4">
-      <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+      <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
         <Flame className="h-3.5 w-3.5 text-orange-400" /> Tiêu hao năng lượng hiện tại
       </p>
       {insufficientInputs && (

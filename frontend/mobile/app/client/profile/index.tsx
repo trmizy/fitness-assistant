@@ -27,6 +27,7 @@ import { darkColors, designTokens } from "../../../src/theme/colors";
 import { formatVND } from "../../../src/utils/currency";
 import { addDays, toDateInputValue } from "../../../src/utils/date";
 import { profileStats } from "../../../src/features/profile/profile";
+import { fullName } from "../../../src/lib/personName";
 
 /**
  * CL-05 — "Cá nhân", the design's Profile hub (screens/Profile.tsx): identity card + three stats,
@@ -65,7 +66,7 @@ export default function ClientProfileScreen() {
 
   const stats = profileStats(activityQuery.data?.days, inbodyQuery.data);
   const isPT = !!(user?.isPT || user?.role === "PT" || profile?.isPT);
-  const name = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Bạn";
+  const name = fullName(user, "Bạn");
   const balance = (walletQuery.data as any)?.availableBalance;
 
   const menu: { icon: LucideIcon; label: string; hint?: string; href: Href }[] = [

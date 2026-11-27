@@ -15,6 +15,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useApp } from "../../context/AppContext";
+import { sessionsForRole, upcomingSessionsKey } from "../../utils/sessionRoleView";
 import { useCall } from "../../context/CallContext";
 import {
   contractService,
@@ -34,6 +35,9 @@ import {
   EmptyState,
   ErrorState,
 } from "../../components/dashboard/DashboardStates";
+import { fullName } from "../../utils/fullName";
+import { QueryErrorNotice } from "../../components/ui/QueryErrorNotice";
+import { listFailed, QUERY_ERROR_TEXT } from "../../utils/queryErrorState";
 
 // clientProfile (from testai-v4 service) or clientName string (legacy compat)
 type ClientRef = {
@@ -60,9 +64,7 @@ type Contract = ClientRef & {
 
 function resolveClientName(ref: ClientRef, fallback = "Học viên"): string {
   if (ref.clientProfile) {
-    const name =
-      `${ref.clientProfile.firstName ?? ""} ${ref.clientProfile.lastName ?? ""}`.trim();
-    return name || fallback;
+    return fullName(ref.clientProfile, fallback);
   }
   return ref.clientName || fallback;
 }
@@ -141,24 +143,34 @@ export function PTDashboard() {
     queryFn: () => contractService.getEarnings(),
   });
 
-  const { data: contracts = [], isLoading: contractsLoading } = useQuery({
+  const contractsQuery = useQuery({
     queryKey: ["pt-contracts"],
     queryFn: () => contractService.getByPT(),
   });
+  const { data: contracts = [], isLoading: contractsLoading } = contractsQuery;
 
+  // PT dashboard: only sessions I TEACH (my own sessions as a client of another PT belong to the client calendar).
   const {
-    data: upcomingSessions = [],
+    data: upcomingRaw = [],
     isLoading: sessionsLoading,
     isError: sessionsError,
   } = useQuery({
-    queryKey: ["sessions-upcoming"],
-    queryFn: () => sessionService.getMyUpcoming(),
+    queryKey: upcomingSessionsKey("pt", user?.id),
+    queryFn: () => sessionService.getMyUpcoming("pt"),
   });
+  const upcomingSessions = sessionsForRole(upcomingRaw as Session[], "pt", user?.id);
 
-  const { data: pendingPlans = [] } = useQuery({
+  const pendingPlansQuery = useQuery({
     queryKey: ["pt-pending-plans-count"],
     queryFn: () => ptPlanReviewService.getPendingReviews(),
   });
+  const { data: pendingPlans = [] } = pendingPlansQuery;
+  // A failed contracts / pending-review request must not read as "Không có cảnh báo" (FE2-FIX group B).
+  const alertsFailed = listFailed(contractsQuery) || listFailed(pendingPlansQuery);
+  const retryAlerts = () => {
+    if (listFailed(contractsQuery)) void contractsQuery.refetch();
+    if (listFailed(pendingPlansQuery)) void pendingPlansQuery.refetch();
+  };
 
   const { startSessionPreview } = useCall();
   const [joiningSessionId, setJoiningSessionId] = useState<string | null>(null);
@@ -196,10 +208,10 @@ export function PTDashboard() {
       value: formatVND(availableBalance),
       change: "Ví PT",
       icon: WalletIcon,
-      color: "text-green-400",
-      bg: "bg-green-500/10",
-      iconBg: "bg-green-500/15",
-      border: "border-green-500/20",
+      color: "text-zinc-300",
+      bg: "bg-zinc-900",
+      iconBg: "bg-zinc-800",
+      border: "border-zinc-800/80",
       loading: walletLoading,
     },
     {
@@ -207,10 +219,10 @@ export function PTDashboard() {
       value: String(upcomingCount),
       change: "Tuần này",
       icon: Calendar,
-      color: "text-blue-400",
-      bg: "bg-blue-500/10",
-      iconBg: "bg-blue-500/15",
-      border: "border-blue-500/20",
+      color: "text-zinc-300",
+      bg: "bg-zinc-900",
+      iconBg: "bg-zinc-800",
+      border: "border-zinc-800/80",
       loading: sessionsLoading,
     },
     {
@@ -218,10 +230,10 @@ export function PTDashboard() {
       value: String(activeContracts),
       change: "Đang chạy",
       icon: Users,
-      color: "text-violet-400",
-      bg: "bg-violet-500/10",
-      iconBg: "bg-violet-500/15",
-      border: "border-violet-500/20",
+      color: "text-zinc-300",
+      bg: "bg-zinc-900",
+      iconBg: "bg-zinc-800",
+      border: "border-zinc-800/80",
       loading: earningsLoading,
     },
     {
@@ -235,10 +247,10 @@ export function PTDashboard() {
       value: formatVND(totalEarned),
       change: "Trước phí nền tảng",
       icon: TrendingUp,
-      color: "text-amber-400",
-      bg: "bg-amber-500/10",
-      iconBg: "bg-amber-500/15",
-      border: "border-amber-500/20",
+      color: "text-zinc-300",
+      bg: "bg-zinc-900",
+      iconBg: "bg-zinc-800",
+      border: "border-zinc-800/80",
       loading: earningsLoading,
     },
   ];
@@ -490,7 +502,7 @@ export function PTDashboard() {
               <SkeletonRow />
               <SkeletonRow />
             </div>
-          ) : (pendingPlans as any[]).length === 0 && alerts.length === 0 ? (
+          ) : (pendingPlans as any[]).length === 0 && alerts.length === 0 && !alertsFailed ? (
             <EmptyState
               icon={CalendarCheck2}
               title="Không có cảnh báo"
@@ -498,6 +510,11 @@ export function PTDashboard() {
             />
           ) : (
             <div className="divide-y divide-zinc-800/40">
+              {alertsFailed && (
+                <div className="p-4">
+                  <QueryErrorNotice testId="pt-alerts-error" text={QUERY_ERROR_TEXT.ptAlerts} onRetry={retryAlerts} busy={contractsQuery.isFetching || pendingPlansQuery.isFetching} />
+                </div>
+              )}
               {(pendingPlans as any[]).length > 0 && (
                 <div className="bg-violet-500/5 px-4 py-3">
                   <div className="flex items-center gap-2">

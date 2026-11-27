@@ -38,5 +38,6 @@ export {
   GyminiMoneyIcon,
   GyminiSystemIcon,
   GyminiDisputeIcon,
+  GyminiComplaintIcon,
   GyminiWorkflowIcon,
 } from "../icons/gymini";

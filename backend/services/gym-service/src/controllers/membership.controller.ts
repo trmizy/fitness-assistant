@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { logger } from '@gym-coach/shared';
-import { membershipService, ADMIN_REFUND_REASONS } from '../services/membership.service';
+import { membershipService, ADMIN_REFUND_REASONS, consumeMemberSearchQuota } from '../services/membership.service';
+import { hasPermission } from '../services/partner-permissions';
 import { principalId } from '../middleware/partner-context.middleware';
 import { membershipsFor } from '../services/staff-views';
 import { resolveDisplayNamesBatch } from '../services/display-name.service';
@@ -189,19 +190,28 @@ export const membershipController = {
   async listForOwner(req: Request, res: Response) {
     try {
       const ownerId = principalId(req);
-      const list = await membershipService.listForOwner(req.params.gymId, ownerId);
+      if (req.query.q !== undefined) {
+        // Searching by name reveals identity, so it needs membership.full: an accountant (membership.sales) keeps the list but cannot search it.
+        if (req.partner && !hasPermission(req.partner.role, 'membership.full')) {
+          res.status(403).json({ success: false, error: { code: 'MEMBER_SEARCH_FORBIDDEN', message: 'MEMBER_SEARCH_FORBIDDEN' } });
+          return;
+        }
+        consumeMemberSearchQuota(req.user!.userId);
+      }
+      // Additive pagination: `data` stays a plain array (old callers keep working); `meta` carries hasMore / nextCursor.
+      const { items: list, meta } = await membershipService.listPageForOwner(req.params.gymId, ownerId, req.query as Record<string, unknown>);
       // D15: lễ tân thấy hạn/lượt, kế toán thấy doanh số (không có danh tính hội viên), chủ/quản lý thấy đủ.
       // N13I-04: tên hiển thị chỉ tra cho chủ / quản lý (xem đủ danh tính hội viên); lễ tân và kế toán không nhận tên.
       const role = req.partner?.role;
       const wantsNames = !role || role === 'OWNER' || role === 'MANAGER';
       const names = wantsNames ? await resolveDisplayNamesBatch(list.map((m: any) => m.clientId)) : undefined;
       if (!req.partner) {
-        res.json({ success: true, data: list.map((m: any) => (names!.has(m.clientId) ? { ...m, clientName: names!.get(m.clientId) } : m)) });
+        res.json({ success: true, data: list.map((m: any) => (names!.has(m.clientId) ? { ...m, clientName: names!.get(m.clientId) } : m)), meta });
         return;
       }
-      res.json({ success: true, data: membershipsFor(req.partner.role, list, names) });
+      res.json({ success: true, data: membershipsFor(req.partner.role, list, names), meta });
     } catch (e: any) {
-      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+      res.status(e.status || 500).json({ success: false, error: { ...(e.code ? { code: e.code } : {}), message: e.message } });
     }
   },
 };

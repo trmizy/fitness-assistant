@@ -32,7 +32,7 @@ export default function WalletScreen() {
 
   const walletQuery = useQuery({ queryKey: ["client-wallet", uid], queryFn: () => walletService.getWallet() });
   const txQuery = useQuery({ queryKey: ["client-wallet-transactions", uid], queryFn: () => walletService.getTransactions() });
-  const wdQuery = useQuery({ queryKey: ["client-withdrawals", uid], queryFn: () => walletService.getMyWithdrawals() });
+  const wdQuery = useQuery({ queryKey: ["client-withdrawals", uid], queryFn: () => walletService.getMyWithdrawals("CLIENT") });
 
   const wallet: any = walletQuery.data;
   // Trần rút = số dư khả dụng trừ các yêu cầu còn PENDING, đúng như payment-service tính.
@@ -48,7 +48,7 @@ export default function WalletScreen() {
   const formError = withdrawFormError(amount, payoutInfo, available);
 
   const withdraw = useMutation({
-    mutationFn: () => walletService.requestWithdrawal(amount, payoutInfo.trim()),
+    mutationFn: () => walletService.requestWithdrawal(amount, payoutInfo.trim(), "CLIENT"),
     onSuccess: () => {
       toast.show("Đã gửi yêu cầu rút tiền", "success");
       setSheet(false);

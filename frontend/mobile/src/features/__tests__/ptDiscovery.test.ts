@@ -32,6 +32,8 @@ import {
   normalizePackages,
   normalizePartnerGyms,
   composeArea,
+  NEW_TRAINER_DESCRIPTION,
+  NEW_TRAINER_LABEL,
   normalizePt,
   normalizePts,
   pricePerSession,
@@ -586,5 +588,33 @@ describe("N15M-14 independent venue (outside the Gymini system)", () => {
     assert.equal(readIndependentVenueRequired({ response: { status: 409, data: { code: "INDEPENDENT_VENUE_ACK_REQUIRED" } } }), true);
     assert.equal(readIndependentVenueRequired({ response: { status: 409, data: { code: "LOW_AVAILABILITY" } } }), false);
     assert.equal(readIndependentVenueRequired(null), false);
+  });
+});
+
+describe("isNewTrainer (Mới trên Gymini)", () => {
+  it("reads the server flag; a missing flag (older server) is false", () => {
+    assert.equal(normalizePt({ ...REAL_ROW, isNewTrainer: true }).isNewTrainer, true);
+    assert.equal(normalizePt({ ...REAL_ROW, isNewTrainer: false }).isNewTrainer, false);
+    assert.equal(normalizePt(REAL_ROW).isNewTrainer, false);
+    assert.equal(normalizePt({ ...REAL_ROW, isNewTrainer: "true" }).isNewTrainer, false);
+  });
+
+  it("a new unreviewed PT keeps 'no rating' (no fake rating) while being flagged new", () => {
+    const pt = normalizePt({ ...REAL_ROW, isNewTrainer: true, avgRating: null, ratingCount: 0 });
+    assert.equal(pt.isNewTrainer, true);
+    assert.equal(pt.rating, null);
+    assert.equal(pt.ratingCount, 0);
+  });
+
+  it("detail + list merge: the flag survives from either side", () => {
+    const listRow = normalizePt({ ...REAL_ROW, isNewTrainer: true });
+    assert.equal(mergePtSources({ ...REAL_ROW }, listRow)?.isNewTrainer, true);
+    assert.equal(mergePtSources({ ...REAL_ROW, isNewTrainer: true }, normalizePt(REAL_ROW))?.isNewTrainer, true);
+    assert.equal(mergePtSources({ ...REAL_ROW }, normalizePt(REAL_ROW))?.isNewTrainer, false);
+  });
+
+  it("uses the approved Vietnamese copy", () => {
+    assert.equal(NEW_TRAINER_LABEL, "Mới trên Gymini");
+    assert.equal(NEW_TRAINER_DESCRIPTION, "PT mới gia nhập nền tảng trong 30 ngày qua");
   });
 });

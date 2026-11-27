@@ -40,6 +40,7 @@ import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { darkColors, designTokens } from "../../src/theme/colors";
 import { availabilityFromServer } from "../../src/features/pt/pt";
 import { DAYS } from "../../src/features/ptApplication/ptApplication";
+import { fullName as personFullName } from "../../src/lib/personName";
 
 type LocForm = { id: string | null; provinceCode: string; wardCode: string; gymName: string; addressLine: string; isPrimary: boolean; note: string };
 const EMPTY_LOC: LocForm = { id: null, provinceCode: "", wardCode: "", gymName: "", addressLine: "", isPrimary: false, note: "" };
@@ -163,7 +164,7 @@ export default function PtProfileScreen() {
       { text: "Đăng xuất", style: "destructive", onPress: () => void logout() },
     ]);
 
-  const fullName = `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() || "Huấn luyện viên";
+  const fullName = personFullName(user, "Huấn luyện viên");
   const refreshing = profileQuery.isRefetching || locationsQuery.isRefetching;
 
   return (

@@ -82,7 +82,7 @@ export function MuscleDetailPage() {
       <div className="bg-zinc-900 border border-zinc-800/60 rounded-xl p-4">
         <h2 className="text-sm font-semibold text-zinc-200 mb-1">Vị trí trên cơ thể</h2>
         <p className="text-xs text-zinc-500 mb-3">{bodyRegionLabel(muscle.anatomyRegion) || "Chưa phân loại"}</p>
-        <SingleMuscleMap muscleCode={muscle.code} />
+        <SingleMuscleMap muscleCode={muscle.code} muscleName={muscle.nameVi} />
       </div>
 
       <div className="bg-zinc-900 border border-zinc-800/60 rounded-xl p-4">

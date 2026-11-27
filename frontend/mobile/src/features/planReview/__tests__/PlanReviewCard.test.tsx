@@ -40,6 +40,17 @@ async function mount(props: Partial<React.ComponentProps<typeof PlanReviewCard>>
   return view;
 }
 
+/**
+ * Every tap goes through an AWAITED act scope. A bare `fireEvent.press(...)` left un-awaited lets the next tap (or the next
+ * test) open a new act scope before the previous async one has closed; RNTL then reports overlapping act() calls and the
+ * failure cascades into every later test of the file.
+ */
+async function press(...els: Parameters<typeof fireEvent.press>[0][]) {
+  await act(async () => {
+    for (const el of els) fireEvent.press(el);
+  });
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
   contracts.mockResolvedValue(PT);
@@ -56,7 +67,7 @@ describe("PlanReviewCard", () => {
 
   it("offers 'Gửi PT duyệt', then a confirmation that states what is shared", async () => {
     const view = await mount();
-    fireEvent.press(await view.findByText("Gửi PT duyệt"));
+    await press(await view.findByText("Gửi PT duyệt"));
     expect(await view.findByText(/bản sao cố định/)).toBeTruthy();
     expect(view.getByText(/không kèm\s+chỉ số InBody/)).toBeTruthy();
     expect(view.getByText(/Gửi tới: Minh Trần/)).toBeTruthy();
@@ -66,10 +77,11 @@ describe("PlanReviewCard", () => {
     let resolve!: (v: unknown) => void;
     api.submit.mockImplementation(() => new Promise((r) => (resolve = r)));
     const view = await mount();
-    fireEvent.press(await view.findByText("Gửi PT duyệt"));
+    await press(await view.findByText("Gửi PT duyệt"));
     const confirm = await view.findByText("Xác nhận gửi");
-    fireEvent.press(confirm);
-    fireEvent.press(confirm);
+    // Both taps are delivered inside ONE act scope, i.e. before React re-renders (isPending is still false) - this is what a
+    // real double tap looks like and what the synchronous ref guard exists for.
+    await press(confirm, confirm);
     await waitFor(() => expect(api.submit).toHaveBeenCalledTimes(1));
     const arg = api.submit.mock.calls[0][0];
     expect(arg).toMatchObject({ ptUserId: "pt-1", expectedVersion: 3 });
@@ -82,8 +94,8 @@ describe("PlanReviewCard", () => {
   it("NEVER announces success when the server did not confirm: offline error -> readable message, still on the confirm step", async () => {
     api.submit.mockRejectedValue(new Error("Network Error")); // no response => offline
     const view = await mount();
-    fireEvent.press(await view.findByText("Gửi PT duyệt"));
-    fireEvent.press(await view.findByText("Xác nhận gửi"));
+    await press(await view.findByText("Gửi PT duyệt"));
+    await press(await view.findByText("Xác nhận gửi"));
     await waitFor(() => expect(mockToast.show).toHaveBeenCalled());
     const [msg, tone] = mockToast.show.mock.calls[0];
     expect(tone).toBe("danger");
@@ -96,10 +108,10 @@ describe("PlanReviewCard", () => {
   it("after a failed send, retry (reconnect) re-sends with the SAME idempotency key", async () => {
     api.submit.mockRejectedValueOnce(new Error("Network Error")).mockResolvedValueOnce({ request: item(), replayed: true });
     const view = await mount();
-    fireEvent.press(await view.findByText("Gửi PT duyệt"));
-    fireEvent.press(await view.findByText("Xác nhận gửi"));
+    await press(await view.findByText("Gửi PT duyệt"));
+    await press(await view.findByText("Xác nhận gửi"));
     await waitFor(() => expect(api.submit).toHaveBeenCalledTimes(1));
-    fireEvent.press(await view.findByText("Xác nhận gửi"));
+    await press(await view.findByText("Xác nhận gửi"));
     await waitFor(() => expect(api.submit).toHaveBeenCalledTimes(2));
     expect(api.submit.mock.calls[1][0].idempotencyKey).toBe(api.submit.mock.calls[0][0].idempotencyKey);
   });
@@ -107,11 +119,11 @@ describe("PlanReviewCard", () => {
   it("stale plan (409) -> readable message; contract ended (403) -> readable message; never success", async () => {
     api.submit.mockRejectedValueOnce({ response: { status: 409, data: { code: "STALE_REVISION" } } });
     const view = await mount();
-    fireEvent.press(await view.findByText("Gửi PT duyệt"));
-    fireEvent.press(await view.findByText("Xác nhận gửi"));
+    await press(await view.findByText("Gửi PT duyệt"));
+    await press(await view.findByText("Xác nhận gửi"));
     await waitFor(() => expect(mockToast.show).toHaveBeenCalledWith(expect.stringMatching(/đã thay đổi/), "danger"));
     api.submit.mockRejectedValueOnce({ response: { status: 403, data: { code: "NO_ACTIVE_CONTRACT" } } });
-    fireEvent.press(await view.findByText("Xác nhận gửi"));
+    await press(await view.findByText("Xác nhận gửi"));
     await waitFor(() => expect(mockToast.show).toHaveBeenCalledWith(expect.stringMatching(/hợp đồng PT/), "danger"));
   });
 

@@ -2,9 +2,8 @@ import { createHash } from "node:crypto";
 import { AgentPreferencesSchema, GoalIntentSchema, GOAL_SPECIALTIES, FITNESS_SCORING, journeySimilarity, summarizeJourneys, scorePT, type AgentPreferences, type PTCandidate, type DataOrigin } from "@gym-coach/shared";
 import { prisma } from "../repositories/profile.repository";
 import { Prisma } from "../generated/prisma";
-import { countSlotsFromRows } from "./availability.service";
+import { countSlotsFromRows, findBookedAsPtOrClient } from "./availability.service";
 import { availabilityRepository } from "../repositories/availability.repository";
-import { sessionRepository } from "../repositories/session.repository";
 import { ptReviewRepository } from "../repositories/ptReview.repository";
 import { contractService } from "./contract.service";
 import { toSignedOtherUserPhotoUrl } from "./s3-upload.service";
@@ -85,7 +84,8 @@ export const agenticFitnessService = {
     const reference = preferences.mode === "ONLINE" ? null : await resolveReferencePoint(profile, preferences);
     const [availability, exceptions, booked, ratings, contracts, sessions, latest, locations] = await Promise.all([
       availabilityRepository.findByPTs(ids), availabilityRepository.findExceptionsByPTsAndRange(ids, from, to),
-      sessionRepository.findBookedByPTsAndRange(ids, from, to), ptReviewRepository.aggregateForPts(ids),
+      // Both roles: a trainer who also trains as a client is busy then too (same rule as the PT discovery slot count).
+      findBookedAsPtOrClient(ids, from, to), ptReviewRepository.aggregateForPts(ids),
       prisma.contract.groupBy({ by: ["ptUserId", "status"], where: { ptUserId: { in: ids }, dataOrigin: origin }, _count: { _all: true } }),
       prisma.session.groupBy({ by: ["ptUserId", "status"], where: { ptUserId: { in: ids }, contract: { dataOrigin: origin } }, _count: { _all: true } }),
       prisma.inBodyEntry.findFirst({ where: { userId }, orderBy: { date: "desc" } }),

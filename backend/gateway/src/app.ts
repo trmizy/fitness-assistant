@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import cors from "cors";
-import { logger, register, metricsMiddleware } from "@gym-coach/shared";
+import { logger, register, metricsMiddleware, sanitizeUrlForLog } from "@gym-coach/shared";
 import { mediaRateLimiter, rateLimiter } from "./middleware/rateLimit.middleware";
 import proxyRoutes from "./routes/proxy.routes";
 import { disconnectSocketsOfLockedUser } from "./socket/lockDisconnect";
@@ -126,7 +126,7 @@ app.use(metricsMiddleware());
 app.use((req: Request, _res: Response, next: NextFunction) => {
   logger.info({
     method: req.method,
-    path: req.path,
+    path: sanitizeUrlForLog(req.path),
     ip: req.ip,
     userAgent: req.get("user-agent"),
   });
@@ -161,7 +161,7 @@ app.use((_req, res) => {
 
 // Global error handler
 app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-  logger.error({ error: err.message, stack: err.stack, path: req.path });
+  logger.error({ error: err.message, stack: err.stack, path: sanitizeUrlForLog(req.path) });
   res.status(err.statusCode || 500).json({
     success: false,
     error: {

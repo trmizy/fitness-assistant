@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useId, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { UserIcon as User, PencilSimpleIcon as Edit3, CheckIcon as Check, LightningIcon as Zap, CaretRightIcon as ChevronRight, MedalIcon as Award, CircleNotchIcon as Loader2, CameraIcon as Camera, BarbellIcon as Dumbbell, TrendDownIcon as TrendingDown, TrendUpIcon as TrendingUp, TargetIcon as Target, UploadSimpleIcon as Upload, DownloadSimpleIcon as Download, ShareNetworkIcon as Share2, FlameIcon as Flame, CalendarBlankIcon as CalendarDays, BellIcon as Bell, GearSixIcon as Settings } from "@phosphor-icons/react";
 import { useApp } from "../../context/AppContext";
@@ -10,6 +10,12 @@ import { fullName } from "../../utils/fullName";
 import { ACTIVITY_LEVELS } from "../../constants/activityLevels";
 
 import { GoalSuggestion } from "../../components/GoalSuggestion";
+import { RadioCards } from "../../components/ui/nav/RadioCards";
+import { FlameIcon, BarbellIcon as GoalBarbellIcon, TrendUpIcon, ScalesIcon, HeartbeatIcon } from "@phosphor-icons/react";
+import { isWebPresentation } from "../../utils/webPresentation";
+
+// WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
+const WEB_UI = isWebPresentation();
 // This page keeps its own goal keys; the suggestion speaks the backend enum. Only these three exist on this page.
 const GOAL_KEY_BY_ENUM: Record<string, string> = { WEIGHT_LOSS: "lose_fat", MUSCLE_GAIN: "gain_muscle", MAINTENANCE: "maintain" };
 const GOAL_ENUM_BY_KEY: Record<string, string> = { lose_fat: "WEIGHT_LOSS", gain_muscle: "MUSCLE_GAIN", maintain: "MAINTENANCE" };
@@ -21,6 +27,9 @@ const goals = [
   { key: "maintain", label: "Duy trì vóc dáng", emoji: "⚖️" },
   { key: "improve_health", label: "Cải thiện sức khỏe", emoji: "❤️" },
 ];
+
+// WEB UI: the goal cards use the app icon set instead of emoji.
+const GOAL_ICON: Record<string, React.ElementType> = { lose_fat: FlameIcon, gain_muscle: GoalBarbellIcon, gain_weight: TrendUpIcon, maintain: ScalesIcon, improve_health: HeartbeatIcon };
 
 const activityLevels = [
   "Ít vận động",
@@ -49,6 +58,11 @@ const experienceLevels: Array<{ key: string; label: string }> = [
   { key: "ADVANCED", label: "Nâng cao (Advanced)" },
 ];
 
+/** A real <label for> only when there is a control to point at; a read-only value gets a plain caption (a label with no control is noise for assistive tech). */
+function FieldLabel({ htmlFor, className, children }: { htmlFor?: string; className?: string; children: React.ReactNode }) {
+  return htmlFor ? <label htmlFor={htmlFor} className={className}>{children}</label> : <span className={className}>{children}</span>;
+}
+
 const inputClass =
   "w-full px-3 py-2 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 bg-zinc-800/60 text-zinc-200 transition-all";
 const selectClass =
@@ -58,6 +72,7 @@ export function ProfilePage() {
   const { user, isPT, setActiveView, updateUser } = useApp();
   const navigate = useNavigate();
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const fid = useId(); // a11y: every edit control is tied to its visible label
 
   const { data: profileData, isLoading } = useQuery({
     queryKey: ["profile", user?.id],
@@ -239,7 +254,7 @@ export function ProfilePage() {
         <button
           onClick={() => (editing ? handleSave() : setEditing(true))}
           disabled={updateMutation.isPending}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg ${
+          className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg ${
             editing
               ? "bg-green-500 text-black shadow-green-500/25 hover:bg-green-400"
               : "bg-zinc-800 text-zinc-300 border border-zinc-700/60 hover:bg-zinc-700 hover:text-zinc-100 shadow-none"
@@ -272,7 +287,7 @@ export function ProfilePage() {
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
-              <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1">
+              <p className="text-[11px] text-zinc-600 mb-1">
                 Cân nặng bắt đầu
               </p>
               <p className="text-lg font-bold text-zinc-200">
@@ -280,7 +295,7 @@ export function ProfilePage() {
               </p>
             </div>
             <div>
-              <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1">
+              <p className="text-[11px] text-zinc-600 mb-1">
                 Hiện tại
               </p>
               <p className="text-lg font-bold text-zinc-200">
@@ -288,7 +303,7 @@ export function ProfilePage() {
               </p>
             </div>
             <div>
-              <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1">
+              <p className="text-[11px] text-zinc-600 mb-1">
                 Mục tiêu
               </p>
               <p className="text-lg font-bold text-zinc-200">
@@ -296,7 +311,7 @@ export function ProfilePage() {
               </p>
             </div>
             <div>
-              <p className="text-[11px] text-zinc-600 uppercase tracking-wider mb-1">
+              <p className="text-[11px] text-zinc-600 mb-1">
                 Đã thay đổi
               </p>
               <p
@@ -355,9 +370,11 @@ export function ProfilePage() {
             )}
             {editing && (
               <button
+                type="button"
+                aria-label="Đổi ảnh đại diện"
                 onClick={() => photoInputRef.current?.click()}
                 disabled={photoMutation.isPending}
-                className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
               >
                 {photoMutation.isPending ? (
                   <Loader2 className="w-5 h-5 text-white animate-spin" />
@@ -427,11 +444,12 @@ export function ProfilePage() {
                 },
               ].map((f) => (
                 <div key={f.label}>
-                  <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">
+                  <FieldLabel htmlFor={editing && f.setter ? `${fid}-dob` : undefined} className="text-xs text-zinc-600 mb-1 block">
                     {f.label}
-                  </label>
+                  </FieldLabel>
                   {editing && f.setter ? (
                     <input
+                      id={`${fid}-dob`}
                       type={f.type}
                       value={f.value}
                       max={(f as any).maxDate}
@@ -451,12 +469,13 @@ export function ProfilePage() {
                   `weight` state stays canonical cm/kg and handleSave sends cm/kg
                   unchanged, exactly like before this preference existed. */}
               <div>
-                <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">
+                <FieldLabel htmlFor={editing && unitSystem === "metric" ? `${fid}-height` : undefined} className="text-xs text-zinc-600 mb-1 block">
                   Chiều cao {unitSystem === "metric" ? "(cm)" : "(ft-in)"}
-                </label>
+                </FieldLabel>
                 {editing ? (
                   unitSystem === "metric" ? (
                     <input
+                      id={`${fid}-height`}
                       type="number"
                       value={height}
                       onChange={(e) => setHeight(e.target.value)}
@@ -466,7 +485,7 @@ export function ProfilePage() {
                     <div className="flex gap-2">
                       <input
                         type="number"
-                        aria-label="Feet"
+                        aria-label="Chiều cao, số feet"
                         value={height ? feetInchesFromCm(parseFloat(height)).feet : ""}
                         onChange={(e) => {
                           const feet = Number(e.target.value) || 0;
@@ -478,7 +497,7 @@ export function ProfilePage() {
                       />
                       <input
                         type="number"
-                        aria-label="Inches"
+                        aria-label="Chiều cao, số inch"
                         value={height ? feetInchesFromCm(parseFloat(height)).inches : ""}
                         onChange={(e) => {
                           const inches = Number(e.target.value) || 0;
@@ -504,11 +523,12 @@ export function ProfilePage() {
                 )}
               </div>
               <div>
-                <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">
+                <FieldLabel htmlFor={editing ? `${fid}-weight` : undefined} className="text-xs text-zinc-600 mb-1 block">
                   Cân nặng {unitSystem === "metric" ? "(kg)" : "(lb)"}
-                </label>
+                </FieldLabel>
                 {editing ? (
                   <input
+                    id={`${fid}-weight`}
                     type="number"
                     value={
                       unitSystem === "metric"
@@ -535,11 +555,12 @@ export function ProfilePage() {
               </div>
 
               <div>
-                <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">
+                <FieldLabel htmlFor={editing ? `${fid}-gender` : undefined} className="text-xs text-zinc-600 mb-1 block">
                   Giới tính
-                </label>
+                </FieldLabel>
                 {editing ? (
                   <select
+                    id={`${fid}-gender`}
                     value={gender}
                     onChange={(e) => setGender(e.target.value)}
                     className={selectClass}
@@ -583,6 +604,9 @@ export function ProfilePage() {
                 onChoose={(g) => setGoal(GOAL_KEY_BY_ENUM[g] ?? goal)}
               />
             )}
+            {WEB_UI ? (
+            <RadioCards label="Mục tiêu" disabled={!editing} value={goal} onChange={setGoal} options={goals.map((g) => ({ value: g.key, label: g.label, icon: GOAL_ICON[g.key] }))} testId="profile-goal" />
+            ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {goals.map((g) => (
                 <button
@@ -601,6 +625,7 @@ export function ProfilePage() {
                 </button>
               ))}
             </div>
+            )}
           </div>
 
           {/* Preferences */}
@@ -610,11 +635,13 @@ export function ProfilePage() {
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">
+                <FieldLabel htmlFor={editing ? `${fid}-activity` : undefined} className="text-xs text-zinc-600 mb-1.5 block">
                   Mức độ hoạt động
-                </label>
+                </FieldLabel>
                 {editing ? (
                   <select
+                    id={`${fid}-activity`}
+                    aria-describedby={`${fid}-activity-hint`}
                     value={activity}
                     onChange={(e) => setActivity(e.target.value)}
                     className={selectClass}
@@ -627,7 +654,7 @@ export function ProfilePage() {
                 ) : null}
                 {/* Same description as onboarding (constants/activityLevels.ts): job + training together. */}
                 {editing ? (
-                  <p className="mt-1 text-[11px] text-zinc-500">
+                  <p id={`${fid}-activity-hint`} className="mt-1 text-[11px] text-zinc-500">
                     {ACTIVITY_LEVELS.find((x) => x.label === activity)?.hint}
                   </p>
                 ) : (
@@ -637,11 +664,12 @@ export function ProfilePage() {
                 )}
               </div>
               <div>
-                <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">
+                <FieldLabel htmlFor={editing ? `${fid}-exp` : undefined} className="text-xs text-zinc-600 mb-1.5 block">
                   Trình độ tập luyện
-                </label>
+                </FieldLabel>
                 {editing ? (
                   <select
+                    id={`${fid}-exp`}
                     value={experienceLevel}
                     onChange={(e) => setExperienceLevel(e.target.value)}
                     className={selectClass}
@@ -677,11 +705,12 @@ export function ProfilePage() {
                 </p>
               </div>
               <div>
-                <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">
+                <FieldLabel htmlFor={editing ? `${fid}-diet` : undefined} className="text-xs text-zinc-600 mb-1.5 block">
                   Chế độ ăn
-                </label>
+                </FieldLabel>
                 {editing ? (
                   <select
+                    id={`${fid}-diet`}
                     value={diet}
                     onChange={(e) => setDiet(e.target.value)}
                     className={selectClass}
@@ -697,11 +726,12 @@ export function ProfilePage() {
                 )}
               </div>
               <div className="sm:col-span-2">
-                <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">
+                <FieldLabel htmlFor={editing ? `${fid}-injuries` : undefined} className="text-xs text-zinc-600 mb-1.5 block">
                   Ghi chú sức khỏe
-                </label>
+                </FieldLabel>
                 {editing ? (
                   <textarea
+                    id={`${fid}-injuries`}
                     rows={2}
                     placeholder="Chấn thương hoặc tình trạng sức khỏe cần lưu ý, cách nhau bằng dấu phẩy..."
                     value={injuriesText}

@@ -7,8 +7,8 @@ import assert from "node:assert/strict";
 import http from "node:http";
 
 process.env.NODE_ENV = "test";
-process.env.AUTH_SERVICE_URL = "http://127.0.0.1:4041";
-process.env.GYM_SERVICE_URL = "http://127.0.0.1:4042";
+process.env.AUTH_SERVICE_URL = "http://127.0.0.1:4131";
+process.env.GYM_SERVICE_URL = "http://127.0.0.1:4132";
 process.env.INTERNAL_SERVICE_SECRET = "gateway-secret-gym-complaint-case-test";
 
 let app: any;
@@ -43,8 +43,8 @@ test.before(async () => {
       res.end(JSON.stringify({ success: true, data: { from: "gym-service-stub" } }));
     });
   });
-  await new Promise<void>((r) => authServer.listen(4041, "127.0.0.1", r));
-  await new Promise<void>((r) => gymServer.listen(4042, "127.0.0.1", r));
+  await new Promise<void>((r) => authServer.listen(4131, "127.0.0.1", r));
+  await new Promise<void>((r) => gymServer.listen(4132, "127.0.0.1", r));
   gatewayServer = http.createServer(app);
   await new Promise<void>((r) => gatewayServer.listen(0, "127.0.0.1", r));
   base = `http://127.0.0.1:${(gatewayServer.address() as any).port}`;

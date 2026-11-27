@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef } from "react";
 import { useLocation } from "react-router";
-import { CircleNotchIcon as Loader2 } from "@phosphor-icons/react";
+import { CircleNotchIcon as Loader2, XIcon as X } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
 import { useApp } from "../../context/AppContext";
 
@@ -21,7 +21,7 @@ const AICoachPage = lazy(() => import("../../pages/client/AICoachPage").then((m)
  * this component owns only sizing/positioning/animation.
  */
 export function AICoachFloatingPanel() {
-  const { isAiCoachOpen, closeAiCoach } = useApp();
+  const { isAiCoachOpen, closeAiCoach, user } = useApp();
   const location = useLocation();
   const lastRoute = useRef(`${location.pathname}${location.search}`);
 
@@ -47,12 +47,22 @@ export function AICoachFloatingPanel() {
         >
           <Suspense
             fallback={
-              <div className="flex h-full w-full items-center justify-center bg-zinc-950">
+              <div className="relative flex h-full w-full items-center justify-center bg-zinc-950">
+                <button
+                  type="button"
+                  onClick={closeAiCoach}
+                  aria-label="Đóng AI Coach"
+                  data-testid="ai-coach-close"
+                  className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:text-zinc-200"
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </button>
                 <Loader2 className="h-6 w-6 animate-spin text-green-500" />
               </div>
             }
           >
-            <AICoachPage onClose={closeAiCoach} compact />
+            {/* Keyed by identity: all of the page's local state (list/chat view, draft thread, typed text, staged image) is per user. */}
+            <AICoachPage key={user?.id ?? "guest"} onClose={closeAiCoach} compact />
           </Suspense>
         </motion.div>
       )}

@@ -1,15 +1,20 @@
 import { Outlet, useNavigate, useLocation } from "react-router";
-import { Suspense, useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { Suspense, lazy, useEffect } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { useApp } from "../../context/AppContext";
+import { useCall } from "../../context/CallContext";
 import { useNativeBackNavigation } from "../../hooks/useNativeBackNavigation";
 import { useNativeStatusBar } from "../../hooks/useNativeStatusBar";
 import { Sidebar } from "./Sidebar";
+import { NightGlassRail } from "./NightGlassRail";
 import { Topbar } from "./Topbar";
 import { Drawer } from "../ui/Modal";
 import { PageSkeleton } from "./PageSkeleton";
-import { CallOverlay } from "../call/CallOverlay";
-import { PartnerOnboardingWizard } from "../auth/PartnerOnboardingWizard";
+// Batch 0b — kept out of the entry chunk: the call UI is only drawn while a call exists, and the
+// partner wizard only for a gym owner who has not finished onboarding. Their static import used
+// to pull gym/PT listing utils, amenity icons and the WebRTC call UI into every first load.
+const CallOverlay = lazy(() => import("../call/CallOverlay").then((m) => ({ default: m.CallOverlay })));
+const PartnerOnboardingWizard = lazy(() => import("../auth/PartnerOnboardingWizard").then((m) => ({ default: m.PartnerOnboardingWizard })));
 import { useQuery } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { AICoachFloatingButton } from "./AICoachFloatingButton";
@@ -25,6 +30,7 @@ const bgGym = "/bg-gym.webp";
 
 export function AppShell() {
   const { isAuthenticated, isPT, setActiveView, role } = useApp();
+  const { state: callState } = useCall();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -71,12 +77,20 @@ export function AppShell() {
   // Chỉ chặn khi đã biết chắc CHƯA hoàn tất (query đã có dữ liệu và completed === false). Đang tải hoặc
   // lỗi mạng thì cho qua, không khoá cả app vì một request chưa kịp trả lời.
   if (role === "gym_owner" && onboardingQuery.data && onboardingQuery.data.completed === false) {
-    return <PartnerOnboardingWizard onComplete={() => onboardingQuery.refetch()} />;
+    return (
+      <Suspense fallback={<PageSkeleton />}>
+        <PartnerOnboardingWizard onComplete={() => onboardingQuery.refetch()} />
+      </Suspense>
+    );
   }
 
   return (
     <>
-      <CallOverlay />
+      {callState.uiState !== "idle" && (
+        <Suspense fallback={null}>
+          <CallOverlay />
+        </Suspense>
+      )}
       <AICoachFloatingButton />
       <AICoachFloatingPanel />
       <AppShellInner />
@@ -87,6 +101,8 @@ export function AppShell() {
 function AppShellInner() {
   const { sidebarOpen, setSidebarOpen, role } = useApp();
   const location = useLocation();
+  // Frontend 2.0: no rise for users who asked the OS for less motion (Codex RouteContent intent, re-applied on HEAD).
+  const reduceMotion = useReducedMotion();
   // The floating AI Coach button (client/PT) sits over the bottom-right corner of whatever page is open. Leave
   // room under the page equal to the button + its margin so the last row of any page can always be scrolled
   // clear of it. Not reserved where the button is not drawn (chat, AI Coach) - those pages fill the screen exactly.
@@ -102,18 +118,30 @@ function AppShellInner() {
   }, [sidebarOpen, setSidebarOpen]);
 
   const reserveForAiFab = (role === "client" || role === "pt") && !isAiCoachFabHiddenOn(location.pathname);
+  // D-U1 PROTOTYPE (owner-approved trial, not for release yet): Client/PT workspaces use a neutral surface from the
+  // existing theme tokens instead of the full-screen gym photo. Gym Owner / Admin keep the photo (out of scope).
+  // The asset is not deleted: login/landing/offline and the other roles still use it.
+  const neutralSurface = role === "client" || role === "pt";
 
   return (
     <div
-      className="flex h-screen overflow-hidden bg-cover bg-center bg-no-repeat relative"
-      style={{ backgroundImage: `url(${bgGym})` }}
+      className={`flex h-screen supports-[height:100dvh]:h-dvh overflow-hidden relative ${neutralSurface ? "bg-[var(--bg-color)]" : "bg-cover bg-center bg-no-repeat"}`}
+      style={neutralSurface ? undefined : { backgroundImage: `url(${bgGym})` }}
+      data-surface={neutralSurface ? "neutral" : "photo"}
     >
-      <div className="absolute inset-0 app-theme-overlay pointer-events-none z-0"></div>
+      {!neutralSurface && <div className="absolute inset-0 app-theme-overlay pointer-events-none z-0"></div>}
 
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 flex-shrink-0 border-r border-zinc-800/60 z-10 bg-zinc-950/40 backdrop-blur-md">
-        <Sidebar />
-      </aside>
+      {/* Desktop navigation. NIGHT GLASS prototype: Client/PT get the floating icon rail (in flow, fixed 68 px +
+          gutter, so nothing shifts); Gym Owner / Admin keep the labelled sidebar untouched. */}
+      {neutralSurface ? (
+        <aside className="hidden lg:flex flex-shrink-0 py-3 pl-3 z-20">
+          <NightGlassRail />
+        </aside>
+      ) : (
+        <aside className="hidden lg:flex flex-col w-64 flex-shrink-0 border-r border-zinc-800/60 z-10 bg-zinc-950/40 backdrop-blur-md">
+          <Sidebar />
+        </aside>
+      )}
 
       {/* Mobile sidebar: shared accessible drawer (Esc, backdrop, focus trap + return, scroll lock) */}
       <Drawer
@@ -125,7 +153,7 @@ function AppShellInner() {
         className="lg:hidden"
         data-testid="app-mobile-drawer"
       >
-        <aside className="relative w-72 max-w-[85vw] flex-shrink-0 flex flex-col bg-zinc-900 shadow-2xl">
+        <aside className={`relative w-72 max-w-[85vw] flex-shrink-0 flex flex-col shadow-2xl ${neutralSurface ? "ng-glass ng-drawer" : "bg-zinc-900"}`}>
           <Sidebar />
         </aside>
       </Drawer>
@@ -160,9 +188,9 @@ function AppShellInner() {
           <AnimatePresence mode="sync" initial={false}>
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 8 }}
+              initial={reduceMotion ? false : { opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.18, ease: [0.22, 0.61, 0.36, 1] }}
+              transition={{ duration: reduceMotion ? 0 : 0.18, ease: [0.22, 0.61, 0.36, 1] }}
               // flex-1 (not min-h-full): `<main>` is now the flex column, so this grows to
               // fill its remaining space exactly — a real, definite box height, which is what
               // a full-height descendant (e.g. ChatPage's own `h-full` root) needs to resolve

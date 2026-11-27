@@ -13,6 +13,7 @@ import {
   type DiscoveryScope,
   type DiscoverySortKey,
 } from "./pt-discovery-cursor";
+import { NEW_TRAINER_SLOT_EVERY, newTrainerCutoff } from "./pt-new-trainer";
 
 const VN_FROM = "áàảãạăắằẳẵặâấầẩẫậđéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵ";
 const VN_TO = "aaaaaaaaaaaaaaaaadeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyy";
@@ -69,6 +70,8 @@ export interface PtSearchPageItem {
   distanceKm: number | null;
   distanceBasis: DiscoveryDistanceBasis;
   tier: number;
+  /** Same 30-day rule the default ranking used for this page (frozen cutoff for the whole pagination session). */
+  isNewTrainer: boolean;
 }
 
 export interface PtSearchPageResult {
@@ -198,11 +201,31 @@ function fromPriceColumnSql(mode?: "ONLINE" | "OFFLINE"): Prisma.Sql {
   return Prisma.sql`ds.from_price_overall`;
 }
 
+/** pa.approved_at is a `timestamp` (UTC wall clock, Prisma convention); the ISO string's "Z" is ignored by the cast. */
+function isNewTrainerSql(cutoffIso: string): Prisma.Sql {
+  return Prisma.sql`(pa.approved_at IS NOT NULL AND pa.approved_at > ${cutoffIso}::timestamp)`;
+}
+
+/**
+ * Interleaved final position of a trainer inside its (tier, accepting) group: the established stream takes positions
+ * 1..E-1, the new stream takes position E, 2E, ... (E = NEW_TRAINER_SLOT_EVERY), repeating. `rn` is the 1-based row
+ * number inside the PT's own stream. Positions never collide between the two streams; when a stream runs out the
+ * other simply keeps its own positions, so the order stays valid (only the 1-in-E rhythm relaxes).
+ *   new:         E * rn
+ *   established: rn + floor((rn - 1) / (E - 1)) = floor((E * rn - 1) / (E - 1))
+ */
+function interleavePositionSql(rn: Prisma.Sql, isNew: Prisma.Sql): Prisma.Sql {
+  const every = Prisma.raw(String(NEW_TRAINER_SLOT_EVERY));
+  const run = Prisma.raw(String(NEW_TRAINER_SLOT_EVERY - 1));
+  return Prisma.sql`((${every} * ${rn} - CASE WHEN ${isNew} THEN 0 ELSE 1 END) / CASE WHEN ${isNew} THEN 1 ELSE ${run} END)`;
+}
+
 function resolveOrderSql(
   sortBy: string | undefined,
   packageMode?: "ONLINE" | "OFFLINE",
   viewerGymIds: string[] = [],
   currentReadyEpoch: number | null = null,
+  newCutoffIso: string = newTrainerCutoff().toISOString(),
 ): { joinSql: Prisma.Sql; orderBySql: Prisma.Sql } {
   switch (sortBy) {
     case "nameAsc":
@@ -257,26 +280,29 @@ function resolveOrderSql(
         orderBySql: Prisma.sql`ORDER BY pr.from_price_per_session DESC NULLS LAST, p."userId" ASC`,
       };
     default: {
+      // Recommended order: is_accepting_clients first (hard), then the two streams interleaved (4 established : 1 new,
+      // see pt-new-trainer.ts). Inside each stream: same-gym preference, then quality, newest profile, id.
       const joinSql = currentStatsJoinSql();
-      if (viewerGymIds.length > 0) {
-        return {
-          joinSql,
-          orderBySql: Prisma.sql`ORDER BY
-            p.is_accepting_clients DESC,
-            EXISTS (
+      const isNew = isNewTrainerSql(newCutoffIso);
+      const sameGymOrder =
+        viewerGymIds.length > 0
+          ? Prisma.sql`EXISTS (
               SELECT 1 FROM pt_training_locations tl
               WHERE tl.pt_user_id = p."userId"
                 AND tl.is_active = true
                 AND tl.gym_id = ANY(${viewerGymIds}::text[])
-            ) DESC,
-            ds.quality DESC NULLS LAST,
-            p."createdAt" DESC,
-            p."userId" ASC`,
-        };
-      }
+            ) DESC,`
+          : Prisma.empty;
+      const rn = Prisma.sql`ROW_NUMBER() OVER (
+        PARTITION BY p.is_accepting_clients, ${isNew}
+        ORDER BY ${sameGymOrder} ds.quality DESC NULLS LAST, p."createdAt" DESC, p."userId" ASC
+      )`;
       return {
         joinSql,
-        orderBySql: Prisma.sql`ORDER BY p.is_accepting_clients DESC, ds.quality DESC NULLS LAST, p."createdAt" DESC, p."userId" ASC`,
+        orderBySql: Prisma.sql`ORDER BY
+          p.is_accepting_clients DESC,
+          ${interleavePositionSql(rn, isNew)} ASC,
+          p."userId" ASC`,
       };
     }
   }
@@ -447,7 +473,13 @@ export async function findDiscoveryPtPageIds(
   }
 
   const viewerGymIds = (filters.viewerGymIds ?? []).filter((id) => typeof id === "string" && id.length > 0);
-  const { joinSql, orderBySql } = resolveOrderSql(filters.sortBy, packageMode, viewerGymIds, currentReadyEpoch);
+  const { joinSql, orderBySql } = resolveOrderSql(
+    filters.sortBy,
+    packageMode,
+    viewerGymIds,
+    currentReadyEpoch,
+    newTrainerCutoff().toISOString(),
+  );
 
   const rows = await prisma.$queryRaw<{ userId: string }[]>(Prisma.sql`
     WITH pkg_flags AS (
@@ -497,16 +529,14 @@ function buildKeysetAfterSql(terms: KeysetTerm[], tailUserIdSql: Prisma.Sql, cur
   return acc;
 }
 
-function buildSearchKeysetWhereSql(
-  sortKind: DiscoverySortKey,
-  cursor: DiscoveryCursorPayload,
-  hasViewerGyms: boolean,
-): Prisma.Sql {
+function buildSearchKeysetWhereSql(sortKind: DiscoverySortKey, cursor: DiscoveryCursorPayload): Prisma.Sql {
   const terms: KeysetTerm[] = [
     { colSql: Prisma.sql`b.tier`, dir: "ASC", nullable: false, valueSql: Prisma.sql`${cursor.tier}::int4` },
   ];
 
   if (sortKind === "default") {
+    // Distance bucket / same gym / quality are already folded into the interleaved rank (computed per
+    // tier + accepting group, see `ranked` in the query), so the keyset is just (tier, accepting, rank).
     terms.push(
       {
         colSql: Prisma.sql`b.is_accepting_clients::int4`,
@@ -514,23 +544,8 @@ function buildSearchKeysetWhereSql(
         nullable: false,
         valueSql: Prisma.sql`${cursor.isAccepting ? 1 : 0}::int4`,
       },
-      { colSql: Prisma.sql`b.bucket`, dir: "ASC", nullable: false, valueSql: Prisma.sql`${cursor.bucket}::int4` },
+      { colSql: Prisma.sql`b.rank_pos`, dir: "ASC", nullable: false, valueSql: Prisma.sql`${cursor.rank ?? 0}::bigint` },
     );
-    if (hasViewerGyms) {
-      terms.push({
-        colSql: Prisma.sql`b.same_gym::int4`,
-        dir: "DESC",
-        nullable: false,
-        valueSql: Prisma.sql`${cursor.sameGym ? 1 : 0}::int4`,
-      });
-    }
-    terms.push({
-      colSql: Prisma.sql`b.sort_num`,
-      dir: "DESC",
-      nullable: true,
-      value: cursor.sortNum,
-      valueSql: Prisma.sql`${cursor.sortNum}::double precision`,
-    });
   } else if (sortKind === "nameAsc") {
     terms.push({
       colSql: Prisma.sql`b.sort_str`,
@@ -553,11 +568,9 @@ function buildSearchKeysetWhereSql(
   return buildKeysetAfterSql(terms, Prisma.sql`b."userId"`, cursor.userId);
 }
 
-function buildSearchOrderBySql(sortKind: DiscoverySortKey, hasViewerGyms: boolean): Prisma.Sql {
+function buildSearchOrderBySql(sortKind: DiscoverySortKey): Prisma.Sql {
   if (sortKind === "default") {
-    return hasViewerGyms
-      ? Prisma.sql`ORDER BY b.tier ASC, b.is_accepting_clients DESC, b.bucket ASC, b.same_gym DESC, b.sort_num DESC NULLS LAST, b."userId" ASC`
-      : Prisma.sql`ORDER BY b.tier ASC, b.is_accepting_clients DESC, b.bucket ASC, b.sort_num DESC NULLS LAST, b."userId" ASC`;
+    return Prisma.sql`ORDER BY b.tier ASC, b.is_accepting_clients DESC, b.rank_pos ASC, b."userId" ASC`;
   }
   if (sortKind === "nameAsc") {
     return Prisma.sql`ORDER BY b.tier ASC, b.sort_str ASC NULLS LAST, b."userId" ASC`;
@@ -688,6 +701,12 @@ export async function searchDiscoveryPtPageIds(
   if (decodedCursor && decodedCursor.filterHash !== filterHash) {
     throw new CursorFilterMismatchError();
   }
+  // A default-sort cursor issued before the interleaved ranking has no rank: the list changed shape, reload.
+  if (decodedCursor && sortKind === "default" && (decodedCursor.rank === undefined || decodedCursor.newCutoff === undefined)) {
+    throw new CursorExpiredError();
+  }
+  // The "new trainer" cutoff is fixed by the first page and carried in the cursor so streams cannot shift mid-pagination.
+  const newCutoffIso = decodedCursor?.newCutoff ?? newTrainerCutoff().toISOString();
 
   const packageMode = mode === "ONLINE" || mode === "OFFLINE" ? mode : undefined;
   const baseWhere = buildBaseVisibilityAndAttributeWhere({
@@ -726,9 +745,9 @@ export async function searchDiscoveryPtPageIds(
   }
 
   const keysetWhere = decodedCursor
-    ? buildSearchKeysetWhereSql(sortKind, decodedCursor, hasViewerGyms)
+    ? buildSearchKeysetWhereSql(sortKind, decodedCursor)
     : Prisma.sql`TRUE`;
-  const orderBySql = buildSearchOrderBySql(sortKind, hasViewerGyms);
+  const orderBySql = buildSearchOrderBySql(sortKind);
 
   type RawSearchRow = {
     userId: string;
@@ -739,6 +758,8 @@ export async function searchDiscoveryPtPageIds(
     distance_km: number | null;
     sort_num: number | null;
     sort_str: string | null;
+    is_new: boolean;
+    rank_pos: number | string | bigint | null;
   };
 
   const nearBboxFilterSql = Prisma.sql`(
@@ -863,6 +884,30 @@ export async function searchDiscoveryPtPageIds(
       : Prisma.sql`NULL::double precision`;
   }
 
+  // Default sort only: number each stream (established / new) inside its (tier, accepting) group by the original
+  // criteria (distance bucket, same gym, quality, id), then place established at 1..E-1 and new at E, 2E, ...
+  // The id tie-break uses COLLATE "C" (byte order): a locale text sort of ~10k ids was the costliest step of the window
+  // (measured on 10k PTs). It only orders PTs with exactly equal quality / distance bucket; the rank itself is unique per group.
+  const isDefaultSort = sortKind === "default";
+  const rankedCtesSql = isDefaultSort
+    ? Prisma.sql`,
+      streamed AS (
+        SELECT
+          ws.*,
+          ROW_NUMBER() OVER (
+            PARTITION BY ws.tier, ws.is_accepting_clients, ws.is_new
+            ORDER BY ws.bucket ASC, ${hasViewerGyms ? Prisma.sql`ws.same_gym DESC,` : Prisma.empty} ws.sort_num DESC NULLS LAST, ws."userId" COLLATE "C" ASC
+          ) AS stream_rn
+        FROM with_stats ws
+      ),
+      ranked AS (
+        SELECT sr.*, ${interleavePositionSql(Prisma.sql`sr.stream_rn`, Prisma.sql`sr.is_new`)} AS rank_pos
+        FROM streamed sr
+      )`
+    : Prisma.empty;
+  const finalSourceSql = isDefaultSort ? Prisma.sql`ranked` : Prisma.sql`with_stats`;
+  const rankSelectSql = isDefaultSort ? Prisma.sql`b.rank_pos` : Prisma.sql`NULL::bigint`;
+
   const { targetEpoch, rows } = await prisma.$transaction(async (tx) => {
     // Hằng cố định cho statement_timeout trong transaction; mọi tham số khác đi qua Prisma.sql parameterized.
     await tx.$executeRaw(Prisma.sql`SET LOCAL statement_timeout = '2s'`);
@@ -910,6 +955,7 @@ export async function searchDiscoveryPtPageIds(
           p."firstName" AS first_name,
           p.is_accepting_clients,
           ${hasViewerGyms ? Prisma.sql`(vgp.pt_user_id IS NOT NULL)` : Prisma.sql`false`} AS same_gym,
+          ${isNewTrainerSql(newCutoffIso)} AS is_new,
           ${tierExprSql} AS tier,
           ${distExprSql} AS distance_km
         FROM user_profiles p
@@ -931,6 +977,7 @@ export async function searchDiscoveryPtPageIds(
             ELSE 0
           END AS bucket,
           t.same_gym,
+          t.is_new,
           t.distance_km
         FROM tiered t
         WHERE t.tier IS NOT NULL
@@ -942,22 +989,25 @@ export async function searchDiscoveryPtPageIds(
           t.is_accepting_clients,
           t.bucket,
           t.same_gym,
+          t.is_new,
           t.distance_km,
           ${sortNumExpr} AS sort_num,
           ${sortStrExpr} AS sort_str
         FROM bucketed t
         LEFT JOIN ds_epoch ds ON ds.pt_user_id = t."userId"
-      )
+      )${rankedCtesSql}
       SELECT
         b."userId",
         b.tier,
         b.is_accepting_clients,
         b.bucket,
         b.same_gym,
+        b.is_new,
         b.distance_km,
         b.sort_num,
-        b.sort_str
-      FROM with_stats b
+        b.sort_str,
+        ${rankSelectSql} AS rank_pos
+      FROM ${finalSourceSql} b
       WHERE ${keysetWhere}
       ${orderBySql}
       LIMIT ${limit + 1}
@@ -973,6 +1023,7 @@ export async function searchDiscoveryPtPageIds(
     distanceKm: row.distance_km !== null ? roundDistanceKm(row.distance_km) : null,
     distanceBasis: row.distance_km !== null ? distanceBasis : null,
     tier: row.tier,
+    isNewTrainer: row.is_new === true,
   }));
 
   let nextCursor: string | null = null;
@@ -990,6 +1041,7 @@ export async function searchDiscoveryPtPageIds(
       sortNum: last.sort_num,
       sortStr: last.sort_str,
       userId: last.userId,
+      ...(isDefaultSort ? { rank: Number(last.rank_pos), newCutoff: newCutoffIso } : {}),
     });
   }
 

@@ -223,6 +223,22 @@ export function operationalActions(status: string | null | undefined): { reopen:
   return { reopen: false, closeTemporarily: true, closePermanently: true };
 }
 
+/**
+ * `operationalActions` narrowed by what the server's permissions[] allows (Item 5, fail-closed):
+ * reopen / temporary close need `branch.status.temporary`, permanent close needs `branch.status.permanent` (owner only).
+ */
+export function permittedOperationalActions(
+  status: string | null | undefined,
+  allowed: { temporary: boolean; permanent: boolean },
+): { reopen: boolean; closeTemporarily: boolean; closePermanently: boolean } {
+  const a = operationalActions(status);
+  return {
+    reopen: a.reopen && allowed.temporary,
+    closeTemporarily: a.closeTemporarily && allowed.temporary,
+    closePermanently: a.closePermanently && allowed.permanent,
+  };
+}
+
 /** Optional reopen date for a temporary closure: YYYY-MM-DD, today or later (web's date input `min`). */
 export function reopenDateError(value: string, todayKey: string): string | null {
   const v = value.trim();

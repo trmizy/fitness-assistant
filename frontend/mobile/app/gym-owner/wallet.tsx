@@ -1,9 +1,9 @@
 import { useCallback, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFocusEffect } from "expo-router";
+import { Redirect, router, useFocusEffect } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Banknote, Building2, Clock, Wallet as WalletIcon } from "lucide-react-native";
+import { AlertTriangle, Banknote, Building2, Clock, Wallet as WalletIcon } from "lucide-react-native";
 
 import {
   Badge,
@@ -13,6 +13,7 @@ import {
   CountUp,
   EmptyState,
   Input,
+  ScreenHeader,
   Stagger,
   StaggerItem,
   Tappable,
@@ -24,21 +25,28 @@ import { useApp } from "../../src/context/AppContext";
 import { useWorkspaceAccent } from "../../src/theme/workspace";
 import { designTokens } from "../../src/theme/colors";
 import { formatVND } from "../../src/utils/currency";
-import { money, parseAmountInput, withdrawFormError, withdrawalStatus } from "../../src/features/wallet/wallet";
+import { money, parseAmountInput, withdrawalStatus } from "../../src/features/wallet/wallet";
 import { BranchSwitcher } from "../../src/features/gymOwner/BranchSwitcher";
 import { WalletLoadError } from "../../src/features/gymOwner/WalletLoadError";
+import { InlineRefusal } from "../../src/features/services/InlineRefusal";
+import { useStaffPermissions } from "../../src/features/gymOwner/useStaffPermissions";
+import { walletRouteRedirect } from "../../src/features/gymOwner/staffRoles";
 import {
-  branchName,
-  isManagerAccount,
-  openWithdrawals,
-  ownedGyms,
-  savedPayoutLine,
-  withdrawableCeiling,
-  withdrawalRows,
-} from "../../src/features/gymOwner/gymOwner";
+  gymWithdrawFormError,
+  gymWithdrawalErrorMessage,
+  payoutAccountState,
+  registeredPayoutText,
+  rejectionReasonLine,
+  reservedPendingOf,
+  withdrawCeiling,
+  withdrawableOf,
+} from "../../src/features/gymOwner/gymWithdrawal";
+import { branchName, openWithdrawals, ownedGyms, withdrawalRows } from "../../src/features/gymOwner/gymOwner";
 
 /**
- * GY-04 — "Ví". Ví thuộc về từng CHI NHÁNH (`/owner/gyms/:gymId/wallet`), không phải thương hiệu,
+ * GY-04 — "Ví". 23/11/2026: không còn là tab; là màn con của "Tài chính" (mục "Ví & rút tiền", chỉ chủ sở hữu), route ẩn nên liên kết
+ * cũ vẫn mở được. Vai trò không có `finance.wallet.view` bị chuyển về trang chủ của vai trò đó.
+ * Ví thuộc về từng CHI NHÁNH (`/owner/gyms/:gymId/wallet`), không phải thương hiệu,
  * nên màn này có bộ chuyển chi nhánh giống Tổng quan. Trên web nó là một khối nằm trong trang quản
  * lý từng phòng gym; ở đây tách thành tab riêng vì tiền là việc chủ gym mở ra xem thường xuyên nhất,
  * không nên chôn sau hai lần bấm.
@@ -46,6 +54,9 @@ import {
  * Yêu cầu rút chỉ tạo một dòng PENDING — **không có đồng nào chuyển đi** cho tới khi quản trị viên
  * chuyển khoản tay và đánh dấu đã trả (money-flow plan 5.3). Màn nói đúng như vậy thay vì để chủ gym
  * tưởng tiền đang trên đường về.
+ *
+ * 22/11/2026: tiền rút luôn về tài khoản nhận tiền ĐÃ ĐĂNG KÝ của đối tác (chỉ đọc ở đây, đổi trong Hồ sơ);
+ * app không còn ô nhập tài khoản và không gửi `payoutInfo`. "Có thể rút" lấy từ `withdrawable` của máy chủ.
  */
 export default function GymOwnerWalletScreen() {
   const insets = useSafeAreaInsets();
@@ -58,20 +69,19 @@ export default function GymOwnerWalletScreen() {
   const [selectedId, setSelectedId] = useState("");
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
-  const [payoutInfo, setPayoutInfo] = useState("");
+  // A server refusal is written INSIDE the sheet (a native Modal hides the app's toast).
+  const [refusal, setRefusal] = useState<string | null>(null);
 
   const gymsQuery = useQuery({ queryKey: ["owned-gyms", uid], queryFn: () => gymService.listOwnedGyms() });
   const gyms = ownedGyms(gymsQuery.data);
   const active = gyms.find((g) => g.id === selectedId) ?? gyms[0] ?? null;
   const activeId = active?.id ?? "";
 
-  const onboardingQuery = useQuery({
-    queryKey: ["partner-onboarding-status", uid],
-    queryFn: () => gymService.getOnboardingStatus(),
-  });
-  // Wallet + withdrawals are OWNER-only on the server; a manager reaching this by link sees why.
-  const manager = isManagerAccount(onboardingQuery.data);
-  const canSeeMoney = !!activeId && onboardingQuery.isSuccess && !manager;
+  const { can, status, isLoading: statusLoading } = useStaffPermissions();
+  // Wallet + withdrawals are OWNER-only on the server; a manager reaching this by link sees why. Fail-closed: unknown = no.
+  const canSeeWallet = can("finance.wallet.view");
+  const canWithdraw = can("finance.withdraw");
+  const canSeeMoney = !!activeId && canSeeWallet;
 
   const walletQuery = useQuery({
     queryKey: ["owned-gym-wallet", activeId],
@@ -92,30 +102,50 @@ export default function GymOwnerWalletScreen() {
 
   const rows = withdrawalRows(withdrawalsQuery.data);
   const openRows = openWithdrawals(rows);
-  const ceiling = withdrawableCeiling(walletQuery.data, rows);
-  const savedPayout = savedPayoutLine(onboardingQuery.data);
+  const wallet = walletQuery.data as any;
+  // "Có thể rút" = the number payment-service checks a request against (withdrawable); old servers fall back to availableBalance.
+  const withdrawable = withdrawableOf(wallet);
+  const reserved = reservedPendingOf(wallet);
+  const ceiling = withdrawCeiling(wallet, rows);
+  // The destination is ALWAYS the partner's registered payout account (read-only here, changed in Hồ sơ); no free-text input, no payoutInfo sent.
+  const payoutState = payoutAccountState(status);
+  const payoutText = registeredPayoutText((status as { payout?: any } | undefined)?.payout);
 
-  const error = withdrawFormError(parseAmountInput(amount), payoutInfo, ceiling);
+  const error = gymWithdrawFormError(parseAmountInput(amount), ceiling, payoutState);
 
   const request = useMutation({
-    mutationFn: () => gymService.requestGymWithdrawal(activeId, parseAmountInput(amount), payoutInfo.trim()),
+    mutationFn: () => gymService.requestGymWithdrawal(activeId, parseAmountInput(amount)),
     onSuccess: () => {
       toast.show("Đã gửi yêu cầu rút tiền", "success");
       setOpen(false);
       setAmount("");
+      setRefusal(null);
       void qc.invalidateQueries({ queryKey: ["owned-gym-withdrawals", activeId] });
       void qc.invalidateQueries({ queryKey: ["owned-gym-wallet", activeId] });
     },
-    onError: (e: any) =>
-      toast.show(e?.response?.data?.error?.message || "Không gửi được yêu cầu rút tiền", "danger"),
+    onError: (e) => {
+      const message = gymWithdrawalErrorMessage(e);
+      setRefusal(message);
+      toast.show(message, "danger");
+    },
   });
+
+  const goToProfile = () => {
+    setOpen(false);
+    router.push("/gym-owner/profile" as never);
+  };
 
   const refreshing = walletQuery.isRefetching || withdrawalsQuery.isRefetching;
 
+  // A role that is known but may not read the wallet (manager, receptionist) is sent home, not left on a dead end.
+  const redirectTo = statusLoading ? null : walletRouteRedirect(status);
+  if (redirectTo) return <Redirect href={redirectTo as never} />;
+
   return (
     <View className="flex-1 bg-background">
+      <ScreenHeader title="Ví" onBack={() => (router.canGoBack() ? router.back() : router.replace("/gym-owner/finance" as never))} />
       <ScrollView
-        contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32 }}
+        contentContainerStyle={{ paddingTop: 16, paddingBottom: insets.bottom + 32 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -129,13 +159,12 @@ export default function GymOwnerWalletScreen() {
         }
       >
         <View className="px-5">
-          <Text className="font-display text-xl text-foreground">Ví</Text>
-          <Text className="mt-0.5 font-body text-xs text-muted-foreground">Số dư và yêu cầu rút tiền theo chi nhánh</Text>
+          <Text className="font-body text-xs text-muted-foreground">Số dư và yêu cầu rút tiền theo chi nhánh</Text>
         </View>
 
-        {gymsQuery.isLoading || onboardingQuery.isLoading ? (
+        {gymsQuery.isLoading || statusLoading ? (
           <ActivityIndicator className="mt-10" color={accent.primary} />
-        ) : manager ? (
+        ) : !canSeeWallet ? (
           <View className="px-5 pt-8">
             <EmptyState icon={WalletIcon} title="Chỉ dành cho chủ phòng gym" description="Ví và rút tiền của chi nhánh do chủ phòng gym quản lý." />
           </View>
@@ -161,7 +190,7 @@ export default function GymOwnerWalletScreen() {
                     <WalletLoadError onRetry={() => void walletQuery.refetch()} retrying={walletQuery.isFetching} />
                   ) : (
                     <CountUp
-                      to={money((walletQuery.data as any)?.availableBalance)}
+                      to={withdrawable}
                       suffix=" ₫"
                       locale="vi-VN"
                       className="mt-1 font-display text-4xl text-foreground"
@@ -171,21 +200,21 @@ export default function GymOwnerWalletScreen() {
                     <Clock size={13} color={designTokens.warning} />
                     <Text className="font-body text-xs text-muted-foreground">
                       Đang chờ (gói hội viên chưa kết thúc):{" "}
-                      <Text className="text-warning">{formatVND(money((walletQuery.data as any)?.pendingBalance))}</Text>
+                      <Text className="text-warning">{formatVND(money(wallet?.pendingBalance))}</Text>
                     </Text>
                   </View>
-                  {ceiling < money((walletQuery.data as any)?.availableBalance) ? (
+                  {reserved > 0 ? (
                     <Text className="mt-1 font-body text-[11px] text-muted-foreground">
-                      Rút được tối đa {formatVND(ceiling)} — phần còn lại đang nằm trong yêu cầu chờ xử lý.
+                      Đang giữ cho yêu cầu rút chờ duyệt: {formatVND(reserved)}
                     </Text>
                   ) : null}
                   <Button
                     className="mt-4"
                     icon={Banknote}
-                    disabled={!activeId || ceiling <= 0}
+                    disabled={!activeId || ceiling <= 0 || !canWithdraw}
                     onPress={() => {
                       setAmount("");
-                      if (!payoutInfo) setPayoutInfo(savedPayout);
+                      setRefusal(null);
                       setOpen(true);
                     }}
                   >
@@ -194,6 +223,11 @@ export default function GymOwnerWalletScreen() {
                   {ceiling <= 0 ? (
                     <Text className="mt-2 text-center font-body text-[11px] text-muted-foreground">
                       Chưa có số dư nào rút được.
+                    </Text>
+                  ) : null}
+                  {!canWithdraw ? (
+                    <Text className="mt-2 text-center font-body text-[11px] text-muted-foreground">
+                      Chỉ chủ sở hữu được gửi yêu cầu rút tiền.
                     </Text>
                   ) : null}
                 </Card>
@@ -235,6 +269,7 @@ export default function GymOwnerWalletScreen() {
                   ) : (
                     rows.map((w, i) => {
                       const st = withdrawalStatus(w.status);
+                      const rejection = rejectionReasonLine(w);
                       return (
                         <View key={w.id} className={`flex-row items-center justify-between gap-3 p-4 ${i > 0 ? "border-t border-border" : ""}`}>
                           <View className="min-w-0 flex-1">
@@ -242,6 +277,11 @@ export default function GymOwnerWalletScreen() {
                             {w.createdAt ? (
                               <Text className="font-body text-xs text-muted-foreground">
                                 {new Date(w.createdAt).toLocaleDateString("vi-VN")}
+                              </Text>
+                            ) : null}
+                            {rejection ? (
+                              <Text className="mt-0.5 font-body text-xs text-destructive" testID="gym-withdrawal-rejection-reason">
+                                {rejection}
                               </Text>
                             ) : null}
                           </View>
@@ -270,19 +310,38 @@ export default function GymOwnerWalletScreen() {
             placeholder="500000"
             placeholderTextColor={inputPlaceholderColor}
           />
-          <Input
-            label="Tài khoản nhận tiền"
-            value={payoutInfo}
-            onChangeText={setPayoutInfo}
-            placeholder="Ngân hàng — số tài khoản — chủ tài khoản"
-            placeholderTextColor={inputPlaceholderColor}
-          />
-          {savedPayout && payoutInfo !== savedPayout ? (
-            <Tappable accessibilityLabel="Dùng tài khoản đã lưu" onPress={() => setPayoutInfo(savedPayout)} className="self-start">
-              <Text className="font-body-semibold text-xs text-primary">Dùng tài khoản đã lưu</Text>
-            </Tappable>
-          ) : null}
-          <Button disabled={!!error || request.isPending} onPress={() => request.mutate()}>
+          {payoutState === "registered" ? (
+            <View className="gap-1 rounded-xl border border-border bg-panel p-3" testID="gym-withdraw-registered-payout">
+              <Text className="font-body text-[11px] text-muted-foreground">Chuyển khoản tới tài khoản nhận tiền đã đăng ký</Text>
+              <Text className="font-body-semibold text-sm text-foreground">{payoutText}</Text>
+              <Tappable accessibilityLabel="Đổi tài khoản nhận tiền trong Hồ sơ" onPress={goToProfile} className="min-h-10 justify-center self-start">
+                <Text className="font-body-semibold text-xs text-primary">Đổi tài khoản trong Hồ sơ đối tác</Text>
+              </Tappable>
+            </View>
+          ) : (
+            <View className="gap-1 rounded-xl border border-warning/40 bg-warning/10 p-3" testID="gym-withdraw-payout-missing" accessibilityRole="alert">
+              <View className="flex-row items-center gap-1.5">
+                <AlertTriangle size={14} color={designTokens.warning} />
+                <Text className="font-body-semibold text-xs text-foreground">Chưa có tài khoản nhận tiền đã đăng ký</Text>
+              </View>
+              <Text className="font-body text-xs text-muted-foreground">
+                {payoutState === "missing"
+                  ? "Tiền rút luôn được chuyển tới tài khoản này, nên cần khai báo trước khi gửi yêu cầu."
+                  : "Chưa đọc được tài khoản nhận tiền. Kéo xuống để tải lại hoặc mở Hồ sơ để kiểm tra."}
+              </Text>
+              <Tappable accessibilityLabel="Khai báo tài khoản nhận tiền trong Hồ sơ" onPress={goToProfile} className="min-h-10 justify-center self-start">
+                <Text className="font-body-semibold text-xs text-primary">Khai báo trong Hồ sơ đối tác</Text>
+              </Tappable>
+            </View>
+          )}
+          <InlineRefusal message={refusal} testID="gym-withdraw-refusal" />
+          <Button
+            disabled={!!error || request.isPending}
+            onPress={() => {
+              setRefusal(null);
+              request.mutate();
+            }}
+          >
             {request.isPending ? "Đang gửi…" : "Gửi yêu cầu"}
           </Button>
           {error ? <Text className="text-center font-body text-xs text-muted-foreground">{error}</Text> : null}

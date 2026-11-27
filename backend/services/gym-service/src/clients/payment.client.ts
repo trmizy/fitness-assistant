@@ -60,6 +60,27 @@ export interface MembershipSupplementAnswer {
   obligationId?: string;
 }
 
+export interface GymMembershipIncomeDay {
+  date: string;
+  sales: number;
+  grossPrice: number;
+  gymShare: number;
+  feeAtSale: number;
+  referralCommission: number;
+  adjustments: number;
+  net: number;
+}
+
+/** payment-service GET /internal/gyms/:gymId/membership-income. `daily` holds only the days with ledger entries. */
+export interface GymMembershipIncomeAnswer {
+  gymId: string;
+  from: string;
+  to: string;
+  walletFound: boolean;
+  daily: GymMembershipIncomeDay[];
+  totals: Omit<GymMembershipIncomeDay, 'date'>;
+}
+
 export const paymentClient = {
   /**
    * Start a gateway checkout for a membership. The client pays the gateway directly; the
@@ -298,6 +319,30 @@ export const paymentClient = {
     });
   },
 
+  /**
+   * READ-ONLY: what the gym wallet's ledger says it earned from membership sales per Vietnam day, between two instants ([start, end)).
+   * The ledger owner (payment-service) does the aggregation; gym-service never recomputes a split or a commission.
+   */
+  async getGymMembershipIncome(gymId: string, start: Date, end: Date): Promise<GymMembershipIncomeAnswer> {
+    const qs = new URLSearchParams({ from: start.toISOString(), to: end.toISOString() });
+    if (process.env.PAYMENT_LAMBDA_NAME) {
+      const result = await invokeHttpLambda({
+        functionName: process.env.PAYMENT_LAMBDA_NAME,
+        method: 'GET',
+        path: `/internal/gyms/${gymId}/membership-income`,
+        queryStringParameters: Object.fromEntries(qs),
+        headers,
+      });
+      throwForLambdaHttpError(result);
+      return result.body.data as GymMembershipIncomeAnswer;
+    }
+    return paymentRequest<GymMembershipIncomeAnswer>({
+      method: 'GET',
+      path: `/internal/gyms/${gymId}/membership-income?${qs.toString()}`,
+      timeout: 10_000,
+    });
+  },
+
   async getWallet(ownerType: 'GYM', ownerId: string): Promise<any> {
     return paymentRequest<any>({
       method: 'GET',
@@ -310,12 +355,25 @@ export const paymentClient = {
   // owner.routes.ts's /gyms/:gymId/withdrawals) before ever reaching here; payment-service
   // trusts the gymId because this call only comes over the service-secret-gated /internal
   // boundary, never from a browser.
-  async requestGymWithdrawal(gymId: string, amount: string, payoutInfo: string, entityOrigin?: EntityOrigin): Promise<any> {
+  // Owner decision 22/11/2026: `payout.payoutInfo` is the partner's REGISTERED payout account as read by gym-service (never the client's text) and
+  // `payout.requestedByUserId` is the authenticated user; payment-service's route refuses a call without `payoutSource: 'REGISTERED_ACCOUNT'`.
+  async requestGymWithdrawal(
+    gymId: string,
+    amount: string,
+    payout: { payoutInfo: string; requestedByUserId: string },
+    entityOrigin?: EntityOrigin,
+  ): Promise<any> {
     return paymentRequest<any>({
       method: 'POST',
       path: `/internal/withdrawals/gym/${gymId}`,
       timeout: 10_000,
-      body: { amount, payoutInfo, ...(entityOrigin ? { entityOrigin } : {}) },
+      body: {
+        amount,
+        payoutInfo: payout.payoutInfo,
+        payoutSource: 'REGISTERED_ACCOUNT',
+        requestedByUserId: payout.requestedByUserId,
+        ...(entityOrigin ? { entityOrigin } : {}),
+      },
     });
   },
 

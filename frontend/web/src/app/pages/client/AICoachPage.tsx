@@ -318,9 +318,23 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
     }
   }, [archiveTarget, activeSessionId, queryClient, userScopeId, setSearchParams]);
 
+  // Floating panel only (compact + onClose): a close control must be reachable in EVERY view, not just the chat header.
+  const panelCloseButton = (
+    <button
+      type="button"
+      onClick={onClose}
+      aria-label="Đóng AI Coach"
+      data-testid="ai-coach-close"
+      className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:text-zinc-200"
+    >
+      <X className="w-4 h-4" aria-hidden="true" />
+    </button>
+  );
+
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-zinc-950">
+      <div className="relative flex-1 flex items-center justify-center bg-zinc-950">
+        {compact && onClose && <div className="absolute right-3 top-3">{panelCloseButton}</div>}
         <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
       </div>
     );
@@ -492,7 +506,7 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
 
     return (
       <div className="mt-3 border-t border-zinc-800/80 pt-2 space-y-1.5">
-        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-300">
+        <div className="flex items-center gap-1.5 text-[10px] font-semibold text-cyan-300">
           <BookOpen className="w-3 h-3" />
           Sources
         </div>
@@ -536,14 +550,15 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
       <div
         className={`${mobileView === "chat" ? "hidden" : "flex"} ${wideLayoutClass} flex-col w-full ${wideSidebarWidthClass} bg-zinc-900 border-r border-zinc-800/60 flex-shrink-0`}
       >
-        <div className="p-3 border-b border-zinc-800/60">
+        <div className="p-3 border-b border-zinc-800/60 flex items-center gap-2">
           <button
             onClick={startNewChat}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-semibold rounded-xl transition-colors"
+            className="flex-1 min-w-0 flex items-center justify-center gap-2 px-3 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-semibold rounded-xl transition-colors"
           >
             <Plus className="w-4 h-4" />
             Cuộc trò chuyện mới
           </button>
+          {compact && onClose && panelCloseButton}
         </div>
         <div className="flex-1 overflow-y-auto">
           {sessions.length > 0 ? (
@@ -834,7 +849,7 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
         {/* Suggestions */}
         {messages.length <= 1 && (
           <div className="px-4 pt-2 flex-shrink-0">
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className="flex gap-2 overflow-x-auto g-scroll-x pb-1">
               {suggestions.map((s) => (
                 <button
                   key={s}
@@ -926,8 +941,10 @@ export function AICoachPage({ onClose, compact }: { onClose?: () => void; compac
               disabled={aiLoading}
             />
             <button
+              type="button"
               onClick={() => (stagedImageFile ? void sendImageChat() : send(input))}
               disabled={(!input.trim() && !stagedImageFile) || aiLoading || imageChatBusy}
+              aria-label={aiLoading || imageChatBusy ? "Đang gửi" : "Gửi tin nhắn"}
               className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full transition-all disabled:opacity-40"
               style={{
                 backgroundColor: "var(--button-bg)",

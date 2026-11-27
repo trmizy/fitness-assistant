@@ -12,9 +12,9 @@ import assert from "node:assert/strict";
 import http from "node:http";
 
 process.env.NODE_ENV = "test";
-process.env.AUTH_SERVICE_URL = "http://127.0.0.1:4051";
-process.env.GYM_SERVICE_URL = "http://127.0.0.1:4052";
-process.env.USER_SERVICE_URL = "http://127.0.0.1:4053";
+process.env.AUTH_SERVICE_URL = "http://127.0.0.1:4171";
+process.env.GYM_SERVICE_URL = "http://127.0.0.1:4172";
+process.env.USER_SERVICE_URL = "http://127.0.0.1:4173";
 process.env.INTERNAL_SERVICE_SECRET = "gateway-secret-gym-media-test";
 
 let app: any;
@@ -44,9 +44,9 @@ test.before(async () => {
     res.end("{}");
   });
 
-  await new Promise<void>((resolve) => authServer.listen(4051, "127.0.0.1", resolve));
-  await new Promise<void>((resolve) => gymServer.listen(4052, "127.0.0.1", resolve));
-  await new Promise<void>((resolve) => userServer.listen(4053, "127.0.0.1", resolve));
+  await new Promise<void>((resolve) => authServer.listen(4171, "127.0.0.1", resolve));
+  await new Promise<void>((resolve) => gymServer.listen(4172, "127.0.0.1", resolve));
+  await new Promise<void>((resolve) => userServer.listen(4173, "127.0.0.1", resolve));
   gatewayServer = http.createServer(app);
   await new Promise<void>((resolve) => gatewayServer.listen(0, "127.0.0.1", resolve));
   const address = gatewayServer.address();

@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Redirect, router } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { Building2, ChevronRight, MapPin, Phone, QrCode } from "lucide-react-native";
 
@@ -35,7 +35,12 @@ export default function FrontDeskScreen() {
   const accent = useWorkspaceAccent();
   const { user } = useApp();
   const uid = user?.id ?? "guest";
-  const [selectedId, setSelectedId] = useState("");
+  // The bell notice for a new check-in exception links to ?gymId=<branch>, so an owner / manager with several branches lands on the right one.
+  const { gymId: requestedGymId } = useLocalSearchParams<{ gymId?: string }>();
+  const [selectedId, setSelectedId] = useState(typeof requestedGymId === "string" ? requestedGymId : "");
+  useEffect(() => {
+    if (typeof requestedGymId === "string" && requestedGymId) setSelectedId(requestedGymId);
+  }, [requestedGymId]);
   const [search, setSearch] = useState("");
 
   const statusQuery = useQuery({
@@ -178,7 +183,7 @@ export default function FrontDeskScreen() {
               </StaggerItem>
 
               <StaggerItem>
-                <CheckinExceptionsPanel gymId={gymId} />
+                <CheckinExceptionsPanel gymId={gymId} gymName={active ? branchName(active) : undefined} />
               </StaggerItem>
 
               <StaggerItem>

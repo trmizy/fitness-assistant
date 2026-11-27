@@ -21,7 +21,7 @@ import { SectionCard } from "../client/settings/components/SectionCard";
 import { SOCIALS, SocialLinks, type SocialKey } from "../../components/gym/SocialLinks";
 import { ABOUT_MAX, AboutCounter } from "../../components/gym/AboutCounter";
 import { BrandLogoUpload } from "../partner-application/uploaders";
-import { PARTNER_ROLE_CHIP_LABEL, canViewBrands, normalizePartnerRole } from "../../utils/gymStaffRole";
+import { PARTNER_ROLE_CHIP_LABEL, canViewBrands, hasPartnerPermission, normalizePartnerRole } from "../../utils/gymStaffRole";
 import { authErrorMessage } from "../../utils/authErrors";
 import { isValidPhoneNumber } from "../../utils/phone";
 
@@ -31,7 +31,7 @@ const btnCls =
   "inline-flex items-center gap-1.5 rounded-lg bg-green-500 px-4 py-2 text-sm font-bold text-black hover:bg-green-400 disabled:opacity-50";
 
 type Payout = { bankName: string | null; accountNumber: string | null; accountHolder: string | null };
-type OnboardingStatus = { role: "OWNER" | "MANAGER" | "RECEPTIONIST" | "ACCOUNTANT"; hasPartnerAccount?: boolean; contactPhone?: string | null; payout?: Payout | null };
+type OnboardingStatus = { role: "OWNER" | "MANAGER" | "RECEPTIONIST" | "ACCOUNTANT"; permissions?: string[]; hasPartnerAccount?: boolean; contactPhone?: string | null; payout?: Payout | null };
 
 const errMessage = (e: any, fallback: string) => {
   const err = e?.response?.data?.error;
@@ -79,7 +79,9 @@ export function GymOwnerProfilePage() {
   });
   const { data: gyms = [] } = useQuery<Gym[]>({ queryKey: ["owned-gyms"], queryFn: () => gymService.listOwnedGyms() });
   const brand = brands[0];
-  const isOwner = (status?.role ?? "OWNER") === "OWNER"; // quản lý/lễ tân/kế toán không thấy phần nhận tiền
+  // Item 2: FAIL-CLOSED — chưa biết vai trò (đang tải / lỗi) thì KHÔNG coi là chủ sở hữu (trước đây có giá trị mặc định OWNER, hiện sẵn form thương hiệu + tài khoản nhận tiền).
+  // Quản lý/lễ tân/kế toán không thấy phần nhận tiền. Dựa vào permissions[] của server (brand.write là quyền chỉ-chủ).
+  const isOwner = hasPartnerPermission(status?.role, status?.permissions, "brand.write");
   const brandName = brand ? brand.approvedName ?? brand.name : null;
 
   // ── Thương hiệu ──

@@ -7,6 +7,7 @@ import { partnerService } from './partner.service';
 import type { PartnerContext } from './partner.service';
 import { isValidPhoneNumber, PHONE_INVALID_MESSAGE } from '../utils/phone.util';
 import { deriveAccessState, type AccessState } from './partner-application.state';
+import { permissionsOf } from './partner-permissions';
 
 function err(message: string, status: number, code?: string) {
   return Object.assign(new Error(message), { status, ...(code ? { code } : {}) });
@@ -84,6 +85,9 @@ export const onboardingService = {
     // contactPhone: trang hồ sơ cá nhân của chủ gym/quản lý đọc số hiện tại từ đây (không có endpoint đọc riêng).
     return {
       role: account.role,
+      // Item 5 (Ngài chốt): MỘT nguồn sự thật cho FE — danh sách quyền của vai trò, lấy từ cùng catalogue mà
+      // requirePermission dùng (partner-permissions.ts). FE render nút ghi theo đây (fail-closed), không tự giữ bảng quyền.
+      permissions: permissionsOf(account.role),
       steps,
       completed,
       currentStep,

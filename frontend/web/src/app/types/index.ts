@@ -175,6 +175,8 @@ export interface Contract {
   ptProfile?: ContractPartyProfile | null;
   /** Attached on `/contracts/pt` — who the client is. */
   clientProfile?: ContractPartyProfile | null;
+  /** The client's photo on `GET /contracts/pt` (same value as `clientProfile.photoUrl`). */
+  clientAvatarUrl?: string | null;
   /** Attached on `/contracts/pt` — this client's aggregate rating from OTHER PTs' past
    * sessions with them (ClientReview, the mirror-image of a PT's own SessionReview rating). */
   clientRating?: { avgRating: number | null; ratingCount: number };
@@ -410,6 +412,10 @@ export interface Wallet {
   updatedAt: string;
   /** Chỉ ví chi nhánh (GYM): nền tảng đã tự trừ bao nhiêu nợ từ thu nhập mới và còn nợ bao nhiêu (payment-service, FIX3-PAY). */
   gymDebt?: GymDebtSummary;
+  /** Chỉ ví chi nhánh (GYM): số THỰC SỰ rút được lúc này = khả dụng − yêu cầu đang chờ − nợ nền tảng; payment-service dùng cùng công thức khi kiểm yêu cầu rút. Máy chủ cũ không gửi → dùng availableBalance. */
+  withdrawable?: string;
+  /** Chỉ ví chi nhánh (GYM): tổng các yêu cầu rút đang chờ duyệt (đang được giữ). */
+  reservedPending?: string;
 }
 
 export interface GymDebtSummary {
@@ -709,6 +715,25 @@ export interface GymMembershipContract {
   memberCode?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/** GET /owner/gyms/:gymId/stats — KPI do DB đếm theo ngày VN (Item 4). Khối `null` = vai trò không có quyền đọc dữ liệu đó. */
+export interface GymStats {
+  gymId: string;
+  timeZone: string;
+  /** 'YYYY-MM-DD' (giờ VN), cả hai đầu đều tính. */
+  from: string;
+  to: string;
+  today: string;
+  checkins: { today: number; total: number; daily: { date: string; count: number }[] } | null;
+  memberships: {
+    /** Thẻ đang chạy ngay lúc này (ACTIVE, chưa quá hạn, đã bắt đầu). */
+    active: number;
+    expiringSoon: number;
+    expiringSoonDays: number;
+    /** Đếm trạng thái thô; có thể có trạng thái mà FE chưa đặt nhãn (PENDING_ISSUE). */
+    byStatus: Record<string, number>;
+  } | null;
 }
 
 // ─── Phase 4: check-in + reviews ─────────────────────────────────────
@@ -1105,7 +1130,9 @@ export interface PtSearchRequest {
 }
 
 export interface PtSearchResponse {
-  pts: Array<Record<string, any> & { distanceKm?: number | null; distanceBasis?: DiscoveryDistanceBasis }>;
+  pts: Array<
+    Record<string, any> & { distanceKm?: number | null; distanceBasis?: DiscoveryDistanceBasis; isNewTrainer?: boolean }
+  >;
   nextCursor: string | null;
   hasMore: boolean;
   appliedScope: DiscoveryScope;

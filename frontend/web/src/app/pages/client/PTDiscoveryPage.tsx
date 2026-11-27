@@ -21,6 +21,7 @@ import {
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { mergeUniquePages, nextCursorParam } from "../../utils/ptPaging";
 import { isSafeHttpUrl } from "../../utils/safeUrl";
+import { fullName } from "../../utils/fullName";
 import { useApp } from "../../context/AppContext";
 import { SearchRegionBar, type GpsStatus, type RegionItem } from "../../components/location/SearchRegionBar";
 import {
@@ -51,6 +52,8 @@ import { PACKAGE_CHANGED_MESSAGE, PACKAGE_CHANGED_TITLE, isPtGone, readPackageCh
 import { QUICK_FILTERS } from "../../constants/specialties";
 import { optionLabel, TARGET_GROUP_OPTIONS, TRAINING_GOAL_OPTIONS } from "../../utils/ptListing";
 import { Stars } from "../../components/gym/Stars";
+import { NewTrainerBadge } from "../../components/ui/NewTrainerBadge";
+import { isNewTrainerPt } from "../../utils/ptNewTrainer";
 import { GymDetailModal } from "../../components/gym/GymDetailModal";
 import { buildPtRequestResumePath, parsePtRequestResume } from "../../utils/paymentReturn";
 import {
@@ -70,6 +73,13 @@ import {
 } from "../../utils/independentVenue";
 import { PtBookableSchedule } from "../../components/booking/PtBookableSchedule";
 import { PtWeeklySchedule } from "../../components/booking/PtWeeklySchedule";
+import { ActivePill } from "../../components/ui/ActivePill";
+import { ContentTabs, PanelIf } from "../../components/ui/nav/ContentTabs";
+import { isWebPresentation } from "../../utils/webPresentation";
+import { FilterChips } from "../../components/ui/nav/FilterChips";
+
+// WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
+const WEB_UI = isWebPresentation();
 
 const isValidPrice = (p: unknown): p is number =>
   typeof p === "number" && p > 0;
@@ -774,7 +784,7 @@ export function PTDiscoveryPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">
+              <label className="text-xs text-zinc-500 mb-1 block">
                 Giá tối thiểu (VND)
               </label>
               <input
@@ -792,7 +802,7 @@ export function PTDiscoveryPage() {
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">
+              <label className="text-xs text-zinc-500 mb-1 block">
                 Giá tối đa (VND)
               </label>
               <input
@@ -830,7 +840,10 @@ export function PTDiscoveryPage() {
       )}
 
       {/* Server-side specialty chips */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      {WEB_UI ? (
+        <FilterChips label="Lọc theo chuyên môn" value={activeFilter} onChange={setActiveFilter} options={filters.map((f, i) => ({ value: filterValues[i], label: f }))} testId="pt-discovery-specialty" />
+      ) : (
+      <div className="flex gap-2 overflow-x-auto g-scroll-x pb-1">
         {filters.map((f, i) => (
           <button
             key={f}
@@ -846,6 +859,7 @@ export function PTDiscoveryPage() {
           </button>
         ))}
       </div>
+      )}
 
       {listUpdatedNotice && (
         <div
@@ -932,9 +946,10 @@ export function PTDiscoveryPage() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-bold text-zinc-200 truncate">
-                              {pt.firstName} {pt.lastName}
+                              {fullName(pt)}
                             </span>
                             <Award className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                            {isNewTrainerPt(pt) && <NewTrainerBadge />}
                           </div>
                           {/* A PT with no reviews shows "Chưa có đánh giá", never 0 stars —
                               an unrated trainer is unknown, not badly rated. */}
@@ -1123,11 +1138,12 @@ export function PTDiscoveryPage() {
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 flex-wrap">
                           <ModalTitle className="text-zinc-100">
-                            {selectedPT.firstName} {selectedPT.lastName}
+                            {fullName(selectedPT)}
                           </ModalTitle>
                           <span className="flex items-center gap-1 text-xs bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20">
                             <Award className="w-3 h-3" /> Đã xác minh
                           </span>
+                          {isNewTrainerPt(selectedPT) && <NewTrainerBadge />}
                           {selectedPT.avgRating != null ? (
                             <span className="flex items-center gap-1.5 text-xs text-zinc-400">
                               <Stars value={selectedPT.avgRating} size={13} />
@@ -1196,6 +1212,11 @@ export function PTDiscoveryPage() {
                 </div>
 
                 {/* Tabs */}
+                {WEB_UI ? (
+                <ContentTabs idBase="pt-discovery-detail" label="Thông tin huấn luyện viên" value={detailTab} tabs={[{ key: "detail", label: "Chi tiết" },
+                      { key: "pricing", label: "Giá gói" },
+                      { key: "reviews", label: "Đánh giá" },]} onChange={(k) => setDetailTab(k as typeof detailTab)} testId="pt-discovery-tabs">{null}</ContentTabs>
+                ) : (
                 <div role="tablist" aria-label="Thông tin huấn luyện viên" className="flex gap-1 bg-zinc-800/60 border-b border-zinc-700/40 p-1">
                   {(
                     [
@@ -1210,18 +1231,21 @@ export function PTDiscoveryPage() {
                       role="tab"
                       aria-selected={detailTab === t.key}
                       onClick={() => setDetailTab(t.key)}
-                      className={`flex-1 min-h-10 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
+                      className={`relative flex-1 min-h-10 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
                         detailTab === t.key
-                          ? "bg-green-500 text-black shadow-sm"
+                          ? "text-black"
                           : "text-zinc-500 hover:text-zinc-300"
                       }`}
                     >
-                      {t.label}
+                      {detailTab === t.key && <ActivePill group="pt-discovery-detail" className="rounded-lg bg-green-500 shadow-sm" />}
+                      <span className="relative">{t.label}</span>
                     </button>
                   ))}
                 </div>
+                )}
 
                 <div className="p-5 space-y-5">
+                  <PanelIf web={WEB_UI} idBase="pt-discovery-detail" tabKey={detailTab} className="space-y-5">
                   {detailTab === "detail" && (
                     <>
                   <div>
@@ -1251,7 +1275,7 @@ export function PTDiscoveryPage() {
                     if (photos.length === 0) return null;
                     return (
                       <div>
-                        <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Hình ảnh</h4>
+                        <h4 className="text-xs font-bold text-zinc-400 mb-2">Hình ảnh</h4>
                         <div className="grid grid-cols-3 gap-2">
                           {photos.map((p, i) => (
                             <ListingImage key={p.id} url={p.url} alt={`Ảnh ${i + 1} của huấn luyện viên`} className="aspect-square w-full rounded-lg" />
@@ -1275,7 +1299,7 @@ export function PTDiscoveryPage() {
                   {(app?.educationBackground ||
                     app?.previousWorkExperience) && (
                     <div>
-                      <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                      <h4 className="text-xs font-bold text-zinc-400 mb-2">
                         Kinh nghiệm & Học vấn
                       </h4>
                       <div className="space-y-2 text-sm text-zinc-400 leading-relaxed">
@@ -1302,7 +1326,7 @@ export function PTDiscoveryPage() {
                   {/* Training Methods */}
                   {app?.trainingMethodsApproach && (
                     <div>
-                      <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                      <h4 className="text-xs font-bold text-zinc-400 mb-2">
                         Phương pháp huấn luyện
                       </h4>
                       <p className="text-sm text-zinc-400 leading-relaxed">
@@ -1315,7 +1339,7 @@ export function PTDiscoveryPage() {
                   {((app?.targetClientGroups?.length ?? 0) > 0 ||
                     (app?.primaryTrainingGoals?.length ?? 0) > 0) && (
                     <div>
-                      <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                      <h4 className="text-xs font-bold text-zinc-400 mb-2">
                         Đối tượng & Mục tiêu
                       </h4>
                       {app.targetClientGroups?.length > 0 && (
@@ -1351,7 +1375,7 @@ export function PTDiscoveryPage() {
                   {/* Gym affiliation */}
                   {app?.gymAffiliation && (
                     <div>
-                      <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                      <h4 className="text-xs font-bold text-zinc-400 mb-1">
                         Phòng gym
                       </h4>
                       <p className="text-sm text-zinc-300">
@@ -1368,7 +1392,7 @@ export function PTDiscoveryPage() {
                     socialLinks.tiktok ||
                     socialLinks.facebook) && (
                     <div>
-                      <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                      <h4 className="text-xs font-bold text-zinc-400 mb-2">
                         Links
                       </h4>
                       <div className="flex flex-wrap gap-2">
@@ -1477,7 +1501,7 @@ export function PTDiscoveryPage() {
                           </div>
                         </div>
 
-                        <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                        <h4 className="text-xs font-bold text-zinc-400 mb-2">
                           Bình luận
                         </h4>
                         {(ptDetail.recentReviews?.length ?? 0) > 0 ? (
@@ -1610,6 +1634,7 @@ export function PTDiscoveryPage() {
                     </div>
                   </div>
                   )}
+                  </PanelIf>
 
                   {/* Message button — persistent across all 3 tabs, not tied to any one
                       of them, since messaging the PT is a fine follow-up whichever tab
@@ -1743,7 +1768,7 @@ export function PTDiscoveryPage() {
                 </div>
                 <div>
                   <div className="text-sm font-bold text-zinc-200">
-                    {selectedPT.firstName} {selectedPT.lastName}
+                    {fullName(selectedPT)}
                   </div>
                   <div className="text-xs text-zinc-500">
                     {/* `requestType` was referenced here with no declaration anywhere in this

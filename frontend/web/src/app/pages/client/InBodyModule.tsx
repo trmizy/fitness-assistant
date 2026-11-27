@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
+import { ActivePill } from "../../components/ui/ActivePill";
 import {
   AreaChart,
   Area,
@@ -20,6 +21,13 @@ import { bodyBalance, gaugePosition, type BalanceRow } from "./body-balance.util
 import { useApp } from "../../context/AppContext";
 import { InBodySegmentalDiagram } from "../../components/InBodySegmentalDiagram";
 import { InBodyExplanationCard } from "../../components/InBodyExplanationCard";
+import { ContentTabs, TabPanel } from "../../components/ui/nav/ContentTabs";
+import { isWebPresentation } from "../../utils/webPresentation";
+import { QueryErrorNotice } from "../../components/ui/QueryErrorNotice";
+import { activeCycleFailed, QUERY_ERROR_TEXT } from "../../utils/queryErrorState";
+
+// WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
+const WEB_UI = isWebPresentation();
 
 /** Compact current-cycle summary — links to the full Chu kỳ tập luyện page for details/actions. */
 function CurrentCycleWidget() {
@@ -30,7 +38,12 @@ function CurrentCycleWidget() {
     retry: false,
   });
 
-  if (activeQuery.isLoading || !activeQuery.data?.cycle) return null;
+  if (activeQuery.isLoading) return null;
+  // 404 = "no active cycle" (normal, nothing to show); any other failure is an error, not "no cycle".
+  if (activeCycleFailed(activeQuery)) {
+    return <QueryErrorNotice testId="inbody-cycle-error" text={QUERY_ERROR_TEXT.inbodyCycle} onRetry={() => activeQuery.refetch()} busy={activeQuery.isFetching} />;
+  }
+  if (!activeQuery.data?.cycle) return null;
 
   const { cycle, summary } = activeQuery.data;
   const daysElapsed = Math.floor((Date.now() - new Date(cycle.startDate).getTime()) / 86_400_000);
@@ -443,59 +456,9 @@ export function InBodyModule() {
     }
   };
 
-  return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5">
-      {/* ── Page header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-zinc-100 flex items-center gap-2">
-            <Activity className="w-5 h-5 text-green-400" />
-            InBody Analysis
-          </h1>
-          <p className="text-zinc-500 text-sm mt-0.5">
-            Theo dõi thành phần cơ thể · Chọn phương thức nhập liệu bên dưới
-          </p>
-        </div>
-        {/* Always-visible quick-add CTAs */}
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => {
-              setTab("manual");
-              setManualStep("form");
-            }}
-            className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/60 text-zinc-200 px-4 py-2.5 rounded-xl text-sm font-bold transition-all"
-          >
-            <ClipboardList className="w-4 h-4 text-green-400" /> Nhập thủ công
-          </button>
-          <button
-            onClick={() => {
-              setTab("upload");
-              setUploadStep("drop");
-            }}
-            className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/25"
-          >
-            <Upload className="w-4 h-4" /> Tải ảnh InBody
-          </button>
-        </div>
-      </div>
-
-      {/* ── Tab navigation ── */}
-      <div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl overflow-x-auto w-full">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap flex-1 justify-center ${
-              tab === t.key
-                ? "bg-green-500 text-black shadow-sm"
-                : "text-zinc-500 hover:text-zinc-300"
-            }`}
-          >
-            <t.icon className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t.label}</span>
-          </button>
-        ))}
-      </div>
+  // Tab panels shared by both presentations (only the active one renders; per-tab loading unchanged).
+  const inbodyPanels = (
+    <>
 
       {/* ══════════════════════════════════════
           TAB: OVERVIEW
@@ -689,7 +652,6 @@ export function InBodyModule() {
                   leftLeg: latest.leftLegMuscle,
                   rightLeg: latest.rightLegMuscle,
                 }}
-                norms={{ arm: 3.2, trunk: 24.0, leg: 9.5 }}
               />
               <InBodySegmentalDiagram
                 title="Mỡ theo vùng (kg)"
@@ -701,14 +663,16 @@ export function InBodyModule() {
                   leftLeg: latest.leftLegFat,
                   rightLeg: latest.rightLegFat,
                 }}
-                norms={{ arm: 1.0, trunk: 8.0, leg: 2.3 }}
               />
             </div>
+            <p className="text-[11px] leading-4 text-zinc-500 mt-4" data-testid="inbody-segmental-note">
+              Đây là số đo thật từ phiếu của bạn. Phiếu chưa có khoảng chuẩn riêng cho từng vùng nên Gymini không đánh giá Thấp, Bình thường hay Cao cho từng vùng.
+            </p>
           </SectionCard>
 
           {/* Recent history */}
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">
+            <h4 className="text-sm font-semibold text-zinc-400">
               Bản ghi gần đây
             </h4>
             <button
@@ -805,9 +769,9 @@ export function InBodyModule() {
               {/* Actions */}
               <form onSubmit={handleManualSave} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <SectionCard title="📅 Thông tin kiểm tra">
+                  <SectionCard title="Thông tin kiểm tra">
                     <div>
-                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">
+                      <label className="text-xs text-zinc-500 mb-1.5 block">
                         Ngày kiểm tra *
                       </label>
                       <input
@@ -820,10 +784,10 @@ export function InBodyModule() {
                     </div>
                   </SectionCard>
 
-                  <SectionCard title="⚖️ Số đo cơ bản">
+                  <SectionCard title="Số đo cơ bản">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">
+                        <label className="text-xs text-zinc-500 mb-1.5 block">
                           Cân nặng (kg) *
                         </label>
                         <input
@@ -837,7 +801,7 @@ export function InBodyModule() {
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">
+                        <label className="text-xs text-zinc-500 mb-1.5 block">
                           Chiều cao (cm)
                         </label>
                         <input
@@ -853,10 +817,10 @@ export function InBodyModule() {
                   </SectionCard>
                 </div>
 
-                <SectionCard title="💪 Thành phần cơ thể">
+                <SectionCard title="Thành phần cơ thể">
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">
+                      <label className="text-xs text-zinc-500 mb-1.5 block">
                         Cơ bắp (kg)
                       </label>
                       <input
@@ -868,7 +832,7 @@ export function InBodyModule() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">
+                      <label className="text-xs text-zinc-500 mb-1.5 block">
                         Mỡ cơ thể (kg)
                       </label>
                       <input
@@ -880,7 +844,7 @@ export function InBodyModule() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">
+                      <label className="text-xs text-zinc-500 mb-1.5 block">
                         % Mỡ cơ thể
                       </label>
                       <input
@@ -894,7 +858,7 @@ export function InBodyModule() {
                   </div>
                 </SectionCard>
 
-                <SectionCard title="🦵 Cơ theo vùng (kg)">
+                <SectionCard title="Cơ theo vùng (kg)">
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     <div>
                       <label className="text-xs text-zinc-500 mb-1 block">
@@ -1196,8 +1160,8 @@ export function InBodyModule() {
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                      📅 Ngày đo InBody
+                    <span className="text-xs font-bold text-zinc-400">
+                      Ngày đo InBody
                     </span>
                     {extractedData?.date ? (
                       <span className="text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
@@ -1225,7 +1189,7 @@ export function InBodyModule() {
 
                 {/* Basic Metrics */}
                 <div>
-                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                  <h4 className="text-xs font-bold text-zinc-400 mb-2">
                     Thông số cơ bản
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
@@ -1296,7 +1260,7 @@ export function InBodyModule() {
 
                 {/* Segmental Lean Analysis */}
                 <div>
-                  <h4 className="text-xs font-bold text-green-400/80 uppercase tracking-wider mb-2">
+                  <h4 className="text-xs font-bold text-green-400/80 mb-2">
                     Cơ theo vùng (kg)
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
@@ -1356,7 +1320,7 @@ export function InBodyModule() {
 
                 {/* Segmental Fat Analysis */}
                 <div>
-                  <h4 className="text-xs font-bold text-amber-400/80 uppercase tracking-wider mb-2">
+                  <h4 className="text-xs font-bold text-amber-400/80 mb-2">
                     Mỡ theo vùng (kg)
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
@@ -1546,7 +1510,7 @@ export function InBodyModule() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[620px]">
                 <thead>
-                  <tr className="text-left text-xs text-zinc-600 border-b border-zinc-800/60 bg-zinc-800/30 uppercase tracking-wider">
+                  <tr className="text-left text-xs text-zinc-600 border-b border-zinc-800/60 bg-zinc-800/30">
                     <th className="px-4 py-2.5">Ngày</th>
                     <th className="px-4 py-2.5">Cân nặng (kg)</th>
                     <th className="px-4 py-2.5">Cơ bắp (kg)</th>
@@ -1688,7 +1652,7 @@ export function InBodyModule() {
             <>
               <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
                 <div>
-                  <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">
+                  <label className="text-xs text-zinc-500 mb-1 block">
                     Bản ghi A
                   </label>
                   <select
@@ -1707,7 +1671,7 @@ export function InBodyModule() {
                   vs
                 </span>
                 <div>
-                  <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">
+                  <label className="text-xs text-zinc-500 mb-1 block">
                     Bản ghi B
                   </label>
                   <select
@@ -1743,7 +1707,7 @@ export function InBodyModule() {
                       key={key}
                       className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60"
                     >
-                      <div className="text-xs text-zinc-500 mb-2 uppercase tracking-wider">
+                      <div className="text-xs text-zinc-500 mb-2">
                         {label}
                       </div>
                       <div className="flex items-end justify-between">
@@ -1820,6 +1784,74 @@ export function InBodyModule() {
             </>
           )}
         </div>
+      )}
+    </>
+  );
+
+  return (
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5">
+      {/* ── Page header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-zinc-100 flex items-center gap-2">
+            <Activity className="w-5 h-5 text-green-400" />
+            InBody Analysis
+          </h1>
+          <p className="text-zinc-500 text-sm mt-0.5">
+            Theo dõi thành phần cơ thể · Chọn phương thức nhập liệu bên dưới
+          </p>
+        </div>
+        {/* Always-visible quick-add CTAs */}
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => {
+              setTab("manual");
+              setManualStep("form");
+            }}
+            className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/60 text-zinc-200 px-4 py-2.5 rounded-xl text-sm font-bold transition-all"
+          >
+            <ClipboardList className="w-4 h-4 text-green-400" /> Nhập thủ công
+          </button>
+          <button
+            onClick={() => {
+              setTab("upload");
+              setUploadStep("drop");
+            }}
+            className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/25"
+          >
+            <Upload className="w-4 h-4" /> Tải ảnh InBody
+          </button>
+        </div>
+      </div>
+
+      {/* ── Tab navigation ── */}
+      {WEB_UI ? (
+        <ContentTabs label="Phân tích InBody" value={tab} tabs={tabs} onChange={setTab} testId="inbody-tabs">
+          <TabPanel tabKey={tab} className="space-y-4">{inbodyPanels}</TabPanel>
+        </ContentTabs>
+      ) : (
+        <>
+<div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl overflow-x-auto g-scroll-x w-full">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            aria-pressed={tab === t.key}
+            aria-label={t.label}
+            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap flex-1 justify-center ${
+              tab === t.key
+                ? "text-black"
+                : "text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            {tab === t.key && <ActivePill group="inbody-tab" className="rounded-lg bg-green-500 shadow-sm" />}
+            <t.icon className="relative w-3.5 h-3.5" />
+            <span className="relative hidden sm:inline">{t.label}</span>
+          </button>
+        ))}
+      </div>
+          {inbodyPanels}
+        </>
       )}
     </div>
   );

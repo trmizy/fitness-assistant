@@ -7,6 +7,7 @@ import { serviceSecretMiddleware } from '../middleware/serviceSecret.middleware'
 import { transactionRepository } from '../repositories/transaction.repository';
 import { walletService, InsufficientBalanceError, WalletNotActiveError } from '../services/wallet.service';
 import { gymDebtSummary } from '../services/gym-debt-recovery';
+import { GYM_INCOME_MAX_RANGE_MS, gymMembershipIncomeService } from '../services/gym-membership-income.service';
 import { prisma } from '../repositories/prisma';
 import { getProvider, providerConfigStatus, DEFAULT_PROVIDER } from '../services/payment.service';
 import { assertRatesValid, buildMoneyBreakdown, type RateTable, type TerminationReason } from '../services/contract-money';
@@ -38,6 +39,7 @@ import { paymentGateVerdict } from '../services/late-open-settlement-flag';
 import ledgerOperationRoutes from './ledger-operations.routes';
 import { AppealObligationError, createAppealAwardObligation, readAppealAwardObligation } from '../services/appeal-obligation.service';
 import { withdrawalService } from '../services/withdrawal.service';
+import { computeWithdrawable } from '../services/withdrawable-balance';
 import { entityOriginSchema, rejectIfSyntheticOrigin } from '../services/synthetic-guard';
 import { failureMessage, withdrawalErrorResponse, GENERIC_FAILURE_MESSAGE } from '../utils/safe-error';
 import { ADMIN_INSUFFICIENT_BALANCE_MESSAGE, ADMIN_WALLET_NOT_ACTIVE_MESSAGE } from '../utils/admin-error';
@@ -1153,6 +1155,29 @@ router.get('/payments/:transactionId', async (req: Request, res: Response) => {
   return res.json({ success: true, data: txn });
 });
 
+// GET /internal/gyms/:gymId/membership-income?from=<ISO instant>&to=<ISO instant> - READ-ONLY owner analytics (gym-service /owner/gyms/:gymId/analytics).
+// What the gym wallet's ledger says it earned from membership sales per Vietnam day; see gym-membership-income.service.ts. Writes nothing, creates no wallet.
+router.get('/gyms/:gymId/membership-income', async (req: Request, res: Response) => {
+  const parsed = z
+    .object({
+      from: z.string().datetime({ offset: true }),
+      to: z.string().datetime({ offset: true }),
+    })
+    .safeParse(req.query);
+  if (!parsed.success) return res.status(400).json({ success: false, error: { code: 'INVALID_QUERY', message: 'from và to phải là thời điểm ISO-8601' } });
+  const start = new Date(parsed.data.from);
+  const end = new Date(parsed.data.to);
+  if (!(end.getTime() > start.getTime()) || end.getTime() - start.getTime() > GYM_INCOME_MAX_RANGE_MS) {
+    return res.status(400).json({ success: false, error: { code: 'INVALID_RANGE', message: 'to phải sau from và khoảng tối đa 93 ngày' } });
+  }
+  try {
+    return res.json({ success: true, data: await gymMembershipIncomeService.forGym(req.params.gymId, start, end) });
+  } catch (e) {
+    logger.error({ err: (e as Error).message, gymId: req.params.gymId }, 'gym membership income read failed');
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: GENERIC_FAILURE_MESSAGE } });
+  }
+});
+
 // GET /internal/wallets/:ownerType/:ownerId
 router.get('/wallets/:ownerType/:ownerId', async (req: Request, res: Response) => {
   const ownerType = req.params.ownerType as WalletOwnerType;
@@ -1161,16 +1186,33 @@ router.get('/wallets/:ownerType/:ownerId', async (req: Request, res: Response) =
   }
   const wallet = await walletService.getOrCreateWallet(ownerType, req.params.ownerId);
   // FIX3-PAY: a gym wallet also says what the platform has recovered from its income and what it still owes (additive field; other owner types unchanged).
-  if (ownerType === 'GYM') return res.json({ success: true, data: { ...wallet, gymDebt: await gymDebtSummary(prisma, req.params.ownerId) } });
+  // Gym Owner handoff item 7: the same withdrawable number requestWithdrawal checks against (withdrawable-balance.ts), so the "Có thể rút" label equals what can really be withdrawn.
+  if (ownerType === 'GYM') {
+    const w = await computeWithdrawable('GYM', req.params.ownerId, wallet);
+    return res.json({
+      success: true,
+      data: {
+        ...wallet,
+        gymDebt: await gymDebtSummary(prisma, req.params.ownerId),
+        withdrawable: w.withdrawable.toFixed(2),
+        reservedPending: w.reservedPending.toFixed(2),
+      },
+    });
+  }
   return res.json({ success: true, data: wallet });
 });
 
 // Money-flow plan 5.3 — gym-service has no ledger logic of its own; it verifies gym
 // ownership itself (see /owner/gyms/:gymId/withdrawals) and then calls straight through here,
 // mirroring the existing /internal/wallets/GYM/:ownerId pattern above.
+// Owner decision 22/11/2026 (Gym Owner handoff item 1): a GYM withdrawal always pays the partner's REGISTERED payout account. gym-service reads
+// GymPartner.payoutBank*, passes the text as payoutInfo with payoutSource REGISTERED_ACCOUNT, and passes the authenticated user as requestedByUserId.
+// A call without both is refused here too, so no caller can reintroduce a free-text destination by forgetting them.
 const internalWithdrawalRequestSchema = z.object({
   amount: z.string().min(1),
   payoutInfo: z.string().min(1),
+  payoutSource: z.literal('REGISTERED_ACCOUNT'),
+  requestedByUserId: z.string().min(1),
   entityOrigin: entityOriginSchema,
 });
 
@@ -1182,7 +1224,10 @@ router.post('/withdrawals/gym/:gymId', async (req: Request, res: Response) => {
   if (rejectIfSyntheticOrigin(parsed.data.entityOrigin, res)) return;
   if (!isValidWithdrawalAmount(parsed.data.amount)) return res.status(400).json(INVALID_AMOUNT_BODY);
   try {
-    const request = await withdrawalService.requestWithdrawal('GYM', req.params.gymId, parsed.data.amount, parsed.data.payoutInfo);
+    const request = await withdrawalService.requestWithdrawal('GYM', req.params.gymId, parsed.data.amount, parsed.data.payoutInfo, {
+      requestedByUserId: parsed.data.requestedByUserId,
+      payoutSource: parsed.data.payoutSource,
+    });
     return res.status(201).json({ success: true, data: request });
   } catch (e) {
     const out = withdrawalErrorResponse(e, 'internal gym withdrawal request');

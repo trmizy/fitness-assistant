@@ -5400,8 +5400,9 @@ export const sessionService = {
     const { data } = await api.get(`/sessions/contract/${contractId}`);
     return data;
   },
-  getMyUpcoming: async () => {
-    const { data } = await api.get("/sessions/upcoming");
+  /** `as` splits the calendars of a PT who also trains as a client: "pt" = sessions I teach, "client" = sessions I attend. */
+  getMyUpcoming: async (as?: "pt" | "client") => {
+    const { data } = await api.get("/sessions/upcoming", as ? { params: { as } } : undefined);
     return data;
   },
   confirmSession: async (id: string) => {
@@ -5485,6 +5486,11 @@ export const sessionService = {
       action,
       responseNote,
     });
+    return data;
+  },
+  /** The proposer withdraws their own PENDING proposal (server: proposer only, 409 once it has been answered). */
+  cancelReschedule: async (requestId: string) => {
+    const { data } = await api.delete(`/sessions/reschedules/${requestId}`);
     return data;
   },
   joinSession: async (id: string) => {
@@ -6210,14 +6216,15 @@ export const walletService = {
     const { data } = await api.get('/me/pt-wallet/transactions');
     return data?.data ?? data;
   },
-  // Money-flow plan 5.3 — self-service withdrawal requests. Works for both the CLIENT and PT
-  // wallet: payment-service infers which one from the caller's role.
-  requestWithdrawal: async (amount: string, payoutInfo: string) => {
-    const { data } = await api.post('/me/withdrawals', { amount, payoutInfo });
+  // Money-flow plan 5.3 — self-service withdrawal requests. A PT is also a client, so the caller names the wallet:
+  // 'CLIENT' = refund/compensation wallet (client wallet page), 'PT' = teaching-income wallet (PT wallet page).
+  // Omitted -> the server's old default (role PT -> PT, otherwise CLIENT).
+  requestWithdrawal: async (amount: string, payoutInfo: string, wallet?: 'CLIENT' | 'PT') => {
+    const { data } = await api.post('/me/withdrawals', { amount, payoutInfo, ...(wallet ? { wallet } : {}) });
     return data?.data ?? data;
   },
-  getMyWithdrawals: async () => {
-    const { data } = await api.get('/me/withdrawals');
+  getMyWithdrawals: async (wallet?: 'CLIENT' | 'PT') => {
+    const { data } = await api.get('/me/withdrawals', wallet ? { params: { wallet } } : undefined);
     return data?.data ?? data;
   },
 };
@@ -6539,8 +6546,10 @@ export const gymService = {
   },
   // Money-flow plan 5.3 — gym-service verifies gym ownership itself before proxying to
   // payment-service, same shape as getOwnedWallet above.
-  requestGymWithdrawal: async (gymId: string, amount: string, payoutInfo: string) => {
-    const { data } = await api.post(`/owner/gyms/${gymId}/withdrawals`, { amount, payoutInfo });
+  // 22/11/2026: the destination is the partner's REGISTERED payout account, resolved by gym-service (409 PAYOUT_ACCOUNT_REQUIRED
+  // when it is incomplete) — the client no longer sends `payoutInfo`.
+  requestGymWithdrawal: async (gymId: string, amount: string) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/withdrawals`, { amount });
     return data?.data ?? data;
   },
   listGymWithdrawals: async (gymId: string) => {
@@ -6649,6 +6658,11 @@ export const gymService = {
   },
   listCheckinExceptions: async (gymId: string) => {
     const { data } = await api.get(`/owner/gyms/${gymId}/front-desk/exceptions`);
+    return data?.data ?? data;
+  },
+  // Owner / manager only (`checkin.exception.approve`); the server re-verifies role, branch scope and four-eyes. Reason 5-300 chars.
+  decideCheckinException: async (gymId: string, exceptionId: string, decision: "approve" | "reject", reason: string) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/front-desk/exceptions/${exceptionId}/${decision}`, { reason });
     return data?.data ?? data;
   },
   // N15M-10 — accountant/owner: TOTAL PT commission per period (never per PT, never rates).

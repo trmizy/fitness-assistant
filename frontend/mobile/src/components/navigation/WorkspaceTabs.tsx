@@ -17,6 +17,8 @@ export type WorkspaceTab = {
   name: string;
   label: string;
   icon: LucideIcon;
+  /** Small count on the tab (e.g. pending check-in exceptions); hidden when 0 / undefined, "99+" above 99. */
+  badge?: number;
 };
 
 /**
@@ -98,6 +100,9 @@ export function WorkspaceTabs({
               name={tab.name}
               options={{
                 title: tab.label,
+                tabBarBadge: tab.badge && tab.badge > 0 ? (tab.badge > 99 ? "99+" : tab.badge) : undefined,
+                tabBarBadgeStyle: { backgroundColor: designTokens.warning, color: darkColors.background, fontSize: 10 },
+                tabBarAccessibilityLabel: tab.badge && tab.badge > 0 ? `${tab.label}, ${tab.badge} yêu cầu đang chờ` : undefined,
                 tabBarIcon: ({ color, focused }) => (
                   <tab.icon size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
                 ),

@@ -11,6 +11,7 @@ import { isGymAcceptingCheckin } from './checkin-gym-guard';
 import { applyMemberCheckIn, lockMembershipForCheckIn, COOLDOWN_MS } from './checkin-core';
 import { hasPassedEndDate, hasStarted, hasVisitsLeft } from './membership-eligibility.service';
 import { hasPermission } from './partner-permissions';
+import { sendCheckinExceptionRequestedNotices } from './gym-checkin-exception-notify';
 import { localDateOf, windowOfLocalDate } from '../utils/local-day';
 import {
   assistedCheckinResultView, exceptionView, formatMemberCode, memberSearchResultView, nameMatchesPrefix,
@@ -489,6 +490,11 @@ export const assistedCheckinService = {
       await appendEventSafe({
         eventType: 'EXCEPTION_REQUESTED', gymId, staffUserId: actor.userId, staffRole: actor.role, membershipId: member.id,
         clientId: member.clientId, method: 'MANAGER_EXCEPTION', outcome: 'OK', reason, exceptionId: created.id,
+      });
+      // Item 6: bell notice to the owner + scoped managers (never the requester). Best-effort, after the row + audit event; never throws.
+      await sendCheckinExceptionRequestedNotices({
+        gym: { id: gym.id, ownerId: actor.principalUserId, brandId: gym.brandId, name: gym.name, approvedName: (gym as unknown as { approvedName?: string | null }).approvedName ?? null },
+        requesterUserId: actor.userId,
       });
       return { id: created.id, status: created.status, expiresAt: created.expiresAt.toISOString() };
     } catch (e: any) {

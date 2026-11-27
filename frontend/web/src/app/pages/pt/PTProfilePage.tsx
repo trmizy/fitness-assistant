@@ -15,6 +15,7 @@ import {
 } from "../../services/api";
 import { ptApplicationService } from "../../services/ptApplicationService";
 import { CollaborationPanel } from "../../components/gym/CollaborationPanel";
+import { fullName } from "../../utils/fullName";
 
 type TrainingLoc = {
   id: string;
@@ -206,8 +207,7 @@ export function PTProfilePage() {
     queryFn: () => contractService.getEarnings(),
   });
 
-  const displayName =
-    `${myProfile?.profile?.firstName ?? ""} ${myProfile?.profile?.lastName ?? ""}`.trim();
+  const displayName = fullName(myProfile?.profile);
   // The application owns this list; `UserProfile.specialties` is a denormalized copy written by
   // pt_application.repository's "Sync search fields to UserProfile" step so discovery can filter
   // on it, and it goes stale whenever the application changed without a draft save (live example
@@ -268,7 +268,7 @@ export function PTProfilePage() {
         </div>
         <button
           onClick={() => navigate("/pt/listing")}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg bg-green-500 hover:bg-green-400 text-black shadow-green-500/20"
+          className="flex shrink-0 items-center gap-2 whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg bg-green-500 hover:bg-green-400 text-black shadow-green-500/20"
         >
           <Edit3 className="w-4 h-4" /> Sửa hồ sơ chuyên môn
         </button>
@@ -312,7 +312,7 @@ export function PTProfilePage() {
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">
+                <label className="text-xs text-zinc-500 mb-1 block">
                   Tên hiển thị
                 </label>
                 <p className="text-sm font-semibold text-zinc-200 py-2">
@@ -324,7 +324,7 @@ export function PTProfilePage() {
                 <p className="text-xs text-zinc-600">Tên học viên nhìn thấy khi tìm huấn luyện viên</p>
               </div>
               <div>
-                <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">
+                <label className="text-xs text-zinc-500 mb-1 block">
                   Giới thiệu
                 </label>
                 {myApplication?.professionalBio?.trim() ? (
@@ -339,7 +339,7 @@ export function PTProfilePage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">
+                  <label className="text-xs text-zinc-500 mb-1 block">
                     Chuyên môn
                   </label>
                   <div className="flex flex-wrap gap-1.5 py-1">
@@ -358,7 +358,7 @@ export function PTProfilePage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">
+                  <label className="text-xs text-zinc-500 mb-1 block">
                     Kinh nghiệm
                   </label>
                   <p className="text-sm font-semibold text-zinc-200 py-2">
@@ -371,7 +371,7 @@ export function PTProfilePage() {
                 </div>
               </div>
               <div>
-                <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">
+                <label className="text-xs text-zinc-500 mb-1 block">
                   Chứng chỉ
                 </label>
                 <div className="flex flex-wrap gap-2 py-1">
@@ -664,7 +664,7 @@ export function PTProfilePage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">
+                <label className="text-xs text-zinc-500 mb-1 block">
                   Tỉnh/Thành *
                 </label>
                 <select
@@ -682,7 +682,7 @@ export function PTProfilePage() {
               </div>
               {locWards.length > 0 && (
                 <div>
-                  <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">
+                  <label className="text-xs text-zinc-500 mb-1 block">
                     Phường/Xã
                   </label>
                   <select
@@ -705,7 +705,7 @@ export function PTProfilePage() {
                 </div>
               )}
               <div>
-                <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">
+                <label className="text-xs text-zinc-500 mb-1 block">
                   Tên phòng gym
                 </label>
                 <input
@@ -720,7 +720,7 @@ export function PTProfilePage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">
+                <label className="text-xs text-zinc-500 mb-1 block">
                   Địa chỉ chi tiết
                 </label>
                 <input

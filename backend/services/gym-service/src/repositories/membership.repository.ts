@@ -1,4 +1,4 @@
-import { Prisma } from '../generated/prisma';
+import { Prisma, GymMembershipContractStatus } from '../generated/prisma';
 import { prisma } from './prisma';
 import { stackedPeriod } from '../services/membership-stacking';
 
@@ -66,6 +66,89 @@ export const membershipRepository = {
 
   async findByGym(gymId: string) {
     return prisma.gymMembershipContract.findMany({ where: { gymId }, orderBy: { createdAt: 'desc' } });
+  },
+
+  /**
+   * One page of a branch's memberships, newest first (keyset on createdAt + id - stable while rows are inserted, and it
+   * uses the gym_id index). Fetches `limit + 1` rows so the caller knows whether another page exists without a COUNT.
+   * `cursor` is the `{createdAt, id}` of the LAST row of the previous page.
+   * `expiringBefore` keeps memberships whose endDate is still in the future (> now) and <= the given instant - "about to
+   * expire"; it is meant to be combined with status=ACTIVE.
+   */
+  async pageForGym(
+    gymId: string,
+    opts: {
+      /** null = no paging, return every matching row (the pre-pagination behaviour). */
+      limit: number | null;
+      cursor?: { createdAt: Date; id: string } | null;
+      status?: Prisma.GymMembershipContractWhereInput['status'];
+      expiringBefore?: Date | null;
+      /** Member search: keep only these clients (already matched by name). Undefined = no restriction (the normal list). */
+      clientIds?: readonly string[];
+    },
+    now: Date = new Date(),
+  ) {
+    const and: Prisma.GymMembershipContractWhereInput[] = [];
+    if (opts.cursor) {
+      and.push({ OR: [{ createdAt: { lt: opts.cursor.createdAt } }, { createdAt: opts.cursor.createdAt, id: { lt: opts.cursor.id } }] });
+    }
+    if (opts.expiringBefore) and.push({ endDate: { gt: now, lte: opts.expiringBefore } });
+    return prisma.gymMembershipContract.findMany({
+      where: {
+        gymId,
+        ...(opts.status ? { status: opts.status } : {}),
+        ...(opts.clientIds ? { clientId: { in: [...opts.clientIds] } } : {}),
+        ...(and.length ? { AND: and } : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      ...(opts.limit !== null ? { take: opts.limit + 1 } : {}),
+    });
+  },
+
+  /**
+   * Member search step 1: the DISTINCT client ids of one branch's memberships (ids only - no row is loaded), honouring the same status /
+   * expiringBefore filters as pageForGym. Not cursor-bound: the candidate set is the same on every page of a walk. `take: max + 1` (GROUP BY in the
+   * DB) lets the caller see that the branch has more distinct clients than it is willing to send for name matching.
+   */
+  async distinctClientIdsForGym(
+    gymId: string,
+    opts: { status?: Prisma.GymMembershipContractWhereInput['status']; expiringBefore?: Date | null; max: number },
+    now: Date = new Date(),
+  ): Promise<string[]> {
+    const rows = await prisma.gymMembershipContract.groupBy({
+      by: ['clientId'],
+      where: {
+        gymId,
+        ...(opts.status ? { status: opts.status } : {}),
+        ...(opts.expiringBefore ? { endDate: { gt: now, lte: opts.expiringBefore } } : {}),
+      },
+      orderBy: { clientId: 'asc' },
+      take: opts.max + 1,
+    });
+    return rows.map((r) => r.clientId);
+  },
+
+  /**
+   * Counts for the owner dashboard, computed by the DB. REAL rows only (same rule as countActiveByGyms).
+   * `active` = a membership that is running right now (ACTIVE, not past endDate, already started - a queued renewal is not
+   * a current member); `expiringSoon` = those of them whose endDate falls within `soonUntil`; `byStatus` = raw status counts.
+   */
+  async statsForGym(gymId: string, now: Date, soonUntil: Date) {
+    const running: Prisma.GymMembershipContractWhereInput = {
+      gymId,
+      status: 'ACTIVE',
+      dataOrigin: 'REAL',
+      endDate: { gt: now },
+      OR: [{ startDate: null }, { startDate: { lte: now } }],
+    };
+    const [active, expiringSoon, grouped] = await Promise.all([
+      prisma.gymMembershipContract.count({ where: running }),
+      prisma.gymMembershipContract.count({ where: { ...running, endDate: { gt: now, lte: soonUntil } } }),
+      prisma.gymMembershipContract.groupBy({ by: ['status'], where: { gymId, dataOrigin: 'REAL' }, _count: true }),
+    ]);
+    const byStatus: Record<string, number> = Object.fromEntries(Object.values(GymMembershipContractStatus).map((v) => [v, 0]));
+    for (const g of grouped) byStatus[g.status] = g._count;
+    return { active, expiringSoon, byStatus };
   },
 
   /** Phase 5 — mọi hội viên REAL đang ACTIVE trên NHIỀU chi nhánh cùng lúc, cho màn xác nhận

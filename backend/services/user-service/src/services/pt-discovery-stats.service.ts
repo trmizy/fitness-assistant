@@ -4,6 +4,7 @@ import { prisma } from "../repositories/profile.repository";
 import { availabilityService } from "./availability.service";
 import { computeFromPricesByMode } from "./pt-public-dto";
 import { trackJob } from "../lifecycle";
+import { NEW_TRAINER_WINDOW_DAYS } from "./pt-new-trainer";
 
 export const PT_DISCOVERY_STATS_BATCH_SIZE = 500;
 export const PT_DISCOVERY_STATS_INTERVAL_MS = 5 * 60 * 1000;
@@ -17,7 +18,8 @@ export const COMPLETENESS_ITEM_COUNT = 6;
 export const COMPLETENESS_MIN_BIO_CHARS = 50;
 export const AVAILABILITY_LOOKAHEAD_DAYS = 7;
 export const AVAILABILITY_SATURATION_HOURS = 20;
-export const NEW_TRAINER_WINDOW_DAYS = 60;
+// Single definition lives in pt-new-trainer.ts (30 days, shared with the interleave ranking and the isNewTrainer flag).
+export { NEW_TRAINER_WINDOW_DAYS };
 
 export const QUALITY_WEIGHTS = {
   rating: 0.45,

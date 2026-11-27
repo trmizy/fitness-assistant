@@ -6,6 +6,7 @@ import { gymService } from "../../services/api";
 import { toast } from "sonner";
 import type { Gym, GymBrand, GymStatus } from "../../types";
 import { Modal, ModalTitle, ModalClose } from "../../components/ui/Modal";
+import { useStaffRole } from "../../hooks/useStaffRole";
 import { ABOUT_MAX, AboutCounter } from "../../components/gym/AboutCounter";
 
 const STATUS_CONFIG: Record<GymStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
@@ -202,11 +203,10 @@ export function MyGymsPage() {
 
   // GYM_MANAGEMENT master spec §61 — same cache key AppShell's onboarding gate already
   // populates; a MANAGER never sees brand/create-branch controls here (hidden, not 403'd).
-  const { data: onboardingStatus } = useQuery({
-    queryKey: ["partner-onboarding-status"],
-    queryFn: () => gymService.getOnboardingStatus(),
-  });
-  const isOwner = (onboardingStatus?.role ?? "OWNER") === "OWNER";
+  // Item 2/5: FAIL-CLOSED — while the role is still loading (or unknown) nothing privileged shows; the old "assume OWNER"
+  // fallback is gone. Driven by the server's permissions[] (brand.write + branch.write are owner-only in partner-permissions.ts).
+  const { can } = useStaffRole();
+  const isOwner = can("brand.write") && can("branch.write");
 
   const isLoading = gymsLoading || brandsLoading;
   const needsBrandSetup = !isLoading && brands.length === 0;

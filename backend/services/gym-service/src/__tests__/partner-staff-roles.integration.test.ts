@@ -24,6 +24,7 @@ import http from 'node:http';
 import { randomUUID } from 'crypto';
 import express from 'express';
 import { localDayWindow } from '../utils/local-day';
+import { permissionsOf } from '../services/partner-permissions';
 
 const SERVICE_SECRET = 'test_internal_service_secret_32_chars_minimum';
 process.env.INTERNAL_SERVICE_SECRET = SERVICE_SECRET;
@@ -304,6 +305,34 @@ for (const row of matrix) {
     assert.equal(anon.status, 401);
   });
 }
+
+// ── 1b. Item 5: MỘT nguồn sự thật — /owner/onboarding/status trả `permissions[]` của vai trò ────────────────────
+integrationTest('item 5 · GET /owner/onboarding/status trả permissions[] đúng catalogue của vai trò; MANAGER không có quyền ghi nào, và route ghi tương ứng đúng là 403', async () => {
+  const roleOf: Array<[string, 'OWNER' | 'MANAGER' | 'RECEPTIONIST' | 'ACCOUNTANT']> = [[O, 'OWNER'], [M, 'MANAGER'], [R1, 'RECEPTIONIST'], [AA, 'ACCOUNTANT'], [A1, 'ACCOUNTANT']];
+  for (const [tok, role] of roleOf) {
+    const r = await call(tok, 'GET', '/owner/onboarding/status');
+    assert.equal(r.status, 200, `${tok}`);
+    assert.equal(r.body.data.role, role);
+    assert.deepEqual([...r.body.data.permissions].sort(), [...permissionsOf(role)].sort(), `${role} permissions`);
+  }
+  const mgr = (await call(M, 'GET', '/owner/onboarding/status')).body.data.permissions as string[];
+  for (const w of ['branch.write', 'plan.write', 'branch.status.permanent', 'finance.withdraw', 'staff.manage', 'collaboration.manage', 'listing.manage', 'brand.write']) {
+    assert.equal(mgr.includes(w), false, `MANAGER không được có ${w}`);
+  }
+  assert.ok(mgr.includes('branch.status.temporary') && mgr.includes('checkin.exception.approve'), 'MANAGER vẫn có quyền tạm đóng cửa + duyệt ngoại lệ');
+  // Mỗi khoá FE dùng để ẩn nút ghi tương ứng với một route mà server THẬT SỰ chặn MANAGER.
+  const writeRoutes: Array<[string, string, unknown?]> = [
+    ['PATCH', `/owner/gyms/${gym.a1}`, { phone: '0900000000' }],   // branch.write: lưu cài đặt chi nhánh
+    ['PUT', `/owner/gyms/${gym.a1}/hours`, []],                      // branch.write: giờ mở cửa
+    ['GET', `/owner/gyms/${gym.a1}/branch-documents`],               // branch.write: giấy tờ
+    ['GET', `/owner/gyms/${gym.a1}/closure-impact`],                 // branch.status.permanent: đóng vĩnh viễn
+    ['POST', `/owner/brands/${brand.a}/plans`, { name: 'x', price: 1, durationDays: 30 }], // plan.write
+  ];
+  for (const [method, path, body] of writeRoutes) {
+    const r = await call(M, method, path, body);
+    assert.equal(r.status, 403, `MANAGER ${method} ${path} → ${r.status}`);
+  }
+});
 
 // ── 2. Chỉ OWNER: mọi route ghi / người / hợp tác PT / đóng cửa vĩnh viễn ─────────────────────────────────────
 integrationTest('mọi route GHI / nhân sự / cộng tác PT / listing → 403 cho MANAGER, LỄ TÂN, KẾ TOÁN (kể cả chi nhánh trong phạm vi)', async () => {

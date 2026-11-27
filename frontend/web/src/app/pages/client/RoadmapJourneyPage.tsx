@@ -323,7 +323,7 @@ function PendingRebuildBanner({
         <div className="space-y-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">Hiện tại</p>
+              <p className="mb-1.5 text-xs font-semibold text-zinc-500">Hiện tại</p>
               <div className="space-y-1.5">
                 {affectedCurrentPhases.map((phase, i) => (
                   <div key={phase.id} className="rounded-lg border border-zinc-700/60 bg-zinc-900/50 p-2 text-xs">
@@ -336,7 +336,7 @@ function PendingRebuildBanner({
               </div>
             </div>
             <div>
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-amber-300">Đề xuất mới</p>
+              <p className="mb-1.5 text-xs font-semibold text-amber-300">Đề xuất mới</p>
               <div className="space-y-1.5">
                 {previewQuery.data.proposedPhases.map((phase, i) => (
                   <div key={i} className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-2 text-xs">
@@ -473,7 +473,7 @@ function ActivePhaseDetail({
     <div className="space-y-4 rounded-2xl border border-green-500/20 bg-gradient-to-br from-green-500/10 to-zinc-900 p-5">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-green-400">Giai đoạn hiện tại</p>
+          <p className="text-xs font-semibold text-green-400">Giai đoạn hiện tại</p>
           <p className="text-lg font-bold text-zinc-100">{phase.name}</p>
           <p className="text-xs text-zinc-500">{PHASE_TYPE_LABEL[phase.phaseType]}</p>
         </div>
@@ -838,7 +838,7 @@ function AdaptiveForecastSection({ roadmapId }: { roadmapId: string }) {
     <div className="space-y-4">
       {latestReconciliation && (
         <div className="space-y-3 rounded-2xl border border-zinc-700/60 bg-zinc-900/60 p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Chu kỳ vừa qua</p>
+          <p className="text-xs font-semibold text-zinc-500">Chu kỳ vừa qua</p>
           <div className="grid grid-cols-3 gap-2 text-center">
             <div>
               <p className="text-xs text-zinc-500">Dự kiến</p>
@@ -880,7 +880,7 @@ function AdaptiveForecastSection({ roadmapId }: { roadmapId: string }) {
 
       {nearTermForecast && (
         <div className="space-y-2 rounded-2xl border border-green-500/20 bg-gradient-to-br from-green-500/10 to-zinc-900 p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-green-400">Dự báo đã cập nhật</p>
+          <p className="text-xs font-semibold text-green-400">Dự báo đã cập nhật</p>
           <p className="text-sm text-zinc-200">
             Khoảng dự báo tham khảo: {nearTermForecast.projectedEndWeightRangeKg.low}–{nearTermForecast.projectedEndWeightRangeKg.high} kg
             <span className="text-zinc-500"> (kỳ vọng ~{nearTermForecast.projectedEndWeightRangeKg.expected} kg)</span>
@@ -983,7 +983,7 @@ function DraftRoadmapDetail({ data, onChanged }: { data: FitnessRoadmapProjectio
     <div className="space-y-4 rounded-2xl border border-green-500/20 bg-gradient-to-br from-green-500/10 to-zinc-900 p-5">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-green-400">Bản nháp lộ trình</p>
+          <p className="text-xs font-semibold text-green-400">Bản nháp lộ trình</p>
           <p className="text-lg font-bold text-zinc-100">{roadmap.name}</p>
           <p className="text-xs text-zinc-500">
             {GOAL_OPTIONS.find((g) => g.key === roadmap.goalType)?.label ?? roadmap.goalType} · Dự kiến bắt đầu{" "}
@@ -1343,7 +1343,7 @@ export function RoadmapJourneyPage() {
       )}
 
       <div className="rounded-2xl border border-zinc-700/60 bg-zinc-900/40 p-5">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">Toàn bộ hành trình</p>
+        <p className="mb-3 text-xs font-semibold text-zinc-500">Toàn bộ hành trình</p>
         <JourneyMapSection
           roadmapId={roadmap.id}
           phases={phases}

@@ -81,7 +81,7 @@ function IntakeField({
   return (
     <div data-testid={`intake-field-${fieldKey}`} className="flex items-center justify-between gap-2 bg-zinc-800/40 rounded-lg px-3 py-2">
       <div>
-        <div className="text-[10px] text-zinc-600 uppercase tracking-wider">{label}</div>
+        <div className="text-[10px] text-zinc-600">{label}</div>
         <div className="text-sm text-zinc-200">{displayValue}</div>
       </div>
       <button

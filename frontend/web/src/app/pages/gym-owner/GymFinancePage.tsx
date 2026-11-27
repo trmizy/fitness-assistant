@@ -11,6 +11,7 @@ import {
 import { gymService } from "../../services/api";
 import { useApp } from "../../context/AppContext";
 import { formatVND } from "../../utils/currency";
+import { reservedPendingOf, withdrawableOf } from "../../utils/gymWithdrawal";
 import { EmptyState, ErrorState } from "../../components/dashboard/DashboardStates";
 import { PARTNER_ROLE_LABEL } from "../../utils/gymStaffRole";
 import { useStaffRole } from "../../hooks/useStaffRole";
@@ -124,7 +125,9 @@ export function GymFinancePage() {
     .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
   const recognized = recognizedSales(sales);
   const wallets = walletQs.map((q) => q.data).filter(Boolean) as Wallet[];
-  const available = wallets.reduce((s, w) => s + Number(w.availableBalance || 0), 0);
+  // "Có thể rút" = số payment-service dùng khi kiểm yêu cầu rút (khả dụng − yêu cầu chờ − nợ nền tảng), không phải số dư khả dụng thô (handoff mục 7).
+  const withdrawable = wallets.reduce((s, w) => s + withdrawableOf(w), 0);
+  const reserved = wallets.reduce((s, w) => s + reservedPendingOf(w), 0);
   const pending = wallets.reduce((s, w) => s + Number(w.pendingBalance || 0), 0);
 
   // Nợ nền tảng: chỉ hiện khi chi nhánh từng có nợ (nền tảng ứng trước phần hoàn thêm sau khiếu nại thắng) — hệ thống tự trừ vào thu nhập mới.
@@ -176,7 +179,7 @@ export function GymFinancePage() {
 
           <div className="grid grid-cols-2 gap-3" data-testid="finance-kpis">
             <Kpi label="Doanh số đã thanh toán" value={loading ? "…" : formatVND(recognized.total)} hint={`${recognized.count} thẻ (đang dùng + hết hạn)`} />
-            <Kpi label="Số dư khả dụng" value={loading ? "…" : formatVND(available)} hint="Có thể rút" />
+            <Kpi label="Có thể rút" value={loading ? "…" : formatVND(withdrawable)} hint={reserved > 0 ? `Đã trừ ${formatVND(reserved)} yêu cầu đang chờ duyệt` : "Đã trừ yêu cầu chờ duyệt và nợ nền tảng"} />
             <Kpi label="Chờ ghi nhận" value={loading ? "…" : formatVND(pending)} hint="Giữ tới khi thẻ kết thúc" />
             <Kpi label="Lượt rút tiền" value={loading ? "…" : String(withdrawals.length)} hint="Tất cả trạng thái" />
           </div>
@@ -328,6 +331,11 @@ export function GymFinancePage() {
                       {fmtDate(w.createdAt)} · {WITHDRAWAL_LABEL[w.status] ?? w.status}
                       {w.bankReference ? ` · mã ${w.bankReference}` : ""}
                     </p>
+                    {w.status === "REJECTED" && (
+                      <p data-testid="finance-withdrawal-rejection-reason" className="text-[11px] text-red-400 break-words">
+                        Lý do từ chối: {w.rejectionReason?.trim() || "Quản trị viên không ghi lý do."}
+                      </p>
+                    )}
                     {w.payoutInfo && <p className="text-[11px] text-zinc-600 break-words">{w.payoutInfo}</p>}
                   </li>
                 ))}

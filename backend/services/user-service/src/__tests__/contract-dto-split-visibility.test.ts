@@ -150,3 +150,17 @@ test("toContractGymInfo keeps only public gym fields and rejects rows without id
   assert.equal(toContractGymInfo({ id: "g3" }), null);
   assert.equal(toContractGymInfo(null), null);
 });
+
+test("PT contracts list: the client's profile reaches the PT without the e-mail, and the avatar is exposed on its own", async () => {
+  const { toPtVisibleClientProfile, clientAvatarOf } = await import("../services/contract-dto");
+  const profile = { userId: CLIENT, firstName: "An", lastName: "Lê", email: "client@example.com", goal: "MUSCLE_GAIN", photoUrl: "https://cdn/x.jpg" };
+  const out = toPtVisibleClientProfile(profile) as Record<string, unknown>;
+  assert.equal("email" in out, false);
+  assert.deepEqual([out.firstName, out.lastName, out.goal, out.photoUrl], ["An", "Lê", "MUSCLE_GAIN", "https://cdn/x.jpg"]);
+  assert.equal(profile.email, "client@example.com", "does not mutate its input");
+  assert.equal(JSON.stringify(out).includes("client@example.com"), false);
+  assert.equal(toPtVisibleClientProfile(null), null);
+  assert.equal(clientAvatarOf(profile), "https://cdn/x.jpg");
+  assert.equal(clientAvatarOf({ photoUrl: "  " }), null);
+  assert.equal(clientAvatarOf(null), null);
+});

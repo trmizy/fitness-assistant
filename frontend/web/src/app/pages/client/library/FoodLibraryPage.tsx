@@ -7,6 +7,11 @@ import { useApp } from "../../../context/AppContext";
 import { profileService } from "../../../services/api";
 import { useNutritionDisplaySettings } from "../../../hooks/useNutritionDisplaySettings";
 import { kjFromKcal } from "../../../utils/units";
+import { FilterChips } from "../../../components/ui/nav/FilterChips";
+import { isWebPresentation } from "../../../utils/webPresentation";
+
+// WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
+const WEB_UI = isWebPresentation();
 
 const PAGE_SIZE = 24;
 
@@ -114,8 +119,10 @@ export function FoodLibraryPage() {
       {/* Sort by macro (spec §18's real, computable "protein-rich / carb-rich
           / fat-rich" allowance — not a fabricated food-group filter). Only
           meaningful for the browse list, not the fuzzy search results. */}
-      {!isSearching && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
+      {!isSearching && (WEB_UI ? (
+        <FilterChips label="Sắp xếp thực phẩm" value={sortBy} onChange={setSortBy} options={([{ value: "name", label: "Tên A-Z" }, { value: "protein", label: "Nhiều protein nhất" }, { value: "carbs", label: "Nhiều carb nhất" }, { value: "fats", label: "Nhiều chất béo nhất" }] as const).map((o) => ({ ...o, testId: `food-library-sort-${o.value}` }))} testId="food-library-sort" />
+        ) : (
+        <div className="flex gap-2 overflow-x-auto g-scroll-x pb-1">
           {(
             [
               { value: "name", label: "Tên A-Z" },
@@ -139,12 +146,13 @@ export function FoodLibraryPage() {
             </button>
           ))}
         </div>
-      )}
+        ))}
 
       {!isSearching && (
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
           <select
             data-testid="food-library-source-filter"
+          aria-label="Lọc theo nguồn dữ liệu"
             value={sourceFilter}
             onChange={(event) => setSourceFilter(event.target.value)}
             className="px-3 py-2 rounded-lg border border-zinc-700/60 bg-zinc-900 text-xs text-zinc-300 outline-none focus:ring-2 focus:ring-rose-500/40"
@@ -158,6 +166,7 @@ export function FoodLibraryPage() {
           </select>
           <select
             data-testid="food-library-form-filter"
+          aria-label="Lọc theo dạng thực phẩm"
             value={formFilter}
             onChange={(event) => setFormFilter(event.target.value)}
             className="px-3 py-2 rounded-lg border border-zinc-700/60 bg-zinc-900 text-xs text-zinc-300 outline-none focus:ring-2 focus:ring-rose-500/40"
@@ -171,6 +180,7 @@ export function FoodLibraryPage() {
           </select>
           <select
             data-testid="food-library-supplement-filter"
+          aria-label="Lọc theo loại (thực phẩm / thực phẩm bổ sung)"
             value={supplementFilter}
             onChange={(event) =>
               setSupplementFilter(event.target.value as "all" | "true" | "false")

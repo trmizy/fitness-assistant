@@ -23,6 +23,14 @@ import { useBackDismissible } from "../../hooks/useBackDismissible";
 import { BeginnerNutritionSummary } from "../../components/nutrition/BeginnerNutritionSummary";
 import { useApp } from "../../context/AppContext";
 import { GoalCoherenceBanner } from "../../components/GoalCoherenceBanner";
+import { ActivePill } from "../../components/ui/ActivePill";
+import { SegmentedControl } from "../../components/ui/nav/SegmentedControl";
+import { isWebPresentation } from "../../utils/webPresentation";
+import { QueryErrorNotice } from "../../components/ui/QueryErrorNotice";
+import { hasBlockingError, QUERY_ERROR_TEXT } from "../../utils/queryErrorState";
+
+// WEB UI prototype: web gets the shared navigation patterns; the packaged Capacitor app keeps the previous markup.
+const WEB_UI = isWebPresentation();
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -281,6 +289,9 @@ export function NutritionPage() {
   const {
     data: dailyTask,
     isLoading: loadingTask,
+    isError: taskError,
+    isFetching: fetchingTask,
+    error: taskErrorValue,
     refetch: refetchDailyTask,
   } = useQuery({
     queryKey: ["nutrition-daily-task", dateStr],
@@ -1088,10 +1099,12 @@ export function NutritionPage() {
       {/* ── Date navigation (mini) ── */}
       <div className="flex items-center gap-3">
         <button
+          type="button"
           onClick={prevDay}
+          aria-label="Ngày trước"
           className="p-1.5 rounded-lg border border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4" aria-hidden="true" />
         </button>
         <span className="text-sm font-semibold text-zinc-200 min-w-[130px] text-center">
           {formatDisplayDate(selectedDate)}
@@ -1107,11 +1120,13 @@ export function NutritionPage() {
           )}
         </span>
         <button
+          type="button"
           onClick={nextDay}
           disabled={isToday}
+          aria-label="Ngày sau"
           className="p-1.5 rounded-lg border border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-4 h-4" aria-hidden="true" />
         </button>
         {!isToday && (
           <button
@@ -1166,6 +1181,11 @@ export function NutritionPage() {
           Tạo kế hoạch mới
         </button>
       </div>
+
+      {/* The day's plan failed to load: say so (with a retry) instead of looking like "no plan for today". */}
+      {hasBlockingError({ isError: taskError, data: dailyTask, error: taskErrorValue }) && (
+        <QueryErrorNotice testId="nutrition-daily-task-error" text={QUERY_ERROR_TEXT.nutritionDay} onRetry={() => refetchDailyTask()} busy={fetchingTask} />
+      )}
 
       {/* ── Out-of-range banner: date is outside the 7-day plan ── */}
       {!loadingTask &&
@@ -1808,7 +1828,7 @@ export function NutritionPage() {
           type="button"
           data-testid="nutrition-simple-mode-toggle"
           onClick={() => setSimpleMode((v) => !v)}
-          className="flex items-center gap-1.5 text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
+          className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
         >
           {simpleMode ? (
             <>
@@ -1920,7 +1940,7 @@ export function NutritionPage() {
             className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60"
           >
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-zinc-500 uppercase tracking-wider font-semibold">
+              <span className="text-xs text-zinc-500 font-semibold">
                 {m.label}
               </span>
               <span className="text-xs text-zinc-600">
@@ -2216,7 +2236,10 @@ export function NutritionPage() {
                       </button>
                     )}
                     <button
+                      type="button"
                       onClick={() => toggleMeal(meal)}
+                      aria-expanded={expanded}
+                      aria-label={`Món ăn ${MEAL_VI[meal]?.toLowerCase() ?? "bữa này"}`}
                       className="text-zinc-600 hover:text-zinc-400 transition-colors"
                     >
                       {expanded ? (
@@ -2231,7 +2254,7 @@ export function NutritionPage() {
                 {false && expanded && planMeal && (
                   <div className="border-t border-zinc-800/40 bg-zinc-800/20 px-4 py-2.5">
                     <div className="flex items-center justify-between mb-1.5">
-                      <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">
+                      <p className="text-[10px] text-zinc-600 font-semibold">
                         Theo kế hoạch
                       </p>
                       {(isCompleted || isPartial) && (
@@ -2348,7 +2371,7 @@ export function NutritionPage() {
                       <div className="overflow-x-auto">
                         <table className="w-full min-w-[480px] text-xs">
                           <thead>
-                            <tr className="text-zinc-600 bg-zinc-800/30 text-left uppercase tracking-wider">
+                            <tr className="text-zinc-600 bg-zinc-800/30 text-left">
                               <th className="px-4 py-2 font-semibold">
                                 Món ăn
                               </th>
@@ -2654,7 +2677,7 @@ export function NutritionPage() {
             <div className="p-5 space-y-4 overflow-y-auto flex-1">
               {/* Meal type selector */}
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2 font-semibold">
+                <p className="text-xs text-zinc-500 mb-2 font-semibold">
                   Bữa ăn
                 </p>
                 <div className="grid grid-cols-4 gap-2">
@@ -2676,7 +2699,7 @@ export function NutritionPage() {
 
               {/* Search */}
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2 font-semibold">
+                <p className="text-xs text-zinc-500 mb-2 font-semibold">
                   Tìm thực phẩm
                 </p>
                 <div className="flex items-center gap-2 bg-zinc-800 border border-zinc-700/60 rounded-xl px-3 py-2.5">
@@ -2904,7 +2927,7 @@ export function NutritionPage() {
             <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
               {/* Meal type */}
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2 font-semibold">
+                <p className="text-xs text-zinc-500 mb-2 font-semibold">
                   Bữa ăn
                 </p>
                 <div className="grid grid-cols-4 gap-2">
@@ -2928,7 +2951,7 @@ export function NutritionPage() {
 
               {/* Food name */}
               <div>
-                <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block font-semibold">
+                <label className="text-xs text-zinc-500 mb-1.5 block font-semibold">
                   Tên thực phẩm
                 </label>
                 <input
@@ -2942,7 +2965,7 @@ export function NutritionPage() {
 
               {/* Quantity */}
               <div>
-                <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block font-semibold">
+                <label className="text-xs text-zinc-500 mb-1.5 block font-semibold">
                   Khối lượng (g)
                 </label>
                 <input
@@ -2966,7 +2989,7 @@ export function NutritionPage() {
 
               {/* Macros */}
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2 font-semibold">
+                <p className="text-xs text-zinc-500 mb-2 font-semibold">
                   Dinh dưỡng
                 </p>
                 <div className="grid grid-cols-2 gap-3">
@@ -3014,7 +3037,7 @@ export function NutritionPage() {
 
               {/* Notes */}
               <div>
-                <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block font-semibold">
+                <label className="text-xs text-zinc-500 mb-1.5 block font-semibold">
                   Ghi chú (tùy chọn)
                 </label>
                 <input
@@ -3116,10 +3139,12 @@ export function NutritionPage() {
                 dưỡng
               </h3>
               <button
+                type="button"
+                aria-label="Đóng"
                 onClick={() => setShowGoalModal(false)}
                 className="text-zinc-500 hover:text-zinc-300 transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
 
@@ -3128,6 +3153,9 @@ export function NutritionPage() {
                   inputs read-only (values come from the app's own
                   calculation); Custom unlocks manual editing with a live
                   Atwater-consistency preview. */}
+              {WEB_UI ? (
+              <SegmentedControl label="Chế độ mục tiêu dinh dưỡng" value={goalMode} onChange={setGoalMode} className="w-full [&>button]:flex-1" options={[{ value: "RECOMMENDED", label: "Được đề xuất", testId: "goal-mode-recommended" }, { value: "CUSTOM", label: "Tự nhập", testId: "goal-mode-custom" }]} testId="goal-mode" />
+              ) : (
               <div
                 role="tablist"
                 aria-label="Chế độ mục tiêu dinh dưỡng"
@@ -3139,13 +3167,14 @@ export function NutritionPage() {
                   aria-selected={goalMode === "RECOMMENDED"}
                   data-testid="goal-mode-recommended"
                   onClick={() => setGoalMode("RECOMMENDED")}
-                  className={`flex-1 rounded-md py-1.5 transition-colors ${
+                  className={`relative flex-1 rounded-md py-1.5 transition-colors ${
                     goalMode === "RECOMMENDED"
-                      ? "bg-green-500 text-black"
+                      ? "text-black"
                       : "text-zinc-400 hover:text-zinc-200"
                   }`}
                 >
-                  Được đề xuất
+                  {goalMode === "RECOMMENDED" && <ActivePill group="nutrition-goal-mode" className="rounded-md bg-green-500" />}
+                  <span className="relative">Được đề xuất</span>
                 </button>
                 <button
                   type="button"
@@ -3153,15 +3182,17 @@ export function NutritionPage() {
                   aria-selected={goalMode === "CUSTOM"}
                   data-testid="goal-mode-custom"
                   onClick={() => setGoalMode("CUSTOM")}
-                  className={`flex-1 rounded-md py-1.5 transition-colors ${
+                  className={`relative flex-1 rounded-md py-1.5 transition-colors ${
                     goalMode === "CUSTOM"
-                      ? "bg-green-500 text-black"
+                      ? "text-black"
                       : "text-zinc-400 hover:text-zinc-200"
                   }`}
                 >
-                  Tự nhập
+                  {goalMode === "CUSTOM" && <ActivePill group="nutrition-goal-mode" className="rounded-md bg-green-500" />}
+                  <span className="relative">Tự nhập</span>
                 </button>
               </div>
+              )}
               {goalMode === "RECOMMENDED" && (
                 <div className="mt-2 space-y-2">
                   <p className="text-[11px] text-zinc-500">
@@ -3241,12 +3272,15 @@ export function NutritionPage() {
               ].map(({ key, label, unit, color }) => (
                 <div key={key} className="flex items-center gap-3">
                   <label
+                    htmlFor={`nutrition-goal-${key}`}
                     className={`text-sm font-semibold ${color} w-32 flex-shrink-0`}
                   >
                     {label}
+                    <span className="sr-only"> ({unit})</span>
                   </label>
                   <div className="flex-1 relative">
                     <input
+                      id={`nutrition-goal-${key}`}
                       type="number"
                       min={1}
                       disabled={goalMode === "RECOMMENDED"}
@@ -3424,7 +3458,9 @@ function NutritionCalendarGrid({
       {/* Month navigation */}
       <div className="flex items-center justify-center gap-5 mb-4">
         <button
+          type="button"
           onClick={onPrevMonth}
+          aria-label="Tháng trước"
           className="w-8 h-8 rounded-lg bg-zinc-800/50 border border-zinc-700/40 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -3433,7 +3469,9 @@ function NutritionCalendarGrid({
           {monthLabel}
         </span>
         <button
+          type="button"
           onClick={onNextMonth}
+          aria-label="Tháng sau"
           className="w-8 h-8 rounded-lg bg-zinc-800/50 border border-zinc-700/40 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors"
         >
           <ChevronRight className="w-4 h-4" />
@@ -3445,7 +3483,7 @@ function NutritionCalendarGrid({
         {DAY_LABELS.map((d) => (
           <span
             key={d}
-            className="text-[10px] text-zinc-600 text-center py-1 uppercase tracking-wider font-semibold"
+            className="text-[10px] text-zinc-600 text-center py-1 font-semibold"
           >
             {d}
           </span>

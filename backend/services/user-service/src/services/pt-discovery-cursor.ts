@@ -45,6 +45,13 @@ export interface DiscoveryCursorPayload {
   sortNum: number | null;
   sortStr: string | null;
   userId: string;
+  /**
+   * Default sort only: the interleaved position (established stream 1-4, new stream 5, repeating) inside the
+   * (tier, isAccepting) group, and the frozen "new trainer" cutoff (ISO instant) the first page was ranked with, so
+   * a PT crossing the 30-day line mid-pagination cannot hop streams and cause a duplicate or a gap.
+   */
+  rank?: number;
+  newCutoff?: string;
 }
 
 export class CursorSecretUnavailableError extends Error {
@@ -201,7 +208,9 @@ function isValidCursorPayload(val: unknown): val is DiscoveryCursorPayload {
     (p.sortNum === null || (typeof p.sortNum === "number" && Number.isFinite(p.sortNum))) &&
     (p.sortStr === null || typeof p.sortStr === "string") &&
     typeof p.userId === "string" &&
-    p.userId.length > 0
+    p.userId.length > 0 &&
+    (p.rank === undefined || (typeof p.rank === "number" && Number.isInteger(p.rank) && p.rank >= 1)) &&
+    (p.newCutoff === undefined || (typeof p.newCutoff === "string" && Number.isFinite(Date.parse(p.newCutoff))))
   );
 }
 

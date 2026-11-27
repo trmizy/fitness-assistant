@@ -6,6 +6,8 @@ import { useApp } from "../../context/AppContext";
 import { Modal, ModalTitle, ModalClose } from "../ui/Modal";
 import { ptApplicationService } from "../../services/ptApplicationService";
 import { isPtTermsVersionStale, ptTermsBannerState } from "../../utils/ptTerms";
+import { QueryErrorNotice } from "../ui/QueryErrorNotice";
+import { hasBlockingError, QUERY_ERROR_TEXT } from "../../utils/queryErrorState";
 
 /** The current PT terms + this user's standing, from the single server source. Identity-scoped key (cleared on account switch). */
 export function usePtTerms(enabled = true) {
@@ -144,7 +146,8 @@ export function PtTermsModal({
  * A page that just had a contract accept refused for the terms can open the modal itself via `open` / `onOpenChange`.
  */
 export function PtTermsBanner({ open: controlledOpen, onOpenChange }: { open?: boolean; onOpenChange?: (open: boolean) => void } = {}) {
-  const { data: terms } = usePtTerms();
+  const termsQuery = usePtTerms();
+  const terms = termsQuery.data;
   const [localOpen, setLocalOpen] = useState(false);
   const open = controlledOpen ?? localOpen;
   const setOpen = (v: boolean) => (onOpenChange ? onOpenChange(v) : setLocalOpen(v));
@@ -152,6 +155,10 @@ export function PtTermsBanner({ open: controlledOpen, onOpenChange }: { open?: b
   const state = ptTermsBannerState(terms);
   return (
     <>
+      {/* A failed terms request must not read as "nothing to confirm": the PT would only find out when accepting a contract is refused. */}
+      {hasBlockingError(termsQuery) && (
+        <QueryErrorNotice testId="pt-terms-error" text={QUERY_ERROR_TEXT.ptTerms} onRetry={() => termsQuery.refetch()} busy={termsQuery.isFetching} />
+      )}
       {state.show && (
         <div
           data-testid="pt-terms-banner"

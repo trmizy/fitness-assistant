@@ -323,7 +323,7 @@ function refComputeStat(pt: SimPt, hours7d: number, now: Date) {
 
   const aHat = Math.min(hours7d / 20, 1);
   const acc = pt.isAcceptingClients ? 1 : 0;
-  const nw = pt.approvedAt ? Math.min(1, Math.max(0, 1 - Math.max(0, (now.getTime() - pt.approvedAt.getTime()) / 86_400_000) / 60)) : 0;
+  const nw = pt.approvedAt ? Math.min(1, Math.max(0, 1 - Math.max(0, (now.getTime() - pt.approvedAt.getTime()) / 86_400_000) / 30)) : 0; // NEW_TRAINER_WINDOW_DAYS = 30 (pt-new-trainer.ts)
   const quality = Math.min(1, Math.max(0, 0.45 * rHat + 0.2 * completeness + 0.15 * aHat + 0.1 * acc + 0.1 * nw));
 
   const minPrice = (mode?: "ONLINE" | "OFFLINE") => {
@@ -631,16 +631,43 @@ async function fetchAllPages(query: string): Promise<string[]> {
   return ids;
 }
 
-test("1. No READY current epoch -> default discovery order falls back to D0a order (createdAt DESC)", async () => {
+/**
+ * Independent reference for the interleaved recommended order (Ngài 26/11): inside each is_accepting_clients group the
+ * list is `sorted` (already ordered by the stream criteria) split into established / new (approved within 30 days);
+ * then 4 established, 1 new, repeating; when one stream runs dry the other continues.
+ */
+function interleaveRef(sorted: SimPt[]): SimPt[] {
+  const cutoff = Date.now() - 30 * 86_400_000;
+  const isNew = (p: SimPt) => p.approvedAt !== null && p.approvedAt.getTime() > cutoff;
+  const out: SimPt[] = [];
+  for (const accepting of [true, false]) {
+    const group = sorted.filter((p) => p.isAcceptingClients === accepting);
+    const est = group.filter((p) => !isNew(p));
+    const neu = group.filter((p) => isNew(p));
+    let e = 0;
+    let n = 0;
+    while (e < est.length || n < neu.length) {
+      for (let k = 0; k < 4; k++) {
+        if (e < est.length) out.push(est[e++]);
+        else if (n < neu.length) out.push(neu[n++]);
+      }
+      if (n < neu.length) out.push(neu[n++]);
+      else if (e < est.length) out.push(est[e++]);
+    }
+  }
+  return out;
+}
+
+test("1. No READY current epoch -> default discovery order falls back to D0a order (createdAt DESC), new PTs interleaved 4:1", async () => {
   const discoverable = simPts.filter(refIsDiscoverable);
   const cmpStr = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
-  const expectedD0aOrder = [...discoverable]
-    .sort((a, b) => {
+  const expectedD0aOrder = interleaveRef(
+    [...discoverable].sort((a, b) => {
       if (a.isAcceptingClients !== b.isAcceptingClients) return a.isAcceptingClients ? -1 : 1;
       const dt = b.createdAt.getTime() - a.createdAt.getTime();
       return dt !== 0 ? dt : cmpStr(a.userId, b.userId);
-    })
-    .map((p) => p.userId);
+    }),
+  ).map((p) => p.userId);
 
   const actualIds = await fetchAllPages(`q=${encodeURIComponent(tag)}`);
   assert.deepEqual(actualIds, expectedD0aOrder, "fallback order without epoch equals exact D0a order");
@@ -648,16 +675,16 @@ test("1. No READY current epoch -> default discovery order falls back to D0a ord
   // SAME_GYM fallback without epoch
   const gymPage = await findDiscoveryPtPageIds({ q: tag, viewerGymIds: [gymX], page: 1, limit: PAGE_LIMIT });
   const gymSet = new Set([gymX]);
-  const expectedWithGym = [...discoverable]
-    .sort((a, b) => {
+  const expectedWithGym = interleaveRef(
+    [...discoverable].sort((a, b) => {
       if (a.isAcceptingClients !== b.isAcceptingClients) return a.isAcceptingClients ? -1 : 1;
       const ga = a.activeLocGymIds.includes(gymX);
       const gb = b.activeLocGymIds.includes(gymX);
       if (ga !== gb) return ga ? -1 : 1;
       const dt = b.createdAt.getTime() - a.createdAt.getTime();
       return dt !== 0 ? dt : cmpStr(a.userId, b.userId);
-    })
-    .map((p) => p.userId);
+    }),
+  ).map((p) => p.userId);
   assert.ok(gymSet.has(gymX));
   assert.deepEqual(gymPage.userIds, expectedWithGym.slice(0, PAGE_LIMIT));
 });
@@ -740,16 +767,16 @@ test("3. Default GET /profile/pts uses stats quality DESC + accepting + SAME_GYM
   const qualityMap = new Map(rows.map((r) => [r.ptUserId, r.quality]));
   const cmpStr = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
-  const expectedOrder = [...discoverable]
-    .sort((a, b) => {
+  const expectedOrder = interleaveRef(
+    [...discoverable].sort((a, b) => {
       if (a.isAcceptingClients !== b.isAcceptingClients) return a.isAcceptingClients ? -1 : 1;
       const qa = qualityMap.get(a.userId) ?? -1;
       const qb = qualityMap.get(b.userId) ?? -1;
       if (qa !== qb) return qb - qa;
       const dt = b.createdAt.getTime() - a.createdAt.getTime();
       return dt !== 0 ? dt : cmpStr(a.userId, b.userId);
-    })
-    .map((p) => p.userId);
+    }),
+  ).map((p) => p.userId);
 
   const actualIds = await fetchAllPages(`q=${encodeURIComponent(tag)}`);
   assert.equal(new Set(actualIds).size, actualIds.length, "0 duplicates across pages");
@@ -757,8 +784,8 @@ test("3. Default GET /profile/pts uses stats quality DESC + accepting + SAME_GYM
 
   // SAME_GYM + quality
   const withGym = await findDiscoveryPtPageIds({ q: tag, viewerGymIds: [gymX], page: 1, limit: PAGE_LIMIT });
-  const expectedGymOrder = [...discoverable]
-    .sort((a, b) => {
+  const expectedGymOrder = interleaveRef(
+    [...discoverable].sort((a, b) => {
       if (a.isAcceptingClients !== b.isAcceptingClients) return a.isAcceptingClients ? -1 : 1;
       const ga = a.activeLocGymIds.includes(gymX);
       const gb = b.activeLocGymIds.includes(gymX);
@@ -768,8 +795,8 @@ test("3. Default GET /profile/pts uses stats quality DESC + accepting + SAME_GYM
       if (qa !== qb) return qb - qa;
       const dt = b.createdAt.getTime() - a.createdAt.getTime();
       return dt !== 0 ? dt : cmpStr(a.userId, b.userId);
-    })
-    .map((p) => p.userId);
+    }),
+  ).map((p) => p.userId);
   assert.deepEqual(withGym.userIds, expectedGymOrder.slice(0, PAGE_LIMIT));
 
   // sessionMode=HYBRID = sells BOTH kinds of for-sale package (OFFLINE side with an active location);

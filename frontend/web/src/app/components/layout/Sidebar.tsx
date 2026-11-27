@@ -1,10 +1,13 @@
+import { useId } from "react";
 import { NavLink, useNavigate } from "react-router";
+import { motion, useReducedMotion } from "motion/react";
 import { useQuery } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { useApp } from "../../context/AppContext";
 import { UserIcon as User, ShieldIcon as Shield, XIcon as X, SignOutIcon as LogOut, LightningIcon as Zap } from "@phosphor-icons/react";
 import { AutoText } from "../i18n/AutoText";
-import { PARTNER_ROLE_CHIP_LABEL, normalizePartnerRole } from "../../utils/gymStaffRole";
+import { PARTNER_ROLE_CHIP_LABEL, canUseFeature, hasPartnerPermission, normalizePartnerRole, type StaffFeature } from "../../utils/gymStaffRole";
+import { usePendingCheckinExceptionCount } from "../../hooks/usePendingCheckinExceptionCount";
 import type { AppLanguage } from "../../context/SettingsContext";
 import { AppLogo } from "../brand/AppLogo";
 import { UserAvatar } from "./UserAvatar";
@@ -32,6 +35,7 @@ import {
   GyminiWalletIcon,
   GyminiWorkoutIcon,
 } from "../brand/GyminiLucide";
+import { fullName } from "../../utils/fullName";
 
 // ─── Navigation definitions ────────────────────────────────────────────────
 
@@ -41,7 +45,7 @@ import {
  * features share one nav slot instead of each taking a row — keeps this
  * list short enough to be usable on a mobile-width sidebar/drawer.
  */
-const clientNavFull = [
+export const clientNavFull = [
   {
     label: "Tổng quan",
     icon: GyminiDashboardIcon,
@@ -64,8 +68,7 @@ const clientNavFull = [
   { label: "Dịch vụ", icon: GyminiServicesIcon, to: "/client/services" },
   { label: "Trò chuyện", icon: GyminiChatIcon, to: "/client/chat" },
   { label: "Ví", icon: GyminiWalletIcon, to: "/client/wallet" },
-  { label: "Khiếu nại của tôi", icon: GyminiDisputeIcon, to: "/disputes" },
-  { label: "Khiếu nại phòng gym", icon: GyminiDisputeIcon, to: "/complaint-cases" },
+  // Khiếu nại (Khiếu nại của tôi / Khiếu nại phòng gym) moved to the Topbar "Khiếu nại" button — see complaintEntry.ts.
   { label: "Hồ sơ", icon: GyminiProfileIcon, to: "/client/profile" },
   { label: "Cài đặt", icon: GyminiSettingsIcon, to: "/client/settings" },
 ];
@@ -82,14 +85,18 @@ const clientNavFull = [
  * item to filter here — both live inside other owner pages, which hide their own
  * OWNER-only sections themselves.
  */
-const gymOwnerNavFull = [
+const gymOwnerNavFull: NavItem[] = [
   {
     label: "Tổng quan",
     icon: GyminiDashboardIcon,
     to: "/gym-owner/dashboard",
   },
   { label: "Phòng gym của tôi", icon: GyminiGymIcon, to: "/gym-owner/gyms" },
+  // Item 6: duyệt ngoại lệ check-in nằm ở Quầy lễ tân (chủ + quản lý) — trước đây chỉ vào được bằng URL. Huy hiệu = số yêu cầu đang chờ duyệt.
+  { label: "Quầy lễ tân", icon: GyminiGymIcon, to: "/gym-owner/front-desk", feature: "frontDesk" },
   { label: "Quản lý gói", icon: GyminiMoneyIcon, to: "/gym-owner/plans" },
+  // Item 6: Tài chính (ví, rút tiền, hoa hồng PT) — chỉ chủ sở hữu trong nhóm chủ/quản lý (canUseFeature "finance" = OWNER, ACCOUNTANT).
+  { label: "Tài chính", icon: GyminiMoneyIcon, to: "/gym-owner/finance", feature: "finance" },
   { label: "Tin đăng & tiện ích", icon: GyminiGymIcon, to: "/gym-owner/listings", ownerOnly: true },
   { label: "Quản lý cộng tác", icon: GyminiContractIcon, to: "/gym-owner/collaborations", ownerOnly: true },
   // ND-07: chủ và quản lý (đúng chi nhánh được giao) cùng giải trình hồ sơ khiếu nại — không ownerOnly.
@@ -109,7 +116,7 @@ const accountantNav = [{ label: "Tài chính", icon: GyminiMoneyIcon, to: "/gym-
 const ptClientNav = clientNavFull;
 
 /** PT professional workspace nav */
-const ptWorkspaceNav = [
+export const ptWorkspaceNav = [
   {
     label: "Tổng quan PT",
     icon: GyminiDashboardIcon,
@@ -117,7 +124,6 @@ const ptWorkspaceNav = [
   },
   { label: "Học viên", icon: GyminiUsersIcon, to: "/pt/clients" },
   { label: "Hợp đồng", icon: GyminiContractIcon, to: "/pt/contracts" },
-  { label: "Khiếu nại của tôi", icon: GyminiDisputeIcon, to: "/disputes" },
   { label: "Duyệt kế hoạch", icon: GyminiPlanIcon, to: "/pt/plans" },
   { label: "Lịch dạy", icon: GyminiScheduleIcon, to: "/pt/schedule" },
   {
@@ -178,6 +184,10 @@ interface NavItem {
   sourceLang?: AppLanguage;
   /** GYM_MANAGEMENT master spec §61 — hidden from a MANAGER account's nav entirely. */
   ownerOnly?: boolean;
+  /** Item 6: the entry is shown only to a role that may use this page (same table RequireStaffFeature enforces — never a link a role cannot open). */
+  feature?: StaffFeature;
+  /** Item 6: small count badge (e.g. pending check-in exceptions); hidden when 0. */
+  badge?: number;
 }
 
 function NavGroup({
@@ -187,6 +197,16 @@ function NavGroup({
   items: NavItem[];
   onClose: () => void;
 }) {
+  // Frontend 2.0: ONE active surface that glides between items (shared layout), instead of each
+  // item swapping its own background. Same colours/border as before. Unique per Sidebar instance
+  // (desktop aside + mobile drawer can both be mounted). Critically damped: no overshoot.
+  const indicatorId = useId();
+  const reduceMotion = useReducedMotion();
+  // NG-3: Sidebar is shared with Gym Owner / Admin (green labels, unchanged). Only Client/PT, whose drawer is the
+  // Obsidian glass panel, get the Obsidian selection language (same as the desktop rail: soft accent pill, accent icon,
+  // plain label colour) instead of the old green label.
+  const { role } = useApp();
+  const obsidian = role === "client" || role === "pt";
   return (
     <>
       {items.map((item) => (
@@ -195,27 +215,48 @@ function NavGroup({
           to={item.to}
           onClick={onClose}
           className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-0.5 text-sm transition-all ${
-              isActive
-                ? "bg-green-500/15 text-green-400 border border-green-500/20"
-                : "text-zinc-500 hover:bg-zinc-800/80 hover:text-zinc-200"
+            `relative flex items-center gap-3 px-3 py-2.5 rounded-lg mb-0.5 text-sm border border-transparent transition-colors duration-150 ${
+              obsidian
+                ? isActive
+                  ? "text-[var(--ob-text)] font-medium"
+                  : "text-[var(--ob-text-2)] hover:bg-[var(--ob-hover)] hover:text-[var(--ob-text)]"
+                : isActive
+                  ? "text-green-400"
+                  : "text-zinc-500 hover:bg-zinc-800/80 hover:text-zinc-200"
             }`
           }
         >
           {({ isActive }) => (
             <>
+              {isActive && (
+                <motion.span
+                  layoutId={`nav-active-${indicatorId}`}
+                  aria-hidden
+                  className={obsidian ? "absolute inset-0 rounded-lg border border-[var(--ob-nav-pill-line)] bg-[var(--ob-accent-soft)]" : "absolute inset-0 rounded-lg bg-green-500/15 border border-green-500/20"}
+                  transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 520, damping: 44, mass: 0.9 }}
+                />
+              )}
               <item.icon
                 weight={isActive ? "bold" : "regular"}
-                className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-green-400" : ""}`}
+                className={`relative w-4 h-4 flex-shrink-0 ${isActive ? (obsidian ? "text-[var(--ob-accent-ink)]" : "text-green-400") : ""}`}
               />
               <AutoText
-                className="flex-1"
+                className="relative flex-1"
                 sourceLang={item.sourceLang || "vi"}
               >
                 {item.label}
               </AutoText>
+              {item.badge != null && item.badge > 0 && (
+                <span
+                  data-testid="nav-badge"
+                  aria-label={`${item.badge} yêu cầu đang chờ`}
+                  className="min-w-5 h-5 px-1.5 rounded-full bg-amber-500 text-black text-[10px] font-bold flex items-center justify-center"
+                >
+                  {item.badge > 99 ? "99+" : item.badge}
+                </span>
+              )}
               {isActive && (
-                <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
+                <div className={`relative w-1.5 h-1.5 rounded-full ${obsidian ? "bg-[var(--ob-accent-ink)]" : "bg-green-400"}`} />
               )}
             </>
           )}
@@ -254,11 +295,15 @@ export function Sidebar() {
   const normalizedPartnerRole = normalizePartnerRole(partnerRole);
   const partnerRoleLabel = normalizedPartnerRole ? PARTNER_ROLE_CHIP_LABEL[normalizedPartnerRole] : "Đối tác";
   // Chưa biết vai trò (đang tải / lỗi) → không hiện menu nào thay vì mặc định menu của chủ (fail-closed).
-  const gymOwnerNav =
+  const canApproveExceptions = hasPartnerPermission(partnerRole, partnerRoleQuery.data?.permissions, "checkin.exception.approve");
+  const pendingExceptions = usePendingCheckinExceptionCount(role === "gym_owner" && canApproveExceptions);
+  const withBadges = (items: NavItem[]): NavItem[] =>
+    items.map((item) => (item.to === "/gym-owner/front-desk" && pendingExceptions > 0 ? { ...item, badge: pendingExceptions } : item));
+  const gymOwnerNav: NavItem[] =
     partnerRole === "OWNER"
-      ? gymOwnerNavFull
+      ? withBadges(gymOwnerNavFull.filter((item) => !item.feature || canUseFeature("OWNER", item.feature)))
       : partnerRole === "MANAGER"
-        ? gymOwnerNavFull.filter((item) => !item.ownerOnly)
+        ? withBadges(gymOwnerNavFull.filter((item) => !item.ownerOnly && (!item.feature || canUseFeature("MANAGER", item.feature))))
         : partnerRole === "RECEPTIONIST"
           ? receptionistNav
           : partnerRole === "ACCOUNTANT"
@@ -358,7 +403,7 @@ export function Sidebar() {
             <div className="w-4 h-4 bg-green-500/20 rounded flex items-center justify-center">
               <Zap className="w-2.5 h-2.5 text-green-400" />
             </div>
-            <span className="text-xs text-zinc-500 font-semibold tracking-wide uppercase">
+            <span className="text-xs text-zinc-500 font-semibold">
               <AutoText>Tài khoản PT</AutoText>
             </span>
           </div>
@@ -392,11 +437,11 @@ export function Sidebar() {
       )}
 
       {/* ── Navigation ── */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2">
+      <nav aria-label="Điều hướng chính" className="flex-1 overflow-y-auto py-3 px-2">
         {/* Section label */}
         {isPT && (
           <div className="px-3 mb-2">
-            <span className="text-xs font-bold text-zinc-600 uppercase tracking-widest">
+            <span className="text-xs font-bold text-zinc-600">
               <AutoText>
                 {activeView === "pt" ? "Huấn luyện" : "Thể dục của tôi"}
               </AutoText>
@@ -416,7 +461,7 @@ export function Sidebar() {
           <div className="flex-1 min-w-0">
             <div className="text-xs text-zinc-100 font-semibold truncate">
               {user
-                ? `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                ? fullName(user) ||
                   user.email.split("@")[0]
                 : "Thành viên"}
             </div>

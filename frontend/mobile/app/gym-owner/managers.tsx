@@ -31,12 +31,12 @@ import {
   daysSince,
   inviteIsStale,
   inviteManagerError,
-  isManagerAccount,
   managerName,
   managerScopeLabel,
   ownedGyms,
   pendingManagerInvites,
 } from "../../src/features/gymOwner/gymOwner";
+import { hasPartnerPermission } from "../../src/features/gymOwner/permissions";
 import { emailInputProps, normalizeEmail } from "../../src/lib/email";
 import { usePullToRefresh } from "../../src/hooks/usePullToRefresh";
 import { useRefetchOnReturn } from "../../src/hooks/useRefetchOnReturn";
@@ -74,7 +74,8 @@ export default function GymOwnerManagersScreen() {
       </View>
     );
   }
-  if (isManagerAccount(statusQuery.data)) {
+  // Fail-closed: only a role whose permissions[] lists staff.manage (the owner) sees this; unknown role / old server => the notice.
+  if (!hasPartnerPermission(statusQuery.data, "staff.manage")) {
     return (
       <View className="flex-1 bg-background px-5" style={{ paddingTop: insets.top + 24 }}>
         <EmptyState icon={Users} title="Chỉ dành cho chủ phòng gym" description="Việc mời và thu hồi người quản lý do chủ phòng gym thực hiện." />

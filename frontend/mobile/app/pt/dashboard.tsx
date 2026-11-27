@@ -52,6 +52,7 @@ import {
   studentsFromContracts,
   weekSessionCounts,
 } from "../../src/features/pt/pt";
+import { rawSessionsForRole } from "../../src/features/services/sessions";
 
 /**
  * PT-01 — "Tổng quan". Visual: the design's PTDashboard (workspace switch in the header, a hero
@@ -81,7 +82,8 @@ export default function PtDashboardScreen() {
   const walletQuery = useQuery({ queryKey: ["pt-wallet", uid], queryFn: () => walletService.getPtWallet() });
   const earningsQuery = useQuery({ queryKey: ["pt-earnings", uid], queryFn: () => contractService.getEarnings() });
   const contractsQuery = useQuery({ queryKey: ["pt-contracts", uid], queryFn: () => contractService.getByPT() });
-  const sessionsQuery = useQuery({ queryKey: ["pt-sessions-upcoming", uid], queryFn: () => sessionService.getMyUpcoming() });
+  // PT dashboard: only sessions I TEACH (my own sessions as a client of another PT belong to the client screens).
+  const sessionsQuery = useQuery({ queryKey: ["pt-sessions-upcoming", uid], queryFn: () => sessionService.getMyUpcoming("pt") });
   const plansQuery = useQuery({ queryKey: ["pt-pending-plans", uid], queryFn: () => ptPlanReviewService.getPendingReviews() });
   const sellingQuery = useQuery({ queryKey: ["pt-selling-orders", uid], queryFn: () => personalizedServiceApi.listOrdersForSeller() });
 
@@ -98,7 +100,7 @@ export default function PtDashboardScreen() {
 
   const available = money((walletQuery.data as any)?.availableBalance);
   const earnings: any = earningsQuery.data ?? {};
-  const sessions = sessionsOf(sessionsQuery.data);
+  const sessions = sessionsOf(rawSessionsForRole(sessionsQuery.data, "pt", uid));
   const students = studentsFromContracts(contractsQuery.data);
   const activeStudents = students.filter((s) => s.status === "ACTIVE");
   const newStudents = activeStudents.filter((s) => s.used === 0);

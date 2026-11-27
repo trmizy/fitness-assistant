@@ -1,4 +1,4 @@
-import { Building2, ConciergeBell, LayoutDashboard, Receipt, UserRound, Wallet } from "lucide-react-native";
+import { Building2, ConciergeBell, LayoutDashboard, Receipt, UserRound } from "lucide-react-native";
 import { useQuery } from "@tanstack/react-query";
 
 import { RequireRole } from "../../src/components/guards/RequireRole";
@@ -10,9 +10,11 @@ import {
 import { useApp } from "../../src/context/AppContext";
 import { ALL_STAFF_TABS, staffTabsFor } from "../../src/features/gymOwner/staffRoles";
 import { gymService } from "../../src/services/api";
+import { hasPartnerPermission } from "../../src/features/gymOwner/permissions";
+import { usePendingCheckinExceptionCount } from "../../src/features/gymOwner/usePendingCheckinExceptionCount";
 
 /**
- * Gym owner workspace. Three tabs, from the design prototype's `gymTabs` — deliberately fewer than
+ * Gym owner workspace. Five tabs for the owner (was six with "Ví"); the design prototype's `gymTabs` had three — deliberately fewer than
  * the other actors, because the brand/branch management this role does is depth-first (a branch,
  * then its plans, then its documents) rather than spread across peers.
  *
@@ -26,8 +28,8 @@ import { gymService } from "../../src/services/api";
 const gymTabs: WorkspaceTab[] = [
   { name: "dashboard", label: "Tổng quan", icon: LayoutDashboard },
   { name: "gyms", label: "Phòng gym", icon: Building2 },
-  { name: "wallet", label: "Ví", icon: Wallet },
   // N15M-08 / N15M-10 — one home per narrow role: the receptionist's desk and the accountant's read-only finance.
+  // "Ví" is no longer a tab: it is a drill-down of "Tài chính" (hidden route `wallet`, see hiddenRoutes).
   { name: "front-desk", label: "Quầy lễ tân", icon: ConciergeBell },
   { name: "finance", label: "Tài chính", icon: Receipt },
   // Tab thứ tư, ngoài `gymTabs` ba tab của bản thiết kế: WB-18 (hồ sơ chủ gym) là màn web mọc thêm
@@ -49,12 +51,13 @@ export default function GymOwnerLayout() {
 /** Listing Management (M2): "Tin đăng & tiện ích" is a drill-down from Phòng gym / the branch screen, never a tab. */
 const LISTING_HIDDEN_ROUTES = ["listing"];
 
-const hiddenRoutes = [...LISTING_HIDDEN_ROUTES, "plans", "collaborations", "managers", "checkin-qr", "branch"];
+// `wallet`: former tab "Ví", now opened from "Tài chính" (owner only; the screen re-checks finance.wallet.view). Kept as a hidden route so old links work.
+const hiddenRoutes = [...LISTING_HIDDEN_ROUTES, "plans", "collaborations", "managers", "checkin-qr", "branch", "wallet"];
 
 /**
- * Tab bar per role (staffRoles.ts, mirrors gym-service default-deny permissions): owner = Tổng quan / Phòng gym / Ví / Hồ sơ;
- * manager drops Ví; receptionist = Quầy lễ tân + Hồ sơ; accountant = Tài chính + Hồ sơ. A tab a role cannot use is
- * hidden (href null) rather than shown and 403'd. Role not known yet → the owner bar, as before.
+ * Tab bar per role (staffRoles.ts, mirrors gym-service default-deny permissions): owner = Tổng quan / Phòng gym / Quầy lễ tân /
+ * Tài chính (có Ví & rút tiền) / Hồ sơ; manager = Tổng quan / Phòng gym / Quầy lễ tân / Hồ sơ; receptionist = Quầy lễ tân + Hồ sơ; accountant =
+ * Tài chính + Hồ sơ. A tab a role cannot use is hidden (href null) rather than shown and 403'd. Role not known yet → only Hồ sơ (fail-closed).
  */
 function GymTabs() {
   const { user } = useApp();
@@ -64,10 +67,15 @@ function GymTabs() {
   });
   const keep: string[] = staffTabsFor(status.data);
   const dropped = ALL_STAFF_TABS.filter((n) => !keep.includes(n));
+  // Item 6: badge on "Quầy lễ tân" = check-in exception requests waiting for this owner / manager to approve (polls every 30 s).
+  const canApproveExceptions = keep.includes("front-desk") && hasPartnerPermission(status.data, "checkin.exception.approve");
+  const pendingExceptions = usePendingCheckinExceptionCount(canApproveExceptions);
   return (
     <WorkspaceTabs
       workspace="gym"
-      tabs={gymTabs.filter((t) => keep.includes(t.name))}
+      tabs={gymTabs
+        .filter((t) => keep.includes(t.name))
+        .map((t) => (t.name === "front-desk" && pendingExceptions > 0 ? { ...t, badge: pendingExceptions } : t))}
       hiddenRoutes={[...hiddenRoutes, ...dropped]}
     />
   );

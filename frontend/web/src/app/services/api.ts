@@ -13,6 +13,7 @@ import { emitSessionExpired, SESSION_REPLACED_CODE, SESSION_REPLACED_NOTICE, set
 import { readRefreshToken, writeRefreshToken, clearRefreshToken } from "./secureStorage";
 import { tokenStore } from "./tokenStore";
 import { sessionGuard, SessionChangedError } from "./sessionGuard";
+import type { GymMembershipContract, GymStats } from "../types";
 
 // Defaults to a same-origin relative path, proxied by Vite's dev server to
 // the gateway (see vite.config.ts's "/api" proxy rule) — this is what makes
@@ -1284,6 +1285,8 @@ export interface CycleProgressSignals {
   adherencePct: number | null;
   rpeTrend: "stable" | "increasing" | "decreasing";
   laggingMuscleGroups: string[];
+  /** Already returned by fitness-service (training-cycle-classification.service.ts ProgressSignals); typed here for D4. */
+  signalBreakdown?: Partial<Record<"bodyComposition" | "volume" | "adherence" | "prs", "up" | "flat" | "down">>;
 }
 
 export interface CycleSummary {
@@ -5447,8 +5450,9 @@ export const sessionService = {
     const { data } = await api.get(`/sessions/contract/${contractId}`);
     return data;
   },
-  getMyUpcoming: async () => {
-    const { data } = await api.get("/sessions/upcoming");
+  /** `as` splits the calendars of a PT who also trains as a client: "pt" = sessions I teach, "client" = sessions I attend. */
+  getMyUpcoming: async (as?: "pt" | "client") => {
+    const { data } = await api.get("/sessions/upcoming", as ? { params: { as } } : undefined);
     return data;
   },
   /** N15B-06 (PT): CONFIRMED sessions whose end has passed but that were never closed - "Cần chốt buổi". */
@@ -5520,6 +5524,16 @@ export const sessionService = {
       proposedEndAt,
       reason,
     });
+    return data;
+  },
+  /** Every proposal made on a session (either party may read it): used to know how many moves were already accepted. */
+  getRescheduleHistory: async (sessionId: string) => {
+    const { data } = await api.get(`/sessions/${sessionId}/reschedule-history`);
+    return data as Array<{ id: string; status: string; requestedBy: string }>;
+  },
+  /** The proposer withdraws their own PENDING proposal (server: proposer only, 409 once it was answered). */
+  cancelReschedule: async (requestId: string) => {
+    const { data } = await api.delete(`/sessions/reschedules/${requestId}`);
     return data;
   },
   respondToReschedule: async (requestId: string, action: "ACCEPT" | "REJECT", responseNote?: string) => {
@@ -5764,14 +5778,15 @@ export const walletService = {
     const { data } = await api.get('/me/pt-wallet/transactions');
     return data?.data ?? data;
   },
-  // Money-flow plan 5.3 — self-service withdrawal requests. Works for both the CLIENT and PT
-  // wallet: payment-service infers which one from the caller's role.
-  requestWithdrawal: async (amount: string, payoutInfo: string) => {
-    const { data } = await api.post('/me/withdrawals', { amount, payoutInfo });
+  // Money-flow plan 5.3 — self-service withdrawal requests. A PT is also a client, so the caller names the wallet:
+  // 'CLIENT' = refund/compensation wallet (client wallet page), 'PT' = teaching-income wallet (PT wallet page).
+  // Omitted -> the server's old default (role PT -> PT, otherwise CLIENT).
+  requestWithdrawal: async (amount: string, payoutInfo: string, wallet?: 'CLIENT' | 'PT') => {
+    const { data } = await api.post('/me/withdrawals', { amount, payoutInfo, ...(wallet ? { wallet } : {}) });
     return data?.data ?? data;
   },
-  getMyWithdrawals: async () => {
-    const { data } = await api.get('/me/withdrawals');
+  getMyWithdrawals: async (wallet?: 'CLIENT' | 'PT') => {
+    const { data } = await api.get('/me/withdrawals', wallet ? { params: { wallet } } : undefined);
     return data?.data ?? data;
   },
 };
@@ -6144,8 +6159,9 @@ export const gymService = {
   },
   // Money-flow plan 5.3 — gym-service verifies gym ownership itself before proxying to
   // payment-service, same shape as getOwnedWallet above.
-  requestGymWithdrawal: async (gymId: string, amount: string, payoutInfo: string) => {
-    const { data } = await api.post(`/owner/gyms/${gymId}/withdrawals`, { amount, payoutInfo });
+  // Điểm đến luôn là tài khoản nhận tiền ĐÃ ĐĂNG KÝ của đối tác (máy chủ tự lấy; không còn gửi payoutInfo). Chưa có tài khoản → 409 PAYOUT_ACCOUNT_REQUIRED.
+  requestGymWithdrawal: async (gymId: string, amount: string) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/withdrawals`, { amount });
     return data?.data ?? data;
   },
   listGymWithdrawals: async (gymId: string) => {
@@ -6203,6 +6219,31 @@ export const gymService = {
   },
   listOwnedMemberships: async (gymId: string) => {
     const { data } = await api.get(`/owner/gyms/${gymId}/memberships`);
+    return data?.data ?? data;
+  },
+  // Item 4: một trang hội viên (cursor, mới → cũ). `items` là mảng như listOwnedMemberships; hasMore/nextCursor để "Xem thêm".
+  // Server mặc định 200 dòng/trang, tối đa 500; status / expiringBefore (ISO) lọc ở DB.
+  listOwnedMembershipsPage: async (
+    gymId: string,
+    params: { limit?: number; cursor?: string | null; status?: string; expiringBefore?: string; q?: string } = {},
+    signal?: AbortSignal,
+  ): Promise<{ items: GymMembershipContract[]; hasMore: boolean; nextCursor: string | null }> => {
+    // `q` (2-64 ký tự, tìm theo tên, chủ/quản lý): chỉ gửi khi có giá trị; một `q` rỗng sẽ là 400 chứ không phải danh sách đầy đủ.
+    const { data } = await api.get(`/owner/gyms/${gymId}/memberships`, {
+      params: { limit: params.limit, cursor: params.cursor || undefined, status: params.status, expiringBefore: params.expiringBefore, q: params.q || undefined },
+      signal,
+    });
+    const items = (data?.data ?? []) as GymMembershipContract[];
+    return { items, hasMore: !!data?.meta?.hasMore, nextCursor: data?.meta?.nextCursor ?? null };
+  },
+  // Item 4: KPI do DB đếm (ngày VN). Không truyền from/to = 7 ngày kết thúc hôm nay; tối đa 92 ngày. `checkins` / `memberships` là null nếu vai trò không được đọc.
+  getGymStats: async (gymId: string, params: { from?: string; to?: string } = {}): Promise<GymStats> => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/stats`, { params });
+    return data?.data ?? data;
+  },
+  // Biểu đồ giai đoạn 2: heatmap giờ cao điểm, gia hạn, thực nhận (sổ ví). Cùng luật khoảng ngày VN như /stats (tối đa 92 ngày); phần nào vai trò không được đọc là null, `unavailable` liệt kê phần đọc được nhưng payment-service lỗi.
+  getGymAnalytics: async (gymId: string, params: { from?: string; to?: string } = {}): Promise<unknown> => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/analytics`, { params });
     return data?.data ?? data;
   },
 

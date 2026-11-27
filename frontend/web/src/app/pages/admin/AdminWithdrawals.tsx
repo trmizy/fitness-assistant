@@ -16,6 +16,7 @@ import { moneyText } from "./shared/moneyGuards";
 import { QUEUE_KEY, ROW_GRID, WithdrawalRow } from "./withdrawals/WithdrawalRow";
 import { WithdrawalHistoryPanel } from "./withdrawals/WithdrawalHistoryPanel";
 import { useWithdrawalOwnerNames } from "./withdrawals/useWithdrawalOwnerNames";
+import { withdrawalRequesterId } from "./withdrawals/withdrawalOwnerNames";
 import { TAB_LABEL, parseHistoryPage, parseHistoryTab, type WithdrawalTab } from "./withdrawals/withdrawalHistory";
 import {
   QUEUE_STATUSES,
@@ -376,7 +377,7 @@ export function AdminWithdrawals() {
               </div>
               <div role="rowgroup">
                 {rows.map((r) => (
-                  <WithdrawalRow key={r.id} r={r} now={now} ownerName={ownerNames.data?.get(r.ownerId)?.name} onActionDone={() => { focusLostPending.current = true; }} />
+                  <WithdrawalRow key={r.id} r={r} now={now} ownerName={ownerNames.data?.get(withdrawalRequesterId(r))?.name} onActionDone={() => { focusLostPending.current = true; }} />
                 ))}
               </div>
             </div>

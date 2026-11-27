@@ -35,7 +35,7 @@ import {
 } from "../../../utils/ptListing";
 
 export const sectionTitle = "text-sm font-bold text-zinc-100";
-const fieldLabel = "block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5";
+const fieldLabel = "block text-xs font-semibold text-zinc-500 mb-1.5";
 
 export function SectionCard({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -431,7 +431,7 @@ export function PhotosSection(props: {
 
       {props.spare.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Ảnh có thể thêm vào tin</p>
+          <p className="text-xs font-semibold text-zinc-500">Ảnh có thể thêm vào tin</p>
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {props.spare.map((p) => (
               <li key={p.id} className="overflow-hidden rounded-xl border border-zinc-800/70 bg-zinc-900">

@@ -1,0 +1,160 @@
+/*
+ * GYMINI MOTION DESIGN SYSTEM — v0 (prototype, Gate A)
+ * ---------------------------------------------------------------------------
+ * Scale mirrors transitions.dev `_root.css` 1:1 (same values, same usage notes)
+ * but every name carries a `--g-` prefix. Reason (verified, not stylistic):
+ * Tailwind v4 owns `--ease-out` / `--ease-in-out` in its theme namespace; pasting
+ * transitions.dev's unprefixed `:root` block into Gymini would silently re-time
+ * every `ease-out` / `ease-in-out` utility in the app.
+ *
+ * Gymini-specific tokens (route, press, data) are product rules that win over the
+ * transitions.dev defaults: route change 180ms (brief: 160–220ms), not 250ms.
+ * Colours are NOT defined here — motion reads the existing theme.css tokens only.
+ */
+:root {
+  /* ── Durations (transitions.dev scale) ── */
+  --g-dur-stagger: 40ms;   /* per-item stagger offset */
+  --g-dur-micro: 80ms;     /* press, tooltip delay, shake segment */
+  --g-dur-quick: 150ms;    /* close / exit, text swap, tooltip in */
+  --g-dur-fast: 250ms;     /* dropdown/modal open, tabs sliding, icon swap */
+  --g-dur-medium: 350ms;   /* panel / drawer close, toast close */
+  --g-dur-slow: 400ms;     /* drawer open, skeleton → content reveal */
+  --g-dur-emphasis: 500ms; /* headline reveal, success check — marketing + milestones only */
+
+  /* ── Gymini product rules ── */
+  --g-dur-route: 180ms;    /* route change (in-band 160–220ms); exit is instant */
+  --g-dur-hover: 140ms;    /* colour/surface hover */
+  --g-dur-ops: 120ms;      /* Gym Owner / Admin: feedback only, never decorative */
+  --g-dist-route: 6px;     /* route rise */
+
+  /* ── Easings ── */
+  --g-ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1); /* enter, open, position change */
+  --g-ease-route: cubic-bezier(0.22, 0.61, 0.36, 1);   /* = current AppShell curve, kept */
+  --g-ease-in-out: ease-in-out;                        /* swaps, reveals */
+  --g-ease-exit: cubic-bezier(0.4, 0, 1, 1);           /* close: fast start, no overshoot */
+  --g-ease-linear: linear;                             /* shimmer, spinner */
+  --g-ease-pop: cubic-bezier(0.34, 1.36, 0.64, 1);     /* badge / success pop — rare */
+
+  /* ── Distances / scales / blur ── */
+  --g-dist-micro: 4px;
+  --g-dist-base: 8px;
+  --g-dist-medium: 12px;
+  --g-scale-modal: 0.96;
+  --g-scale-dropdown: 0.97;
+  --g-scale-press: 0.97;
+  --g-blur-small: 2px;
+  --g-blur-medium: 3px;
+}
+
+/* ===========================================================================
+ * SYSTEM LAYER (Frontend 2.0 full test). One place that gives every page the same
+ * motion language through the primitives they already use — no per-page rewrites.
+ * Selectors use `html` + data-slot/data-state so they win over the tw-animate defaults
+ * without !important. transform/opacity only. Every rule has a reduced-motion branch.
+ * ========================================================================= */
+
+@keyframes g-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes g-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes g-pop-in { from { opacity: 0; transform: translateY(6px) scale(var(--g-scale-modal)); } to { opacity: 1; transform: none; } }
+@keyframes g-pop-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: scale(0.98); } }
+@keyframes g-rise-in { from { transform: translateY(32px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes g-from-right { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes g-to-right { from { transform: none; } to { transform: translateX(100%); } }
+@keyframes g-from-left { from { transform: translateX(-100%); } to { transform: none; } }
+@keyframes g-to-left { from { transform: none; } to { transform: translateX(-100%); } }
+
+/* 1) Shared accessible Modal / Drawer (components/ui/Modal.tsx) — had no motion at all. */
+html [data-slot="modal-backdrop"][data-state="open"] { animation: g-fade-in var(--g-dur-fast) var(--g-ease-smooth-out); }
+html [data-slot="modal-backdrop"][data-state="closed"] { animation: g-fade-out var(--g-dur-quick) var(--g-ease-exit); }
+html [data-slot="modal"][data-state="open"] { animation: g-fade-in var(--g-dur-quick) var(--g-ease-smooth-out); }
+html [data-slot="modal"][data-state="closed"] { animation: g-fade-out var(--g-dur-quick) var(--g-ease-exit); }
+html [data-slot="modal"][data-placement="center"][data-state="open"] > :not(.sr-only) { animation: g-pop-in var(--g-dur-fast) var(--g-ease-smooth-out); }
+html [data-slot="modal"][data-placement="sheet"][data-state="open"] > :not(.sr-only) { animation: g-rise-in var(--g-dur-slow) var(--g-ease-smooth-out); }
+@media (min-width: 640px) {
+  html [data-slot="modal"][data-placement="sheet"][data-state="open"] > :not(.sr-only) { animation-name: g-pop-in; animation-duration: var(--g-dur-fast); }
+}
+html [data-slot="modal"][data-placement="right"][data-state="open"] > :not(.sr-only) { animation: g-from-right var(--g-dur-slow) var(--g-ease-smooth-out); }
+html [data-slot="modal"][data-placement="right"][data-state="closed"] > :not(.sr-only) { animation: g-to-right var(--g-dur-quick) var(--g-ease-exit); }
+html [data-slot="modal"][data-placement="left"][data-state="open"] > :not(.sr-only) { animation: g-from-left var(--g-dur-slow) var(--g-ease-smooth-out); }
+html [data-slot="modal"][data-placement="left"][data-state="closed"] > :not(.sr-only) { animation: g-to-left var(--g-dur-quick) var(--g-ease-exit); }
+
+/* 2) Radix/shadcn overlays: same timing everywhere (open 250ms smooth-out, close 150ms). Codex's
+      overlay-token intent (dialog/sheet enter/exit + motion-reduce), re-applied on top of HEAD. */
+html :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"], [data-slot="popover-content"], [data-slot="select-content"], [data-slot="hover-card-content"], [data-slot="context-menu-content"], [data-slot="menubar-content"])[data-state="open"] {
+  animation-duration: var(--g-dur-fast); animation-timing-function: var(--g-ease-smooth-out);
+}
+html :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"], [data-slot="popover-content"], [data-slot="select-content"], [data-slot="hover-card-content"], [data-slot="context-menu-content"], [data-slot="menubar-content"])[data-state="closed"] {
+  animation-duration: var(--g-dur-quick); animation-timing-function: var(--g-ease-exit);
+}
+html :is([data-slot="dialog-overlay"], [data-slot="alert-dialog-overlay"], [data-slot="sheet-overlay"], [data-slot="drawer-overlay"])[data-state="open"] { animation-duration: var(--g-dur-fast); }
+html :is([data-slot="dialog-overlay"], [data-slot="alert-dialog-overlay"], [data-slot="sheet-overlay"], [data-slot="drawer-overlay"])[data-state="closed"] { animation-duration: var(--g-dur-quick); }
+html [data-slot="sheet-content"][data-state="open"] { animation-duration: var(--g-dur-slow); animation-timing-function: var(--g-ease-smooth-out); }
+html [data-slot="sheet-content"][data-state="closed"] { animation-duration: var(--g-dur-medium); animation-timing-function: var(--g-ease-exit); }
+
+/* 3) Press feedback on every button (zero specificity: any page class that sets `scale` wins). */
+:where(button, [role="button"], a[data-slot="button"]):where(:not(:disabled, [aria-disabled="true"])):active { scale: var(--g-scale-press); }
+:where(button, [role="button"], a[data-slot="button"]) { transition-property: color, background-color, border-color, box-shadow, opacity, scale, translate, transform; transition-duration: var(--g-dur-hover); transition-timing-function: var(--g-ease-smooth-out); }
+
+/* 4) Shared skeleton: a quiet sweep instead of a whole-block opacity pulse. */
+html [data-slot="skeleton"] { position: relative; overflow: hidden; animation: none; }
+html [data-slot="skeleton"]::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--foreground) 7%, transparent), transparent);
+  animation: g-sweep 1.4s var(--g-ease-linear) infinite;
+}
+@keyframes g-sweep { to { transform: translateX(100%); } }
+
+/* 5) Keyboard focus: one instant, visible ring everywhere a page did not define its own. */
+:where(a, button, [role="button"], [role="tab"], input, select, textarea, summary):focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+/* 5b) Opt-in helpers used by new surfaces (landing): linked card lifts 2px, no scale, no tilt. */
+.g-card-link { transition: translate var(--g-dur-fast) var(--g-ease-smooth-out), border-color var(--g-dur-hover) ease-out, background-color var(--g-dur-hover) ease-out; }
+@media (hover: hover) { .g-card-link:hover { translate: 0 -2px; border-color: color-mix(in srgb, var(--primary-color) 35%, var(--border-color)); } }
+
+/* 6) Reduced motion, app-wide. Spinners keep turning (a frozen spinner reads as a hang); everything
+      else stops or becomes instant. Content is never left hidden: animations jump to their end. */
+@media (prefers-reduced-motion: reduce) {
+  *:not(.animate-spin), *:not(.animate-spin)::before, *:not(.animate-spin)::after {
+    animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important; scroll-behavior: auto !important;
+  }
+  :where(button, [role="button"], a[data-slot="button"]):active { scale: none; }
+  html [data-slot="skeleton"]::after { animation: none; }
+}
+
+/* ── Scroll hint for horizontal tab/chip bars (V2) ──────────────────────────────
+   Fades the edge only on the side that still has content, driven by the bar's own
+   scroll position. No overflow → inactive timeline → no mask. Unsupported → no-op. */
+@property --g-fade-l { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --g-fade-r { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@keyframes g-scroll-edge {
+  0%   { --g-fade-l: 0px;  --g-fade-r: 28px; }
+  10%  { --g-fade-l: 28px; --g-fade-r: 28px; }
+  90%  { --g-fade-l: 28px; --g-fade-r: 28px; }
+  100% { --g-fade-l: 28px; --g-fade-r: 0px; }
+}
+@supports (animation-timeline: scroll()) {
+  .g-scroll-x {
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--g-fade-l), #000 calc(100% - var(--g-fade-r)), transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0, #000 var(--g-fade-l), #000 calc(100% - var(--g-fade-r)), transparent 100%);
+    animation: g-scroll-edge linear both;
+    animation-timeline: scroll(self inline);
+  }
+}
+/* Labels inside tabs/segments/chips stay on one line (V3); the bar scrolls instead. */
+.g-scroll-x > :where(button, a, [role="tab"]) { white-space: nowrap; flex-shrink: 0; }
+
+/* ── Card hover lift (ANIMATION PILOT, owner TASK 4) ─────────────────────────────────────────────
+   For cards that ARE controls (button / link). Real pointers only (no sticky hover on touch), never
+   under reduced motion. Uses the `translate` property so it composes with the press `scale` above;
+   transform-only, so no layout shift. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .g-lift {
+    transition: translate 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1), border-color 150ms ease-out, background-color 150ms ease-out;
+  }
+  .g-lift:hover, .g-lift:focus-visible {
+    translate: 0 -2px;
+    box-shadow: 0 10px 24px -14px rgb(0 0 0 / 0.55), 0 0 0 1px color-mix(in srgb, var(--primary-color) 22%, transparent);
+  }
+  .g-lift:active { translate: 0 0; }
+}

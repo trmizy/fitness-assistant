@@ -44,6 +44,8 @@ export interface ExceptionRow {
   requestReason: string;
   requestedByName: string;
   createdAt: string | null;
+  /** End of the local day the request was made (server: `expiresAt`); a PENDING row past it can no longer be decided (410). */
+  expiresAt: string | null;
   decisionReason: string | null;
   decidedByName: string | null;
   mine: boolean;
@@ -113,6 +115,7 @@ export function normalizeExceptions(raw: unknown): { canApprove: boolean; except
           requestReason: str(x.requestReason) ?? "",
           requestedByName: str(x.requestedByName) ?? "Nhân viên",
           createdAt: str(x.createdAt),
+          expiresAt: str(x.expiresAt),
           decisionReason: str(x.decisionReason),
           decidedByName: str(x.decidedByName),
           mine: x.mine === true,
@@ -120,6 +123,113 @@ export function normalizeExceptions(raw: unknown): { canApprove: boolean; except
       ];
     }),
   };
+}
+
+/**
+ * Item 6: số yêu cầu ngoại lệ check-in đang chờ DUYỆT, cho huy hiệu "Quầy lễ tân". Phản chiếu web `countPendingExceptions`:
+ * chỉ tính khi server nói `canApprove` (chủ/quản lý) và bỏ yêu cầu do chính mình tạo (không tự duyệt được — bốn mắt).
+ * Mỗi phần tử là phản hồi THÔ của GET …/front-desk/exceptions cho một chi nhánh; phản hồi lỗi/sai dạng tính là 0.
+ */
+export function countPendingExceptions(rawLists: readonly unknown[]): number {
+  let n = 0;
+  for (const raw of rawLists) {
+    const { canApprove, exceptions } = normalizeExceptions(raw);
+    if (!canApprove) continue;
+    n += exceptions.filter((e) => e.status === "PENDING" && !e.mine).length;
+  }
+  return n;
+}
+
+// ── Duyệt / Từ chối ngoại lệ (owner + manager) ─────────────────────────────────────────────────────────────────
+// Phản chiếu web `front-desk/frontDeskModel.ts`. Máy chủ vẫn là cổng thật (permission `checkin.exception.approve`, bốn mắt
+// `requestedBy <> decidedBy`, hết hạn cuối ngày, mỗi yêu cầu chỉ một quyết định); phần này chỉ quyết định màn nói gì và mời gì.
+
+export const REASON_MIN = 5;
+export const REASON_MAX = 300;
+export type DecisionVerb = "approve" | "reject";
+
+/** null = hợp lệ. Máy chủ tự trim và kiểm 5-300 (400 REASON_REQUIRED). */
+export function reasonProblem(reason: string): string | null {
+  const n = reason.trim().length;
+  if (n < REASON_MIN) return `Cần ghi lý do, ít nhất ${REASON_MIN} ký tự.`;
+  if (reason.length > REASON_MAX) return `Lý do tối đa ${REASON_MAX} ký tự.`;
+  return null;
+}
+
+export const reasonCounter = (reason: string): string => `${reason.length}/${REASON_MAX}`;
+
+/** PENDING và chưa quá hạn cuối ngày (quá hạn → máy chủ trả 410, nên không còn là "đang chờ"). */
+export function isOpenPending(e: Pick<ExceptionRow, "status" | "expiresAt">, nowMs: number): boolean {
+  if (e.status !== "PENDING") return false;
+  if (!e.expiresAt) return true;
+  const t = new Date(e.expiresAt).getTime();
+  return Number.isNaN(t) || t >= nowMs;
+}
+
+/**
+ * Hiện nút Duyệt / Từ chối cho MỘT dòng khi: danh sách do máy chủ trả `canApprove`, `permissions[]` có `checkin.exception.approve`,
+ * dòng còn chờ duyệt và KHÔNG do chính mình xin. Thiếu bất kỳ điều nào → false (fail-closed; lễ tân không bao giờ thấy).
+ */
+export function canDecideRow(args: { canApprovePermission: boolean; listCanApprove: boolean; row: Pick<ExceptionRow, "status" | "expiresAt" | "mine">; nowMs: number }): boolean {
+  return args.canApprovePermission && args.listCanApprove && !args.row.mine && isOpenPending(args.row, args.nowMs);
+}
+
+export const DECISION_TEXT: Record<DecisionVerb, { action: string; confirm: string; doing: string; success: string; placeholder: string; body: string }> = {
+  approve: {
+    action: "Duyệt",
+    confirm: "Xác nhận duyệt",
+    doing: "Đang gửi…",
+    success: "Đã duyệt ngoại lệ",
+    placeholder: "Bạn đã xác minh bằng cách nào? (ít nhất 5 ký tự)",
+    body: "Hội viên sẽ được check-in hộ một lần, chỉ trong hôm nay. Lý do của bạn được ghi lại cùng tên bạn.",
+  },
+  reject: {
+    action: "Từ chối",
+    confirm: "Xác nhận từ chối",
+    doing: "Đang gửi…",
+    success: "Đã từ chối ngoại lệ",
+    placeholder: "Vì sao từ chối? (ít nhất 5 ký tự)",
+    body: "Yêu cầu sẽ bị từ chối và lễ tân phải xin lại nếu vẫn cần. Lý do của bạn được ghi lại cùng tên bạn.",
+  },
+};
+
+export function decisionTitle(verb: DecisionVerb, memberName: string, branchName: string): string {
+  return `${DECISION_TEXT[verb].action} ngoại lệ check-in cho ${memberName} tại ${branchName}`;
+}
+
+export interface DecisionRefusal {
+  /** Điều người dùng đọc (không bao giờ là mã). */
+  text: string;
+  /** Danh sách đã cũ (người khác vừa xử lý / hết hạn): tải lại. */
+  reload: boolean;
+  /** Gửi lại cùng nội dung vẫn có thể được (gõ lý do tốt hơn, mạng chậm). False = câu trả lời sẽ không đổi. */
+  retry: boolean;
+}
+
+const DECISION_CODE_TEXT: Record<string, DecisionRefusal> = {
+  EXCEPTION_SELF_APPROVAL: { text: "Bạn không thể tự duyệt yêu cầu do chính mình xin. Hãy nhờ chủ phòng gym hoặc một quản lý khác quyết định.", reload: false, retry: false },
+  EXCEPTION_ALREADY_DECIDED: { text: "Yêu cầu này vừa được người khác xử lý hoặc đã được dùng. Danh sách đã được tải lại để bạn xem kết quả mới.", reload: true, retry: false },
+  EXCEPTION_EXPIRED: { text: "Yêu cầu này đã hết hạn vì chỉ có hiệu lực trong ngày. Lễ tân cần xin yêu cầu mới.", reload: true, retry: false },
+  EXCEPTION_NOT_FOUND: { text: "Không tìm thấy yêu cầu này ở chi nhánh đang xem. Danh sách đã được tải lại.", reload: true, retry: false },
+  REASON_REQUIRED: { text: `Cần ghi lý do, ít nhất ${REASON_MIN} ký tự.`, reload: false, retry: true },
+  VALIDATION_ERROR: { text: `Lý do chưa hợp lệ. Hãy ghi từ ${REASON_MIN} đến ${REASON_MAX} ký tự.`, reload: false, retry: true },
+  PERMISSION_DENIED: { text: "Vai trò của bạn không có quyền duyệt hay từ chối ngoại lệ.", reload: false, retry: false },
+  OWNER_ROLE_REQUIRED: { text: "Vai trò của bạn không có quyền duyệt hay từ chối ngoại lệ.", reload: false, retry: false },
+  GYM_OUT_OF_SCOPE: { text: "Bạn không được giao chi nhánh này nên không thể duyệt ở đây.", reload: false, retry: false },
+  PARTNER_SUSPENDED: { text: "Đối tác đang bị đình chỉ nên chưa thực hiện được. Vui lòng liên hệ hỗ trợ Gymini.", reload: false, retry: false },
+};
+
+/** Câu trả lời của máy chủ → câu tiếng Việt. Theo mã trước, rồi theo HTTP status (403 / 409 / 410 / 429), rồi câu chung. */
+export function decisionRefusal(err: unknown): DecisionRefusal {
+  const r = (err as { response?: { status?: number; data?: { error?: { code?: string } } } } | null)?.response;
+  const code = r?.data?.error?.code;
+  if (code && DECISION_CODE_TEXT[code]) return DECISION_CODE_TEXT[code];
+  if (r?.status === 410) return DECISION_CODE_TEXT.EXCEPTION_EXPIRED;
+  if (r?.status === 409) return DECISION_CODE_TEXT.EXCEPTION_ALREADY_DECIDED;
+  if (r?.status === 403) return { text: "Bạn không có quyền thực hiện việc này.", reload: false, retry: false };
+  if (r?.status === 429) return { text: "Thao tác quá nhanh. Vui lòng đợi một chút rồi thử lại.", reload: false, retry: true };
+  if (!r) return { text: "Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.", reload: false, retry: true };
+  return { text: "Có lỗi xảy ra. Vui lòng thử lại.", reload: false, retry: true };
 }
 
 /** Member code as typed: strip stray characters, UPPERCASE, dash after 4 when 8 are present. */

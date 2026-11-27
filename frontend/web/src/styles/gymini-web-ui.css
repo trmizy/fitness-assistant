@@ -1,0 +1,117 @@
+/*
+ * GYMINI WEB UI — navigation design-system prototype (branch frontend2/web-ui-navigation-prototype).
+ * .gw-* classes only: every colour/scale comes from the single Obsidian token set (--ob-*, styles/obsidian.css);
+ * nothing here defines tokens or redefines the app's global ones (--bg-color, --card-bg, zinc-* …). Used by the
+ * shared navigation patterns (ContextNav, SegmentedControl,
+ * ContentTabs) and only on the WEB presentation (see utils/webPresentation.ts): the packaged Capacitor app keeps
+ * the previous markup.
+ *
+ * Direction: Obsidian / refined fitness UI (owner, 2026-11-23). Linear-like clarity (quiet chrome, one accent,
+ * hierarchy from size/colour, not weight), Settigation-like motion (one sliding indicator, short hover surfaces).
+ */
+/* ── Level 2: contextual navigation (Settings-style) ─────────────────────────────────────────────── */
+.gw-ctx-nav { display: flex; flex-direction: column; gap: 20px; }
+.gw-ctx-group-label { padding: 0 10px 6px; font-size: 12px; font-weight: 500; color: var(--ob-text-3); }
+.gw-ctx-list { display: flex; flex-direction: column; gap: 2px; list-style: none; margin: 0; padding: 0; }
+.gw-ctx-item {
+  position: relative; isolation: isolate; display: flex; align-items: center; gap: 10px;
+  min-height: var(--ob-row); padding: 0 10px; border-radius: var(--ob-r-md);
+  font-size: 14px; color: var(--ob-text-2); text-decoration: none;
+  transition: color var(--ob-dur-hover) var(--ob-ease), background-color var(--ob-dur-hover) var(--ob-ease);
+}
+.gw-ctx-item:hover { color: var(--ob-text); background-color: var(--ob-hover); }
+.gw-ctx-item[aria-current="page"] { color: var(--ob-text); }
+.gw-ctx-item[aria-current="page"]:hover { background-color: transparent; }
+.gw-ctx-item > svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--ob-text-3); transition: color var(--ob-dur-hover) var(--ob-ease); }
+.gw-ctx-item[aria-current="page"] > svg { color: var(--ob-accent-ink); }
+.gw-ctx-item:focus-visible { outline: 2px solid var(--ob-accent-ink); outline-offset: 1px; }
+.gw-ctx-pill { position: absolute; inset: 0; z-index: -1; border-radius: var(--ob-r-md); background: var(--ob-elevated); box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.04); }
+@media (pointer: coarse) { .gw-ctx-item { min-height: var(--ob-row-touch); } }
+
+/* Mobile list (level 2, step 1): grouped rows with description + chevron */
+.gw-list-group { background: var(--ob-surface); border: 1px solid var(--ob-hair); border-radius: var(--ob-r-lg); overflow: hidden; }
+.gw-list-row {
+  display: grid; grid-template-columns: 36px minmax(0, 1fr) 16px; align-items: center; gap: 12px;
+  min-height: 60px; padding: 10px 14px; color: var(--ob-text); text-decoration: none;
+  transition: background-color var(--ob-dur-hover) var(--ob-ease);
+}
+.gw-list-row + .gw-list-row { border-top: 1px solid var(--ob-hair); }
+.gw-list-row:hover, .gw-list-row:active { background: var(--ob-hover); }
+.gw-list-row:focus-visible { outline: 2px solid var(--ob-accent-ink); outline-offset: -2px; }
+.gw-list-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--ob-r-md); background: var(--ob-elevated); color: var(--ob-text-2); }
+.gw-list-desc { font-size: 12px; line-height: 16px; color: var(--ob-text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Level 3: segmented control (view mode / range) ──────────────────────────────────────────────── */
+.gw-seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--ob-r-md); background: var(--ob-surface); border: 1px solid var(--ob-hair); }
+.gw-seg-opt {
+  position: relative; isolation: isolate; min-height: 32px; padding: 0 12px; border-radius: 8px; white-space: nowrap;
+  font-size: 13px; font-weight: 500; color: var(--ob-text-2);
+  transition: color var(--ob-dur-hover) var(--ob-ease);
+}
+.gw-seg-opt:hover { color: var(--ob-text); }
+.gw-seg-opt[aria-checked="true"] { color: var(--ob-text); }
+.gw-seg-opt:focus-visible { outline: 2px solid var(--ob-accent-ink); outline-offset: 1px; }
+.gw-seg-pill { position: absolute; inset: 0; z-index: -1; border-radius: 8px; background: var(--ob-elevated); box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05); }
+@media (pointer: coarse) { .gw-seg-opt { min-height: 44px; } }
+
+/* ── Level 3: content tabs ────────────────────────────────────────────────────────────────────────── */
+.gw-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--ob-hair); overflow-x: auto; scrollbar-width: none; }
+.gw-tabs::-webkit-scrollbar { display: none; }
+.gw-tab {
+  position: relative; min-height: 44px; padding: 0 12px; white-space: nowrap; flex-shrink: 0;
+  font-size: 14px; font-weight: 500; color: var(--ob-text-2);
+  transition: color var(--ob-dur-hover) var(--ob-ease);
+}
+.gw-tab:hover { color: var(--ob-text); }
+.gw-tab[aria-selected="true"] { color: var(--ob-text); }
+.gw-tab:focus-visible { outline: 2px solid var(--ob-accent-ink); outline-offset: -2px; border-radius: 6px; }
+.gw-tab-bar { position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--ob-accent); }
+.gw-tabpanel:focus-visible { outline: 2px solid var(--ob-accent-ink); outline-offset: 4px; border-radius: 8px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gw-ctx-item, .gw-ctx-item > svg, .gw-list-row, .gw-seg-opt, .gw-tab { transition: none; }
+}
+
+/* ── Level 3: filter chips (one row; scrolls instead of wrapping) ────────────────────────────────── */
+.gw-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px 0; }
+.gw-chips::-webkit-scrollbar { display: none; }
+.gw-chips-wrap { flex-wrap: wrap; overflow: visible; }
+.gw-chip {
+  display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; min-height: 36px; padding: 0 12px;
+  border-radius: 999px; border: 1px solid var(--ob-hair-strong); background: transparent;
+  font-size: 13px; font-weight: 500; color: var(--ob-text-2); white-space: nowrap;
+  transition: color var(--ob-dur-hover) var(--ob-ease), background-color var(--ob-dur-hover) var(--ob-ease), border-color var(--ob-dur-hover) var(--ob-ease);
+}
+.gw-chip:hover { color: var(--ob-text); background: var(--ob-hover); }
+.gw-chip[aria-pressed="true"] { color: var(--ob-text); background: var(--ob-accent-soft); border-color: var(--ob-accent-line); }
+.gw-chip:focus-visible { outline: 2px solid var(--ob-accent-ink); outline-offset: 1px; }
+.gw-chip-check { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 5px; border: 1px solid var(--ob-hair-strong); font-size: 11px; line-height: 1; color: var(--ob-on-accent, #04130a); }
+.gw-chip[aria-pressed="true"] .gw-chip-check { background: var(--ob-accent); border-color: var(--ob-accent); }
+.gw-count { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--ob-elevated); color: var(--ob-text); font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+@media (pointer: coarse) { .gw-chip { min-height: 44px; } }
+
+/* ── Radio cards (single choice with description) ────────────────────────────────────────────────── */
+.gw-radio-card {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 56px;
+  padding: 10px 14px; border-radius: var(--ob-r-lg); border: 1px solid var(--ob-hair-strong); background: var(--ob-surface);
+  transition: border-color var(--ob-dur-hover) var(--ob-ease), background-color var(--ob-dur-hover) var(--ob-ease);
+}
+.gw-radio-card:hover { background: var(--ob-hover); }
+.gw-radio-card[aria-checked="true"] { border-color: var(--ob-accent-line); background: var(--ob-accent-soft); }
+.gw-radio-card:focus-visible { outline: 2px solid var(--ob-accent-ink); outline-offset: 2px; }
+.gw-radio-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--ob-r-md); background: var(--ob-elevated); color: var(--ob-text-2); }
+.gw-radio-card[aria-checked="true"] .gw-radio-icon { color: var(--ob-accent-ink); }
+.gw-radio-dot { width: 18px; height: 18px; border-radius: 999px; border: 1.5px solid var(--ob-hair-strong); }
+.gw-radio-card[aria-checked="true"] .gw-radio-dot { border: 5px solid var(--ob-accent); }
+/* Page-level bar above a page that has its own inner tab bar (Dịch vụ): smaller, fainter, thinner indicator. Text stays
+   >= 4.5:1 (--ob-text-3 / --ob-text-2); the 44px target is kept. */
+.gw-tabs--quiet { border-bottom-color: var(--ob-hair); }
+.gw-tab--quiet { font-size: 13px; font-weight: 400; color: var(--ob-text-3); }
+.gw-tab--quiet:hover { color: var(--ob-text-2); }
+.gw-tab--quiet[aria-selected="true"] { color: var(--ob-text-2); font-weight: 500; }
+.gw-tab--quiet > svg { width: 14px; height: 14px; opacity: 0.85; }
+.gw-tab--quiet .gw-tab-bar { height: 1px; left: 12px; right: 12px; background: var(--ob-text-2); }
+.gw-tab > svg { display: inline-block; margin-right: 6px; vertical-align: -3px; }
+.gw-tab .gw-count { margin-left: 6px; }
+
+@media (prefers-reduced-motion: reduce) { .gw-chip, .gw-radio-card { transition: none; } }

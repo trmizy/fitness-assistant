@@ -451,7 +451,7 @@ integrationTest('picker response shape and ordering: acceptedAt newest first, th
     const mine = (await collaborationService.listAcceptedGymsForPt(w.ptUserId));
     assert.deepEqual(mine.map((o) => o.gym.id), [solo, alpha, zeta]);
     assert.deepEqual(Object.keys(mine[0]).sort(), ['collaborationId', 'gym', 'rates']);
-    assert.deepEqual(Object.keys(mine[0].gym).sort(), ['city', 'id', 'name']);
+    assert.deepEqual(Object.keys(mine[0].gym).sort(), ['city', 'id', 'latitude', 'longitude', 'name']); // 525df50a: lat/lng added for the distance feature
     assert.equal(mine[0].collaborationId, legacy.id);
     assert.equal(mine[1].collaborationId, agreement.id);
     assert.deepEqual(mine[1].rates, str(R_BRAND));

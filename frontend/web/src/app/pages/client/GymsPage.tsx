@@ -550,7 +550,7 @@ export function GymsPage() {
           </div>
 
           <div>
-            <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Mức giá tối đa</label>
+            <label className="text-xs text-zinc-500 mb-1.5 block">Mức giá tối đa</label>
             <div className="flex flex-wrap gap-2">
               {PRICE_MAX_OPTIONS.map((b) => (
                 <button
@@ -569,7 +569,7 @@ export function GymsPage() {
 
           {knownAmenities.size > 0 && (
             <div>
-              <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Tiện ích</label>
+              <label className="text-xs text-zinc-500 mb-1.5 block">Tiện ích</label>
               <div className="flex flex-wrap gap-2">
                 {[...knownAmenities.values()].map((am) => {
                   const active = selectedAmenities.includes(am.slug);
