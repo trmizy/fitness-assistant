@@ -3,6 +3,7 @@ import { partnerRepository } from '../repositories/partner.repository';
 import { countAdminQueues } from './admin-queue.definitions';
 import { prisma } from '../repositories/prisma';
 import { isTestAccountEmail } from '@gym-coach/shared';
+import { Prisma } from '../generated/prisma';
 import type { PartnerDocumentType, PartnerDocumentStatus, PartnerContactChannel, PartnerVerificationStatus } from '../generated/prisma';
 
 function err(message: string, status: number) {
@@ -239,19 +240,34 @@ export const partnerDiligenceService = {
    * branch = owned by a test account. The review queue (needsAttention) is work to do, not a statistic — left as is.
    */
   async overviewStats(testUserIds: string[] | null = null) {
-    let partnerNot: { id: { notIn: string[] } } | {} = {};
-    let gymNot: { ownerId: { notIn: string[] } } | {} = {};
+    // Postgres caps one prepared statement at 32767 bind variables. `{ notIn: ids }` / `{ in: ids }` binds ONE variable per
+    // id, and on the deployed server auth-service returns ~37k test-account ids (AWS DEV 500: "too many bind variables").
+    // So an id list that can be that long is sent as ONE text[] parameter (`<> ALL(${ids}::text[])` / `= ANY(...)`) through
+    // $queryRaw: the same exact semantics as notIn / in, no chunking, no in-memory filtering. Every id column here is text.
+    let partnerIds: string[] = [];
+    let ownerIds: string[] = [];
     let excludedPartners: number | null = null;
     if (testUserIds) {
       const [byEmail, byAccount] = await Promise.all([
         prisma.gymPartner.findMany({ where: { contactEmail: { not: null } }, select: { id: true, contactEmail: true } }),
-        testUserIds.length ? prisma.gymPartnerAccount.findMany({ where: { userId: { in: testUserIds } }, select: { partnerId: true } }) : Promise.resolve([]),
+        testUserIds.length
+          ? prisma.$queryRaw<{ partnerId: string }[]>(Prisma.sql`SELECT partner_id AS "partnerId" FROM gym_partner_accounts WHERE user_id = ANY(${testUserIds}::text[])`)
+          : Promise.resolve([] as { partnerId: string }[]),
       ]);
-      const ids = [...new Set([...byEmail.filter((x) => isTestAccountEmail(x.contactEmail)).map((x) => x.id), ...byAccount.map((x) => x.partnerId)])];
-      excludedPartners = ids.length;
-      if (ids.length) partnerNot = { id: { notIn: ids } };
-      if (testUserIds.length) gymNot = { ownerId: { notIn: testUserIds } };
+      partnerIds = [...new Set([...byEmail.filter((x) => isTestAccountEmail(x.contactEmail)).map((x) => x.id), ...byAccount.map((x) => x.partnerId)])];
+      excludedPartners = partnerIds.length;
+      ownerIds = testUserIds;
     }
+    const countPartners = async (status?: 'ACTIVE' | 'SUSPENDED' | 'TERMINATED') => {
+      if (!partnerIds.length) return prisma.gymPartner.count({ where: status ? { status } : {} });
+      const rows = await prisma.$queryRaw<{ n: bigint }[]>(Prisma.sql`SELECT COUNT(*) AS n FROM gym_partners WHERE id <> ALL(${partnerIds}::text[])${status ? Prisma.sql` AND status::text = ${status}` : Prisma.empty}`);
+      return Number(rows[0].n);
+    };
+    const countGyms = async (column: 'status' | 'operational_status', value: 'APPROVED' | 'TEMPORARILY_CLOSED') => {
+      if (!ownerIds.length) return prisma.gym.count({ where: column === 'status' ? { status: value as 'APPROVED' } : { operationalStatus: value as 'TEMPORARILY_CLOSED' } });
+      const rows = await prisma.$queryRaw<{ n: bigint }[]>(Prisma.sql`SELECT COUNT(*) AS n FROM gyms WHERE owner_id <> ALL(${ownerIds}::text[]) AND ${Prisma.raw(column)}::text = ${value}`);
+      return Number(rows[0].n);
+    };
     const [
       totalPartners,
       activePartners,
@@ -261,12 +277,12 @@ export const partnerDiligenceService = {
       temporarilyClosedBranches,
       needsAttention,
     ] = await Promise.all([
-      prisma.gymPartner.count({ where: { ...partnerNot } }),
-      prisma.gymPartner.count({ where: { status: 'ACTIVE', ...partnerNot } }),
-      prisma.gymPartner.count({ where: { status: 'SUSPENDED', ...partnerNot } }),
-      prisma.gymPartner.count({ where: { status: 'TERMINATED', ...partnerNot } }),
-      prisma.gym.count({ where: { status: 'APPROVED', ...gymNot } }),
-      prisma.gym.count({ where: { operationalStatus: 'TEMPORARILY_CLOSED', ...gymNot } }),
+      countPartners(),
+      countPartners('ACTIVE'),
+      countPartners('SUSPENDED'),
+      countPartners('TERMINATED'),
+      countGyms('status', 'APPROVED'),
+      countGyms('operational_status', 'TEMPORARILY_CLOSED'),
       this.queue(),
     ]);
 
